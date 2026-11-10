@@ -5557,6 +5557,90 @@ impl Enc<'_> {
                     locals: vec![from, count],
                 }
             }
+            // A new list, each element its index from `start` (`Helper::Range`).
+            N::ListRange => Held::Flat {
+                ty: rt,
+                locals: call(self, Helper::Range, &[flats[0].1[0], flats[1].1[0]]),
+            },
+            // **A copy, the elements at `i` and `j` exchanged**, each
+            // element's bytes moved whole; the list as it is, shared, where
+            // either is no place in it.
+            N::ListSwap => {
+                let (ptr, len) = (flats[0].1[0], flats[0].1[1]);
+                let (i, j) = (flats[1].1[0], flats[2].1[0]);
+                let Some(et) = self.element_of(flats[0].0) else {
+                    blocked!("`{}` swaps in a value that is not a list", self.export);
+                };
+                let (esize, ealign) = self.layout(&et);
+                let size = esize as i32;
+                let inside = self.locals.fresh(ValType::I32);
+                let out = self.locals.fresh(ValType::I32);
+                // Each a place in the list: 0 <= i < len, and so j.
+                let place = |at: u32| {
+                    [
+                        I::LocalGet(at),
+                        I::I64Const(0),
+                        I::I64GeS,
+                        I::LocalGet(at),
+                        I::LocalGet(len),
+                        I::I64ExtendI32U,
+                        I::I64LtS,
+                        I::I32And,
+                    ]
+                };
+                self.ops.extend(place(i));
+                self.ops.extend(place(j));
+                self.ops.extend([
+                    I::I32And,
+                    I::LocalSet(inside),
+                    I::LocalGet(ptr),
+                    I::LocalSet(out),
+                    I::LocalGet(inside),
+                    I::If(Empty),
+                ]);
+                let copy = self.alloc_array(len, esize, ealign);
+                // The element at `to` in the copy is the original's at `from`.
+                let moved = |to: u32, from: u32| {
+                    [
+                        I::LocalGet(copy),
+                        I::LocalGet(to),
+                        I::I32WrapI64,
+                        I::I32Const(size),
+                        I::I32Mul,
+                        I::I32Add,
+                        I::LocalGet(ptr),
+                        I::LocalGet(from),
+                        I::I32WrapI64,
+                        I::I32Const(size),
+                        I::I32Mul,
+                        I::I32Add,
+                        I::I32Const(size),
+                        I::MemoryCopy {
+                            src_mem: 0,
+                            dst_mem: 0,
+                        },
+                    ]
+                };
+                self.ops.extend([
+                    I::LocalGet(copy),
+                    I::LocalGet(ptr),
+                    I::LocalGet(len),
+                    I::I32Const(size),
+                    I::I32Mul,
+                    I::MemoryCopy {
+                        src_mem: 0,
+                        dst_mem: 0,
+                    },
+                ]);
+                self.ops.extend(moved(i, j));
+                self.ops.extend(moved(j, i));
+                self.ops
+                    .extend([I::LocalGet(copy), I::LocalSet(out), I::End]);
+                Held::Flat {
+                    ty: rt,
+                    locals: vec![out, len],
+                }
+            }
             // A copy, the last element first, each element's bytes moved
             // whole: what an element points to is shared, and never changes.
             N::ListReverse => {
@@ -7409,6 +7493,62 @@ fn string_helper(
             ]);
             (vec![(8, ValType::I32)], ops)
         }
+        // params 0 start, 1 end (i64); locals 2 count, 3 out, 4 i (i32)
+        Helper::Range => {
+            let mut ops = vec![
+                // A range of more than 2^28 - 1 elements traps: its bytes are
+                // no `i32`, and a length that wrapped would be a shorter list.
+                // Unsigned: past `end > start`, the difference's bits are the
+                // count even where the subtraction wrapped (`MIN` to `MAX`).
+                I::LocalGet(1),
+                I::LocalGet(0),
+                I::I64GtS,
+                I::LocalGet(1),
+                I::LocalGet(0),
+                I::I64Sub,
+                I::I64Const(0x0fff_ffff),
+                I::I64GtU,
+                I::I32And,
+                I::If(Empty),
+                I::Call(trap_index(realloc_index, Cause::TooLongForMemory)),
+                I::Unreachable,
+                I::End,
+                // count = end > start ? end - start : 0
+                I::LocalGet(1),
+                I::LocalGet(0),
+                I::I64Sub,
+                I::I32WrapI64,
+                I::I32Const(0),
+                I::LocalGet(1),
+                I::LocalGet(0),
+                I::I64GtS,
+                I::Select,
+                I::LocalSet(2),
+            ];
+            ops.extend(alloc(8, vec![I::LocalGet(2), I::I32Const(8), I::I32Mul], 3));
+            ops.extend(each(
+                4,
+                2,
+                vec![
+                    I::LocalGet(3),
+                    I::LocalGet(4),
+                    I::I32Const(8),
+                    I::I32Mul,
+                    I::I32Add,
+                    I::LocalGet(0),
+                    I::LocalGet(4),
+                    I::I64ExtendI32U,
+                    I::I64Add,
+                    I::I64Store(MemArg {
+                        offset: 0,
+                        align: 3,
+                        memory_index: 0,
+                    }),
+                ],
+            ));
+            ops.extend([I::LocalGet(3), I::LocalGet(2), I::End]);
+            (vec![(3, ValType::I32)], ops)
+        }
         // params 0 lp, 1 ll; locals 2 i, 3 bytes, 4 c, 5 out, 6 cur; 7 cp (i64)
         Helper::FromCodepoints => {
             let point = |ops: &mut Vec<I<'static>>| {
@@ -8764,6 +8904,10 @@ enum Helper {
     /// `(ptr, len) -> (p, l)`: UTF-8 from a `list<s64>`; traps on a value
     /// that is not a Unicode scalar value.
     FromCodepoints,
+    /// `(start, end) -> (ptr, len)`: the `list<s64>` from `start` up to
+    /// `end`; traps on one of more than 2^28 - 1 elements, whose bytes no
+    /// `i32` length counts.
+    Range,
     /// `(p1, l1, p2, l2) -> 1 | 0`.
     StartsWith,
     EndsWith,
@@ -8834,6 +8978,7 @@ impl Helper {
             Helper::Codepoints | Helper::FromCodepoints | Helper::Trim | Helper::LowerAscii => {
                 (vec![ValType::I32; 2], vec![ValType::I32; 2])
             }
+            Helper::Range => (vec![ValType::I64; 2], vec![ValType::I32; 2]),
             Helper::Join => (vec![ValType::I32; 4], vec![ValType::I32; 2]),
             Helper::Slice => (
                 vec![ValType::I32, ValType::I32, ValType::I64, ValType::I64],
@@ -8859,6 +9004,7 @@ impl Helper {
             Helper::Utf8Count
             | Helper::Codepoints
             | Helper::FromCodepoints
+            | Helper::Range
             | Helper::StartsWith
             | Helper::EndsWith
             | Helper::Contains

@@ -465,6 +465,12 @@ pub enum Intrinsic {
     ListDrop,
     /// `start` up to `end`, each clamped: a view (ADR-0055).
     ListSlice,
+    /// The whole numbers from `start` up to `end`, none where `end` is not
+    /// past it; more than 2^28 - 1 traps.
+    ListRange,
+    /// The list with the elements at `i` and `j` exchanged, as it is where
+    /// either is no place in it.
+    ListSwap,
     /// A copy, last element first (ADR-0055).
     ListReverse,
     ListConcat,
@@ -548,6 +554,8 @@ impl Operation {
             "list.take" => Operation::Intrinsic(I::ListTake),
             "list.drop" => Operation::Intrinsic(I::ListDrop),
             "list.slice" => Operation::Intrinsic(I::ListSlice),
+            "list.range" => Operation::Intrinsic(I::ListRange),
+            "list.swap" => Operation::Intrinsic(I::ListSwap),
             "list.reverse" => Operation::Intrinsic(I::ListReverse),
             "list.concat" => Operation::Intrinsic(I::ListConcat),
             "string.length" => Operation::Intrinsic(I::StrLength),

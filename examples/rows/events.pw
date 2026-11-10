@@ -44,6 +44,8 @@ page Events() {
     signal items: List<Item> = [Item { id: 1, name: "one" }, Item { id: 2, name: "two" }]
     signal typed_name: String = ""
     signal picked: String = ""
+    signal again: Bool = true
+    signal numbers: List<Int> = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
 
     view {
         <title>Events</title>
@@ -66,12 +68,19 @@ page Events() {
             <p id="wrapped">{wrapped}</p>
             <p id="picked">{picked}</p>
             <ul id="items">
-                {#if List.length(items) > 0}
-                    {#each items as item (item.id)}
-                        <li><span class="name">{item.name}</span> <span class="note">{note}</span> <input class="field" aria-label="Field" value={item.name} /> <button class="pick" type="button" on:press={resumable(captures = { item }) => picked = item.name}>Pick</button></li>
-                    {/each}
-                {/if}
+                {#each items as item (item.id)}
+                    <li><span class="name">{item.name}</span> <span class="note">{note}</span> <input class="field" aria-label="Field" value={item.name} /> <button class="pick" type="button" on:press={resumable(captures = { item }) => picked = item.name}>Pick</button></li>
+                {/each}
             </ul>
+            <button id="hide-again" type="button" on:press={() => again = false}>Hide again</button>
+            <button id="show-again" type="button" on:press={() => again = true}>Show again</button>
+            {#if again}
+                <ol id="again">
+                    {#each numbers as n (n)}
+                        <li><button class="again" type="button" on:press={() => picked = "again"}>{n}</button></li>
+                    {/each}
+                </ol>
+            {/if}
         </main>
     }
 }

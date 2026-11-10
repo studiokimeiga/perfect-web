@@ -654,16 +654,16 @@ pub struct PageLayout {
 impl Indexer {
     /// **The path a computed part is read by** (ADR-0226, ADR-0228): one the
     /// compiler names, which no source can write. A row's, computed from its
-    /// item alone, is the item's, `p.#feed.app.Home~7`, so each row holds its
-    /// own, as a member read of it does (ADR-0169); any other, the template's.
+    /// item and perhaps the signals beside it (ADR-0424),
+    /// is the item's, `p.#feed.app.Home~7`, so each row holds its own,
+    /// as a member read of it does (ADR-0169); any other, the template's.
     fn computed_path(&self, part: PartId, inputs: &[(String, String)]) -> String {
         let named = format!("#{}~{}", self.template, part.0);
         match self.loops.last() {
             Some(item)
-                if !inputs.is_empty()
-                    && inputs
-                        .iter()
-                        .all(|(_, read)| read.split('.').next() == Some(item.as_str())) =>
+                if inputs
+                    .iter()
+                    .any(|(_, read)| read.split('.').next() == Some(item.as_str())) =>
             {
                 format!("{item}.{named}")
             }

@@ -65,11 +65,48 @@ MUTANTS = [
         "                        Reach::Live(bound) => Reach::Live([bound.clone(), names].concat()),\n",
         "                        Reach::Live(bound) => Reach::Live(bound.clone()),\n",
     ),
+    # ADR-0137 refused a list a signal holds outside a block, which the
+    # browser rendered once; amended, it is its own block, rendered again by
+    # its rows, and its controls are these.
     (
-        "a list a signal holds is live outside its block",
+        "a list a signal holds at the top is refused",
         PLAN,
-        "                            Part::Text { .. } | Part::Conditional { .. } | Part::Match { .. },\n",
-        "                            Part::Text { .. } | Part::Conditional { .. } | Part::Match { .. } | Part::Each { .. },\n",
+        "                        (Part::Each { .. }, Reach::Top) => {}\n",
+        "                        (Part::Each { .. }, Reach::Top) => {\n"
+        "                            return Err(format!(\"part {id} is a list {named} holds\"));\n"
+        "                        }\n",
+    ),
+    (
+        "a list's rows are read as the top of the page",
+        PLAN,
+        "                    Reach::Top if signal(collection) || browser.contains(collection) => {\n"
+        "                        Reach::Live(vec![binding.clone()])\n"
+        "                    }\n",
+        "",
+    ),
+    (
+        "a list at the top has no block of its own",
+        PLAN,
+        "        if entry.kind == \"each\"\n"
+        "            && let Some(root) = entry.value.split('.').next()\n"
+        "            && signals.iter().any(|s| s == root)\n",
+        "        if entry.kind == \"no list\"\n"
+        "            && let Some(root) = entry.value.split('.').next()\n"
+        "            && signals.iter().any(|s| s == root)\n",
+    ),
+    (
+        "what a list's rows read is not read again",
+        PLAN,
+        "    let framed = matches!(part, Part::Each { .. });\n",
+        "    let framed = false;\n",
+    ),
+    (
+        "a list the browser computes at the top has no block of its own",
+        PLAN,
+        "                        && read.kind == crate::template_ir::ReadKind::List\n"
+        "                        && let Some(part) = find_part(&template.chunks, read.part.0)\n",
+        "                        && read.kind == crate::template_ir::ReadKind::Subject\n"
+        "                        && let Some(part) = find_part(&template.chunks, read.part.0)\n",
     ),
     (
         "an attribute a signal decides is live",

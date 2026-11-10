@@ -1067,8 +1067,8 @@ struct Server {
     /// contracts: this server links no compiler. Compiled once, with the
     /// artifact's imports read once — both are properties of the bytes.
     components: BTreeMap<String, Loaded>,
-    /// **Whether this build warms what its pages' presses need** (the first
-    /// press's ADR), as its packaging says ([`warms`]): told to the browser
+    /// **Whether this build warms what its pages' presses need** (ADR-0399),
+    /// as its packaging says ([`warms`]): told to the browser
     /// on the handler table's `#warm` line.
     warm: bool,
     /// **The pages whose code is one module** (ADR-0412), as
@@ -1089,9 +1089,10 @@ struct Server {
     /// [`KEPT_AT_MOST`], an answer closes its connection.
     open: Arc<std::sync::atomic::AtomicUsize>,
     /// **The kept connections waiting for their next request** (the
-    /// keep-alive ADR), by their peer's address: arming a dropped command
-    /// (`/bench/drop`) closes them ([`Idle`]).
-    idle: Mutex<BTreeMap<std::net::SocketAddr, TcpStream>>,
+    /// keep-alive ADR), by their peer's address, each with the session its
+    /// last answer was for: arming a session's dropped command
+    /// (`/bench/drop`) closes that session's ([`Idle`]).
+    idle: Mutex<BTreeMap<std::net::SocketAddr, (String, TcpStream)>>,
     /// **The longest a held subscription waits for a wake** ([`WAKE_AT_LEAST`]
     /// in every host; a test lengthens it to show that a push, not a slice,
     /// delivers its frames).
@@ -1342,8 +1343,8 @@ struct Server {
     /// Set once, as the server starts; a page that states its canonical
     /// address cannot be served without it.
     origin: std::sync::OnceLock<String>,
-    /// **Each page no reader decides, as one document** (the prerender's
-    /// ADR), by its template path: filled once, before the host listens.
+    /// **Each page no reader decides, as one document** (ADR-0409),
+    /// by its template path: filled once, before the host listens.
     prerendered: std::sync::OnceLock<BTreeMap<String, prerender::Prerendered>>,
     /// NEXT 6c: **the deployment's payments**, as its configuration states
     /// them (`PW_PAYMENTS`), set once as the server starts; none where it
@@ -3932,20 +3933,23 @@ impl Server {
         }
     }
 
-    /// **Whether a dropped command is armed** (ADR-0175, ADR-0401), for any
-    /// session. A browser sends a request again by itself where a connection
-    /// it reused closes before any answer, so a drop on a kept connection
-    /// never reaches the page. Arming closes the kept connections waiting;
-    /// and until the drop is taken no answer keeps its connection, so one
-    /// busy when it was armed (a held subscription) is not reused either:
-    /// the command goes on a connection the browser never used. Only a test
-    /// arms one (`/bench/drop`).
-    fn dropping_a_command(&self) -> bool {
+    /// **Whether a dropped command is armed for `session`** (ADR-0175,
+    /// ADR-0401). A browser sends a request again by itself where a
+    /// connection it reused closes before any answer, so a drop on a kept
+    /// connection never reaches the page. Arming closes the session's kept
+    /// connections waiting; and until the drop is taken no answer to the
+    /// session keeps its connection, so one busy when it was armed (a held
+    /// subscription) is not reused either: the command goes on a connection
+    /// the browser never used. Another session's connections are its own, as
+    /// each fault is its session's, and the suite shares its host: until ADR-0423
+    /// every session's kept connection was closed, under
+    /// browsers reusing them. Only a test arms one (`/bench/drop`).
+    fn dropping_a_command_for(&self, session: &str) -> bool {
         self.connection_faults
             .lock()
             .expect("connection faults")
-            .values()
-            .any(|f| f.drop_command.is_some())
+            .get(session)
+            .is_some_and(|f| f.drop_command.is_some())
     }
 
     /// **Whether the session's next command connection is dropped, and
@@ -7272,7 +7276,10 @@ impl Server {
         }
         // What it computes from its signals, at their first values (ADR-0227).
         let env = self.with_computed_signals(env, plan, template)?;
-        let env = with_signals(env, plan).in_domain(
+        // And what each row of a list the browser renders computes (ADR-0424),
+        // from the signals just set.
+        let env = self.with_browser_rows(with_signals(env, plan), plan, template)?;
+        let env = env.in_domain(
             IdentityDomain::document(path, partition, BUILD).keyed("own-renderer-spike-key"),
         );
         let body = pw_render::render(template, &env, &self.templates)
@@ -7461,8 +7468,25 @@ impl Server {
         template: &Template,
     ) -> Result<Env, String> {
         for live in plan["live"].as_array().into_iter().flatten() {
+            if let Some((path, value)) = self.computed_first(plan, template, live)? {
+                env = env.set(&path, val_to_value(&value));
+            }
+        }
+        Ok(env)
+    }
+
+    /// **What one live part computes from the signals' first values**
+    /// (ADR-0227), by the path the template reads it; none for one that
+    /// computes nothing.
+    fn computed_first(
+        &self,
+        plan: &serde_json::Value,
+        template: &Template,
+        live: &serde_json::Value,
+    ) -> Result<Option<(String, Val)>, String> {
+        {
             let Some(id) = live["derived"].as_str() else {
-                continue;
+                return Ok(None);
             };
             let part = live["part"].as_u64().unwrap_or_default() as u32;
             // A text part, an attribute, or a block's subject (ADR-0229); or
@@ -7498,9 +7522,106 @@ impl Server {
                 })
                 .collect();
             let value = self.computed_from(id, &firsts)?;
-            env = env.set(&path, val_to_value(&value));
+            Ok(Some((path, value)))
+        }
+    }
+
+    /// **What each row of a list the browser renders computes, for the first
+    /// render** (ADR-0424): each row of the list's first
+    /// value given the member the template reads, computed by its component
+    /// from the row's item and the signals' first values, as a host gives a
+    /// query's row what it reads through a member (ADR-0170). The browser
+    /// computes it from then on. Set where the list is read, for the render;
+    /// the signal the page holds is its own value.
+    fn with_browser_rows(
+        &self,
+        mut env: Env,
+        plan: &serde_json::Value,
+        template: &Template,
+    ) -> Result<Env, String> {
+        let mut lists: BTreeMap<&str, Vec<&serde_json::Value>> = BTreeMap::new();
+        for row in plan["browser_rows"].as_array().into_iter().flatten() {
+            if let Some(collection) = row["collection"].as_str() {
+                lists.entry(collection).or_default().push(row);
+            }
+        }
+        for (collection, rows) in lists {
+            let items = self.first_list(plan, template, collection)?;
+            let mut shown = Vec::with_capacity(items.len());
+            for item in &items {
+                let mut rendered = Value::from_wire(item)?;
+                let Value::Record(fields) = &mut rendered else {
+                    return Err(format!("a row of `{collection}` is no record"));
+                };
+                for row in &rows {
+                    let binding = row["binding"].as_str().unwrap_or_default();
+                    // Each value it reads, in its function's order: the row's
+                    // item, or a signal's first value, then its fields.
+                    let args: Vec<serde_json::Value> = row["inputs"]
+                        .as_array()
+                        .into_iter()
+                        .flatten()
+                        .filter_map(|input| input.as_str())
+                        .map(|input| {
+                            let mut at = input.split('.');
+                            let root = at.next().unwrap_or_default();
+                            let mut value = if root == binding {
+                                item.clone()
+                            } else {
+                                first_value(plan, root)
+                            };
+                            for field in at {
+                                value = value[field].clone();
+                            }
+                            value
+                        })
+                        .collect();
+                    let value =
+                        self.computed_from(row["derived"].as_str().unwrap_or_default(), &args)?;
+                    // By its path from the item's name, as a query's row's is.
+                    let path = row["path"].as_str().unwrap_or_default();
+                    let within = path.split_once('.').map_or("", |(_, rest)| rest);
+                    fields.insert(within.to_string(), val_to_value(&value));
+                }
+                shown.push(rendered);
+            }
+            env = env.set(collection, Value::List(shown));
         }
         Ok(env)
+    }
+
+    /// **A list's first value, as the page holds it** (ADR-0424):
+    /// a signal's, by its fields, or one the browser computes
+    /// from the signals, as its component computes it from their first values.
+    fn first_list(
+        &self,
+        plan: &serde_json::Value,
+        template: &Template,
+        collection: &str,
+    ) -> Result<Vec<serde_json::Value>, String> {
+        let value = if collection.starts_with('#') {
+            let mut found = None;
+            for live in plan["live"].as_array().into_iter().flatten() {
+                if let Some((path, value)) = self.computed_first(plan, template, live)?
+                    && path == collection
+                {
+                    found = Some(val_to_json(&value));
+                    break;
+                }
+            }
+            found.ok_or_else(|| format!("no part computes `{collection}`"))?
+        } else {
+            let mut at = collection.split('.');
+            let mut value = first_value(plan, at.next().unwrap_or_default());
+            for field in at {
+                value = value[field].clone();
+            }
+            value
+        };
+        match value {
+            serde_json::Value::Array(items) => Ok(items),
+            other => Err(format!("`{collection}`'s first value is no list: {other}")),
+        }
     }
 
     /// **A computed value's component, run with `json`** (ADR-0227), typed
@@ -8213,8 +8334,10 @@ impl Server {
         let env = self
             .with_computed_signals(env, plan, self.template_of(page))
             .unwrap_or_else(|e| panic!("`{page}`'s computed values: {e}"));
-        // Its signals, at their first values (ADR-0140).
-        with_signals(env, plan)
+        // Its signals, at their first values (ADR-0140), and what each row of
+        // a list the browser renders computes from them (ADR-0424).
+        self.with_browser_rows(with_signals(env, plan), plan, self.template_of(page))
+            .unwrap_or_else(|e| panic!("`{page}`'s rows' computed values: {e}"))
             // A page, not a materialization: its domain is the route identity
             // and its partition. The generation is carried whatever the
             // partition is — the two are orthogonal.
@@ -9856,6 +9979,9 @@ struct Keeping {
     answered: std::sync::atomic::AtomicBool,
     /// The request is a HEAD: its answer is written without its body.
     head_only: std::sync::atomic::AtomicBool,
+    /// The session the request is answered for, its cookie's or the one made
+    /// for it (ADR-0423).
+    session: Mutex<String>,
 }
 
 impl Conn {
@@ -9876,11 +10002,22 @@ impl Conn {
     }
 
     /// A request begun: its connection closed after it unless the request,
-    /// read whole, allows otherwise; and nothing answered yet.
+    /// read whole, allows otherwise; and nothing answered yet, for no one.
     fn begin(&self) {
         self.keep(false);
         self.answered(false);
         self.head_only(false);
+        self.answering_for("");
+    }
+
+    /// The session this request is answered for.
+    fn answering_for(&self, session: &str) {
+        session.clone_into(&mut self.keeping.session.lock().expect("session"));
+    }
+
+    /// The session the last request was answered for.
+    fn answered_for(&self) -> String {
+        self.keeping.session.lock().expect("session").clone()
     }
 
     /// Whether this request is a HEAD, whose answer has no body (RFC 9110
@@ -10012,7 +10149,10 @@ fn handle(server: &Server, stream: TcpStream) {
                 server.tell_waiting();
                 return;
             }
-            let _idle = Idle::listed(server, &conn);
+            // The session its last answer was for: a browser's connection
+            // carries its context's cookie, so the session's own.
+            let session = conn.answered_for();
+            let _idle = Idle::listed(server, &conn, &session);
             if !server.telling.lock().expect("telling").is_empty() {
                 scope.spawn(|| server.tell_waiting());
             }
@@ -10020,7 +10160,7 @@ fn handle(server: &Server, stream: TcpStream) {
             // PR #94's verify): the arming closed only the connections listed
             // before it. It is armed before it closes them, so one listed
             // since finds it armed here, and closes as they did.
-            if server.dropping_a_command() {
+            if server.dropping_a_command_for(&session) {
                 let _ = conn.shutdown(std::net::Shutdown::Both);
                 return;
             }
@@ -10032,20 +10172,25 @@ fn handle(server: &Server, stream: TcpStream) {
 }
 
 /// **A kept connection listed while it waits for its next request** (the
-/// keep-alive ADR), so that arming a dropped command can close it: unlisted
-/// when its next request begins, or when it closes.
+/// keep-alive ADR), with the session its last answer was for, so that arming
+/// that session's dropped command can close it: unlisted when its next
+/// request begins, or when it closes.
 struct Idle<'a> {
     server: &'a Server,
     at: Option<std::net::SocketAddr>,
 }
 
 impl<'a> Idle<'a> {
-    fn listed(server: &'a Server, conn: &Conn) -> Idle<'a> {
+    fn listed(server: &'a Server, conn: &Conn, session: &str) -> Idle<'a> {
         #[cfg(test)]
         std::thread::sleep(*server.listing_delay.lock().expect("listing delay"));
         let at = conn.peer_addr().ok().and_then(|at| {
             let listed = conn.try_clone().ok()?;
-            server.idle.lock().expect("idle").insert(at, listed);
+            server
+                .idle
+                .lock()
+                .expect("idle")
+                .insert(at, (session.to_string(), listed));
             Some(at)
         });
         Idle { server, at }
@@ -10292,16 +10437,17 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
             return;
         }
     };
+    let (session, fresh) = session_of(&headers);
+    stream.answering_for(&session);
     // Kept for the next request where HTTP/1.1 keeps it, the request did not
-    // ask to close, the host has room, and no dropped command is armed; and
-    // only once its body is read.
+    // ask to close, the host has room, and no dropped command is armed for
+    // its session; and only once its body is read.
     let persists = version == "HTTP/1.1"
         && !head_only
         && !asks_to_close(&headers)
         && server.open.load(std::sync::atomic::Ordering::SeqCst) <= KEPT_AT_MOST
-        && !server.dropping_a_command();
+        && !server.dropping_a_command_for(&session);
     stream.keep(persists && length == 0);
-    let (session, fresh) = session_of(&headers);
     // TRACK SEAM (second-host): the session as the hosts keep it, read once
     // for the request (ADR-0369): signed in or out on another host, it is so
     // here too. Every request is admitted, the runtime's own files too: the
@@ -11280,11 +11426,24 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
             // Its next command goes on a connection of its own (the
             // keep-alive ADR): a browser sends a request again by itself
             // where a kept connection it reused closes before any answer, so
-            // the drop would never reach the page. Every kept connection
-            // waiting for its next request is closed, after the fault is
-            // armed: one listed since finds it armed (`handle`). The browser
-            // opens another, as it does for one a host closed while idle.
-            for (_, idle) in std::mem::take(&mut *server.idle.lock().expect("idle")) {
+            // the drop would never reach the page. Each of the session's kept
+            // connections waiting for its next request is closed, after the
+            // fault is armed: one listed since finds it armed (`handle`). The
+            // browser opens another, as it does for one a host closed while
+            // idle. Another session's are left as they are (ADR-0423).
+            let mine: Vec<TcpStream> = {
+                let mut idle = server.idle.lock().expect("idle");
+                let at: Vec<std::net::SocketAddr> = idle
+                    .iter()
+                    .filter(|(_, (whose, _))| *whose == session)
+                    .map(|(at, _)| *at)
+                    .collect();
+                at.iter()
+                    .filter_map(|at| idle.remove(at))
+                    .map(|(_, conn)| conn)
+                    .collect()
+            };
+            for idle in mine {
                 let _ = idle.shutdown(std::net::Shutdown::Both);
             }
             respond_json(&mut stream, 200, &session, fresh, "{}");
@@ -12802,8 +12961,8 @@ fn delivery_says(dist: &std::path::Path, key: &str) -> bool {
 }
 
 fn serve_file(server: &Server, stream: &mut Conn, path: &str, request_headers: &str) {
-    // The request's query names the delivery it asks at, if any (the first
-    // press's ADR); the file is the route's.
+    // The request's query names the delivery it asks at, if any (ADR-0399);
+    // the file is the route's.
     let (route, query) = path.split_once('?').unwrap_or((path, ""));
     let name = route.trim_start_matches('/');
     // No traversal: a request names a file in dist and nothing above it.
@@ -12889,8 +13048,8 @@ fn respond_representation(
     write_response(stream, 200, mime, &response_headers, &bytes);
 }
 
-/// **A page no reader decides, as this request accepts it** (the prerender's
-/// ADR): the same for everyone, so any cache may keep it and asks before each
+/// **A page no reader decides, as this request accepts it** (ADR-0409):
+/// the same for everyone, so any cache may keep it and asks before each
 /// use. It names no session.
 fn respond_prerendered(
     stream: &mut Conn,
@@ -13039,7 +13198,7 @@ fn signal_manifest(
         // A block, or a view's instance (ADR-0203): rendered again whole.
         if !matches!(
             live["kind"].as_str(),
-            Some("conditional" | "match" | "instance")
+            Some("conditional" | "match" | "instance" | "each")
         ) {
             continue;
         }
@@ -13090,6 +13249,25 @@ fn first_value(plan: &serde_json::Value, signal: &str) -> serde_json::Value {
         .unwrap_or(serde_json::Value::Null)
 }
 
+/// **What each row of a list the browser renders computes** (ADR-0424),
+/// as the runtime reads it: the name the item holds the
+/// value under, and what its function reads, in order, each by its path in
+/// the row. None where no row computes.
+fn rows_computed(manifest: &mut serde_json::Value, plan: &serde_json::Value) {
+    let rows: Vec<serde_json::Value> = plan["browser_rows"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|row| {
+            let (_, name) = row["path"].as_str()?.split_once('.')?;
+            Some(serde_json::json!({ "name": name, "inputs": row["inputs"] }))
+        })
+        .collect();
+    if !rows.is_empty() {
+        manifest["rowsComputed"] = serde_json::Value::Array(rows);
+    }
+}
+
 /// **The module a page's browser computes its signals' values with**
 /// (ADR-0227), as `pw build` wrote it: one a page computes any from.
 fn computed_module(plan: &serde_json::Value) -> Option<String> {
@@ -13098,6 +13276,8 @@ fn computed_module(plan: &serde_json::Value) -> Option<String> {
         .into_iter()
         .flatten()
         .any(|l| l["derived"].is_string())
+        // Or a row of a list the browser renders (ADR-0424).
+        || plan["browser_rows"].as_array().is_some_and(|r| !r.is_empty())
         // TRACK SEAM (device-store): or the steps of a value the device
         // keeps from an earlier version to its own.
         || device::migrates(plan);
@@ -13143,10 +13323,12 @@ fn signal_document(
     with_fragment(&mut manifest, plan);
     // TRACK SEAM (device-store): what the device keeps that it holds.
     device::with_device(&mut manifest, plan);
-    // What it computes from its signals (ADR-0227).
+    // What it computes from its signals (ADR-0227), and each row of a list
+    // it renders (ADR-0424).
     if let Some(module) = computed_module(plan) {
         manifest["computed"] = serde_json::Value::String(module);
     }
+    rows_computed(&mut manifest, plan);
     with_instance_templates(&mut manifest, template, templates);
     if let Some(layout) = plan.get("layout").filter(|l| !l.is_null()) {
         manifest["layout"] = layout.clone();
@@ -13330,10 +13512,12 @@ fn document(
     with_fragment(&mut manifest, plan);
     // TRACK SEAM (device-store): what the device keeps that it holds.
     device::with_device(&mut manifest, plan);
-    // What it computes from them (ADR-0227).
+    // What it computes from them (ADR-0227), and each row of a list it
+    // renders (ADR-0424).
     if let Some(module) = computed_module(plan) {
         manifest["computed"] = serde_json::Value::String(module);
     }
+    rows_computed(&mut manifest, plan);
     // Each binding a signal keys (ADR-0152): the browser reads it again, for
     // the new key, when one of its signals changes, and does what its stale
     // work says.
@@ -13453,8 +13637,8 @@ const RUNTIME: &str = "<script>import(\"/pw-runtime.mjs\")</script>";
 const BOOT: &str = "<link rel=\"modulepreload\" href=\"/pw-runtime.mjs\">\n\
      <link rel=\"preload\" href=\"/pw-handlers\" as=\"fetch\" crossorigin>\n";
 
-/// **How a production build's files are named on the wire** (the first
-/// press's ADR, ADR-0392's "Next" 2: names a cache may keep). Every file a
+/// **How a production build's files are named on the wire** (ADR-0399,
+/// ADR-0392's "Next" 2: names a cache may keep). Every file a
 /// document names, and every one its runtime asks for, is asked for at one
 /// version, so that a browser keeps each until the build changes and asks
 /// for none of them again on a visit after its first. Until 2026-11-06 a
@@ -17126,8 +17310,8 @@ public query Store(",
         );
     }
 
-    /// **A frame pushed for a held subscription wakes it** (the first
-    /// press's ADR): written as it is pushed, not at the subscription's next
+    /// **A frame pushed for a held subscription wakes it** (ADR-0399):
+    /// written as it is pushed, not at the subscription's next
     /// look. Its slice is lengthened past its hold, so only the push's wake
     /// can deliver the frame before the hold ends; the push is made once the
     /// subscription waits, as the table counts it.
@@ -18232,6 +18416,8 @@ public query Store(",
     // TRACK SEAM (device-store): a page that holds a value the device keeps,
     // served (ADR-0366).
     mod device_store;
+    // A row of a list the browser renders computes what it shows (ADR-0424).
+    mod browser_rows;
     mod inline_styles;
     mod page_bundle;
 
@@ -18888,8 +19074,8 @@ public query Store(",
         assert_eq!(lazy.lines().count() + 1, warm.lines().count());
     }
 
-    /// **A development build names its files as they are** (the first
-    /// press's ADR): no delivery id, so every document is written as it was,
+    /// **A development build names its files as they are** (ADR-0399):
+    /// no delivery id, so every document is written as it was,
     /// byte for byte, and every file is asked again before each use.
     #[test]
     fn a_development_build_names_its_files_as_they_are() {
@@ -19130,8 +19316,8 @@ public query Store(",
         })
     }
 
-    /// **A compiled module is sent as its packaging wrote it** (the first
-    /// press's ADR): a handler's and a page's computed values', each in the
+    /// **A compiled module is sent as its packaging wrote it** (ADR-0399):
+    /// a handler's and a page's computed values', each in the
     /// representation the request accepts of those its production packaging
     /// wrote beside it, else as it is, which is all a development build
     /// has; each with a validator for that representation, a 304 for a

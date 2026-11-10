@@ -586,10 +586,12 @@ fn the_browser_computes_from_several_values_and_a_list_in_its_block() {
     assert!(module.contains("(j0, j1) =>"), "{module}");
 }
 
-/// **A value computed in a row of a list the browser renders is not built
-/// yet** (ruling 0073-a): refused by name, as before.
+/// **A value computed in a row of a list the device keeps is each row's**
+/// (ADR-0424): computed by the browser for each row it
+/// renders, from the row's item. Until then it was refused by name (ruling
+/// 0073-a).
 #[test]
-fn a_value_computed_in_a_browser_rows_is_refused_by_name() {
+fn a_value_computed_in_a_browser_rows_is_each_rows() {
     let src = program(
         KEPT,
         "",
@@ -597,13 +599,25 @@ fn a_value_computed_in_a_browser_rows_is_refused_by_name() {
         "",
     );
     clean(&src);
-    // Its row's item typed from the list the device keeps, so it is this
-    // refusal and not a type the build lacks.
-    let why = refusals(&src);
-    assert!(
-        why.contains("computes a value in a row of `n`, a list no query gives"),
-        "{why}"
-    );
+    assert_eq!(refusals(&src), "");
+    let b = built(&src);
+    let plan = b
+        .pages
+        .iter()
+        .find(|p| p.page == "t.P~ui")
+        .and_then(|p| p.plan.as_ref().ok())
+        .expect("the page's plan");
+    let rows: Vec<(&str, &str, &[String])> = plan
+        .browser_rows
+        .iter()
+        .map(|r| (r.collection.as_str(), r.path.as_str(), r.inputs.as_slice()))
+        .collect();
+    let [(collection, path, inputs)] = rows.as_slice() else {
+        panic!("one value each row computes: {rows:?}");
+    };
+    assert_eq!(*collection, "notes");
+    assert!(path.starts_with("n.#t.P~ui~"), "{path}");
+    assert_eq!(*inputs, ["n"]);
 }
 
 /// What a build of `src` refuses, as one line, or nothing.

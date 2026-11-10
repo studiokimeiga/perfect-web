@@ -240,8 +240,8 @@ MUTANTS = [
         "an instance the page's signals give is not sent to be rendered again",
         "build",
         SERVER,
-        "            Some(\"conditional\" | \"match\" | \"instance\")\n",
-        "            Some(\"conditional\" | \"match\")\n",
+        "            Some(\"conditional\" | \"match\" | \"instance\" | \"each\")\n",
+        "            Some(\"conditional\" | \"match\" | \"each\")\n",
     ),
 ]
 

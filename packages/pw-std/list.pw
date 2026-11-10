@@ -54,8 +54,20 @@ fn drop<T>(items: List<T>, count: Int) -> List<T> !{}
 fn slice<T>(items: List<T>, start: Int, end: Int) -> List<T> !{}
     intrinsic "list.slice"
 
+// The whole numbers from `start` up to and not including `end`, as `slice`
+// counts places; none where `end` is not past `start`. A range of more than
+// 268,435,455 numbers is no list a program can hold, and traps, as an `Int`
+// that does not fit does (ADR-0039).
+fn range(start: Int, end: Int) -> List<Int> !{}
+    intrinsic "list.range"
+
 fn reverse<T>(items: List<T>) -> List<T> !{}
     intrinsic "list.reverse"
+
+// The list with the elements at places `i` and `j` exchanged, each counted
+// from 0 as `get` counts; the list as it is where either is no place in it.
+fn swap<T>(items: List<T>, i: Int, j: Int) -> List<T> !{}
+    intrinsic "list.swap"
 
 fn concat<T>(first: List<T>, second: List<T>) -> List<T> !{}
     intrinsic "list.concat"

@@ -28,8 +28,8 @@ const parts = JSON.parse(document.getElementById("pw-parts")?.textContent ?? "{}
  * that keeps the layout. */
 const PW_SERVER = true;
 
-/** **What a build's pages that talk to no server use** (the device runtime's
- * ADR), which the packaging reads from their templates, and what none of them
+/** **What a build's pages that talk to no server use** (ADR-0413),
+ * which the packaging reads from their templates, and what none of them
  * uses falls away with these: a value in a URL or a style, a `{#match}`, a view
  * used inside another, a `<dialog>`, a value the device keeps, a signal bound to
  * the address's fragment, an `autofocus`, a list whose rows a plan can make. */
@@ -1125,6 +1125,11 @@ const renderer = (() => {
   /** What a lookup finds where there is nothing, which `null` is not. */
   const NONE = {};
 
+  /** **Each value a row computes**, by the name its item holds it under (ADR-0424):
+   * given by `rowsComputed` once the page's
+   * computed module is loaded. */
+  const rowComputes = new Map();
+
   const isList = Array.isArray;
   const isObject = (v) => typeof v === "object" && v !== null && !isList(v);
   const isVariant = (v) => isObject(v) && typeof v.$case === "string";
@@ -1237,8 +1242,15 @@ const renderer = (() => {
       if (value === NONE) continue;
       for (let rest = cut; rest < segments.length; rest++) {
         if (!isRecord(value)) return NONE;
-        const all = field(value, segments.slice(rest).join("."));
+        const whole = segments.slice(rest).join(".");
+        const all = field(value, whole);
         if (all !== NONE) return all;
+        // **A value its row computes** (ADR-0424), by
+        // the name its item holds it under, which a host's first render set:
+        // the browser computes each after, in the row's scope, so what it
+        // reads of the page is the row's own.
+        const computes = rowComputes.get(whole);
+        if (computes) return computes(e);
         value = field(value, segments[rest]);
         if (value === NONE) return NONE;
       }
@@ -1502,8 +1514,11 @@ const renderer = (() => {
         return;
       case "text":
         // Nothing addresses a text inside a kept row: it is morphed whole.
-        if (out.bare) html.push(escaped(needText(e, p.value), p.context));
-        else html.push(start, escaped(needText(e, p.value), p.context), end);
+        if (out.bare) {
+          const text = needText(e, p.value);
+          if (!PW_SERVER && out.raws) out.raws[out.holes.length] = text;
+          html.push(escaped(text, p.context));
+        } else html.push(start, escaped(needText(e, p.value), p.context), end);
         return;
       case "attribute":
         if (p.context === "content") {
@@ -1513,13 +1528,19 @@ const renderer = (() => {
       // falls through: the attribute's value is `attributeOf`'s.
       case "interpolated_attribute": {
         const [name, value] = attributeOf(p, e);
+        // A planned row's attribute, as a plan sets it: its name and its
+        // value as written, or none.
+        if (!PW_SERVER && out.raws) out.raws[out.holes.length] = value === null ? null : [name, value];
         if (value !== null) html.push(`${name}="${value}"`);
         return;
       }
-      case "boolean_attribute":
-        if (attributeOf(p, e)[1] !== null) html.push(p.name);
+      case "boolean_attribute": {
+        const present = attributeOf(p, e)[1] !== null;
+        if (!PW_SERVER && out.raws) out.raws[out.holes.length] = present ? [p.name, ""] : null;
+        if (present) html.push(p.name);
         else dropSpace(html);
         return;
+      }
       case "event":
         html.push(capturesAttribute([p], e));
         return;
@@ -1613,7 +1634,7 @@ const renderer = (() => {
       const item = opened(raw);
       const key = rowKey(item, p, seen);
       const old = was?.get(key);
-      const row = old && holdsStill(old, item, e) ? old : rowOf(p, e, others, item, key);
+      const row = old && holdsStill(old, item, e, p) ? old : rowOf(p, e, others, item, key);
       now.set(key, row);
       return row;
     });
@@ -1621,13 +1642,41 @@ const renderer = (() => {
     return { part: p.id, rows, of: PW_PLANS && planned(p) ? p : null };
   }
 
-  function holdsStill(row, item, e) {
+  function holdsStill(row, item, e, p) {
     if (!same(row.item, item)) return false;
-    // What a `{#match}` around the list bound, which a row can read.
+    // What a `{#match}` around the list bound, which a row can read. The
+    // names are the template's, the same at every render of the list, so
+    // what they hold is compared and not they.
     for (let a = row.names, b = e.names; a || b; a = a.up, b = b.up) {
-      if (!a || !b || a.name !== b.name || !same(a.value, b.value)) return false;
+      if (!a || !b || !same(a.value, b.value)) return false;
     }
     for (const [name, value] of row.reads) if (e.page.get(name) !== value) return false;
+    return computedHold(row, item, e, p);
+  }
+
+  /** **Whether what a row computes still comes out as it did** (ADR-0424):
+   * where nothing it read of the page moved, so; else
+   * each is computed again, for the row's item, and the row is kept where
+   * each is what it showed, what they read noted as it is now. The large
+   * list's class reads the selection in every row, and only the rows whose
+   * class it changes are written again. */
+  function computedHold(row, item, e, p) {
+    const computing = row.computing;
+    if (!computing || computing.computedValues.length === 0) return true;
+    let moved = false;
+    for (const [name, value] of computing.computedReads) {
+      if (e.page.get(name) !== value) {
+        moved = true;
+        break;
+      }
+    }
+    if (!moved) return true;
+    const reads = new Map();
+    const again = { ...e, reads, computedReads: reads, computedValues: null, names: { name: p.binding, value: item, up: e.names } };
+    for (const [name, value] of computing.computedValues) {
+      if (!same(rowComputes.get(name)(again), value)) return false;
+    }
+    computing.computedReads = reads;
     return true;
   }
 
@@ -1636,19 +1685,44 @@ const renderer = (() => {
     const reads = new Map();
     const token = tokenOf(e, p.id, key);
     const at = `${p.id}@${token}`;
-    let holes, raws;
+    // What its computed values read, and what they came to (ADR-0424),
+    // where the page's rows compute any.
+    const computing = rowComputes.size ? { computedReads: new Map(), computedValues: [] } : null;
+    if (PW_PLANS && planned(p)) return plannedRowOf(p, e, others, item, at, token, reads, computing);
     const text = rendered(others, (out) => {
       out.bare = !PW_SERVER && DELEGATED_ROWS;
-      if (PW_PLANS && planned(p)) {
-        out.holes = holes = [];
-        out.raws = raws = [];
-      }
       out.html.push(`<!--pw:s${at}-->`);
-      emit(p.body, within(named({ ...e, reads }, p.binding, item), p.id, token), others, out);
+      emit(p.body, within(named({ ...e, reads, ...computing }, p.binding, item), p.id, token), others, out);
       out.html.push(`<!--pw:e${at}-->`);
     });
-    return { key: at, text, item, reads, names: e.names, holes, raws };
+    return { key: at, text, item, reads, names: e.names, computing };
   }
+
+  /** **A row a plan makes** (`planOf`): its holes, what each sets as it was
+   * before it was escaped (`raws`), and its text only when something reads
+   * it, a morph or a parse. Nothing in such a row is written later (no view
+   * is in it), so it needs none of the writer that waits for one, and its
+   * scope is made once. */
+  const plannedRowOf = !PW_PLANS ? null : function plannedRowOf(p, e, others, item, at, token, reads, computing) {
+    const env = { ...e, reads, ...computing, names: { name: p.binding, value: item, up: e.names }, frames: [...e.frames, { scope: p.id, instance: token }] };
+    const out = { html: [`<!--pw:s${at}-->`], later: [], lists: false, bare: true, holes: [], raws: [] };
+    emit(p.body, env, others, out);
+    out.html.push(`<!--pw:e${at}-->`);
+    const html = out.html;
+    let text = null;
+    return {
+      key: at,
+      item,
+      reads,
+      names: e.names,
+      computing,
+      holes: out.holes,
+      raws: out.raws,
+      get text() {
+        return (text ??= html.join(""));
+      },
+    };
+  };
 
   /** Each list part whose rows a plan can make, as `planned` found it. */
   const plannable = !PW_PLANS ? null : new WeakMap();
@@ -1870,6 +1944,25 @@ const renderer = (() => {
 
   const asked = {
     env,
+    /** **What each row of a list the browser renders computes** (ADR-0424):
+     * `functions`, the page's computed module's `rows`;
+     * `entries`, the manifest's, each the name its item holds the value under
+     * and what its function reads, in order, by its path in the row. */
+    rowsComputed: (functions, entries) => {
+      for (const { name, inputs } of entries) {
+        const f = functions[name];
+        if (!f) continue;
+        // What it reads of the page is its row's computed reads, apart from
+        // what the row's markup reads, and what it computes is kept with the
+        // row: a change it reads keeps the row where each comes out the same.
+        rowComputes.set(name, (e) => {
+          const at = e.computedReads ? { ...e, reads: e.computedReads } : e;
+          const value = f(...inputs.map((path) => need(at, path)));
+          e.computedValues?.push([name, value]);
+          return value;
+        });
+      }
+    },
     letGo: () => tokens.clear(),
     /** One part, its anchors included. */
     part: (p, e, others) => rendered(others, (out) => emit([{ chunk: "dynamic", value: p }], e, others, out)),
@@ -2477,7 +2570,7 @@ function signalAt(path) {
  * whose subject may be one. None where the page computes none. */
 async function computedNow() {
   const computed = (parts.live ?? []).filter((l) => l.derived);
-  if (computed.length === 0) return [];
+  if (computed.length === 0 && !parts.rowsComputed) return [];
   const module = await computedValues();
   return computed.map((l) => [
     `#${parts.template}~${l.part}`,
@@ -2921,10 +3014,16 @@ function morphBlock(id, html) {
     const before = lastRendered.get(r.start);
     lastRendered.set(r.start, html);
     if (before && rowsMade(r, before, html, inserted)) return inserted;
+    // A list that is its own block, rendered for the first time: shown with
+    // no rows, its rows are put in by key as any change's are. A document
+    // that shows some is morphed whole, once.
+    if (!before && html.strs.length === 2 && html.lists.length === 1 && html.lists[0].part === id) {
+      if (rowsMade(r, { strs: html.strs, lists: [{ part: id, rows: [] }] }, html, inserted)) return inserted;
+    }
     rewritten = true;
     // A list the block did not hold before is put in by its plan, once the
     // block around it is: no row of it is parsed.
-    const later = !PW_PLANS ? [] : html.lists.filter((list) => list.rows.length > 0 && list.of && planOf(list.of) && !before?.lists.some((b) => b.part === list.part));
+    const later = !PW_PLANS ? [] : html.lists.filter((list) => list.part !== id && list.rows.length > 0 && list.of && planOf(list.of) && !before?.lists.some((b) => b.part === list.part));
     morphChildren(parent, between(r.start, r.end), parseInstance(textOfBlock(html, later)), r.end.nextSibling, inserted);
     for (const list of later) {
       const range = rangeOf(r, list.part);
@@ -3161,8 +3260,14 @@ function attributeOfPiece(piece) {
  * for a new row), and for a handler's, what it captures before it was
  * escaped (`raw`). False, with the hole perhaps half set, for what a plan does
  * not take: the row is then morphed. */
-function holeSet(kind, node, piece, was, raw) {
+function holeSet(kind, node, piece, was, raw, wasRaw) {
   if (kind === "text") {
+    // As the parser reads the text the renderer escaped: a return a line, a
+    // NUL nothing.
+    if (raw !== undefined) {
+      node.data = /[\r\0]/.test(raw) ? raw.replace(/\r\n?/g, "\n").replaceAll("\0", "") : raw;
+      return true;
+    }
     const text = unescaped(piece, "");
     if (text === null) return false;
     node.data = text;
@@ -3176,8 +3281,11 @@ function holeSet(kind, node, piece, was, raw) {
     else node.setAttribute("data-pw-captures", raw);
     return true;
   }
-  const now = attributeOfPiece(piece);
-  const then = was === null ? null : attributeOfPiece(was);
+  // An attribute as the renderer wrote it, `[name, value]` or none: its value
+  // read back as the parser would, `undefined` for what it does not write.
+  const held = (r) => (r === null ? null : ((v) => (v === null ? undefined : [r[0], v]))(unescaped(r[1], "\ufffd")));
+  const now = raw !== undefined ? held(raw) : attributeOfPiece(piece);
+  const then = was === null ? null : wasRaw !== undefined ? held(wasRaw) : attributeOfPiece(was);
   if (now === undefined || then === undefined) return false;
   if (then && then[0] !== now?.[0]) node.removeAttribute(then[0]);
   if (now) node.setAttribute(now[0], now[1]);
@@ -3218,14 +3326,55 @@ function rowsPlanned(rows, plan, shown, inserted) {
  * morphed otherwise, which leaves it no holes to be set by. */
 function rowsChanged(changed, plan, inserted) {
   const morphed = changed.filter(([nodes, row, old]) => {
-    if (!plan || !nodes[2] || !row.holes || !old.holes) return true;
+    if (!plan || !row.holes || !old.holes) return true;
+    // A row the document holds, or one a morph wrote, is set by its holes
+    // where the plan finds them in it (ADR-0420, decision 6).
+    if (!nodes[2]) nodes[2] = holesFound(nodes, plan) ?? undefined;
+    if (!nodes[2]) return true;
     for (let h = 0; h < row.holes.length; h++) {
-      if (row.holes[h] !== old.holes[h] && !holeSet(plan.kinds[h], nodes[2][h], row.holes[h], old.holes[h], row.raws?.[h])) return true;
+      if (row.holes[h] !== old.holes[h] && !holeSet(plan.kinds[h], nodes[2][h], row.holes[h], old.holes[h], row.raws?.[h], old.raws?.[h])) return true;
     }
     return false;
   });
   for (const [nodes] of morphed) nodes.length = 2;
   rowsMorphed(morphed, inserted);
+}
+
+/** **The holes of a row the plan did not make** (ADR-0420, decision 6): the
+ * document's rows, and a morph's, are the row's template with its values, so
+ * each hole is where the plan's is. Found where each node on its path is of
+ * the kind and tag of the plan's, among as many siblings; `null` where one is
+ * not, as where text beside a hole's text is one text node, or an empty
+ * hole's text is none. */
+function holesFound([start, end], plan) {
+  const row = [];
+  for (let n = start.nextSibling; n && n !== end; n = n.nextSibling) row.push(n);
+  const proto = [...plan.proto.childNodes];
+  const alike = (n, p, siblings) =>
+    n && p && n.nodeType === p.nodeType && n.nodeName === p.nodeName && siblings(n) === siblings(p);
+  const holes = [];
+  for (const path of plan.paths) {
+    let n = row[path[0]];
+    let p = proto[path[0]];
+    if (row.length !== proto.length || !alike(n, p, () => 0)) return null;
+    for (let i = 1; i < path.length; i++) {
+      n = n.childNodes[path[i]];
+      p = p.childNodes[path[i]];
+      if (!alike(n, p, (x) => x.parentNode.childNodes.length)) return null;
+    }
+    holes.push(n);
+  }
+  return holes;
+}
+
+/** **Whether a row's markup differs from the one before it**: by its holes
+ * where both were written by them, the rest of a row being its template's,
+ * which equal holes make equal; by its text otherwise. A plan's row's text is
+ * written only when something asks for it. */
+function rowDiffers(old, row) {
+  if (!old.holes || !row.holes) return old.text !== row.text;
+  for (let h = 0; h < row.holes.length; h++) if (old.holes[h] !== row.holes[h]) return true;
+  return false;
 }
 
 /** **The rows of one list made what `now` says**, from what `was` shows: only
@@ -3247,7 +3396,7 @@ function listMade(was, now, inserted, range = index.get(addressOf([], now.part))
   if (inPlace) {
     const changed = [];
     for (let i = 0; i < b.length; i++) {
-      if (a[i] !== b[i] && a[i].text !== b[i].text) changed.push([shown.get(b[i].key), b[i], a[i]]);
+      if (a[i] !== b[i] && rowDiffers(a[i], b[i])) changed.push([shown.get(b[i].key), b[i], a[i]]);
     }
     if (PW_PLANS) rowsChanged(changed, plan, inserted);
     else rowsMorphed(changed, inserted);
@@ -3268,7 +3417,7 @@ function listMade(was, now, inserted, range = index.get(addressOf([], now.part))
   const changed = [];
   b.forEach((row, i) => {
     const old = places[i] < 0 ? null : a[places[i]];
-    if (old && old !== row && old.text !== row.text) changed.push([shown.get(row.key), row, old]);
+    if (old && old !== row && rowDiffers(old, row)) changed.push([shown.get(row.key), row, old]);
   });
   if (PW_PLANS) rowsChanged(changed, plan, inserted);
   else rowsMorphed(changed, inserted);
@@ -3398,6 +3547,9 @@ function computedValues() {
   computedModule = pageCode("computed", url, computedAttempts).then(
     (module) => {
       log.push(`loaded ${parts.computed}`);
+      // What each row of a list the browser renders computes (ADR-0424),
+      // given to the renderer as the module arrives.
+      if (parts.rowsComputed) renderer.rowsComputed(module.rows ?? {}, parts.rowsComputed);
       return module;
     },
     (error) => {
@@ -4170,8 +4322,8 @@ let navigating = false;
 // **A page shown again from the back-forward cache** takes presses again,
 // and listens again: its subscription ended when it was hidden (`leaving`),
 // and until 2026-10-09 it was never asked again, so the page was told
-// nothing until reloaded (found mapping the runtime for the soft
-// navigation's ADR). A server that has forgotten the document answers with
+// nothing until reloaded (found mapping the runtime for ADR-0306).
+// A server that has forgotten the document answers with
 // a reload, as it does any document it does not know.
 addEventListener(
   "pageshow",
@@ -4215,8 +4367,8 @@ async function navigate(route, args, mine) {
 /**
  * **Whether a navigation to `url` is taken** (ADR-0280): not while the page
  * leaves, the first navigation deciding, unless it is a reader's own choice
- * (a link, back or forward) replacing a soft navigation in flight (the soft
- * navigation's ADR). One rule for both ways a page leaves, so a test of
+ * (a link, back or forward) replacing a soft navigation in flight (ADR-0306).
+ * One rule for both ways a page leaves, so a test of
  * either holds it.
  */
 function taken(url, chosen = false) {
@@ -4416,8 +4568,8 @@ const bindEvents = DELEGATED
 /**
  * **The decision for one handler part**, asked once and kept, by the name
  * its template gives it: whether its handler may attach (and so be fetched),
- * and, refused, why. One function for binding and for warming (the first
- * press's ADR), so the two cannot disagree about what is authorised.
+ * and, refused, why. One function for binding and for warming (ADR-0399),
+ * so the two cannot disagree about what is authorised.
  */
 function verdictOf(named, part) {
   if (!verdicts.has(named)) verdicts.set(named, decided(named, part));

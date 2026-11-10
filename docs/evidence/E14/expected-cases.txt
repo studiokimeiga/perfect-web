@@ -1,8 +1,8 @@
 ADR-0201 - a case written alone is the case of the type expected where it is written
 
 produced by: just e14-expected-cases
-commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: bd1aaeeb8ba8d969afb7228305df754828267487
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
@@ -14,20 +14,20 @@ test a_case_is_its_types_value ... ok
 test a_bare_case_with_a_payload_is_the_one_type_that_has_it ... ok
 test a_cases_fields_are_its_arguments ... ok
 test a_generic_sum_type_is_instantiated_where_it_is_used ... ok
-test a_pattern_through_its_type_is_a_case_not_a_binding ... ok
 test a_case_its_type_does_not_declare_is_refused ... ok
+test a_pattern_through_its_type_is_a_case_not_a_binding ... ok
 test a_patterns_qualifier_must_name_the_type_matched ... ok
 test an_arms_fields_are_typed_in_its_body ... ok
 test an_options_payload_is_typed_in_its_arm ... ok
 test a_bare_case_is_the_case_of_the_type_expected ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.44s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.48s
 
 == built (compiler/pw-conformance/tests/sum_types.rs, javascript.rs)
 
 test a_case_written_alone_is_built_as_the_type_expected ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.42s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.46s
 javascript: 3 queries over cases written alone, 600 calls, component and module agree (57 trapped in both)
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.67s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.73s
 
 == mutation controls (scripts/expected_cases_mutations.py)
 

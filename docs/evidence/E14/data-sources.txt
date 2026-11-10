@@ -1,14 +1,14 @@
 ADR-0207 - a data source states what it guarantees, and nothing asks it for more
 
 produced by: just e14-data-sources
-commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: bd1aaeeb8ba8d969afb7228305df754828267487
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the rules, and the store's source (compiler/pw-core/tests/data_sources.rs)
 
-test a_commands_record_of_an_interaction_commits_with_its_writes ... ok
 test a_commands_events_are_sent_if_and_only_if_its_writes_commit ... ok
+test a_commands_record_of_an_interaction_commits_with_its_writes ... ok
 test a_clause_takes_only_the_words_its_domain_has ... ok
 test a_program_that_asks_what_its_sources_give_checks ... ok
 test a_commands_writes_are_in_one_source ... ok
@@ -16,7 +16,7 @@ test a_command_asks_no_more_isolation_than_its_source_gives ... ok
 test a_source_holds_what_the_programs_effects_name_once ... ok
 test a_query_asks_no_more_consistency_than_its_source_reads ... ok
 test the_store_states_its_source_and_asks_only_what_it_gives ... ok
-test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.04s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.94s
 
 == the store, checked with examples/lib/StoreData.pw
 

@@ -1,8 +1,8 @@
 E10 gate item 1 - the store builds from source, without Koka or Marko
 
 produced by: just e10-build
-commit: 2d2b57eaa5068b3e97e46889eac796c69c79084d
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42785265911 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: bd1aaeeb8ba8d969afb7228305df754828267487
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the control: the ordinary PATH
@@ -281,7 +281,7 @@ pw build: 8 template(s), 34 handler(s), 55 component(s), 69 contract(s) -> OUT
 test a_placeholder_that_something_depends_on_is_a_refusal ... ok
 test a_program_that_does_not_check_builds_nothing ... ok
 test the_store_builds_every_artifact_from_source ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.70s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.23s
 
 Since ADR-0125 the development server runs the store's queries and
 the cart's count (UserCarts.line_count since track store-accounts) by

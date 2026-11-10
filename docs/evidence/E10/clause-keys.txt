@@ -1,17 +1,17 @@
 ADR-0088 - a clause names a declaration of its kind, and gives it its key
 
 produced by: just e10-clause-keys
-commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: bd1aaeeb8ba8d969afb7228305df754828267487
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == clause keys (compiler/pw-core/tests/clause_keys.rs)
 
 test a_clause_is_read_where_it_is_written ... ok
 test a_key_names_what_scope_binds ... ok
-test an_event_is_given_what_it_carries ... ok
-test a_clause_names_a_declaration_of_its_kind ... ok
 test the_program_is_clean ... ok
+test a_clause_names_a_declaration_of_its_kind ... ok
+test an_event_is_given_what_it_carries ... ok
 test a_resource_is_given_its_key ... ok
 test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 

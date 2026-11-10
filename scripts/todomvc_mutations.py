@@ -164,8 +164,10 @@ MUTANTS = [
         "the model does not filter",
         PROGRAM,
         APP,
-        "    List.map(List.filter(todos, (t) => shown(t, filter)), (t) => Row {\n",
-        "    List.map(todos, (t) => Row {\n",
+        # Re-anchored by ADR-0424: the list iterates the
+        # todos the filter shows.
+        "    List.filter(todos, (t) => shown(t, filter))\n",
+        "    todos\n",
     ),
     (
         "the clear button counts what is left",
@@ -178,8 +180,19 @@ MUTANTS = [
         "no row is the one being edited",
         PROGRAM,
         APP,
-        "        editing: t.id == editing,\n",
-        "        editing: false,\n",
+        # Re-anchored by ADR-0424: each row computes
+        # whether it is edited, its field and its class apart.
+        "                            {#if row.id == editing}\n",
+        # Zero is no todo's id, `editing`'s own for none: a program the
+        # checker accepts, where `false` is no value a block reads.
+        "                            {#if row.id == 0}\n",
+    ),
+    (
+        "no row's class says it is edited",
+        PROGRAM,
+        APP,
+        "<li class={row_class(row.completed, row.id == editing)}>",
+        "<li class={row_class(row.completed, false)}>",
     ),
     (
         "an edited todo that is completed is not shown completed",
@@ -276,15 +289,15 @@ MUTANTS = [
         "a double press does not begin an edit",
         PROGRAM,
         APP,
-        "                                        editing = row.id\n",
-        "                                        editing = 0\n",
+        '                                    editing = row.id\n',
+        '                                    editing = 0\n',
     ),
     (
         "beginning an edit forgets the title",
         PROGRAM,
         APP,
-        "                                        edit_text = row.title\n",
-        '                                        edit_text = ""\n',
+        '                                    edit_text = row.title\n',
+        '                                    edit_text = ""\n',
     ),
     (
         "the field starts empty",
@@ -304,22 +317,22 @@ MUTANTS = [
         "Escape does not leave editing",
         PROGRAM,
         APP,
-        '                                        } else if e.key == "Escape" {\n                                            editing = 0\n',
-        '                                        } else if e.key == "Escape" {\n                                            editing = editing\n',
+        '                                    } else if e.key == "Escape" {\n                                        editing = 0\n',
+        '                                    } else if e.key == "Escape" {\n                                        editing = editing\n',
     ),
     (
         "blur does not save",
         PROGRAM,
         APP,
-        "                                        on:blur={(e: BlurEvent) => if editing != 0 {\n",
-        "                                        on:blur={(e: BlurEvent) => if editing == -1 {\n",
+        '                                    on:blur={(e: BlurEvent) => if editing != 0 {\n',
+        '                                    on:blur={(e: BlurEvent) => if editing == -1 {\n',
     ),
     (
         "Enter does not save",
         PROGRAM,
         APP,
-        '                                        on:keydown={(e: KeyEvent) => if e.key == "Enter" {\n                                            todos = retitled(todos, editing, edit_text)\n',
-        '                                        on:keydown={(e: KeyEvent) => if e.key == "Enter" {\n                                            todos = todos\n',
+        '                                    on:keydown={(e: KeyEvent) => if e.key == "Enter" {\n                                        todos = retitled(todos, editing, edit_text)\n',
+        '                                    on:keydown={(e: KeyEvent) => if e.key == "Enter" {\n                                        todos = todos\n',
     ),
     (
         "the new-todo field is not cleared",

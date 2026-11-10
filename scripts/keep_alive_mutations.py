@@ -18,7 +18,9 @@ Each control undoes one rule of `framed_length`, `answer_connection`,
 - a commit told only when its connection closes, not after its answer;
 - arming a dropped command (ADR-0175) leaving the kept connections waiting,
   so a browser sends the command again by itself and the page never sees
-  the drop.
+  the drop;
+- a drop one session arms reaching another session's connections, or a
+  connection listed or answered for no session (ADR-0423).
 
 The tests: `tests::keep_alive::`, and the upload's own
 (`tests::uploads::an_uploads_connection_is_closed_after_its_answer`), in one
@@ -81,6 +83,7 @@ TEST_NAMES = [
     "tests::keep_alive::a_kept_connections_answers_wait_on_no_acknowledgement",
     "tests::keep_alive::while_a_dropped_command_is_armed_no_answer_keeps_its_connection",
     "tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it",
+    "tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept",
 ]
 COMMAND = ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server",
            "--", *TEST_NAMES, "--exact", "--test-threads=1", "--format=pretty"]
@@ -127,8 +130,22 @@ MUTANTS = [
      "        self.keeps()\n"
      "    }\n"),
     ("arming a dropped command leaves the kept connections waiting", MAIN,
-     '            for (_, idle) in std::mem::take(&mut *server.idle.lock().expect("idle")) {\n',
-     "            for (_, idle) in BTreeMap::<std::net::SocketAddr, TcpStream>::new() {\n"),
+     "                    .filter(|(_, (whose, _))| *whose == session)\n",
+     "                    .filter(|_| false)\n"),
+    ("a drop one session arms closes every session's kept connections", MAIN,
+     "                    .filter(|(_, (whose, _))| *whose == session)\n",
+     "                    .filter(|_| true)\n"),
+    ("a drop armed for one session is armed for every session", MAIN,
+     "            .get(session)\n"
+     "            .is_some_and(|f| f.drop_command.is_some())\n",
+     "            .iter()\n"
+     "            .any(|(whose, f)| f.drop_command.is_some() && (whose == session || !whose.is_empty()))\n"),
+    ("a kept connection is listed for no session", MAIN,
+     "            let _idle = Idle::listed(server, &conn, &session);\n",
+     '            let _idle = Idle::listed(server, &conn, "");\n'),
+    ("a request is answered for no session", MAIN,
+     "    stream.answering_for(&session);\n",
+     ""),
     ("a commit is told only when its connection closes", MAIN,
      "            if !server.telling.lock().expect(\"telling\").is_empty() {\n"
      "                scope.spawn(|| server.tell_waiting());\n"
@@ -137,14 +154,14 @@ MUTANTS = [
      "            // PR #94's verify): the arming closed only the connections listed\n"
      "            // before it. It is armed before it closes them, so one listed\n"
      "            // since finds it armed here, and closes as they did.\n"
-     "            if server.dropping_a_command() {\n"
+     "            if server.dropping_a_command_for(&session) {\n"
      "                let _ = conn.shutdown(std::net::Shutdown::Both);\n"
      "                return;\n"
      "            }\n"
      "            if !next_request(&conn, &mut reader, server.keep_alive) {\n"
      "                return;\n"
      "            }\n",
-     "            if server.dropping_a_command() {\n"
+     "            if server.dropping_a_command_for(&session) {\n"
      "                let _ = conn.shutdown(std::net::Shutdown::Both);\n"
      "                return;\n"
      "            }\n"
@@ -200,11 +217,11 @@ MUTANTS = [
      '    let _ = stream.set_nodelay(true);\n',
      ''),
     ("an answer keeps its connection while a dropped command is armed", MAIN,
-     '        && !server.dropping_a_command();\n',
-     '        && (!server.dropping_a_command() || true);\n'),
+     '        && !server.dropping_a_command_for(&session);\n',
+     '        && (!server.dropping_a_command_for(&session) || true);\n'),
     ("a connection listed after a drop was armed is kept", MAIN,
-     '            if server.dropping_a_command() {\n',
-     '            if false && server.dropping_a_command() {\n'),
+     '            if server.dropping_a_command_for(&session) {\n',
+     '            if false && server.dropping_a_command_for(&session) {\n'),
 ]
 
 # How long one run of the tests may take. Past it the run is invalid.

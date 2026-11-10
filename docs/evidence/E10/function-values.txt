@@ -1,38 +1,38 @@
 ADR-0052 - a function is a value
 
 produced by: just e10-function-values
-commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: bd1aaeeb8ba8d969afb7228305df754828267487
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
 == closures through the host (pw-conformance/tests/function_values.rs)
 
 test a_declarations_name_is_a_value ... ok
-test a_closure_carries_what_it_captures ... ok
-test a_function_is_returned_and_called ... ok
 test a_function_is_chosen_by_a_branch ... ok
+test a_function_is_returned_and_called ... ok
+test a_closure_carries_what_it_captures ... ok
 test a_lambda_passed_to_a_declaration_is_called_there ... ok
 test a_recursion_carries_a_function ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.81s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.88s
 
 == the component and the JavaScript module, on the same arguments
 
 javascript: 3 queries over cases written alone, 600 calls, component and module agree (57 trapped in both)
 javascript: 5 queries over trees, 1000 calls, component and module agree (155 trapped in both)
 javascript: 5 queries over values held in place, 1000 calls, component and module agree (132 trapped in both)
-javascript: 91 queries, 18200 calls, component and module agree (1196 trapped in both)
+javascript: 94 queries, 18800 calls, component and module agree (1243 trapped in both)
 
 == mutation controls (scripts/function_value_mutations.py)
 
-baseline: 25 passed, 0 failed
-a closure captures nothing: KILLED (3 of 25 tests fail)
-a binding's written type is not what its value must be: KILLED (4 of 25 tests fail)
-a function type binds no type parameter: KILLED (6 of 25 tests fail)
-the environment keeps no capture: KILLED (3 of 25 tests fail)
-every environment names the first closure's code: KILLED (3 of 25 tests fail)
-a capture is laid over the table slot: KILLED (3 of 25 tests fail)
-a module's closure forgets what it captured: KILLED (1 of 25 tests fail)
+baseline: 27 passed, 0 failed
+a closure captures nothing: KILLED (3 of 27 tests fail)
+a binding's written type is not what its value must be: KILLED (4 of 27 tests fail)
+a function type binds no type parameter: KILLED (6 of 27 tests fail)
+the environment keeps no capture: KILLED (3 of 27 tests fail)
+every environment names the first closure's code: KILLED (3 of 27 tests fail)
+a capture is laid over the table slot: KILLED (3 of 27 tests fail)
+a module's closure forgets what it captured: KILLED (1 of 27 tests fail)
 7 of 7 mutants killed
 memory bound: no process was stopped
 

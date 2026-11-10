@@ -1,33 +1,33 @@
 a page's code is one module
 
 produced by: just e14-page-bundle
-commit: dda1e3e93a87e31d6791c6310ea4ebdae9b507af
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42793595425 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: bd1aaeeb8ba8d969afb7228305df754828267487
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
 
 == what the packaging writes (optimize-assets.test.mjs)
 
-✔ the production build minifies and compresses only public client assets (589.762528ms)
-✔ a production build compresses its compiled modules beside themselves, unchanged (276.063983ms)
-✔ a production build says its pages warm what their presses need (52.756317ms)
-✔ a production build puts each page's code in one module, and leaves each module as it was (347.156406ms)
-✔ a production build's packaging writes each page's module (127.742675ms)
-✔ a page whose handler has no module is a build that did not finish (1.608811ms)
-✔ a build with no pages bundles nothing (0.523158ms)
-✔ a production build writes a runtime for a page that talks to no server (112.526401ms)
-✔ a build with no runtime says nothing of one (1.718234ms)
-✔ the runtime of a page that talks to no server holds none of a server's code (243.817547ms)
-✔ the runtime of a page with a server holds none of what only a page with no server runs (128.605898ms)
-✔ a production build minifies its stylesheets, and keeps what they draw (4.963959ms)
-✔ the device's runtime holds what its pages use, and none of what they do not (1075.509087ms)
-✔ a list whose rows change shape has no plan (219.922236ms)
-✔ an autofocus a value decides counts (111.866126ms)
-✔ what a block or a conditional's arm holds counts (350.996383ms)
-✔ a page a reader decides, or one with a layout, keeps out of what is read (331.270614ms)
-✔ a view a page uses is read for what it uses (116.384828ms)
-✔ a build whose pages cannot be read keeps everything (124.586393ms)
+✔ the production build minifies and compresses only public client assets (39.770886ms)
+✔ a production build compresses its compiled modules beside themselves, unchanged (13.051363ms)
+✔ a production build says its pages warm what their presses need (9.430068ms)
+✔ a production build puts each page's code in one module, and leaves each module as it was (24.140815ms)
+✔ a production build's packaging writes each page's module (11.729603ms)
+✔ a page whose handler has no module is a build that did not finish (1.800658ms)
+✔ a build with no pages bundles nothing (0.608119ms)
+✔ a production build writes a runtime for a page that talks to no server (4.722919ms)
+✔ a build with no runtime says nothing of one (2.116199ms)
+✔ the runtime of a page that talks to no server holds none of a server's code (178.215046ms)
+✔ the runtime of a page with a server holds none of what only a page with no server runs (172.872287ms)
+✔ a production build minifies its stylesheets, and keeps what they draw (5.578849ms)
+✔ the device's runtime holds what its pages use, and none of what they do not (1420.50753ms)
+✔ a list whose rows change shape has no plan (311.494287ms)
+✔ an autofocus a value decides counts (155.787487ms)
+✔ what a block or a conditional's arm holds counts (467.965627ms)
+✔ a page a reader decides, or one with a layout, keeps out of what is read (465.547433ms)
+✔ a view a page uses is read for what it uses (155.533315ms)
+✔ a build whose pages cannot be read keeps everything (172.653977ms)
 ℹ tests 19
 ℹ suites 0
 ℹ pass 19
@@ -35,7 +35,7 @@ playwright: Version 1.58.0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 4268.289689
+ℹ duration_ms 3675.65717
 
 == what the host names and serves (tests::page_bundle::)
 
@@ -55,11 +55,11 @@ test tests::page_bundle::the_policy_allows_each_runtime_a_build_starts ... ok
 test tests::page_bundle::a_build_that_does_not_say_so_names_no_module_and_serves_none ... ok
 test tests::page_bundle::a_bundled_module_is_kept_a_year_at_its_delivery_and_revalidated_at_another ... ok
 test tests::page_bundle::only_a_module_its_packaging_wrote_is_served ... ok
-test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 1019 filtered out; finished in 2.26s
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 1021 filtered out; finished in 3.03s
 
 == a page through it, in three engines (e2e/page-bundle.spec.mjs)
 
-  18 passed (21.2s)
+  18 passed (22.4s)
 
 == mutation controls (scripts/page_bundle_mutations.py)
 

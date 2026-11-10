@@ -184,9 +184,9 @@ MUTANTS = [
     ("when no row stays they all do", "rows", RUNTIME,
      "    rowsAllGone(range);\n", ""),
     ("a row changed in place is left", "rows", RUNTIME,
-     "      if (a[i] !== b[i] && a[i].text !== b[i].text) changed.push([shown.get(b[i].key), b[i], a[i]]);\n", ""),
+     "      if (a[i] !== b[i] && rowDiffers(a[i], b[i])) changed.push([shown.get(b[i].key), b[i], a[i]]);\n", ""),
     ("a row changed and moved is left", "rows", RUNTIME,
-     "    if (old && old !== row && old.text !== row.text) changed.push([shown.get(row.key), row, old]);\n", ""),
+     "    if (old && old !== row && rowDiffers(old, row)) changed.push([shown.get(row.key), row, old]);\n", ""),
     ("new rows go in at the end", "rows", RUNTIME,
      "      parent.insertBefore(content, anchor);\n", "      parent.insertBefore(content, range.end);\n"),
     ("a new row among others goes in at the end", "rows", RUNTIME,
@@ -195,10 +195,20 @@ MUTANTS = [
      "      : (PW_PLANS && plan && fresh.every((row) => row.holes) && rowsPlanned(fresh, plan, shown, inserted)) || rowsParsed(fresh, shown, inserted);\n",
      "      : rowsParsed(fresh, shown, inserted);\n"),
     ("a list the block did not hold is parsed with it", "rows", RUNTIME,
-     "    const later = !PW_PLANS ? [] : html.lists.filter((list) => list.rows.length > 0 && list.of && planOf(list.of) && !before?.lists.some((b) => b.part === list.part));\n",
+     "    const later = !PW_PLANS ? [] : html.lists.filter((list) => list.part !== id && list.rows.length > 0 && list.of && planOf(list.of) && !before?.lists.some((b) => b.part === list.part));\n",
      "    const later = [];\n"),
+    ("a list that is its own block is rewritten the first time", "rows", RUNTIME,
+     "      if (rowsMade(r, { strs: html.strs, lists: [{ part: id, rows: [] }] }, html, inserted)) return inserted;\n", ""),
+    # The host's to say: run 42825062947 found the rows' suite blind to it,
+    # a page the device runs rendering what its build planned.
+    ("a list that is its own block is not rendered again", "host", SERVER,
+     "            Some(\"conditional\" | \"match\" | \"instance\" | \"each\")\n",
+     "            Some(\"conditional\" | \"match\" | \"instance\")\n"),
     ("a changed row is morphed", "rows", RUNTIME,
-     "    if (!plan || !nodes[2] || !row.holes || !old.holes) return true;\n", "    return true;\n"),
+     "    if (!plan || !row.holes || !old.holes) return true;\n", "    return true;\n"),
+    # A row the document holds is set by its holes (ADR-0420, decision 6).
+    ("a row the document holds is morphed", "rows", RUNTIME,
+     "    if (!nodes[2]) nodes[2] = holesFound(nodes, plan) ?? undefined;\n", ""),
     ("text holding an escape is read back as written", "rows", RUNTIME,
      '  if (!/[&\\r\\0]/.test(text)) return text;\n', '  if (!/[\\r\\0]/.test(text)) return text;\n'),
     ("text holding a return is read back as written", "rows", RUNTIME,
@@ -215,10 +225,24 @@ MUTANTS = [
      '.replace(/\\r\\n?/g, "\\n").replaceAll("\\0", nul);\n', '.replaceAll("\\0", nul);\n'),
     ("a hole's NUL is set", "rows", RUNTIME,
      '.replace(/\\r\\n?/g, "\\n").replaceAll("\\0", nul);\n', '.replace(/\\r\\n?/g, "\\n");\n'),
+    ("a planned row's text is set as it was before it was escaped", "rows", RUNTIME,
+     '      node.data = /[\\r\\0]/.test(raw) ? raw.replace(/\\r\\n?/g, "\\n").replaceAll("\\0", "") : raw;\n',
+     '      node.data = raw;\n'),
+    ("a row whose holes changed is left", "rows", RUNTIME,
+     "  for (let h = 0; h < row.holes.length; h++) if (old.holes[h] !== row.holes[h]) return true;\n", ""),
     ("a field's value does not follow its plan", "rows", RUNTIME,
      '    node.value = now?.[0] === "value" ? now[1] : "";\n', ""),
+    # A row's computed values (ADR-0424).
+    ("a row's computed value is not computed", "rows", RUNTIME,
+     "        const computes = rowComputes.get(whole);\n        if (computes) return computes(e);\n", ""),
+    ("the module's rows are not given to the renderer", "rows", RUNTIME,
+     "      if (parts.rowsComputed) renderer.rowsComputed(module.rows ?? {}, parts.rowsComputed);\n", ""),
+    ("a kept row's computed values are not computed again", "rows", RUNTIME,
+     "    if (!moved) return true;\n", "    return true;\n"),
+    ("what a row's computed value reads is its markup's", "rows", RUNTIME,
+     "          const at = e.computedReads ? { ...e, reads: e.computedReads } : e;\n", "          const at = e;\n"),
     ("a kept row's text is written again", "rows", RUNTIME,
-     "      const row = old && holdsStill(old, item, e) ? old : rowOf(p, e, others, item, key);\n",
+     "      const row = old && holdsStill(old, item, e, p) ? old : rowOf(p, e, others, item, key);\n",
      "      const row = rowOf(p, e, others, item, key);\n"),
     ("a row whose value changed is kept", "rows", RUNTIME,
      "    if (!same(row.item, item)) return false;\n", ""),
@@ -418,7 +442,7 @@ def packaging():
 
 def host():
     total = (0, 0)
-    for name in ("tests::page_bundle::",):
+    for name in ("tests::page_bundle::", "tests::browser_rows::"):
         out, code = bounded(["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server", name], cwd=ROOT)
         if code is None:
             return True, 0, 1

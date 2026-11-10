@@ -17,8 +17,8 @@ const BR = {
 const ASSET = /\.(?:mjs|js|wasm|css|svg)$/;
 
 /**
- * **The runtime of a page that talks to no server** (the device runtime's
- * ADR): the runtime with `PW_SERVER` false, and what only a server's page
+ * **The runtime of a page that talks to no server** (ADR-0413):
+ * the runtime with `PW_SERVER` false, and what only a server's page
  * uses dropped with it. Its one source is the runtime's, so the two cannot
  * drift, and a page's document names which it runs.
  */
@@ -99,8 +99,8 @@ function featuresIn(chunks, templates, out, seen) {
 }
 
 /**
- * **What this build's pages that talk to no server use** (the device runtime's
- * ADR): the host starts the device's runtime for a page no reader decides and
+ * **What this build's pages that talk to no server use** (ADR-0413):
+ * the host starts the device's runtime for a page no reader decides and
  * with no layout, and each of these is true where one of them needs it. A build
  * that cannot be read keeps everything.
  */

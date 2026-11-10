@@ -82,6 +82,16 @@
       },
       {
         "files": [
+          "spikes/own-renderer/e2e/connections.spec.mjs"
+        ],
+        "functions": [
+          "said"
+        ],
+        "maxCrap": 111.0,
+        "reason": "What the page and the server said of the cut-off test's document, read for its failure's record, each read guarded (train-18). Scored with no coverage data, so CRAP is complexity alone; the ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
           "spikes/own-renderer/e2e/page-bundle.spec.mjs"
         ],
         "functions": [
@@ -182,6 +192,16 @@
         "maxCrap": 241.0,
         "maxCognitive": 16,
         "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "alike"
+        ],
+        "maxCrap": 31.0,
+        "reason": "Raised by trains 18 and 19, the planned rows written straight into their holes and the lists that are blocks of their own (ADR-0420, ADR-0421, ADR-0424); each ceiling the score it landed with."
       },
       {
         "files": [
@@ -326,6 +346,16 @@
           "spikes/own-renderer/public/pw-runtime.mjs"
         ],
         "functions": [
+          "computedHold"
+        ],
+        "maxCrap": 73.0,
+        "reason": "Raised by trains 18 and 19, the planned rows written straight into their holes and the lists that are blocks of their own (ADR-0420, ADR-0421, ADR-0424); each ceiling the score it landed with."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
           "decided"
         ],
         "maxCrap": 241.0,
@@ -380,9 +410,10 @@
         "functions": [
           "emitPart"
         ],
-        "maxCyclomatic": 22,
-        "maxCrap": 507.0,
-        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named. Raised by the rows train, whose rows it reconciles."
+        "maxCyclomatic": 31,
+        "maxCrap": 931.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named. Raised by the rows train, whose rows it reconciles. Raised by trains 18 and 19, the planned rows written straight into their holes and the lists that are blocks of their own (ADR-0420, ADR-0421, ADR-0424); each ceiling the score it landed with.",
+        "maxCognitive": 32
       },
       {
         "files": [
@@ -473,10 +504,20 @@
         "functions": [
           "holeSet"
         ],
-        "maxCrap": 507.0,
-        "maxCognitive": 20,
-        "maxCyclomatic": 22,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "maxCrap": 703.0,
+        "maxCognitive": 29,
+        "maxCyclomatic": 27,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers). Raised by trains 18 and 19, the planned rows written straight into their holes and the lists that are blocks of their own (ADR-0420, ADR-0421, ADR-0424); each ceiling the score it landed with."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "holesFound"
+        ],
+        "maxCrap": 73.0,
+        "reason": "Raised by trains 18 and 19, the planned rows written straight into their holes and the lists that are blocks of their own (ADR-0420, ADR-0421, ADR-0424); each ceiling the score it landed with."
       },
       {
         "files": [
@@ -497,6 +538,16 @@
         ],
         "maxCrap": 43.0,
         "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "later"
+        ],
+        "maxCrap": 31.0,
+        "reason": "Raised by trains 18 and 19, the planned rows written straight into their holes and the lists that are blocks of their own (ADR-0420, ADR-0421, ADR-0424); each ceiling the score it landed with."
       },
       {
         "files": [
@@ -527,8 +578,9 @@
         "functions": [
           "morphBlock"
         ],
-        "maxCrap": 111.0,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "maxCrap": 241.0,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers). Raised by trains 18 and 19, the planned rows written straight into their holes and the lists that are blocks of their own (ADR-0420, ADR-0421, ADR-0424); each ceiling the score it landed with.",
+        "maxCognitive": 20
       },
       {
         "files": [
@@ -549,8 +601,8 @@
         "functions": [
           "morphed"
         ],
-        "maxCrap": 91.0,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "maxCrap": 157.0,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers). Raised by trains 18 and 19, the planned rows written straight into their holes and the lists that are blocks of their own (ADR-0420, ADR-0421, ADR-0424); each ceiling the score it landed with."
       },
       {
         "files": [
@@ -611,8 +663,9 @@
         "functions": [
           "read"
         ],
-        "maxCrap": 73.0,
-        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+        "maxCrap": 91.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named. Raised by trains 18 and 19, the planned rows written straight into their holes and the lists that are blocks of their own (ADR-0420, ADR-0421, ADR-0424); each ceiling the score it landed with.",
+        "maxCognitive": 19
       },
       {
         "files": [
@@ -651,8 +704,18 @@
         "functions": [
           "renderer"
         ],
-        "maxCrap": 91.0,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "maxCrap": 111.0,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers). Raised by trains 18 and 19, the planned rows written straight into their holes and the lists that are blocks of their own (ADR-0420, ADR-0421, ADR-0424); each ceiling the score it landed with."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "rowDiffers"
+        ],
+        "maxCrap": 31.0,
+        "reason": "Raised by trains 18 and 19, the planned rows written straight into their holes and the lists that are blocks of their own (ADR-0420, ADR-0421, ADR-0424); each ceiling the score it landed with."
       },
       {
         "files": [

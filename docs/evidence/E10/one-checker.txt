@@ -1,16 +1,16 @@
 ADR-0090 - pw build checks what pw check checks
 
 produced by: just e10-one-checker
-commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: bd1aaeeb8ba8d969afb7228305df754828267487
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == one checker (compiler/pw-core/tests/one_checker.rs)
 
-test check_sources_runs_the_declaration_rules ... ok
 test the_build_refuses_what_check_refuses ... ok
+test check_sources_runs_the_declaration_rules ... ok
 test a_program_that_checks_builds ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.51s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.49s
 
 == the corpus standard (compiler/pw-core/tests/checking_source.rs)
 
@@ -24,19 +24,19 @@ test a_caught_file_conveys_every_fact_its_expect_error_lines_declare ... ok
 test corpus_enforcement_is_reported_as_three_numbers_not_one ... ok
 test a_fixtures_declared_symbol_matches_the_symbol_it_is_caught_by has been running for over 60 seconds
 test a_fixtures_declared_symbol_matches_the_symbol_it_is_caught_by ... ok
-test no_accepted_corpus_file_reports_a_body_level_error ... ok
 test every_rejected_fixture_emits_only_its_own_defect ... ok
 test every_rejected_fixtures_rule_is_a_code_its_check_reports ... ok
+test no_accepted_corpus_file_reports_a_body_level_error ... ok
 test every_diagnostic_carries_what_charter_16_3_requires has been running for over 60 seconds
 test no_diagnostic_restates_its_invariant_in_its_own_words ... ok
 test the_environment_spans_every_file_checked_together ... ok
 test semantic_coverage_of_the_rejected_corpus_does_not_regress ... ok
 test the_committed_enforcement_table_is_what_the_corpus_checks_now ... ok
 test the_unhandled_variant_case_is_caught_at_its_real_span ... ok
-test the_privacy_and_placement_rules_catch_their_corpus_cases ... ok
-test every_diagnostic_carries_what_charter_16_3_requires ... ok
 test the_structured_concurrency_rules_run_on_real_bodies ... ok
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 134.23s
+test every_diagnostic_carries_what_charter_16_3_requires ... ok
+test the_privacy_and_placement_rules_catch_their_corpus_cases ... ok
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 200.17s
 
 == mutation controls (scripts/one_checker_mutations.py)
 

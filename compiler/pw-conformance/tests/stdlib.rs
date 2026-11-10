@@ -144,6 +144,12 @@ public query Backwards(xs: List<Int>) -> List<Int> { List.reverse(xs) }
 
 public query WordsBackwards(words: List<Word>) -> List<Word> { List.reverse(words) }
 
+public query Range(a: Int, b: Int) -> List<Int> { List.range(a, b) }
+
+public query Swapped(xs: List<Int>, i: Int, j: Int) -> List<Int> { List.swap(xs, i, j) }
+
+public query WordsSwapped(words: List<Word>, i: Int, j: Int) -> List<Word> { List.swap(words, i, j) }
+
 public query TextPart(text: String, a: Int, b: Int) -> String { String.slice(text, a, b) }
 
 public query Total(xs: List<Float>) -> Float { List.sum(xs) }
@@ -594,6 +600,91 @@ fn slices_drops_and_reversals_agree_with_vec_and_str() {
             ),
             Ok(Val::String(want)),
             "String.slice({text:?}, {a}, {b})"
+        );
+    }
+}
+
+/// **`List.range` is Rust's `a..b`**: empty where `b` is not past `a`, and a
+/// trap for its cause where it would hold more than 2^28 - 1 numbers, which
+/// no list's bytes an `i32` counts can. `MIN` to `MAX` among them: the
+/// difference of the two wraps a 64-bit subtraction, to -1.
+#[test]
+fn ranges_agree_with_rust_and_a_range_too_long_traps_for_its_cause() {
+    let range = compiled("s.Range");
+    let mut rng = Rng(0x7a);
+    let mut cases: Vec<(i64, i64)> = vec![
+        (0, 0),
+        (3, 1),
+        (-2, 3),
+        (i64::MAX - 3, i64::MAX),
+        (i64::MIN, i64::MIN + 2),
+        (i64::MIN, i64::MAX),
+        (i64::MAX, i64::MIN),
+        (-1, i64::MAX),
+        (0, 0x0fff_ffff + 1),
+    ];
+    cases.extend((0..CASES).map(|_| {
+        let a = rng.int();
+        (a, a.saturating_add(rng.below(40) as i64 - 8))
+    }));
+    cases.extend((0..CASES).map(|_| (rng.int(), rng.int())));
+    for (a, b) in cases {
+        let got = call(&range, &[Val::S64(a), Val::S64(b)]);
+        if b > a && i128::from(b) - i128::from(a) > 0x0fff_ffff {
+            let why = got.expect_err(&format!("List.range({a}, {b}) has no value"));
+            assert!(
+                why.contains("a value too long for memory"),
+                "List.range({a}, {b}) stopped for another cause: {why}"
+            );
+        } else {
+            assert_eq!(
+                got,
+                Ok(ints(&(a..b).collect::<Vec<_>>())),
+                "List.range({a}, {b})"
+            );
+        }
+    }
+}
+
+/// **`List.swap` is `Vec::swap` where both are places in the list**, and the
+/// list as it is where either is not: a negative place, one past the end,
+/// and the bounds of an `Int` among them. Records are moved whole.
+#[test]
+fn swaps_agree_with_vec_and_a_place_outside_leaves_the_list() {
+    let (swapped, words_swapped) = (compiled("s.Swapped"), compiled("s.WordsSwapped"));
+    let mut rng = Rng(0x5a);
+    let place = |rng: &mut Rng, len: usize| match rng.below(6) {
+        0 => [i64::MIN, i64::MAX, -1, len as i64][rng.below(4) as usize],
+        _ => rng.below(len as u64 + 1) as i64,
+    };
+    for _ in 0..CASES {
+        let xs = rng.ints();
+        let (i, j) = (place(&mut rng, xs.len()), place(&mut rng, xs.len()));
+        let within = |k: i64| usize::try_from(k).ok().filter(|k| *k < xs.len());
+        let mut want = xs.clone();
+        if let (Some(a), Some(b)) = (within(i), within(j)) {
+            want.swap(a, b);
+        }
+        assert_eq!(
+            call(&swapped, &[ints(&xs), Val::S64(i), Val::S64(j)]),
+            Ok(ints(&want)),
+            "List.swap({xs:?}, {i}, {j})"
+        );
+        let words: Vec<(String, i64)> = (0..rng.below(8))
+            .map(|_| (rng.string(), rng.int()))
+            .collect();
+        let (i, j) = (place(&mut rng, words.len()), place(&mut rng, words.len()));
+        let within = |k: i64| usize::try_from(k).ok().filter(|k| *k < words.len());
+        let mut want = words.clone();
+        if let (Some(a), Some(b)) = (within(i), within(j)) {
+            want.swap(a, b);
+        }
+        let vals = Val::List(words.iter().map(|(t, s)| word(t, *s)).collect());
+        let want = Val::List(want.iter().map(|(t, s)| word(t, *s)).collect());
+        assert_eq!(
+            call(&words_swapped, &[vals, Val::S64(i), Val::S64(j)]),
+            Ok(want),
+            "List.swap(words, {i}, {j})"
         );
     }
 }

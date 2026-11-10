@@ -184,6 +184,11 @@ test("a row a plan made shows what parsing it shows, whatever its text holds", a
     await page.locator("#name").fill(name);
     await page.click("#rename-to");
     await expect(page.locator("#items .name").nth(1)).toHaveText(name.replace(/\r\n?/g, "\n").replaceAll("\0", ""));
+    // An attribute it set reads as the parser reads one: a NUL the
+    // replacement character. The row holds what the field took, which keeps
+    // no line break.
+    const held = await page.evaluate(() => window.__pw.signals.items[1].name);
+    expect(await page.locator("#items .field").nth(1).getAttribute("value")).toBe(held.replaceAll("\0", "\uFFFD"));
     const html = await page.locator("#items li").nth(1).evaluate((li) => li.innerHTML);
     const parsed = await page.locator("#items li").nth(1).evaluate((li, html) => {
       const t = document.createElement("template");
@@ -271,10 +276,73 @@ test("a press writes the text of the rows it changed and indexes nothing inside 
   expect(indexed < 100).toBe(true);
 });
 
+/** The rows of the fixture's list in a block, hidden and shown again, and
+ * each template parse made as it was shown. */
+async function shownAgain(page) {
+  await page.addInitScript(() => {
+    window.__parsed = [];
+    const set = Object.getOwnPropertyDescriptor(Element.prototype, "innerHTML").set;
+    Object.defineProperty(HTMLTemplateElement.prototype, "innerHTML", {
+      set(html) {
+        window.__parsed.push(html);
+        set.call(this, html);
+      },
+    });
+  });
+  await open(page, "/events");
+  await page.click("#hide-again");
+  await expect(page.locator("#again li")).toHaveCount(0);
+  const hidden = await page.evaluate(() => window.__pw.indexSize());
+  await page.evaluate(() => (window.__parsed = []));
+  await page.click("#show-again");
+  await expect(page.locator("#again li")).toHaveCount(20);
+  await expect(page.locator("#again li").nth(7)).toHaveText("7");
+  return { hidden, parsed: await page.evaluate(() => window.__parsed.join("")) };
+}
+
+test("a row the document holds is set by its holes: renaming it parses no row", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__parsed = [];
+    const set = Object.getOwnPropertyDescriptor(Element.prototype, "innerHTML").set;
+    Object.defineProperty(HTMLTemplateElement.prototype, "innerHTML", {
+      set(html) {
+        window.__parsed.push(html);
+        set.call(this, html);
+      },
+    });
+  });
+  await open(page, "/events");
+  // Once the idle warming of the page's paths has run, which parses a copy,
+  // and the list's first render on the device, which morphs the document's
+  // rows whole, once (ADR-0421, decision 4).
+  await page.waitForFunction(() => window.__pw.log.some((l) => l.startsWith("warmed the paths")));
+  await page.click("#note");
+  await expect(page.locator("#items .note").nth(0)).toHaveText("second");
+  await page.evaluate(() => (window.__parsed = []));
+  await page.click("#rename");
+  await expect(page.locator("#items .name").nth(1)).toHaveText("renamed");
+  const parsed = await page.evaluate(() => window.__parsed.join(""));
+  expect(parsed.includes(">renamed<")).toBe(false);
+});
+
+test("a list a block shows again is made by its plan: no row of it is parsed", async ({ page }) => {
+  const { parsed } = await shownAgain(page);
+  expect(parsed.includes(">7</button>")).toBe(false);
+});
+
+test("a block shown again indexes nothing inside its list's rows", async ({ page }) => {
+  const { hidden } = await shownAgain(page);
+  const shown = await page.evaluate(() => window.__pw.indexSize());
+  // The block's own anchors and its list's: none of the twenty rows' handlers.
+  expect(shown - hidden < 10).toBe(true);
+});
+
 test("a row a plan made reads a return as a line, as the parser would", async ({ page }) => {
   await listRendered(page);
   await page.click("#rename-cr");
   await expect(page.locator("#items .name").nth(1)).toHaveText("x\ny\nz");
+  // And an attribute's, as the parser reads one.
+  expect(await page.locator("#items .field").nth(1).getAttribute("value")).toBe("x\ny\nz");
   const html = await page.locator("#items li").nth(1).evaluate((li) => li.innerHTML);
   const parsed = await page.evaluate((html) => {
     const t = document.createElement("template");

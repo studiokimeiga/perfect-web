@@ -88,14 +88,20 @@ MUTANTS = [
         "                server.tell_waiting();\n"
         "                return;\n"
         "            }\n"
-        "            let _idle = Idle::listed(server, &conn);\n"
+        "            // The session its last answer was for: a browser's connection\n"
+        "            // carries its context's cookie, so the session's own.\n"
+        "            let session = conn.answered_for();\n"
+        "            let _idle = Idle::listed(server, &conn, &session);\n"
         "            if !server.telling.lock().expect(\"telling\").is_empty() {\n"
         "                scope.spawn(|| server.tell_waiting());\n"
         "            }\n",
         "                let _ = conn.shutdown(std::net::Shutdown::Both);\n"
         "                return;\n"
         "            }\n"
-        "            let _idle = Idle::listed(server, &conn);\n",
+        "            // The session its last answer was for: a browser's connection\n"
+        "            // carries its context's cookie, so the session's own.\n"
+        "            let session = conn.answered_for();\n"
+        "            let _idle = Idle::listed(server, &conn, &session);\n",
     ),
 ]
 

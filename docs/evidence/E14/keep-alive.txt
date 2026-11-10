@@ -1,55 +1,57 @@
 ADR-0401 - a host keeps a connection for its next request
 
 produced by: just e14-keep-alive
-commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: bd1aaeeb8ba8d969afb7228305df754828267487
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == a connection kept, its requests framed, and closed (tests::keep_alive::, and the upload's)
 
-test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
 test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
+test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
 test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... ok
-test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... ok
 test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
+test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... ok
+test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... ok
+test tests::keep_alive::a_commits_answer_waits_on_no_reader ... ok
 test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
-test tests::keep_alive::a_commits_answer_waits_on_no_reader ... ok
 test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... ok
-test tests::keep_alive::a_head_request_is_answered_with_no_body_and_closed ... ok
 test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
+test tests::keep_alive::a_head_request_is_answered_with_no_body_and_closed ... ok
 test tests::keep_alive::a_kept_connection_is_closed_after_its_idle_wait ... ok
-test tests::keep_alive::a_request_answered_with_nothing_closes_its_connection ... ok
-test tests::keep_alive::a_second_answer_to_one_request_closes_its_connection ... ok
 test tests::keep_alive::a_kept_connections_answers_wait_on_no_acknowledgement ... ok
+test tests::keep_alive::a_second_answer_to_one_request_closes_its_connection ... ok
+test tests::keep_alive::a_request_answered_with_nothing_closes_its_connection ... ok
 test tests::keep_alive::a_head_that_trickles_past_its_deadline_is_refused_and_closed ... ok
 test tests::keep_alive::a_streams_connection_is_closed_with_it ... ok
 test tests::keep_alive::a_request_that_asks_to_close_is_answered_and_closed ... ok
 test tests::keep_alive::an_answer_before_its_body_is_read_closes_the_connection ... ok
-test tests::keep_alive::an_http_1_0_request_is_answered_and_closed ... ok
+test tests::keep_alive::arming_a_drop_closes_the_kept_connections_waiting ... ok
 test tests::keep_alive::the_accept_loop_backs_off_after_a_failure ... ok
 test tests::keep_alive::the_keep_alive_header_says_the_idle_wait ... ok
-test tests::keep_alive::arming_a_drop_closes_the_kept_connections_waiting ... ok
+test tests::keep_alive::an_http_1_0_request_is_answered_and_closed ... ok
 test tests::keep_alive::past_the_cap_an_answer_closes_its_connection ... ok
 test tests::keep_alive::requests_sent_together_are_answered_in_turn ... ok
-test tests::keep_alive::two_content_lengths_are_refused_and_closed ... ok
 test tests::keep_alive::transfer_encoding_is_refused_and_its_connection_closed ... ok
+test tests::keep_alive::two_content_lengths_are_refused_and_closed ... ok
 test tests::keep_alive::while_a_dropped_command_is_armed_no_answer_keeps_its_connection ... ok
 test tests::keep_alive::whitespace_before_a_headers_colon_is_refused_and_closed ... ok
 test tests::uploads::an_uploads_connection_is_closed_after_its_answer ... ok
 test tests::keep_alive::the_next_request_waits_on_no_telling ... ok
-test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 1003 filtered out; finished in 11.75s
+test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 1005 filtered out; finished in 13.60s
 
 == mutation controls (scripts/keep_alive_mutations.py)
 
 
-running 30 tests
+running 31 tests
 test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... ok
 test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
 test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
 test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
 test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... ok
 test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... ok
+test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... ok
 test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
@@ -75,17 +77,18 @@ test tests::keep_alive::while_a_dropped_command_is_armed_no_answer_keeps_its_con
 test tests::keep_alive::whitespace_before_a_headers_colon_is_refused_and_closed ... ok
 test tests::uploads::an_uploads_connection_is_closed_after_its_answer ... ok
 
-test result: ok. 30 passed; 0 failed; 0 ignored; 0 measured; 1004 filtered out; finished in 28.65s
+test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 33.44s
 
 
 
-running 30 tests
+running 31 tests
 test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... ok
 test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
 test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
 test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
 test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... ok
 test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... ok
+test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... ok
 test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
@@ -115,7 +118,7 @@ failures:
 
 ---- tests::keep_alive::transfer_encoding_is_refused_and_its_connection_closed stdout ----
 
-thread 'tests::keep_alive::transfer_encoding_is_refused_and_its_connection_closed' (106664) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:229:5:
+thread 'tests::keep_alive::transfer_encoding_is_refused_and_its_connection_closed' (74672) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:229:5:
 HTTP/1.1 400 Bad Request
 content-type: application/json; charset=utf-8
 content-length: 104
@@ -131,19 +134,20 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::transfer_encoding_is_refused_and_its_connection_closed
 
-test result: FAILED. 29 passed; 1 failed; 0 ignored; 0 measured; 1004 filtered out; finished in 28.93s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 33.12s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
-a transfer-encoding is read as no body: KILLED (1 of 30 tests fail)
+a transfer-encoding is read as no body: KILLED (1 of 31 tests fail)
 
-running 30 tests
+running 31 tests
 test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... ok
 test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
 test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
 test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
 test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... ok
 test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... ok
+test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... ok
 test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
@@ -173,7 +177,7 @@ failures:
 
 ---- tests::keep_alive::two_content_lengths_are_refused_and_closed stdout ----
 
-thread 'tests::keep_alive::two_content_lengths_are_refused_and_closed' (107016) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:255:5:
+thread 'tests::keep_alive::two_content_lengths_are_refused_and_closed' (75033) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:255:5:
 assertion `left == right` failed
   left: "{\"committed\":false,\"error\":\"the body is not a JSON array: EOF while parsing a value at line 1 column 0\"}"
  right: "more than one content-length"
@@ -183,19 +187,20 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::two_content_lengths_are_refused_and_closed
 
-test result: FAILED. 29 passed; 1 failed; 0 ignored; 0 measured; 1004 filtered out; finished in 39.06s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 43.64s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
-two content-lengths are taken as none: KILLED (1 of 30 tests fail)
+two content-lengths are taken as none: KILLED (1 of 31 tests fail)
 
-running 30 tests
+running 31 tests
 test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... ok
 test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
 test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
 test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
 test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... FAILED
 test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... ok
+test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... ok
 test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
@@ -225,7 +230,7 @@ failures:
 
 ---- tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed stdout ----
 
-thread 'tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed' (107321) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:267:5:
+thread 'tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed' (75337) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:267:5:
 assertion `left == right` failed
   left: "{\"committed\":false,\"error\":\"the body is not a JSON array: EOF while parsing a value at line 1 column 0\"}"
  right: "content-length is not a number"
@@ -235,19 +240,20 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed
 
-test result: FAILED. 29 passed; 1 failed; 0 ignored; 0 measured; 1004 filtered out; finished in 38.69s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 43.69s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
-a content-length that is no number is taken as none: KILLED (1 of 30 tests fail)
+a content-length that is no number is taken as none: KILLED (1 of 31 tests fail)
 
-running 30 tests
+running 31 tests
 test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... ok
 test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
 test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
 test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
 test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... ok
 test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... ok
+test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... ok
 test tests::keep_alive::a_folded_header_is_refused_and_closed ... FAILED
 test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
@@ -277,7 +283,7 @@ failures:
 
 ---- tests::keep_alive::a_folded_header_is_refused_and_closed stdout ----
 
-thread 'tests::keep_alive::a_folded_header_is_refused_and_closed' (107682) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:276:5:
+thread 'tests::keep_alive::a_folded_header_is_refused_and_closed' (75707) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:276:5:
 HTTP/1.1 200 OK
 content-type: text/plain; charset=utf-8
 content-length: 825
@@ -293,19 +299,20 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::a_folded_header_is_refused_and_closed
 
-test result: FAILED. 29 passed; 1 failed; 0 ignored; 0 measured; 1004 filtered out; finished in 38.86s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 43.77s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
-a folded header is read as a header: KILLED (1 of 30 tests fail)
+a folded header is read as a header: KILLED (1 of 31 tests fail)
 
-running 30 tests
+running 31 tests
 test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... ok
 test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
 test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
 test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
 test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... ok
 test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... ok
+test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... ok
 test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
@@ -335,7 +342,7 @@ failures:
 
 ---- tests::keep_alive::whitespace_before_a_headers_colon_is_refused_and_closed stdout ----
 
-thread 'tests::keep_alive::whitespace_before_a_headers_colon_is_refused_and_closed' (108080) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:288:5:
+thread 'tests::keep_alive::whitespace_before_a_headers_colon_is_refused_and_closed' (76110) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:288:5:
 assertion `left == right` failed
   left: "{\"committed\":false,\"error\":\"the body is not a JSON array: EOF while parsing a value at line 1 column 0\"}"
  right: "whitespace before a header's colon"
@@ -345,27 +352,28 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::whitespace_before_a_headers_colon_is_refused_and_closed
 
-test result: FAILED. 29 passed; 1 failed; 0 ignored; 0 measured; 1004 filtered out; finished in 38.57s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 43.42s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
-whitespace before a header's colon is read as a header: KILLED (1 of 30 tests fail)
+whitespace before a header's colon is read as a header: KILLED (1 of 31 tests fail)
 warning: function `asks_to_close` is never used
-     --> spikes/own-renderer/server/src/main.rs:10132:4
+     --> spikes/own-renderer/server/src/main.rs:10277:4
       |
-10132 | fn asks_to_close(headers: &str) -> bool {
+10277 | fn asks_to_close(headers: &str) -> bool {
       |    ^^^^^^^^^^^^^
       |
       = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
 
 
-running 30 tests
+running 31 tests
 test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... ok
 test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
 test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
 test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
 test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... ok
 test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... ok
+test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... ok
 test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
@@ -395,7 +403,7 @@ failures:
 
 ---- tests::keep_alive::a_request_that_asks_to_close_is_answered_and_closed stdout ----
 
-thread 'tests::keep_alive::a_request_that_asks_to_close_is_answered_and_closed' (108400) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:171:5:
+thread 'tests::keep_alive::a_request_that_asks_to_close_is_answered_and_closed' (76436) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:171:5:
 HTTP/1.1 200 OK
 content-type: text/plain; charset=utf-8
 content-length: 825
@@ -411,19 +419,20 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::a_request_that_asks_to_close_is_answered_and_closed
 
-test result: FAILED. 29 passed; 1 failed; 0 ignored; 0 measured; 1004 filtered out; finished in 40.11s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 44.69s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
-a request that asks to close is kept: KILLED (1 of 30 tests fail)
+a request that asks to close is kept: KILLED (1 of 31 tests fail)
 
-running 30 tests
+running 31 tests
 test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... ok
 test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
 test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
 test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
 test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... ok
 test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... ok
+test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... ok
 test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
@@ -453,7 +462,7 @@ failures:
 
 ---- tests::keep_alive::an_http_1_0_request_is_answered_and_closed stdout ----
 
-thread 'tests::keep_alive::an_http_1_0_request_is_answered_and_closed' (108757) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:187:5:
+thread 'tests::keep_alive::an_http_1_0_request_is_answered_and_closed' (76860) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:187:5:
 HTTP/1.1 200 OK
 content-type: text/plain; charset=utf-8
 content-length: 825
@@ -469,19 +478,20 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::an_http_1_0_request_is_answered_and_closed
 
-test result: FAILED. 29 passed; 1 failed; 0 ignored; 0 measured; 1004 filtered out; finished in 38.95s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 43.68s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
-an HTTP/1.0 request is kept: KILLED (1 of 30 tests fail)
+an HTTP/1.0 request is kept: KILLED (1 of 31 tests fail)
 
-running 30 tests
+running 31 tests
 test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... ok
 test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
 test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
 test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
 test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... ok
 test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... ok
+test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... ok
 test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
@@ -511,7 +521,7 @@ failures:
 
 ---- tests::keep_alive::an_answer_before_its_body_is_read_closes_the_connection stdout ----
 
-thread 'tests::keep_alive::an_answer_before_its_body_is_read_closes_the_connection' (109106) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:298:5:
+thread 'tests::keep_alive::an_answer_before_its_body_is_read_closes_the_connection' (77216) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:298:5:
 HTTP/1.1 413 Content Too Large
 content-type: text/plain; charset=utf-8
 content-length: 22
@@ -527,19 +537,20 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::an_answer_before_its_body_is_read_closes_the_connection
 
-test result: FAILED. 29 passed; 1 failed; 0 ignored; 0 measured; 1004 filtered out; finished in 38.77s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 43.70s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
-a connection is kept before its request's body is read: KILLED (1 of 30 tests fail)
+a connection is kept before its request's body is read: KILLED (1 of 31 tests fail)
 
-running 30 tests
+running 31 tests
 test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... ok
 test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
 test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
 test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
 test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... ok
 test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... ok
+test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... ok
 test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
@@ -569,7 +580,7 @@ failures:
 
 ---- tests::keep_alive::past_the_cap_an_answer_closes_its_connection stdout ----
 
-thread 'tests::keep_alive::past_the_cap_an_answer_closes_its_connection' (109464) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:325:5:
+thread 'tests::keep_alive::past_the_cap_an_answer_closes_its_connection' (77581) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:325:5:
 past the cap: HTTP/1.1 200 OK
 content-type: text/plain; charset=utf-8
 content-length: 825
@@ -585,36 +596,37 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::past_the_cap_an_answer_closes_its_connection
 
-test result: FAILED. 29 passed; 1 failed; 0 ignored; 0 measured; 1004 filtered out; finished in 28.39s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 33.16s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
-the host's cap on connections is not held: KILLED (1 of 30 tests fail)
+the host's cap on connections is not held: KILLED (1 of 31 tests fail)
 warning: unused variable: `idle`
-     --> spikes/own-renderer/server/src/main.rs:10066:9
+     --> spikes/own-renderer/server/src/main.rs:10211:9
       |
-10066 |     let idle = idle.max(std::time::Duration::from_millis(1));
+10211 |     let idle = idle.max(std::time::Duration::from_millis(1));
       |         ^^^^
       |
       = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
 help: you might have meant to pattern match on the similarly named constant `IDLE`
       |
-10066 -     let idle = idle.max(std::time::Duration::from_millis(1));
-10066 +     let IDLE = idle.max(std::time::Duration::from_millis(1));
+10211 -     let idle = idle.max(std::time::Duration::from_millis(1));
+10211 +     let IDLE = idle.max(std::time::Duration::from_millis(1));
       |
 help: if this is intentional, prefix it with an underscore
       |
-10066 |     let _idle = idle.max(std::time::Duration::from_millis(1));
+10211 |     let _idle = idle.max(std::time::Duration::from_millis(1));
       |         +
 
 
-running 30 tests
+running 31 tests
 test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... ok
 test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
 test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
 test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
 test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... ok
 test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... ok
+test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... ok
 test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
@@ -644,27 +656,28 @@ failures:
 
 ---- tests::keep_alive::a_kept_connection_is_closed_after_its_idle_wait stdout ----
 
-thread 'tests::keep_alive::a_kept_connection_is_closed_after_its_idle_wait' (109795) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:207:5:
-closed after its idle wait: false, waited 10.361550624s
+thread 'tests::keep_alive::a_kept_connection_is_closed_after_its_idle_wait' (77921) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:207:5:
+closed after its idle wait: false, waited 10.443236222s
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 
 failures:
     tests::keep_alive::a_kept_connection_is_closed_after_its_idle_wait
 
-test result: FAILED. 29 passed; 1 failed; 0 ignored; 0 measured; 1004 filtered out; finished in 38.73s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 43.29s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
-a kept connection waits without end for its next request: KILLED (1 of 30 tests fail)
+a kept connection waits without end for its next request: KILLED (1 of 31 tests fail)
 
-running 30 tests
+running 31 tests
 test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... ok
 test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
 test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
 test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
 test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... ok
 test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... ok
+test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... ok
 test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
@@ -694,13 +707,13 @@ failures:
 
 ---- tests::keep_alive::a_request_answered_with_nothing_closes_its_connection stdout ----
 
-thread 'tests::keep_alive::a_request_answered_with_nothing_closes_its_connection' (110158) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:379:5:
+thread 'tests::keep_alive::a_request_answered_with_nothing_closes_its_connection' (78279) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:379:5:
 closed with no answer
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::keep_alive::a_streams_connection_is_closed_with_it stdout ----
 
-thread 'tests::keep_alive::a_streams_connection_is_closed_with_it' (110164) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:355:5:
+thread 'tests::keep_alive::a_streams_connection_is_closed_with_it' (78286) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:355:5:
 closed with its stream
 
 
@@ -708,19 +721,20 @@ failures:
     tests::keep_alive::a_request_answered_with_nothing_closes_its_connection
     tests::keep_alive::a_streams_connection_is_closed_with_it
 
-test result: FAILED. 28 passed; 2 failed; 0 ignored; 0 measured; 1004 filtered out; finished in 69.18s
+test result: FAILED. 29 passed; 2 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 74.36s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
-a connection is kept after an answer not written whole, or none: KILLED (2 of 30 tests fail)
+a connection is kept after an answer not written whole, or none: KILLED (2 of 31 tests fail)
 
-running 30 tests
+running 31 tests
 test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... ok
 test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
 test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
 test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
 test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... ok
 test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... ok
+test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... ok
 test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
@@ -750,7 +764,7 @@ failures:
 
 ---- tests::keep_alive::arming_a_drop_closes_the_kept_connections_waiting stdout ----
 
-thread 'tests::keep_alive::arming_a_drop_closes_the_kept_connections_waiting' (110523) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:406:5:
+thread 'tests::keep_alive::arming_a_drop_closes_the_kept_connections_waiting' (78646) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:406:5:
 the kept connection closed when the drop was armed
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -758,27 +772,245 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::arming_a_drop_closes_the_kept_connections_waiting
 
-test result: FAILED. 29 passed; 1 failed; 0 ignored; 0 measured; 1004 filtered out; finished in 38.54s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 43.64s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
-arming a dropped command leaves the kept connections waiting: KILLED (1 of 30 tests fail)
+arming a dropped command leaves the kept connections waiting: KILLED (1 of 31 tests fail)
+
+running 31 tests
+test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... ok
+test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
+test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
+test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
+test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... ok
+test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... ok
+test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... FAILED
+test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
+test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
+test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
+test tests::keep_alive::a_head_request_is_answered_with_no_body_and_closed ... ok
+test tests::keep_alive::a_head_that_trickles_past_its_deadline_is_refused_and_closed ... ok
+test tests::keep_alive::a_kept_connection_is_closed_after_its_idle_wait ... ok
+test tests::keep_alive::a_kept_connections_answers_wait_on_no_acknowledgement ... ok
+test tests::keep_alive::a_request_answered_with_nothing_closes_its_connection ... ok
+test tests::keep_alive::a_request_that_asks_to_close_is_answered_and_closed ... ok
+test tests::keep_alive::a_second_answer_to_one_request_closes_its_connection ... ok
+test tests::keep_alive::a_streams_connection_is_closed_with_it ... ok
+test tests::keep_alive::an_answer_before_its_body_is_read_closes_the_connection ... ok
+test tests::keep_alive::an_http_1_0_request_is_answered_and_closed ... ok
+test tests::keep_alive::arming_a_drop_closes_the_kept_connections_waiting ... ok
+test tests::keep_alive::past_the_cap_an_answer_closes_its_connection ... ok
+test tests::keep_alive::requests_sent_together_are_answered_in_turn ... ok
+test tests::keep_alive::the_accept_loop_backs_off_after_a_failure ... ok
+test tests::keep_alive::the_keep_alive_header_says_the_idle_wait ... ok
+test tests::keep_alive::the_next_request_waits_on_no_telling ... ok
+test tests::keep_alive::transfer_encoding_is_refused_and_its_connection_closed ... ok
+test tests::keep_alive::two_content_lengths_are_refused_and_closed ... ok
+test tests::keep_alive::while_a_dropped_command_is_armed_no_answer_keeps_its_connection ... ok
+test tests::keep_alive::whitespace_before_a_headers_colon_is_refused_and_closed ... ok
+test tests::uploads::an_uploads_connection_is_closed_after_its_answer ... ok
+
+failures:
+
+---- tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept stdout ----
+
+thread 'tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept' (78972) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:439:5:
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept
+
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 33.31s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+a drop one session arms closes every session's kept connections: KILLED (1 of 31 tests fail)
+
+running 31 tests
+test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... ok
+test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
+test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
+test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
+test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... ok
+test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... ok
+test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... FAILED
+test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
+test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
+test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
+test tests::keep_alive::a_head_request_is_answered_with_no_body_and_closed ... ok
+test tests::keep_alive::a_head_that_trickles_past_its_deadline_is_refused_and_closed ... ok
+test tests::keep_alive::a_kept_connection_is_closed_after_its_idle_wait ... ok
+test tests::keep_alive::a_kept_connections_answers_wait_on_no_acknowledgement ... ok
+test tests::keep_alive::a_request_answered_with_nothing_closes_its_connection ... ok
+test tests::keep_alive::a_request_that_asks_to_close_is_answered_and_closed ... ok
+test tests::keep_alive::a_second_answer_to_one_request_closes_its_connection ... ok
+test tests::keep_alive::a_streams_connection_is_closed_with_it ... ok
+test tests::keep_alive::an_answer_before_its_body_is_read_closes_the_connection ... ok
+test tests::keep_alive::an_http_1_0_request_is_answered_and_closed ... ok
+test tests::keep_alive::arming_a_drop_closes_the_kept_connections_waiting ... ok
+test tests::keep_alive::past_the_cap_an_answer_closes_its_connection ... ok
+test tests::keep_alive::requests_sent_together_are_answered_in_turn ... ok
+test tests::keep_alive::the_accept_loop_backs_off_after_a_failure ... ok
+test tests::keep_alive::the_keep_alive_header_says_the_idle_wait ... ok
+test tests::keep_alive::the_next_request_waits_on_no_telling ... ok
+test tests::keep_alive::transfer_encoding_is_refused_and_its_connection_closed ... ok
+test tests::keep_alive::two_content_lengths_are_refused_and_closed ... ok
+test tests::keep_alive::while_a_dropped_command_is_armed_no_answer_keeps_its_connection ... ok
+test tests::keep_alive::whitespace_before_a_headers_colon_is_refused_and_closed ... ok
+test tests::uploads::an_uploads_connection_is_closed_after_its_answer ... ok
+
+failures:
+
+---- tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept stdout ----
+
+thread 'tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept' (79326) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:439:5:
+HTTP/1.1 200 OK
+content-type: text/plain; charset=utf-8
+content-length: 825
+x-content-type-options: nosniff
+pw-build: b7a570ef59cb00749
+connection: close
+
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept
+
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 33.33s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+a drop armed for one session is armed for every session: KILLED (1 of 31 tests fail)
+
+running 31 tests
+test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... ok
+test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
+test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
+test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
+test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... ok
+test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... ok
+test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... ok
+test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
+test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
+test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
+test tests::keep_alive::a_head_request_is_answered_with_no_body_and_closed ... ok
+test tests::keep_alive::a_head_that_trickles_past_its_deadline_is_refused_and_closed ... ok
+test tests::keep_alive::a_kept_connection_is_closed_after_its_idle_wait ... ok
+test tests::keep_alive::a_kept_connections_answers_wait_on_no_acknowledgement ... ok
+test tests::keep_alive::a_request_answered_with_nothing_closes_its_connection ... ok
+test tests::keep_alive::a_request_that_asks_to_close_is_answered_and_closed ... ok
+test tests::keep_alive::a_second_answer_to_one_request_closes_its_connection ... ok
+test tests::keep_alive::a_streams_connection_is_closed_with_it ... ok
+test tests::keep_alive::an_answer_before_its_body_is_read_closes_the_connection ... ok
+test tests::keep_alive::an_http_1_0_request_is_answered_and_closed ... ok
+test tests::keep_alive::arming_a_drop_closes_the_kept_connections_waiting ... FAILED
+test tests::keep_alive::past_the_cap_an_answer_closes_its_connection ... ok
+test tests::keep_alive::requests_sent_together_are_answered_in_turn ... ok
+test tests::keep_alive::the_accept_loop_backs_off_after_a_failure ... ok
+test tests::keep_alive::the_keep_alive_header_says_the_idle_wait ... ok
+test tests::keep_alive::the_next_request_waits_on_no_telling ... ok
+test tests::keep_alive::transfer_encoding_is_refused_and_its_connection_closed ... ok
+test tests::keep_alive::two_content_lengths_are_refused_and_closed ... ok
+test tests::keep_alive::while_a_dropped_command_is_armed_no_answer_keeps_its_connection ... ok
+test tests::keep_alive::whitespace_before_a_headers_colon_is_refused_and_closed ... ok
+test tests::uploads::an_uploads_connection_is_closed_after_its_answer ... ok
+
+failures:
+
+---- tests::keep_alive::arming_a_drop_closes_the_kept_connections_waiting stdout ----
+
+thread 'tests::keep_alive::arming_a_drop_closes_the_kept_connections_waiting' (79713) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:406:5:
+the kept connection closed when the drop was armed
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::keep_alive::arming_a_drop_closes_the_kept_connections_waiting
+
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 43.30s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+a kept connection is listed for no session: KILLED (1 of 31 tests fail)
+
+running 31 tests
+test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... ok
+test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
+test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
+test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
+test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... ok
+test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... FAILED
+test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... ok
+test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
+test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
+test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
+test tests::keep_alive::a_head_request_is_answered_with_no_body_and_closed ... ok
+test tests::keep_alive::a_head_that_trickles_past_its_deadline_is_refused_and_closed ... ok
+test tests::keep_alive::a_kept_connection_is_closed_after_its_idle_wait ... ok
+test tests::keep_alive::a_kept_connections_answers_wait_on_no_acknowledgement ... ok
+test tests::keep_alive::a_request_answered_with_nothing_closes_its_connection ... ok
+test tests::keep_alive::a_request_that_asks_to_close_is_answered_and_closed ... ok
+test tests::keep_alive::a_second_answer_to_one_request_closes_its_connection ... ok
+test tests::keep_alive::a_streams_connection_is_closed_with_it ... ok
+test tests::keep_alive::an_answer_before_its_body_is_read_closes_the_connection ... ok
+test tests::keep_alive::an_http_1_0_request_is_answered_and_closed ... ok
+test tests::keep_alive::arming_a_drop_closes_the_kept_connections_waiting ... FAILED
+test tests::keep_alive::past_the_cap_an_answer_closes_its_connection ... ok
+test tests::keep_alive::requests_sent_together_are_answered_in_turn ... ok
+test tests::keep_alive::the_accept_loop_backs_off_after_a_failure ... ok
+test tests::keep_alive::the_keep_alive_header_says_the_idle_wait ... ok
+test tests::keep_alive::the_next_request_waits_on_no_telling ... ok
+test tests::keep_alive::transfer_encoding_is_refused_and_its_connection_closed ... ok
+test tests::keep_alive::two_content_lengths_are_refused_and_closed ... ok
+test tests::keep_alive::while_a_dropped_command_is_armed_no_answer_keeps_its_connection ... ok
+test tests::keep_alive::whitespace_before_a_headers_colon_is_refused_and_closed ... ok
+test tests::uploads::an_uploads_connection_is_closed_after_its_answer ... ok
+
+failures:
+
+---- tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it stdout ----
+
+thread 'tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it' (80041) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:472:5:
+closed once listed: false, after 10.449205535s
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- tests::keep_alive::arming_a_drop_closes_the_kept_connections_waiting stdout ----
+
+thread 'tests::keep_alive::arming_a_drop_closes_the_kept_connections_waiting' (80074) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:406:5:
+the kept connection closed when the drop was armed
+
+
+failures:
+    tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it
+    tests::keep_alive::arming_a_drop_closes_the_kept_connections_waiting
+
+test result: FAILED. 29 passed; 2 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 52.98s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+a request is answered for no session: KILLED (2 of 31 tests fail)
 warning: unused variable: `scope`
-     --> spikes/own-renderer/server/src/main.rs:10003:25
+     --> spikes/own-renderer/server/src/main.rs:10140:25
       |
-10003 |     std::thread::scope(|scope| {
+10140 |     std::thread::scope(|scope| {
       |                         ^^^^^ help: if this is intentional, prefix it with an underscore: `_scope`
       |
       = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
 
 
-running 30 tests
+running 31 tests
 test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... ok
 test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
 test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... FAILED
 test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
 test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... ok
 test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... ok
+test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... ok
 test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
@@ -808,7 +1040,7 @@ failures:
 
 ---- tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept stdout ----
 
-thread 'tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept' (110837) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:501:5:
+thread 'tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept' (80390) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:538:5:
 the telling taken while the connection is kept
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -816,19 +1048,20 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept
 
-test result: FAILED. 29 passed; 1 failed; 0 ignored; 0 measured; 1004 filtered out; finished in 33.56s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 38.14s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
-a commit is told only when its connection closes: KILLED (1 of 30 tests fail)
+a commit is told only when its connection closes: KILLED (1 of 31 tests fail)
 
-running 30 tests
+running 31 tests
 test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... ok
 test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
 test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
 test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
 test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... ok
 test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... ok
+test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... ok
 test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... FAILED
 test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
@@ -858,7 +1091,7 @@ failures:
 
 ---- tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed stdout ----
 
-thread 'tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed' (111200) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:542:5:
+thread 'tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed' (80756) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:579:5:
 HTTP/1.1 400 Bad Request
 content-type: application/json; charset=utf-8
 content-length: 104
@@ -874,19 +1107,20 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed
 
-test result: FAILED. 29 passed; 1 failed; 0 ignored; 0 measured; 1004 filtered out; finished in 28.33s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 33.28s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
-a header that is no text ends the head: KILLED (1 of 30 tests fail)
+a header that is no text ends the head: KILLED (1 of 31 tests fail)
 
-running 30 tests
+running 31 tests
 test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... ok
 test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
 test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
 test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
 test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... ok
 test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... ok
+test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... ok
 test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
@@ -916,7 +1150,7 @@ failures:
 
 ---- tests::keep_alive::a_head_that_trickles_past_its_deadline_is_refused_and_closed stdout ----
 
-thread 'tests::keep_alive::a_head_that_trickles_past_its_deadline_is_refused_and_closed' (111559) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:574:5:
+thread 'tests::keep_alive::a_head_that_trickles_past_its_deadline_is_refused_and_closed' (81120) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:611:5:
 HTTP/1.1 200 OK
 content-type: text/plain; charset=utf-8
 content-length: 825
@@ -932,19 +1166,20 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::a_head_that_trickles_past_its_deadline_is_refused_and_closed
 
-test result: FAILED. 29 passed; 1 failed; 0 ignored; 0 measured; 1004 filtered out; finished in 38.45s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 43.47s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
-a stall mid-head is read as the head's end: KILLED (1 of 30 tests fail)
+a stall mid-head is read as the head's end: KILLED (1 of 31 tests fail)
 
-running 30 tests
+running 31 tests
 test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... ok
 test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
 test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
 test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
 test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... ok
 test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... ok
+test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... ok
 test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
@@ -974,7 +1209,7 @@ failures:
 
 ---- tests::keep_alive::a_head_that_trickles_past_its_deadline_is_refused_and_closed stdout ----
 
-thread 'tests::keep_alive::a_head_that_trickles_past_its_deadline_is_refused_and_closed' (111910) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:574:5:
+thread 'tests::keep_alive::a_head_that_trickles_past_its_deadline_is_refused_and_closed' (81473) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:611:5:
 
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -982,19 +1217,20 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::a_head_that_trickles_past_its_deadline_is_refused_and_closed
 
-test result: FAILED. 29 passed; 1 failed; 0 ignored; 0 measured; 1004 filtered out; finished in 38.19s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 43.04s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
-the deadline bounds each read of the head alone: KILLED (1 of 30 tests fail)
+the deadline bounds each read of the head alone: KILLED (1 of 31 tests fail)
 
-running 30 tests
+running 31 tests
 test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... ok
 test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
 test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
 test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
 test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... ok
 test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... ok
+test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... ok
 test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... FAILED
@@ -1024,7 +1260,7 @@ failures:
 
 ---- tests::keep_alive::a_head_past_its_size_is_refused_and_closed stdout ----
 
-thread 'tests::keep_alive::a_head_past_its_size_is_refused_and_closed' (112263) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:594:5:
+thread 'tests::keep_alive::a_head_past_its_size_is_refused_and_closed' (81827) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:631:5:
 
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -1032,30 +1268,31 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::a_head_past_its_size_is_refused_and_closed
 
-test result: FAILED. 29 passed; 1 failed; 0 ignored; 0 measured; 1004 filtered out; finished in 28.54s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 33.39s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
-a head has no size: KILLED (1 of 30 tests fail)
+a head has no size: KILLED (1 of 31 tests fail)
 warning: method `is_head_only` is never used
-    --> spikes/own-renderer/server/src/main.rs:9894:8
-     |
-9861 | impl Conn {
-     | --------- method in this implementation
+     --> spikes/own-renderer/server/src/main.rs:10031:8
+      |
+ 9987 | impl Conn {
+      | --------- method in this implementation
 ...
-9894 |     fn is_head_only(&self) -> bool {
-     |        ^^^^^^^^^^^^
-     |
-     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+10031 |     fn is_head_only(&self) -> bool {
+      |        ^^^^^^^^^^^^
+      |
+      = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
 
 
-running 30 tests
+running 31 tests
 test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... ok
 test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
 test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
 test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
 test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... ok
 test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... ok
+test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... ok
 test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
@@ -1085,7 +1322,7 @@ failures:
 
 ---- tests::keep_alive::a_head_request_is_answered_with_no_body_and_closed stdout ----
 
-thread 'tests::keep_alive::a_head_request_is_answered_with_no_body_and_closed' (112636) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:628:5:
+thread 'tests::keep_alive::a_head_request_is_answered_with_no_body_and_closed' (82187) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:665:5:
 no body after a HEAD's answer: [35, 98, 117, 105, 108, 100, 124, 98, 55, 97, 53, 55, 48, 101, 102, 53, 57, 99, 98, 48, 48, 55, 52, 57, 10, 35, 112, 97, 103, 101, 124, 102, 101, 101, 100, 46, 97, 112, 112, 46, 67, 111, 110, 118, 101, 114, 115, 97, 116, 105, 111, 110, 80, 97, 103, 101, 126, 117, 105, 124, 100, 54, 49, 53, 57, 57, 52, 100, 55, 101, 51, 101, 101, 50, 100, 50, 124, 115, 101, 115, 115, 105, 111, 110, 58, 10, 35, 112, 97, 103, 101, 124, 102, 101, 101, 100, 46, 97, 112, 112, 46, 70, 111, 108, 108, 111, 119, 105, 110, 103, 80, 97, 103, 101, 126, 117, 105, 124, 99, 102, 52, 102, 98, 53, 48, 100, 48, 57, 54, 100, 54, 53, 101, 54, 124, 115, 101, 115, 115, 105, 111, 110, 58, 10, 35, 112, 97, 103, 101, 124, 102, 101, 101, 100, 46, 97, 112, 112, 46, 72, 111, 109, 101, 126, 117, 105, 124, 49, 100, 102, 54, 50, 98, 50, 57, 49, 52, 56, 54, 57, 54, 51, 56, 124, 115, 101, 115, 115, 105, 111, 110, 58, 10, 35, 112, 97, 103, 101, 124, 102, 101, 101, 100, 46, 97, 112, 112, 46, 77, 101, 115, 115, 97, 103, 101, 115, 80, 97, 103, 101, 126, 117, 105, 124, 53, 55, 52, 101, 57, 49, 49, 97, 57, 100, 55, 48, 56, 50, 52, 50, 124, 115, 101, 115, 115, 105, 111, 110, 58, 10, 35, 112, 97, 103, 101, 124, 102, 101, 101, 100, 46, 97, 112, 112, 46, 78, 111, 116, 105, 102, 105, 99, 97, 116, 105, 111, 110, 115, 80, 97, 103, 101, 126, 117, 105, 124, 55, 57, 57, 99, 49, 57, 54, 100, 100, 97, 102, 51, 99, 57, 51, 54, 124, 115, 101, 115, 115, 105, 111, 110, 58, 10, 35, 112, 97, 103, 101, 124, 102, 101, 101, 100, 46, 97, 112, 112, 46, 80, 111, 115, 116, 80, 97, 103, 101, 126, 117, 105, 124, 48, 49, 49, 56, 49, 53, 54, 98, 102, 56, 48, 48, 98, 56, 57, 50, 124, 112, 114, 105, 118, 97, 116, 101, 58, 10, 35, 112, 97, 103, 101, 124, 102, 101, 101, 100, 46, 97, 112, 112, 46, 80, 114, 111, 102, 105, 108, 101, 80, 97, 103, 101, 126, 117, 105, 124, 49, 57, 49, 52, 50, 51, 48, 102, 51, 56, 52, 52, 56, 98, 97, 51, 124, 115, 101, 115, 115, 105, 111, 110, 58, 10, 48, 54, 48, 100, 57, 99, 97, 53, 101, 48, 100, 97, 56, 52, 101, 98, 124, 10, 49, 56, 52, 53, 54, 97, 102, 57, 50, 101, 52, 56, 53, 57, 102, 55, 124, 105, 100, 10, 49, 98, 54, 100, 101, 49, 53, 97, 100, 99, 53, 100, 54, 55, 54, 55, 124, 105, 116, 101, 109, 46, 105, 100, 10, 49, 100, 99, 55, 48, 55, 52, 52, 99, 49, 101, 97, 54, 56, 53, 97, 124, 10, 50, 48, 55, 48, 98, 100, 53, 51, 50, 49, 101, 102, 50, 102, 56, 54, 124, 10, 50, 55, 97, 100, 48, 56, 56, 49, 54, 53, 56, 49, 56, 52, 97, 98, 124, 105, 100, 10, 50, 98, 48, 100, 100, 56, 100, 51, 52, 49, 100, 50, 53, 56, 102, 48, 124, 112, 46, 105, 100, 10, 51, 48, 54, 51, 49, 53, 56, 98, 53, 55, 101, 51, 57, 56, 101, 99, 124, 105, 100, 10, 51, 54, 99, 97, 48, 49, 51, 51, 52, 99, 101, 56, 99, 102, 100, 98, 124, 105, 100, 10, 52, 97, 101, 101, 53, 52, 51, 102, 55, 98, 102, 51, 53, 55, 51, 55, 124, 119, 105, 116, 104, 10, 52, 100, 99, 55, 51, 54, 53, 49, 54, 48, 56, 97, 97, 54, 48, 102, 124, 10, 53, 98, 57, 97, 51, 55, 99, 55, 52, 97, 56, 49, 53, 57, 99, 52, 124, 10, 53, 99, 54, 98, 56, 100, 100, 101, 53, 100, 99, 55, 48, 53, 56, 57, 124, 10, 54, 99, 100, 55, 55, 48, 56, 99, 51, 97, 55, 56, 49, 100, 98, 98, 124, 10, 55, 57, 98, 52, 54, 52, 98, 52, 97, 56, 50, 48, 52, 48, 101, 57, 124, 10, 56, 54, 52, 54, 101, 102, 97, 101, 50, 97, 97, 50, 98, 53, 52, 99, 124, 10, 97, 56, 98, 97, 48, 98, 48, 50, 50, 55, 51, 53, 55, 57, 53, 53, 124, 105, 116, 101, 109, 46, 105, 100, 10, 98, 57, 54, 99, 48, 52, 52, 55, 51, 56, 48, 50, 53, 55, 52, 49, 124, 119, 105, 116, 104, 10, 100, 56, 97, 98, 49, 57, 54, 53, 48, 102, 52, 98, 51, 97, 99, 57, 124, 115, 116, 97, 103, 101, 100, 10, 101, 49, 51, 100, 49, 97, 99, 48, 52, 98, 55, 53, 102, 101, 51, 53, 124, 112, 46, 105, 100, 10]
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -1093,19 +1330,20 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::a_head_request_is_answered_with_no_body_and_closed
 
-test result: FAILED. 29 passed; 1 failed; 0 ignored; 0 measured; 1004 filtered out; finished in 28.61s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 33.25s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
-a HEAD's answer carries its body: KILLED (1 of 30 tests fail)
+a HEAD's answer carries its body: KILLED (1 of 31 tests fail)
 
-running 30 tests
+running 31 tests
 test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... ok
 test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
 test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
 test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
 test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... ok
 test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... ok
+test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... ok
 test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
@@ -1135,7 +1373,7 @@ failures:
 
 ---- tests::keep_alive::a_head_request_is_answered_with_no_body_and_closed stdout ----
 
-thread 'tests::keep_alive::a_head_request_is_answered_with_no_body_and_closed' (112987) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:627:5:
+thread 'tests::keep_alive::a_head_request_is_answered_with_no_body_and_closed' (82541) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:664:5:
 HTTP/1.1 200 OK
 content-type: text/plain; charset=utf-8
 content-length: 825
@@ -1151,27 +1389,28 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::a_head_request_is_answered_with_no_body_and_closed
 
-test result: FAILED. 29 passed; 1 failed; 0 ignored; 0 measured; 1004 filtered out; finished in 38.76s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 43.74s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
-a HEAD keeps its connection: KILLED (1 of 30 tests fail)
+a HEAD keeps its connection: KILLED (1 of 31 tests fail)
 warning: unused variable: `deadline`
-     --> spikes/own-renderer/server/src/main.rs:10230:5
+     --> spikes/own-renderer/server/src/main.rs:10375:5
       |
-10230 |     deadline: std::time::Instant,
+10375 |     deadline: std::time::Instant,
       |     ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_deadline`
       |
       = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
 
 
-running 30 tests
+running 31 tests
 test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... FAILED
 test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
 test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
 test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
 test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... ok
 test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... ok
+test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... ok
 test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
@@ -1201,7 +1440,7 @@ failures:
 
 ---- tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on stdout ----
 
-thread 'tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on' (113312) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:651:5:
+thread 'tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on' (82866) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:688:5:
 no answer: HTTP/1.1 202 
 content-type: application/json; charset=utf-8
 content-length: 53
@@ -1217,27 +1456,28 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on
 
-test result: FAILED. 29 passed; 1 failed; 0 ignored; 0 measured; 1004 filtered out; finished in 39.89s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 44.72s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
-the deadline bounds each read of the body alone: KILLED (1 of 30 tests fail)
+the deadline bounds each read of the body alone: KILLED (1 of 31 tests fail)
 warning: unused variable: `scope`
-     --> spikes/own-renderer/server/src/main.rs:10003:25
+     --> spikes/own-renderer/server/src/main.rs:10140:25
       |
-10003 |     std::thread::scope(|scope| {
+10140 |     std::thread::scope(|scope| {
       |                         ^^^^^ help: if this is intentional, prefix it with an underscore: `_scope`
       |
       = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
 
 
-running 30 tests
+running 31 tests
 test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... ok
 test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
 test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
 test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
 test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... ok
 test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... ok
+test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... ok
 test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
@@ -1267,27 +1507,28 @@ failures:
 
 ---- tests::keep_alive::the_next_request_waits_on_no_telling stdout ----
 
-thread 'tests::keep_alive::the_next_request_waits_on_no_telling' (113779) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:681:5:
-waited 2.00059936s
+thread 'tests::keep_alive::the_next_request_waits_on_no_telling' (83282) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:718:5:
+waited 2.000723924s
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 
 failures:
     tests::keep_alive::the_next_request_waits_on_no_telling
 
-test result: FAILED. 29 passed; 1 failed; 0 ignored; 0 measured; 1004 filtered out; finished in 28.68s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 33.29s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
-the telling runs before the next request: KILLED (1 of 30 tests fail)
+the telling runs before the next request: KILLED (1 of 31 tests fail)
 
-running 30 tests
+running 31 tests
 test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... ok
 test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
 test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
 test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
 test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... ok
 test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... ok
+test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... ok
 test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
@@ -1317,7 +1558,7 @@ failures:
 
 ---- tests::keep_alive::the_accept_loop_backs_off_after_a_failure stdout ----
 
-thread 'tests::keep_alive::the_accept_loop_backs_off_after_a_failure' (114128) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:691:5:
+thread 'tests::keep_alive::the_accept_loop_backs_off_after_a_failure' (83631) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:728:5:
 assertion `left == right` failed
   left: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
  right: [10, 20, 40, 80, 160, 320, 640, 1000, 1000, 1000]
@@ -1327,30 +1568,31 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::the_accept_loop_backs_off_after_a_failure
 
-test result: FAILED. 29 passed; 1 failed; 0 ignored; 0 measured; 1004 filtered out; finished in 28.62s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 33.54s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
-the accept loop asks again at once: KILLED (1 of 30 tests fail)
+the accept loop asks again at once: KILLED (1 of 31 tests fail)
 warning: method `was_answered` is never used
-    --> spikes/own-renderer/server/src/main.rs:9915:8
-     |
-9861 | impl Conn {
-     | --------- method in this implementation
+     --> spikes/own-renderer/server/src/main.rs:10052:8
+      |
+ 9987 | impl Conn {
+      | --------- method in this implementation
 ...
-9915 |     fn was_answered(&self) -> bool {
-     |        ^^^^^^^^^^^^
-     |
-     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+10052 |     fn was_answered(&self) -> bool {
+      |        ^^^^^^^^^^^^
+      |
+      = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
 
 
-running 30 tests
+running 31 tests
 test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... ok
 test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
 test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
 test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
 test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... ok
 test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... ok
+test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... ok
 test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
@@ -1380,7 +1622,7 @@ failures:
 
 ---- tests::keep_alive::a_second_answer_to_one_request_closes_its_connection stdout ----
 
-thread 'tests::keep_alive::a_second_answer_to_one_request_closes_its_connection' (114464) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:709:5:
+thread 'tests::keep_alive::a_second_answer_to_one_request_closes_its_connection' (83972) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:746:5:
 closed after a second
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -1388,19 +1630,20 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::a_second_answer_to_one_request_closes_its_connection
 
-test result: FAILED. 29 passed; 1 failed; 0 ignored; 0 measured; 1004 filtered out; finished in 28.32s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 33.42s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
-a second answer keeps its connection: KILLED (1 of 30 tests fail)
+a second answer keeps its connection: KILLED (1 of 31 tests fail)
 
-running 30 tests
+running 31 tests
 test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... ok
 test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
 test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
 test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
 test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... ok
 test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... ok
+test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... ok
 test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
@@ -1430,27 +1673,28 @@ failures:
 
 ---- tests::keep_alive::a_kept_connections_answers_wait_on_no_acknowledgement stdout ----
 
-thread 'tests::keep_alive::a_kept_connections_answers_wait_on_no_acknowledgement' (114809) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:762:5:
-twenty answers took 778.536664ms
+thread 'tests::keep_alive::a_kept_connections_answers_wait_on_no_acknowledgement' (84319) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:799:5:
+twenty answers took 779.409577ms
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 
 failures:
     tests::keep_alive::a_kept_connections_answers_wait_on_no_acknowledgement
 
-test result: FAILED. 29 passed; 1 failed; 0 ignored; 0 measured; 1004 filtered out; finished in 29.10s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 34.22s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
-a kept connection's answers wait on the client's acknowledgement: KILLED (1 of 30 tests fail)
+a kept connection's answers wait on the client's acknowledgement: KILLED (1 of 31 tests fail)
 
-running 30 tests
+running 31 tests
 test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... ok
 test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
 test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
 test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
 test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... ok
 test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... ok
+test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... ok
 test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
@@ -1480,7 +1724,7 @@ failures:
 
 ---- tests::keep_alive::while_a_dropped_command_is_armed_no_answer_keeps_its_connection stdout ----
 
-thread 'tests::keep_alive::while_a_dropped_command_is_armed_no_answer_keeps_its_connection' (115194) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:464:5:
+thread 'tests::keep_alive::while_a_dropped_command_is_armed_no_answer_keeps_its_connection' (84712) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:501:5:
 HTTP/1.1 200 OK
 content-type: text/plain; charset=utf-8
 content-length: 825
@@ -1496,19 +1740,20 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::while_a_dropped_command_is_armed_no_answer_keeps_its_connection
 
-test result: FAILED. 29 passed; 1 failed; 0 ignored; 0 measured; 1004 filtered out; finished in 28.38s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 33.31s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
-an answer keeps its connection while a dropped command is armed: KILLED (1 of 30 tests fail)
+an answer keeps its connection while a dropped command is armed: KILLED (1 of 31 tests fail)
 
-running 30 tests
+running 31 tests
 test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... ok
 test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
 test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
 test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
 test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed ... ok
 test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... FAILED
+test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... ok
 test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
@@ -1538,18 +1783,18 @@ failures:
 
 ---- tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it stdout ----
 
-thread 'tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it' (115496) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:435:5:
-closed once listed: false, after 10.125435661s
+thread 'tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it' (85014) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:472:5:
+closed once listed: false, after 10.370380715s
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 
 failures:
     tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it
 
-test result: FAILED. 29 passed; 1 failed; 0 ignored; 0 measured; 1004 filtered out; finished in 37.61s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 42.75s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
-a connection listed after a drop was armed is kept: KILLED (1 of 30 tests fail)
-26 of 26 mutants killed; valid=True, restored=True
+a connection listed after a drop was armed is kept: KILLED (1 of 31 tests fail)
+30 of 30 mutants killed; valid=True, restored=True
 memory bound: no process was stopped

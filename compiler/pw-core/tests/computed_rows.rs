@@ -90,6 +90,27 @@ fn page(markup: &str) -> Vec<(String, String)> {
     )])
 }
 
+/// A page whose rows a signal holds, beside a signal `selected`, its markup
+/// `markup`: what the large list writes.
+fn signal_page(markup: &str) -> Vec<(String, String)> {
+    program(&[(
+        "t.pw",
+        format!(
+            "module t\n\nimport List\n\n\
+             type Row = Row {{ id: Int, label: String, open: Bool, tags: List<String> }}\n\n\
+             fn shown(open: Bool) -> String !{{}} {{\n    if open {{\n        \"open\"\n    }} else {{\n        \"shut\"\n    }}\n}}\n\n\
+             public query Posts() -> List<Row> !{{}} {{\n    \
+             [Row {{ id: 7, label: \"q\", open: true, tags: [] }}]\n}}\n\n\
+             page P() {{\n    route \"/p\"\n    cache private\n\n    \
+             signal rows: List<Row> = [Row {{ id: 1, label: \"a\", open: true, tags: [\"x\"] }}]\n    \
+             signal selected: Int = 0\n    signal names: List<String> = [\"x\"]\n    let posts = query Posts()\n\n    \
+             view {{\n        <title>P</title>\n        <main>\n            {markup}\n            \
+             <button type=\"button\" on:press={{() => selected = 1}}>Select</button>\n        \
+             </main>\n    }}\n}}\n"
+        ),
+    )])
+}
+
 fn plan_of<'b>(b: &'b pw_core::build::Build, page: &str) -> &'b pw_core::page_values::PageValues {
     b.pages
         .iter()
@@ -207,9 +228,96 @@ fn from_a_field_of_the_item_in_a_block_and_in_a_loop_in_the_row() {
     assert!(matches!(from_tag, [Step::Derived(_)]), "{from_tag:?}");
 }
 
+/// **A row of a list a signal holds computes from its item and the signals**
+/// (ADR-0424): the large list's class, `if row.id ==
+/// selected`, and a text from the item alone. Each is the item's, by the
+/// path the compiler names from it, computed by the browser for each row it
+/// renders, from the values the plan names in the function's order; and by
+/// the page's computed module, keyed by that name.
+#[test]
+fn a_row_of_a_signals_list_computes_from_its_item_and_the_signals() {
+    let files = signal_page(
+        "<table><tbody>{#each rows as row (row.id)}<tr class={if row.id == selected { \"danger\" } else { \"\" }}>\
+         <td>{shown(row.open)}</td></tr>{/each}</tbody></table>",
+    );
+    assert_eq!(reported(&files), Vec::<String>::new());
+    let b = build(&files).unwrap_or_else(|e| panic!("{e}"));
+    let plan = plan_of(&b, "t.P~ui");
+    let rows: Vec<(&str, &str, &str, Vec<&str>)> = plan
+        .browser_rows
+        .iter()
+        .map(|r| {
+            (
+                r.collection.as_str(),
+                r.binding.as_str(),
+                r.path.as_str(),
+                r.inputs.iter().map(String::as_str).collect(),
+            )
+        })
+        .collect();
+    assert_eq!(rows.len(), 2, "two values each row computes: {rows:?}");
+    let class = rows
+        .iter()
+        .find(|r| r.3.len() == 2)
+        .unwrap_or_else(|| panic!("the class: {rows:?}"));
+    let text = rows
+        .iter()
+        .find(|r| r.3.len() == 1)
+        .unwrap_or_else(|| panic!("the text: {rows:?}"));
+    assert_eq!((class.0, class.1), ("rows", "row"), "{class:?}");
+    assert!(class.2.starts_with("row.#t.P~ui~"), "{class:?}");
+    assert_eq!(class.3, ["row", "selected"], "{class:?}");
+    assert!(text.2.starts_with("row.#t.P~ui~"), "{text:?}");
+    assert_eq!(text.3, ["row"], "{text:?}");
+    // No host computes them from a query's value, and none is the page's.
+    assert!(
+        plan.rows.iter().all(|r| !r.path.starts_with("row.")),
+        "{:?}",
+        plan.rows
+    );
+    // The list is its own block, read again when what its rows read changes:
+    // the signal the class reads among it (ADR-0421).
+    let each: Vec<_> = plan.live.iter().filter(|l| l.kind == "each").collect();
+    assert_eq!(each.len(), 1, "{:#?}", plan.live);
+    assert!(
+        each[0].reads.iter().any(|r| r == "selected"),
+        "{:?}",
+        each[0].reads
+    );
+    // The page's module computes each by its name.
+    let module = b
+        .computed
+        .iter()
+        .find(|c| c.page == "t.P~ui")
+        .and_then(|c| c.module.as_ref().ok())
+        .unwrap_or_else(|| panic!("no computed module: {:?}", b.computed));
+    let (_, exported) = module
+        .split_once("export const rows = {")
+        .unwrap_or_else(|| panic!("{module}"));
+    for (_, _, path, _) in &rows {
+        let name = path.strip_prefix("row.").expect("the item's");
+        assert!(exported.contains(&format!("\"{name}\": (")), "{module}");
+    }
+}
+
 #[test]
 fn what_a_row_does_not_compute_yet_is_refused_by_name() {
     for (files, why) in [
+        // A row of a list inside a row a signal holds: the browser computes
+        // none yet (ADR-0424).
+        (
+            signal_page(
+                "<ul>{#each rows as row (row.id)}<li><ul>{#each row.tags as t (t)}\
+                 <li>{shown(t == \"x\")}</li>{/each}</ul></li>{/each}</ul>",
+            ),
+            "computes a value in a row of a list inside another row, which the browser computes \
+             none of yet",
+        ),
+        // A row that is no record: what a row computes is held in its item.
+        (
+            signal_page("<ul>{#each names as n (n)}<li>{shown(n == \"x\")}</li>{/each}</ul>"),
+            "computes a value in a row of `n`, which is no record",
+        ),
         // A row's value from the item and another value.
         (
             page(

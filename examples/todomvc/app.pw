@@ -54,8 +54,6 @@ signal todos: List<Todo> = []
 
 // **A todo as the list shows it**: whether its field is shown, and its
 // class, which the model says from the page's `editing`.
-type Row = Row { id: Int, title: String, completed: Bool, editing: Bool, class: String }
-
 // **A draft as a title, or none**, as the spec asks: trimmed, and nothing
 // left of it is no todo.
 fn title_of(draft: String) -> Option<String> !{} {
@@ -143,16 +141,10 @@ fn row_class(completed: Bool, editing: Bool) -> String !{} {
     }
 }
 
-// **The rows the filter shows**, each as the list shows it: the model filters
-// (the spec: "filtered on a model level"), and says which row is edited.
-fn rows(todos: List<Todo>, filter: String, editing: Int) -> List<Row> !{} {
-    List.map(List.filter(todos, (t) => shown(t, filter)), (t) => Row {
-        id: t.id,
-        title: t.title,
-        completed: t.completed,
-        editing: t.id == editing,
-        class: row_class(t.completed, t.id == editing),
-    })
+// **The todos the filter shows**: the model filters (the spec: "filtered on a
+// model level"); each row says whether it is edited.
+fn visible(todos: List<Todo>, filter: String) -> List<Todo> !{} {
+    List.filter(todos, (t) => shown(t, filter))
 }
 
 fn left(todos: List<Todo>) -> Int !{} {
@@ -224,36 +216,34 @@ page Todos() {
                     on:press={() => todos = toggled_all(todos)} />
                 <label for="toggle-all">Mark all as complete</label>
                 <ul class="todo-list">
-                    {#if List.length(todos) > 0}
-                        {#each rows(todos, filter, editing) as row (row.id)}
-                            <li class={row.class}>
-                                <div class="view">
-                                    <input class="toggle" type="checkbox" aria-label="Completed" checked={row.completed}
-                                        on:press={resumable(captures = { row }) => todos = toggled(todos, row.id)} />
-                                    <label on:dblclick={resumable(captures = { row }) => {
-                                        edit_text = row.title
-                                        editing = row.id
-                                    }}>{row.title}</label>
-                                    <button class="destroy" type="button" aria-label="Delete"
-                                        on:press={resumable(captures = { row }) => todos = removed(todos, row.id)}></button>
-                                </div>
-                                {#if row.editing}
-                                    <input class="edit" aria-label="Edit" autofocus value={row.title}
-                                        on:input={(e: InputEvent) => edit_text = e.value}
-                                        on:keydown={(e: KeyEvent) => if e.key == "Enter" {
-                                            todos = retitled(todos, editing, edit_text)
-                                            editing = 0
-                                        } else if e.key == "Escape" {
-                                            editing = 0
-                                        }}
-                                        on:blur={(e: BlurEvent) => if editing != 0 {
-                                            todos = retitled(todos, editing, edit_text)
-                                            editing = 0
-                                        }} />
-                                {/if}
-                            </li>
-                        {/each}
-                    {/if}
+                    {#each visible(todos, filter) as row (row.id)}
+                        <li class={row_class(row.completed, row.id == editing)}>
+                            <div class="view">
+                                <input class="toggle" type="checkbox" aria-label="Completed" checked={row.completed}
+                                    on:press={resumable(captures = { row }) => todos = toggled(todos, row.id)} />
+                                <label on:dblclick={resumable(captures = { row }) => {
+                                    edit_text = row.title
+                                    editing = row.id
+                                }}>{row.title}</label>
+                                <button class="destroy" type="button" aria-label="Delete"
+                                    on:press={resumable(captures = { row }) => todos = removed(todos, row.id)}></button>
+                            </div>
+                            {#if row.id == editing}
+                                <input class="edit" aria-label="Edit" autofocus value={row.title}
+                                    on:input={(e: InputEvent) => edit_text = e.value}
+                                    on:keydown={(e: KeyEvent) => if e.key == "Enter" {
+                                        todos = retitled(todos, editing, edit_text)
+                                        editing = 0
+                                    } else if e.key == "Escape" {
+                                        editing = 0
+                                    }}
+                                    on:blur={(e: BlurEvent) => if editing != 0 {
+                                        todos = retitled(todos, editing, edit_text)
+                                        editing = 0
+                                    }} />
+                            {/if}
+                        </li>
+                    {/each}
                 </ul>
             </section>
             <footer class="footer" hidden={List.length(todos) == 0}>

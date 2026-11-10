@@ -1,26 +1,26 @@
 ADR-0054 - an opaque value is built and read inside a component
 
 produced by: just e10-opaque
-commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: bd1aaeeb8ba8d969afb7228305df754828267487
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
 == opaque values through the host (pw-conformance/tests/opaque.rs)
 
-test an_opaque_value_is_built_in_a_loop_and_folded ... ok
 test an_opaque_value_is_built_and_read_back ... ok
+test an_opaque_value_is_built_in_a_loop_and_folded ... ok
+test an_opaque_value_crosses_the_boundary_as_its_representation ... ok
 test a_record_a_list_and_an_option_are_each_an_opaque_types_representation ... ok
 test an_opaque_value_is_passed_to_a_recursion_and_captured ... ok
-test an_opaque_value_crosses_the_boundary_as_its_representation ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.21s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.14s
 
 == the component and the JavaScript module, on the same arguments
 
 javascript: 3 queries over cases written alone, 600 calls, component and module agree (57 trapped in both)
 javascript: 5 queries over trees, 1000 calls, component and module agree (155 trapped in both)
 javascript: 5 queries over values held in place, 1000 calls, component and module agree (132 trapped in both)
-javascript: 91 queries, 18200 calls, component and module agree (1196 trapped in both)
+javascript: 94 queries, 18800 calls, component and module agree (1243 trapped in both)
 
 == a generic representation's .value (pw-core/tests/members.rs)
 
@@ -34,10 +34,10 @@ test a_unit_on_a_number_is_a_literal_not_a_member ... ok
 test a_value_of_unknown_type_is_not_judged ... ok
 test a_template_hole_reads_a_member_its_item_has ... ok
 test one_defect_reached_by_two_rules_is_reported_once ... ok
-test an_opaque_types_value_is_refused_outside_its_module ... ok
 test an_opaque_types_value_is_its_representation_in_its_own_module ... ok
+test an_opaque_types_value_is_refused_outside_its_module ... ok
 test an_opaque_types_module_declares_no_member_named_value ... ok
-test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.17s
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.15s
 
 == mutation controls (scripts/opaque_mutations.py)
 

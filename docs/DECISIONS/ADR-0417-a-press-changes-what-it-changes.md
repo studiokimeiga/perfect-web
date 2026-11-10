@@ -124,7 +124,7 @@ swap 7 (5; React's 37), remove 7 (5), clear 11 (8). In WebKit, warm: create
 74 (59), append 72 (59), replace 79 (68). The page is 19,342 bytes as sent
 in four requests (Svelte's 13,242 in two). Of the 79 rows Pleris trailed at
 `6a112c3d`, 71 remain: 52 of them this app's, 10 TodoMVC's and 9 the
-store's. Making rows is what is left, and the planned row's ADR takes it
+store's. Making rows is what is left, and ADR-0420 takes it
 next.
 
 

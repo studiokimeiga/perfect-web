@@ -833,6 +833,27 @@ const HELPERS: &[(&str, &[&str], &str)] = &[
          while (b > a && WHITE.has(cs[b - 1].codePointAt(0))) b--;\n  return cs.slice(a, b).join(\"\");\n}",
     ),
     (
+        "range",
+        &["trap"],
+        "// The whole numbers from `start` up to `end`, as `List.range`; one of\n\
+         // more than 2^28 - 1 traps for the component's cause (ADR-0267). Filled\n\
+         // to its counted length, as the component writes it.\n\
+         function range(start, end) {\n  const n = end > start ? end - start : 0n;\n  \
+         if (n > 268435455n) trap(\"a value too long for memory\");\n  \
+         const out = new Array(Number(n));\n  \
+         for (let k = 0; k < out.length; k++) out[k] = start + BigInt(k);\n  return out;\n}",
+    ),
+    (
+        "swap",
+        &[],
+        "// The list with the elements at `i` and `j` exchanged, as `List.swap`;\n\
+         // the list as it is where either is no place in it.\n\
+         function swap(xs, i, j) {\n  const n = BigInt(xs.length);\n  \
+         if (i < 0n || j < 0n || i >= n || j >= n) return xs;\n  \
+         const out = [...xs];\n  const a = Number(i);\n  const b = Number(j);\n  \
+         [out[a], out[b]] = [out[b], out[a]];\n  return out;\n}",
+    ),
+    (
         "slice",
         &[],
         "// `start` up to `end`, each clamped to the array, as `List.slice` and\n\
@@ -1940,6 +1961,12 @@ impl<'p> Emitter<'p> {
                         format!("{}({}, {}, {})", self.uses("slice"), arg(0), arg(1), arg(2))
                     }
                     Intrinsic::ListReverse => format!("[...{}].reverse()", arg(0)),
+                    Intrinsic::ListRange => {
+                        format!("{}({}, {})", self.uses("range"), arg(0), arg(1))
+                    }
+                    Intrinsic::ListSwap => {
+                        format!("{}({}, {}, {})", self.uses("swap"), arg(0), arg(1), arg(2))
+                    }
                     Intrinsic::StrSlice => format!(
                         "{}(Array.from({}), {}, {}).join(\"\")",
                         self.uses("slice"),

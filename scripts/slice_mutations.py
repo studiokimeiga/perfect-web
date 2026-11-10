@@ -3,9 +3,9 @@
 placeholders computed.
 
 Each mutant undoes one piece of `List.drop`, `List.slice`, `List.reverse`,
-`String.slice`, `List.sum` or `List.maximum`, in the component, the
-JavaScript module or the standard library's own Pleris, and the tests must
-then fail.
+`String.slice`, `List.sum`, `List.maximum`, `List.range` or `List.swap`, in the
+component, the JavaScript module or the standard library's own Pleris, and
+the tests must then fail.
 
 Run from the repository root; `just e10-slices` records the output.
 The source is restored after every mutant, whatever happens.
@@ -86,6 +86,99 @@ MUTANTS = [
         LIST,
         "if x > b | x != x | (x == b",
         "if x > b | (x == b",
+    ),
+    # `List.range`.
+    (
+        "a range's bound reads a wrapped difference as signed",
+        WASM,
+        "                I::I64Const(0x0fff_ffff),\n                I::I64GtU,",
+        "                I::I64Const(0x0fff_ffff),\n                I::I64GtS,",
+    ),
+    (
+        "a range too long for a list traps for no cause",
+        WASM,
+        "                I::Call(trap_index(realloc_index, Cause::TooLongForMemory)),\n"
+        "                I::Unreachable,\n                I::End,\n"
+        "                // count = end > start",
+        "                I::Unreachable,\n                I::End,\n"
+        "                // count = end > start",
+    ),
+    (
+        "a range too long for a list traps for another cause",
+        WASM,
+        "                I::I32And,\n                I::If(Empty),\n"
+        "                I::Call(trap_index(realloc_index, Cause::TooLongForMemory)),\n",
+        "                I::I32And,\n                I::If(Empty),\n"
+        "                I::Call(trap_index(realloc_index, Cause::MemoryExhausted)),\n",
+    ),
+    (
+        "an empty range's count is its difference",
+        WASM,
+        "                I::I32WrapI64,\n                I::I32Const(0),\n"
+        "                I::LocalGet(1),\n                I::LocalGet(0),\n"
+        "                I::I64GtS,\n                I::Select,\n                I::LocalSet(2),",
+        "                I::I32WrapI64,\n                I::LocalSet(2),",
+    ),
+    (
+        "a range's numbers start at zero",
+        WASM,
+        "                    I::LocalGet(0),\n                    I::LocalGet(4),\n"
+        "                    I::I64ExtendI32U,\n                    I::I64Add,",
+        "                    I::LocalGet(4),\n                    I::I64ExtendI32U,",
+    ),
+    (
+        "the module's range traps for another cause",
+        JS,
+        r'trap(\"a value too long for memory\")',
+        r'trap(\"a range too long\")',
+    ),
+    (
+        # Filled to its counted length (run 42825062947: a loop from zero to
+        # the end near the greatest `Int` was stopped by the memory bound, and
+        # no assertion counted it).
+        "the module's range starts at zero",
+        JS,
+        "out[k] = start + BigInt(k);",
+        "out[k] = BigInt(k);",
+    ),
+    # `List.swap`.
+    (
+        "a swap moves one element",
+        WASM,
+        "                self.ops.extend(moved(i, j));\n                self.ops.extend(moved(j, i));\n",
+        "                self.ops.extend(moved(i, j));\n",
+    ),
+    (
+        "a swap copies only the two it moves",
+        WASM,
+        "                    I::LocalGet(copy),\n                    I::LocalGet(ptr),\n"
+        "                    I::LocalGet(len),\n                    I::I32Const(size),\n"
+        "                    I::I32Mul,\n",
+        "                    I::LocalGet(copy),\n                    I::LocalGet(ptr),\n"
+        "                    I::I32Const(0),\n                    I::I32Const(size),\n"
+        "                    I::I32Mul,\n",
+    ),
+    (
+        "a place past the end is a place to swap",
+        WASM,
+        "                        I::I64ExtendI32U,\n                        I::I64LtS,\n"
+        "                        I::I32And,\n                    ]\n                };\n"
+        "                self.ops.extend(place(i));\n",
+        "                        I::I64ExtendI32U,\n                        I::Drop,\n"
+        "                        I::Drop,\n                    ]\n                };\n"
+        "                self.ops.extend(place(i));\n",
+    ),
+    (
+        "the module swaps the list it was given",
+        JS,
+        "const out = [...xs];\\n  const a = Number(i);",
+        "const out = xs;\\n  const a = Number(i);",
+    ),
+    (
+        "the module takes a negative place",
+        JS,
+        "if (i < 0n || j < 0n || i >= n || j >= n) return xs;",
+        "if (i >= n || j >= n) return xs;",
     ),
 ]
 

@@ -59,15 +59,15 @@ MUTANTS = [
     ("zero holds", RUNTIME, """        return Number.isFinite(v) && v !== 0;\n""", """        return Number.isFinite(v);\n"""),
     ("an empty list holds", RUNTIME, """        return isList(v) ? v.length > 0 : v !== null && v !== undefined;\n""", """        return isList(v) ? true : v !== null && v !== undefined;\n"""),
     ("a case is a condition", RUNTIME, """    if (isVariant(v)) throw unrepresented("an Option or a Result is taken apart with {#match}");\n""", ""),
-    ("a field set whole is not read", RUNTIME, """        const all = field(value, segments.slice(rest).join("."));\n        if (all !== NONE) return all;\n""", ""),
-    ("a field of a case is read", RUNTIME, "        if (!isRecord(value)) return NONE;\n        const all =", "        if (!isObject(value)) return NONE;\n        const all ="),
+    ("a field set whole is not read", RUNTIME, """        const all = field(value, whole);\n        if (all !== NONE) return all;\n""", ""),
+    ("a field of a case is read", RUNTIME, "        if (!isRecord(value)) return NONE;\n        const whole =", "        if (!isObject(value)) return NONE;\n        const whole ="),
     ("a key reads through what is no record", RUNTIME, """      if (name === "") continue;\n      if (!isRecord(v)) return "";\n""", """      if (name === "") continue;\n      if (!isObject(v)) return "";\n"""),
     # --- graphs ---------------------------------------------------------------
     ("a node may be held twice", RUNTIME, "      const node = nodes[i];\n      nodes[i] = NONE;\n      return node;\n", "      return nodes[i];\n"),
     ("a node no other holds is kept", RUNTIME, """    if (nodes.slice(1).some((n) => n !== NONE)) throw malformed("a node no other holds");\n""", ""),
     ("a $node outside a graph is a record", RUNTIME, """    if ("$node" in v && Object.keys(v).length === 1) throw malformed("a $node outside any $graph");\n""", ""),
     # --- writing --------------------------------------------------------------
-    ("a text part writes no anchors", RUNTIME, "        else html.push(start, escaped(needText(e, p.value), p.context), end);\n", "        else html.push(escaped(needText(e, p.value), p.context));\n"),
+    ("a text part writes no anchors", RUNTIME, "        } else html.push(start, escaped(needText(e, p.value), p.context), end);\n", "        } else html.push(escaped(needText(e, p.value), p.context));\n"),
     ("each handler writes its own attribute", RUNTIME, """          if (q?.chunk !== "dynamic" || q.value.part !== "event" || q.value.owner !== c.value.owner) break;\n""", "          break;\n"),
     ("an element's handlers run together with another's", RUNTIME, """q.value.part !== "event" || q.value.owner !== c.value.owner) break;""", """q.value.part !== "event") break;"""),
     ("an absent boolean attribute leaves its space", RUNTIME, "        else dropSpace(html);\n", "        else;\n"),
@@ -78,12 +78,12 @@ MUTANTS = [
     ("a blocked part writes nothing", RUNTIME, """      case "blocked":\n        throw unrepresented(p.reason);\n""", """      case "blocked":\n        return;\n"""),
     ("a loop's missing key is rendered", RUNTIME, """    const key = keyOf(item, p.key);\n    if (key === "") throw new Blocked("MissingLoopKey", p.key);\n""", """    const key = keyOf(item, p.key);\n"""),
     ("a loop's duplicate key is rendered", RUNTIME, """    if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);\n    seen.add(key);\n    return key;\n""", """    seen.add(key);\n    return key;\n"""),
-    ("a row is kept whatever a block around it bound", RUNTIME, """      if (!a || !b || a.name !== b.name || !same(a.value, b.value)) return false;\n""", """      if (!a || !b || a.name !== b.name) return false;\n"""),
+    ("a row is kept whatever a block around it bound", RUNTIME, """      if (!a || !b || !same(a.value, b.value)) return false;\n""", """      if (!a || !b) return false;\n"""),
     # Not "a row is kept whichever names a block around it bound": the names
     # around a list are its template's, the same at every render of it, so a
-    # mutant that drops their comparison changes nothing a page can show (run
-    # 42772395298 found it surviving). The comparison of what they hold is the
-    # one above.
+    # mutant that dropped their comparison changed nothing a page can show
+    # (run 42772395298 found it surviving), and the runtime compares only
+    # what they hold.
     ("a loop that is no list renders nothing", RUNTIME, "    if (!isList(items)) throw missing(p.collection);\n", "    if (!isList(items)) return;\n"),
     ("a nested instance may pass what a browser nests", RUNTIME, "  const NESTED_ELEMENTS = 500;\n", "  const NESTED_ELEMENTS = 501;\n"),
     ("an instance counts no elements around it", RUNTIME, "    const root = e.elements + (p.elements ?? 0);\n", "    const root = e.elements;\n"),

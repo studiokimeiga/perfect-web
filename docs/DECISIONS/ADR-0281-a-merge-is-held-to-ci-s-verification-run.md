@@ -169,6 +169,17 @@ hold.
      have called it current. A program a recipe's own lines name, a glob
      read segment by segment as a shell expands one, or a path and what is
      under it, plans the recipe now (`body_inputs`).
+   - **A train is numbered before its run** (the integrator's, 2026-11-10,
+     at trains 18 and 19). Numbered after its run's fetch, as the rule above
+     has it, train-17 had its numbers written into the comments of what most
+     recipes read, the runtime's and the browser specs' among them: six
+     recipes' evidence stayed current, and its pull request's run verified
+     the train again, 24 shards. Numbers are the integrator's to give, so it
+     numbers a train's ADRs before the train's run, and the run records the
+     tree the pull request merges; what follows it is documents and
+     evidence (the ADRs' results, STATUS, NEXT, the fetched files), which
+     plan no recipe. Trains 18 and 19 are the first numbered so. A track
+     that lands before a numbered train takes the number after the train's.
    - That is a file a recorded command produced, as CLAUDE.md asks.
    - The fetch is a download, so it waits for the owner's yes in the
      integrator's session. Approval relayed through another session does

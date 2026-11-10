@@ -1,8 +1,8 @@
 ADR-0167 - markup text is text, and a comment in markup is <!-- -->
 
 produced by: just e14-markup-comments
-commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: bd1aaeeb8ba8d969afb7228305df754828267487
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the parser (compiler/pw-syntax)
@@ -14,8 +14,8 @@ test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 95 filtered out; fin
 
 == the checker and what a page sends (compiler/pw-core/tests/markup_comments.rs)
 
-test a_comment_is_not_sent_and_text_with_slashes_is ... ok
 test an_unquoted_attribute_value_is_sent_whole ... ok
+test a_comment_is_not_sent_and_text_with_slashes_is ... ok
 test a_line_that_reads_as_a_comment_is_refused ... ok
 test text_that_holds_slashes_and_a_comment_in_markup_are_the_controls ... ok
 test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
@@ -25,7 +25,7 @@ test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 test every_rejected_fixture_emits_only_its_own_defect ... ok
 test every_rejected_fixtures_rule_is_a_code_its_check_reports ... ok
 test no_accepted_corpus_file_reports_a_body_level_error ... ok
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 90.93s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 133.27s
 
 == the store checks
 

@@ -231,8 +231,8 @@ fn a_page_with_a_layout_starts_the_whole_runtime() {
     assert!(!answer.contains("pw-runtime-device.mjs"), "{answer}");
 }
 
-/// **In a production build, the page runs on the device's runtime** (the device
-/// runtime's ADR): no reader decides it and it has no layout, so its one
+/// **In a production build, the page runs on the device's runtime** (ADR-0413):
+/// no reader decides it and it has no layout, so its one
 /// document starts the small runtime, and its policy allows that.
 #[test]
 fn a_production_build_of_the_page_starts_the_devices_runtime() {
