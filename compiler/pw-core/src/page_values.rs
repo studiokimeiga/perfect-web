@@ -882,7 +882,7 @@ pub struct PageValues {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub device: Vec<crate::device_store::Held>,
     /// **No reader decides the page's document, and nothing on it asks a
-    /// server anything** (the prerender's ADR): a host renders it once and
+    /// server anything** (ADR-0409): a host renders it once and
     /// sends everyone those bytes. Derived, by [`crate::prerender`], once
     /// the build's handlers are compiled.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]

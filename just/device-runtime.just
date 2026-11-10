@@ -1,5 +1,5 @@
 # The device runtime's recipes (a page that talks to no server starts a runtime
-# with no server's code in it, ADR unnumbered until it lands). The root justfile
+# with no server's code in it, ADR-0413). The root justfile
 # imports this file, and its settings and variables (`set shell`, `PATH`) apply
 # here as there. An evidence recipe is `e14-<name>:`, writes
 # `docs/evidence/E14/<name>.txt`, and is planned by the verification run like

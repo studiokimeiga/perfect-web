@@ -21,7 +21,7 @@
 
 const parts = JSON.parse(document.getElementById("pw-parts")?.textContent ?? "{}");
 
-/** **Whether this runtime talks to a server** (the device runtime's ADR). The
+/** **Whether this runtime talks to a server** (ADR-0413). The
  * packaging builds a second runtime with this false, for a page no reader
  * decides and with no layout, and what only a server's page uses falls away
  * with it: the subscription, commands, speculation, streams, a navigation
@@ -388,7 +388,7 @@ let servedBuild = "";
 /** Whether its build warms (ADR-0399): the table's `#warm|1`. */
 let buildWarms = false;
 
-/** **Where this page's code is one module** (the page bundle's ADR), `null`
+/** **Where this page's code is one module** (ADR-0412), `null`
  * where each piece of it is a module of its own. */
 let pageBundleAt = null;
 let pageBundleLoading = null;
@@ -460,7 +460,7 @@ function heardTable(table) {
   return lines;
 }
 
-/** **Whether a handler a document names may attach** (E7V; the decision's ADR):
+/** **Whether a handler a document names may attach** (E7V; ADR-0414):
  * `pw-resume`'s answers, from the build's table and the document's manifest.
  * What that crate hashes, a handler's name and what it captures, is compared
  * here as the text it was hashed from, so a handler is known exactly when the
@@ -3492,7 +3492,7 @@ addEventListener(
     navigating = false;
     // A frozen page hears no `storage` event, so another tab's writes while
     // it was kept went unheard: everything the device keeps is read again,
-    // as after a `clear()` (the prerender's ADR).
+    // as after a `clear()` (ADR-0409).
     void heardKept({ key: null, storageArea: deviceStore() });
     if (PW_SERVER && leaving && parts.listens !== false) {
       leaving = false;
@@ -4473,7 +4473,7 @@ addEventListener(
  * stopped hearing changes without a word.
  */
 /** `&hold=long`, where this page's subscription may be held until something
- * happens (the longer-holds ADR); empty otherwise. */
+ * happens (ADR-0402); empty otherwise. */
 let holdLong = "";
 
 /** Lets the long hold go, where this page holds it or is waiting for it. */

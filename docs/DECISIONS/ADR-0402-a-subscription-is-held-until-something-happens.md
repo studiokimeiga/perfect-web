@@ -1,11 +1,12 @@
-# ADR-XXXX: a subscription is held until something happens
+# ADR-0402: a subscription is held until something happens
 
-Status: proposed, 2026-11-06, on branch `perf/longer-holds-20261106`, on top
-of the first press (PR #76) with master merged in (`ac3ea31c`). Proposed
-under the owner's standing order of 2026-10-25 (decide by best judgement,
-without asking) and the owner's approval on 2026-11-06 of "longer-held
-subscriptions" as a follow-up with an ADR of its own. Not landed; not
-numbered (the integrator numbers ADRs). Milestone: E14.
+Status: accepted 2026-11-10, landed with train-16 under the owner's delegation
+of 2026-10-02, after its review's repairs. Proposed 2026-11-06, on branch
+`perf/longer-holds-20261106`, on top of the first press (PR #76) with master
+merged in (`ac3ea31c`). Proposed under the owner's standing order of 2026-10-25
+(decide by best judgement, without asking) and the owner's approval on
+2026-11-06 of "longer-held subscriptions" as a follow-up with an ADR of its own.
+Milestone: E14.
 
 ## Context
 

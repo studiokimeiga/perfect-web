@@ -1,10 +1,10 @@
-# ADR-XXXX: a build's stylesheets draw with their own images
+# ADR-0416: a build's stylesheets draw with their own images
 
-Status: proposed 2026-11-09, on branch `perf/inline-styles-20261109`, under the
-owner's delegation of 2026-10-02 and order of 2026-10-25 ("deciding by best
-judgement without asking"), and the order of 2026-11-09 to work the measured
-gaps with Svelte largest first. Milestone: E14. Amends ADR-0333 and undoes
-ADR-0367's amendment of 2026-11-06.
+Status: accepted 2026-11-10, landed with train-16. Proposed 2026-11-09, on
+branch `perf/inline-styles-20261109`, under the owner's delegation of 2026-10-02
+and order of 2026-10-25 ("deciding by best judgement without asking"), and the
+order of 2026-11-09 to work the measured gaps with Svelte largest first.
+Milestone: E14. Amends ADR-0333 and undoes ADR-0367's amendment of 2026-11-06.
 
 ## Context
 

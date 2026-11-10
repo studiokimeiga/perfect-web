@@ -1,4 +1,4 @@
-//! **A page's code in one module** (the page bundle's ADR), the host's part:
+//! **A page's code in one module** (ADR-0412), the host's part:
 //! a bundled build names each page's module on its handler table and serves
 //! it at its delivery, and any other build names and serves none.
 

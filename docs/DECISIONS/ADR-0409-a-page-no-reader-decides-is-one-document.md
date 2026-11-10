@@ -1,9 +1,10 @@
-# ADR-XXXX: a page no reader decides is one document
+# ADR-0409: a page no reader decides is one document
 
-Status: proposed 2026-11-09, on branch `perf/prerender-device-pages-20261109`,
-under the owner's delegation of 2026-10-02 and order of 2026-10-25 ("deciding
-by best judgement without asking"), on the owner's choice of 2026-11-09
-("Prerender first"). Milestone: E14 (ADR-0392's "Next", item 8).
+Status: accepted 2026-11-10, landed with train-16. Proposed 2026-11-09, on
+branch `perf/prerender-device-pages-20261109`, under the owner's delegation of
+2026-10-02 and order of 2026-10-25 ("deciding by best judgement without
+asking"), on the owner's choice of 2026-11-09 ("Prerender first"). Milestone:
+E14 (ADR-0392's "Next", item 8).
 
 ## Context
 

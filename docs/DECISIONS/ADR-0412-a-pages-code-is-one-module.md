@@ -1,10 +1,11 @@
-# ADR-XXXX: a page's code is one module
+# ADR-0412: a page's code is one module
 
-Status: proposed 2026-11-09, on branch `perf/page-bundle-20261109`, under the
-owner's delegation of 2026-10-02 and order of 2026-10-25 ("deciding by best
-judgement without asking"), and the order of 2026-11-09 to work the measured
-gaps with Svelte largest first. Milestone: E14 (ADR-0392's "Next"). Amends
-ADR-0399, which has a production page warm each piece of its code by itself.
+Status: accepted 2026-11-10, landed with train-16. Proposed 2026-11-09, on
+branch `perf/page-bundle-20261109`, under the owner's delegation of 2026-10-02
+and order of 2026-10-25 ("deciding by best judgement without asking"), and the
+order of 2026-11-09 to work the measured gaps with Svelte largest first.
+Milestone: E14 (ADR-0392's "Next"). Amends ADR-0399, which has a production page
+warm each piece of its code by itself.
 
 ## Context
 

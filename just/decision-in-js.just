@@ -1,5 +1,5 @@
-# The decision in JavaScript's recipes (every page decides in its runtime, ADR
-# unnumbered until it lands). The root justfile imports this file, and its
+# The decision in JavaScript's recipes (every page decides in its runtime,
+# ADR-0414). The root justfile imports this file, and its
 # settings and variables (`set shell`, `PATH`) apply here as there. An evidence
 # recipe is `e14-<name>:`, writes `docs/evidence/E14/<name>.txt`, and is planned
 # by the verification run like any other (scripts/ci_plan.py reads this file

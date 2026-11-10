@@ -1,4 +1,4 @@
-// **The browser decides as `pw-resume` decides** (the decision's ADR).
+// **The browser decides as `pw-resume` decides** (ADR-0414).
 //
 // A page answers the decision in a few lines of its runtime, from the build's
 // table, and `pw-resume` is the Rust crate that specifies it. Two

@@ -1,4 +1,4 @@
-//! **A page no reader decides is one document** (the prerender's ADR): which
+//! **A page no reader decides is one document** (ADR-0409): which
 //! pages a build marks. A page is marked where nothing its reader brings can
 //! change its document and nothing on it ever asks a server anything.
 //!

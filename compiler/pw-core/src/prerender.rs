@@ -1,4 +1,4 @@
-//! **A page no reader decides is one document** (the prerender's ADR): which
+//! **A page no reader decides is one document** (ADR-0409): which
 //! pages a host renders once and sends to everyone.
 //!
 //! Derived, and never declared, so that it cannot be wrong. A page is

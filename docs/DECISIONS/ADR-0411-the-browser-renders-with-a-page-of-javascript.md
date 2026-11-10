@@ -1,12 +1,13 @@
-# ADR-XXXX: the browser renders with a page of JavaScript, held to the server's renderer
+# ADR-0411: the browser renders with a page of JavaScript, held to the server's renderer
 
-Status: proposed 2026-11-09, on branch `perf/browser-renderer-20261109`, under
-the owner's delegation of 2026-10-02 and order of 2026-10-25 ("deciding by best
-judgement without asking"), and the order of 2026-11-09 to work the measured
-gaps with Svelte largest first. Milestone: E14 (ADR-0392's "Next"). Amends
-ADR-0130's step 1 and ADR-0172, which built the browser's renderer as
-`runtime/pw-render` compiled to WebAssembly; retires what ADR-0382 and ADR-0399
-built around loading and warming that module.
+Status: accepted 2026-11-10, landed with train-16. Proposed 2026-11-09, on
+branch `perf/browser-renderer-20261109`, under the owner's delegation of
+2026-10-02 and order of 2026-10-25 ("deciding by best judgement without
+asking"), and the order of 2026-11-09 to work the measured gaps with Svelte
+largest first. Milestone: E14 (ADR-0392's "Next"). Amends ADR-0130's step 1 and
+ADR-0172, which built the browser's renderer as `runtime/pw-render` compiled to
+WebAssembly; retires what ADR-0382 and ADR-0399 built around loading and warming
+that module.
 
 ## Context
 

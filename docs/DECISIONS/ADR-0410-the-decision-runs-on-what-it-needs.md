@@ -1,9 +1,9 @@
-# ADR-XXXX: the decision runs on what it needs
+# ADR-0410: the decision runs on what it needs
 
-Status: proposed 2026-11-09, on branch `perf/resume-wasm-size-20261109`, under
-the owner's delegation of 2026-10-02 and order of 2026-10-25, and of 2026-11-09
-("continue until its literally perfect"). Milestone: E14 (ADR-0392's first-load
-losses).
+Status: accepted 2026-11-10, landed with train-16. Proposed 2026-11-09, on
+branch `perf/resume-wasm-size-20261109`, under the owner's delegation of
+2026-10-02 and order of 2026-10-25, and of 2026-11-09 ("continue until its
+literally perfect"). Milestone: E14 (ADR-0392's first-load losses).
 
 ## Context
 

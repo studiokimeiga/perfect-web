@@ -105,7 +105,7 @@ test("gate 7b: the interactive route's runtime is bounded as it is sent", async 
 });
 
 test("gate 7d: a block a signal decides is rendered with what the page already holds", async ({ page }) => {
-  // The browser's renderer is the runtime's (the browser renderer's ADR): it
+  // The browser's renderer is the runtime's (ADR-0411): it
   // was a file of its own, fetched the first time a block was rendered again.
   await page.goto("/page/demo.panel.PanelPage~ui");
   await page.waitForFunction(() => document.documentElement.dataset.pwReady === "1");

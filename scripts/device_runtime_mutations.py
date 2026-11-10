@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Mutation controls for the device runtime's ADR: a page that talks to no
+"""Mutation controls for ADR-0413: a page that talks to no
 server starts a runtime with no server's code in it.
 
 Each mutant undoes one piece:

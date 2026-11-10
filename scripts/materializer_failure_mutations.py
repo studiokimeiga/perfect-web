@@ -88,7 +88,7 @@ CARGO = {
         "cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--", "--exact",
         "tests::a_regeneration_that_fails_sends_nothing_and_is_tried_again",
     ],
-    # A hold tries a failed regeneration too (the longer-holds ADR), so what a
+    # A hold tries a failed regeneration too (ADR-0402), so what a
     # request does alone is seen where no hold tries it.
     "request": [
         "cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--", "--exact",

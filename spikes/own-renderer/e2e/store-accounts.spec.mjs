@@ -209,7 +209,7 @@ test("a tab whose reader signed in or out in another is refused at its next pres
 }, testInfo) => {
   const context = await browser.newContext();
   // This test takes each subscription as it is asked for, so it needs each to
-  // end briefly: no page of it asks to be held long (the longer-holds ADR).
+  // end briefly: no page of it asks to be held long (ADR-0402).
   await context.addInitScript(() => Object.defineProperty(navigator, "locks", { value: undefined }));
   const [here, there] = [await context.newPage(), await context.newPage()];
   const words = "You signed in or out in another tab. Reload this page to go on.";

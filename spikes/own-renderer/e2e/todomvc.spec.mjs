@@ -656,7 +656,7 @@ test("a page brought back from the back-forward cache shows what was written whi
   await expect(items(page)).toHaveText([ONE, TWO]);
 });
 
-// --- One document for everyone (the prerender's ADR) -------------------------
+// --- One document for everyone (ADR-0409) -------------------------
 
 test("a visit leaves no cookie: only what the device keeps", async ({ page }) => {
   await open(page);
@@ -888,7 +888,7 @@ test("the stylesheets are TodoMVC's own, and shown", async ({ page, request }) =
 //
 // The official sheet draws a todo's checkbox, a circle and a ticked circle, as
 // `data:` images. The page's policy allows them because the build's own
-// stylesheets ask for them (the stylesheets' images' ADR).
+// stylesheets ask for them (ADR-0416).
 
 test("a todo's checkbox is the sheet's own drawing, and is fetched as nothing", async ({ page }) => {
   const images = [];

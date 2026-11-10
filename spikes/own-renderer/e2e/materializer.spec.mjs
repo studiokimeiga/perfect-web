@@ -7,7 +7,7 @@ import { expect, test } from "@playwright/test";
 
 /** The store, ready, counting each time the page is read again. Its page is
  * held briefly: a page held long has its failed regeneration tried again
- * within the hold (the longer-holds ADR), and it is the next request's trying
+ * within the hold (ADR-0402), and it is the next request's trying
  * that this holds to. */
 async function ready(page) {
   await page.addInitScript(() => Object.defineProperty(navigator, "locks", { value: undefined }));

@@ -1,14 +1,15 @@
-# ADR-XXXX: a page that talks to no server starts a runtime of its own
+# ADR-0413: a page that talks to no server starts a runtime of its own
 
-Status: proposed 2026-11-09, on branch `perf/device-runtime-20261109`, under the
-owner's delegation of 2026-10-02 and order of 2026-10-25 ("deciding by best
-judgement without asking"), and the order of 2026-11-09 to work the measured
-gaps with Svelte largest first. Milestone: E14. Builds on the prerender's ADR,
-whose compiler marks the pages this applies to, and on the page bundle's.
+Status: accepted 2026-11-10, landed with train-16. Proposed 2026-11-09, on
+branch `perf/device-runtime-20261109`, under the owner's delegation of
+2026-10-02 and order of 2026-10-25 ("deciding by best judgement without
+asking"), and the order of 2026-11-09 to work the measured gaps with Svelte
+largest first. Milestone: E14. Builds on ADR-0409, whose compiler marks the
+pages this applies to, and on the page bundle's.
 
 ## Context
 
-After the renderer's and the bundle's ADRs, what a TodoMVC page sends on its
+After the renderer's and ADR-0412s, what a TodoMVC page sends on its
 first load is its document, its stylesheets, 2 KB of its own code, the runtime at
 21.3 KB as Brotli sends it, and `pw-resume.wasm` at 6.6 KB and a request of its
 own. Svelte's whole page is 17 KB.

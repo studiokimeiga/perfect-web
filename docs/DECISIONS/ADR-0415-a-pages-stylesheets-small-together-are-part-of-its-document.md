@@ -1,9 +1,10 @@
-# ADR-XXXX: a page's stylesheets, small together, are part of its document
+# ADR-0415: a page's stylesheets, small together, are part of its document
 
-Status: proposed 2026-11-09, on branch `perf/inline-styles-20261109`, under the
-owner's delegation of 2026-10-02 and order of 2026-10-25 ("deciding by best
-judgement without asking"), and the order of 2026-11-09 to work the measured
-gaps with Svelte largest first. Milestone: E14. Builds on the prerender's ADR.
+Status: accepted 2026-11-10, landed with train-16. Proposed 2026-11-09, on
+branch `perf/inline-styles-20261109`, under the owner's delegation of 2026-10-02
+and order of 2026-10-25 ("deciding by best judgement without asking"), and the
+order of 2026-11-09 to work the measured gaps with Svelte largest first.
+Milestone: E14. Builds on ADR-0409.
 
 ## Context
 
@@ -14,7 +15,7 @@ under Slow 4G, and 32 ms against Svelte's 20 in WebKit, and on requests, 7 again
 stylesheets, 2.9 KB between them as Brotli sends them, each its own round trip
 that a browser holds the first paint for.
 
-A document the prerender's ADR made is compressed once and revalidated: on a
+A document ADR-0409 made is compressed once and revalidated: on a
 repeat visit its bytes are not sent at all, so what is in it costs nothing then.
 
 ## Decision

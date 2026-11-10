@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Mutation controls for the longer-holds ADR's browser half: which pages ask
+"""Mutation controls for ADR-0402's browser half: which pages ask
 to be held long.
 
 Each mutant undoes one piece of the runtime: every tab asking on HTTP/1.1, no

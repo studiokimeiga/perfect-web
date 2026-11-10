@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Mutation controls for the stylesheets' images' ADR: a build's stylesheets
+"""Mutation controls for ADR-0416: a build's stylesheets
 draw with their own images.
 
 Each mutant undoes one piece: the build's stylesheets not read, every build

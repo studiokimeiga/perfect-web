@@ -149,7 +149,7 @@ async function readIfThere(file) {
 }
 
 /**
- * **Each page's code in one module** (the page bundle's ADR): its handlers,
+ * **Each page's code in one module** (ADR-0412): its handlers,
  * its computed values and its speculations, which a production page warms
  * and each of which was a request of its own, and each a compression of its
  * own. A module's identity, and so each module beside this, is unchanged: a

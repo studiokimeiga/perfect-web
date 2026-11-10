@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Mutation controls for the decision's ADR: every page decides in its runtime.
+"""Mutation controls for ADR-0414: every page decides in its runtime.
 
 The decision's own lines are held to `pw-resume` by
 `decision-agreement.test.mjs`, and `device_runtime_mutations.py` undoes each of

@@ -1,11 +1,12 @@
-# ADR-XXXX: every page decides in its runtime
+# ADR-0414: every page decides in its runtime
 
-Status: proposed 2026-11-09, on branch `perf/decision-in-js-20261109`, under the
-owner's delegation of 2026-10-02 and order of 2026-10-25 ("deciding by best
-judgement without asking"), and the order of 2026-11-09 to work the measured
-gaps with Svelte largest first. Milestone: E14. Follows the device runtime's
-ADR, whose third decision this generalizes, and amends the decision's ADRs
-(E7V, ADR-0132, ADR-0300, ADR-0400) as to where a page's decision runs.
+Status: accepted 2026-11-10, landed with train-16. Proposed 2026-11-09, on
+branch `perf/decision-in-js-20261109`, under the owner's delegation of
+2026-10-02 and order of 2026-10-25 ("deciding by best judgement without
+asking"), and the order of 2026-11-09 to work the measured gaps with Svelte
+largest first. Milestone: E14. Follows the device runtime's ADR, whose third
+decision this generalizes, and amends ADR-0414s (E7V, ADR-0132, ADR-0300,
+ADR-0400) as to where a page's decision runs.
 
 ## Context
 

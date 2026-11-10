@@ -164,7 +164,7 @@ def main():
     args = parser.parse_args()
     files = sorted({path for _, path, _, _ in MUTANTS} | set(SOURCES))
     before = {str(path.relative_to(ROOT)): digest(path) for path in files}
-    report = {"scope": "a subscription held until something happens (the longer-holds ADR)",
+    report = {"scope": "a subscription held until something happens (ADR-0402)",
               "command": COMMAND, "producer_sha256": digest(Path(__file__)),
               "sources": before, "baseline": None, "controls": [], "restored": False,
               "valid": False}

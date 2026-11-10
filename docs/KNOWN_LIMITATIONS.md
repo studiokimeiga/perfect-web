@@ -1209,7 +1209,7 @@ that reads queries holds signals on the store's route only (ADR-0140); any
 other page with queries is not served yet (E14-Q).
 
 **A response's caching is said for a session's responses and for a page no
-reader decides** (ADR-0184, the prerender's ADR). A session's response says
+reader decides** (ADR-0184, ADR-0409). A session's response says
 `private, no-store`, and a build's file names no session but says nothing of
 how long it may be kept, which is the deployment's. A page no reader decides
 says `public, no-cache`, with a validator. A page declared `cache shared` is
