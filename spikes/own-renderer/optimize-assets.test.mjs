@@ -461,3 +461,83 @@ test("a build whose pages cannot be read keeps everything", async () => {
   }
 });
 
+/** The real runtime, packed for a build of `pages`, each a page no reader
+ * decides holding one handler (`[page, handler]`): the build's directory. */
+async function packedPages(pages, plan = { prerender: true }) {
+  const dir = await mkdtemp(path.join(tmpdir(), "pw-assets-"));
+  await copyFile(new URL("./public/pw-runtime.mjs", import.meta.url), path.join(dir, "pw-runtime.mjs"));
+  const files = { "templates.json": JSON.stringify(pages.map(([page, id]) => ({ path: page, chunks: [event(id)] }))) };
+  for (const [page, id] of pages) {
+    files[`pages/${page}.json`] = JSON.stringify(plan);
+    files[`handlers/${id}.mjs`] = handlerModule(id, `said by ${page}`);
+  }
+  await aBuild(dir, files);
+  await optimizeAssets(dir);
+  return dir;
+}
+
+/** The module of a page alone in its build, where the packaging wrote one. */
+const aloneOf = (dir, page) => readFile(path.join(dir, "build/alone", `${page}.mjs`), "utf8").catch(() => null);
+
+test("a page alone in its build has its code and the device's runtime in one module", async () => {
+  const dir = await packedPages([["app.Page~ui", "abababababababab"]]);
+  try {
+    const alone = await aloneOf(dir, "app.Page~ui");
+    assert.ok(alone !== null, "the packaging wrote it");
+    assert.ok(alone.includes("said by app.Page~ui"), "the page's code is in it");
+    assert.ok(!/\bimport\s*[*{"']/.test(alone), "it imports nothing: it is the page's one script");
+    assert.ok(alone.includes('"pw-handlers"'), "it reads the table its document holds");
+    assert.ok(!alone.includes("/pw-handlers"), "it asks for no table");
+    for (const [what, word] of Object.entries(SERVER_ONLY)) assert.ok(!alone.includes(word), `no ${what}: ${word}`);
+    assert.ok(!/<\/?script/i.test(alone), "the parser reads it as one script");
+    const device = (await readFile(path.join(dir, "pw-runtime-device.mjs"))).toString();
+    assert.ok(device.includes("/pw-handlers"), "the device's runtime asks for its table");
+    assert.ok(!device.includes('"pw-handlers"'), "and reads none from its document");
+    // Deterministic, as what a document holds must be: packed again from the
+    // runtime as written, which the packaging replaced with its minified copy.
+    await copyFile(new URL("./public/pw-runtime.mjs", import.meta.url), path.join(dir, "pw-runtime.mjs"));
+    await optimizeAssets(dir);
+    assert.equal(await aloneOf(dir, "app.Page~ui"), alone);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("a build of two pages has no module alone: its pages share one runtime", async () => {
+  const dir = await packedPages([
+    ["app.A~ui", "acacacacacacacac"],
+    ["app.B~ui", "bcbcbcbcbcbcbcbc"],
+  ]);
+  try {
+    assert.equal(await aloneOf(dir, "app.A~ui"), null);
+    assert.equal(await aloneOf(dir, "app.B~ui"), null);
+    assert.ok((await readFile(path.join(dir, "build/bundles/app.A~ui.mjs"))).length > 0, "each keeps its own module");
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("a page a reader decides has no module alone: it is no page of the device's", async () => {
+  const dir = await packedPages([["app.Page~ui", "adadadadadadadad"]], { prerender: false });
+  try {
+    assert.equal(await aloneOf(dir, "app.Page~ui"), null);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("a page with no code of its own has no module alone", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "pw-assets-"));
+  try {
+    await copyFile(new URL("./public/pw-runtime.mjs", import.meta.url), path.join(dir, "pw-runtime.mjs"));
+    await aBuild(dir, {
+      "pages/app.Static~ui.json": JSON.stringify({ prerender: true }),
+      "templates.json": JSON.stringify([{ path: "app.Static~ui", chunks: [{ chunk: "static", value: "<p>" }] }]),
+    });
+    await optimizeAssets(dir);
+    assert.equal(await aloneOf(dir, "app.Static~ui"), null);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+

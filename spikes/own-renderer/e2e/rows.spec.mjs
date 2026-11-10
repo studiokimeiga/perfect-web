@@ -2,10 +2,13 @@
 // the device's runtime: whatever is pressed, in any order, the page shows what
 // its rows say; a row the press did not change is left as it was; and what is
 // heard at the document acts as it would on the element.
-// `examples/rows/app.pw`, `examples/rows/events.pw`.
+// `examples/rows/app.pw`, and the fixture `examples/rows/events.pw`, which
+// is a build of its own (`row-events.sh`): the large list's is the app alone,
+// as the head-to-head measures it, and a page alone in its build (the one
+// page's ADR).
 import { test } from "@playwright/test";
 import { expect } from "../assertion-expect.mjs";
-import { ROWS_PORTS } from "../host-metadata.mjs";
+import { ROWS_PORTS, ROW_EVENTS_PORTS } from "../host-metadata.mjs";
 
 test.use({
   baseURL: async ({}, use, testInfo) => {
@@ -16,7 +19,8 @@ test.use({
 async function open(page, path = "/") {
   page.errors = [];
   page.on("pageerror", (e) => page.errors.push(String(e)));
-  await page.goto(path);
+  const events = `http://127.0.0.1:${ROW_EVENTS_PORTS[test.info().project.name]}`;
+  await page.goto(path.startsWith("/events") ? `${events}${path}` : path);
   await page.waitForFunction(() => document.documentElement.dataset.pwReady === "1");
 }
 

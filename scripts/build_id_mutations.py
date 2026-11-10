@@ -90,11 +90,11 @@ MUTANTS = [
         "the table says no page",
         "host",
         SERVER,
-        '                    table.push_str(&format!(\n'
-        '                        "#page|{page}|{}|{}\\n",\n',
-        '                    let _ = table.len();\n'
-        '                    let _ = (format!(\n'
-        '                        "#page|{page}|{}|{}\\n",\n',
+        '                table.push_str(&format!(\n'
+        '                    "#page|{page}|{}|{}\\n",\n',
+        '                let _ = table.len();\n'
+        '                let _ = (format!(\n'
+        '                    "#page|{page}|{}|{}\\n",\n',
     ),
     (
         "a document is answered without its build",

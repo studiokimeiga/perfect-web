@@ -218,6 +218,8 @@ export const KIOKUN_PORTS = portExport("KIOKUN_PORTS");
 export const TODOMVC_PORTS = portExport("TODOMVC_PORTS");
 // The large list's hosts, one per engine.
 export const ROWS_PORTS = portExport("ROWS_PORTS");
+// The large list's fixture of presses, a build of its own, one per engine.
+export const ROW_EVENTS_PORTS = portExport("ROW_EVENTS_PORTS");
 // The store-accounts track's hosts: the store's build, signed in, one per
 // engine, because an account and its cart are every reader's on a host.
 export const STORE_ACCOUNTS_PORTS = portExport("STORE_ACCOUNTS_PORTS");

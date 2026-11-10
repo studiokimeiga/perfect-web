@@ -86,6 +86,7 @@ BUILD_SCRIPTS = (
     "guestbook.sh",
     "todomvc.sh",
     "rows.sh",
+    "row-events.sh",
 )
 SUITE = re.compile(r"playwright test")
 

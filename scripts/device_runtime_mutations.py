@@ -141,8 +141,8 @@ MUTANTS = [
      "  decide = decider(lines, PAGE);\n",
      '  decide = () => ({ attach: true, recovery: "reload", code: 0 });\n'),
     ("a device page's table is not heard", "browser", RUNTIME,
-     '  const lines = heardTable(await fetch(delivered("/pw-handlers")).then((r) => (r.ok ? r.text() : "")));\n',
-     '  const lines = (await fetch(delivered("/pw-handlers")).then((r) => (r.ok ? r.text() : ""))).split("\\n");\n'),
+     '  const lines = heardTable(\n',
+     '  const lines = ((t) => t.split("\\n"))(\n'),
     ("a device page's decision is another page's", "browser", RUNTIME,
      "  decide = decider(lines, PAGE);\n",
      '  decide = decider(lines, "another");\n'),
@@ -349,8 +349,10 @@ MUTANTS = [
      "bundled: true, device: true, inline: true }", "bundled: true, device: false, inline: true }"),
     ("a build says the runtime it packed, not what from", "packaging", PACKAGING,
      '  const runtime = await readFile(path.join(directory, "pw-runtime.mjs")).catch(() => null);\n'
-     "  for (const asset of assets) await packAsset(directory, asset);\n",
-     "  for (const asset of assets) await packAsset(directory, asset);\n"
+     "  let device = null;\n"
+     "  for (const asset of assets) device = (await packAsset(directory, asset)) ?? device;\n",
+     "  let device = null;\n"
+     "  for (const asset of assets) device = (await packAsset(directory, asset)) ?? device;\n"
      '  const runtime = await readFile(path.join(directory, "pw-runtime.mjs")).catch(() => null);\n'),
     ("a build with no runtime fails", "packaging", PACKAGING,
      '  const runtime = await readFile(path.join(directory, "pw-runtime.mjs")).catch(() => null);\n',
@@ -371,15 +373,15 @@ MUTANTS = [
      '    plan["prerender"] == true && plan.get("layout").is_none_or(|l| l.is_null())\n',
      '    plan["prerender"] == true\n'),
     ("no page runs on the device", "host", SERVER,
-     "            let document = if runs_on_device(plan) {\n", "            let document = if false && runs_on_device(plan) {\n"),
+     "                None if runs_on_device(plan) => {\n", "                None if false && runs_on_device(plan) => {\n"),
     ("each marked page runs on the device", "host", SERVER,
-     "            let document = if runs_on_device(plan) {\n", "            let document = if true || runs_on_device(plan) {\n"),
+     "                None if runs_on_device(plan) => {\n", "                None if true || runs_on_device(plan) => {\n"),
     ("a build that does not say so has one", "host", SERVER,
-     '            device: delivery_says(dist, "device") && dist.join("pw-runtime-device.mjs").is_file(),\n',
-     '            device: dist.join("pw-runtime-device.mjs").is_file(),\n'),
+     '        let device = delivery_says(dist, "device") && dist.join("pw-runtime-device.mjs").is_file();\n',
+     '        let device = dist.join("pw-runtime-device.mjs").is_file();\n'),
     ("a build with no file has one", "host", SERVER,
-     '            device: delivery_says(dist, "device") && dist.join("pw-runtime-device.mjs").is_file(),\n',
-     '            device: delivery_says(dist, "device"),\n'),
+     '        let device = delivery_says(dist, "device") && dist.join("pw-runtime-device.mjs").is_file();\n',
+     '        let device = delivery_says(dist, "device");\n'),
     ("the document starts the whole runtime", "host", SERVER,
      "            .replacen(&full, &device, 1)\n", "            .replacen(&full, &full, 1)\n"),
     ("the head preloads the whole runtime", "host", SERVER,
@@ -388,16 +390,62 @@ MUTANTS = [
     ("the head does not fetch the page's code", "host", SERVER,
      "            head.push_str(&preload(bundle));\n", "            let _ = (&preload, bundle);\n"),
     ("a page's code is named nowhere", "host", SERVER,
-     "                    self.bundles.contains(page).then_some(bundle.as_str()),\n",
-     "                    None::<&str>.or(Some(bundle.as_str()).filter(|_| false)),\n"),
+     "                        self.bundles.contains(page).then_some(bundle.as_str()),\n",
+     "                        None::<&str>.or(Some(bundle.as_str()).filter(|_| false)),\n"),
     ("a page with no module names one", "host", SERVER,
-     "                    self.bundles.contains(page).then_some(bundle.as_str()),\n",
-     "                    Some(bundle.as_str()),\n"),
+     "                        self.bundles.contains(page).then_some(bundle.as_str()),\n",
+     "                        Some(bundle.as_str()),\n"),
     ("the policy allows the whole runtime alone", "host", SERVER,
-     "        scripts.extend(device.as_deref());\n", ""),
+     "            None => std::iter::once(runtime.as_str()).chain(device.as_deref()).collect(),\n",
+     "            None => std::iter::once(runtime.as_str()).collect(),\n"),
     ("the policy allows the first of several", "host", CSP,
      '            scripts\n                .iter()\n                .map(|s| sha256_source(s))\n',
      '            scripts\n                .iter()\n                .take(1)\n                .map(|s| sha256_source(s))\n'),
+    # -- a page alone in its build (the one page's ADR)
+    ("a build of two pages has a module alone", "packaging", PACKAGING,
+     "  if (names.length !== 1) return null;\n", "  if (names.length < 1) return null;\n"),
+    ("a page a reader decides has a module alone", "packaging", PACKAGING,
+     "  if (plan.prerender !== true || (plan.layout !== undefined && plan.layout !== null)) return null;\n", ""),
+    ("a page with no module of its own has a module alone", "packaging", PACKAGING,
+     '  if ((await readIfThere(path.join(base, "bundles", `${page}.mjs`))) === null) return null;\n', ""),
+    ("a module alone asks its server for its table", "packaging", PACKAGING,
+     '    alone(deviceSource, true).replace(held, "let alonePage = PW_ALONE_PAGE;");\n',
+     '    alone(deviceSource, false).replace(held, "let alonePage = PW_ALONE_PAGE;");\n'),
+    ("the device's runtime reads its table from its document", "packaging", PACKAGING,
+     "  const { code } = await transform(alone(device, false), {\n",
+     "  const { code } = await transform(alone(device, true), {\n"),
+    ("a server's runtime keeps what a page alone runs", "packaging", PACKAGING,
+     '  const server = alone(source.replace(declared, "").replaceAll("PW_SERVER", "true"), false);\n',
+     '  const server = source.replace(declared, "").replaceAll("PW_SERVER", "true");\n'),
+    ("a page alone reads no table", "browser", RUNTIME,
+     """    const table = JSON.parse(document.getElementById("pw-handlers")?.textContent ?? '""');\n""",
+     '    const table = "";\n'),
+    ("a page alone fetches its code", "browser", RUNTIME,
+     "(PW_ALONE ? Promise.resolve(alonePage) : import(delivered(pageBundleAt)))",
+     "(import(delivered(pageBundleAt)))"),
+    ("a module that may open a script is held", "host", SERVER,
+     '    !lower.contains("</script") && !lower.contains("<script")\n', '    !lower.contains("</script")\n'),
+    ("a module that may close its script is held", "host", SERVER,
+     '    !lower.contains("</script") && !lower.contains("<script")\n', '    !lower.contains("<script ")\n'),
+    ("a comment's opening keeps a module out", "host", SERVER,
+     '    !lower.contains("</script") && !lower.contains("<script")\n',
+     '    !lower.contains("</script") && !lower.contains("<script") && !lower.contains("<!--")\n'),
+    ("a page of a build of several is alone", "host", SERVER,
+     "                && self.plans.len() == 1\n", ""),
+    ("the one document holds no table", "host", SERVER,
+     '            "<script type=\\"application/json\\" id=\\"pw-handlers\\">{said}</script>\\n\\\n',
+     '            "<!--{said}-->\\n\\\n'),
+    ("a page alone's policy allows the runtimes it does not start", "host", SERVER,
+     "            Some(module) => vec![module],\n", "            Some(module) => vec![module, runtime.as_str()],\n"),
+    ("a build with no components is refused", "host", SERVER,
+     '            Err(_) if pages_alone && !build.join("components").exists() => BTreeMap::new(),\n', ""),
+    ("a build that lost its components is served", "host", SERVER,
+     '            .all(|c| c.exports.iter().all(|e| e.kind == "page"));\n', "            .all(|_| true);\n"),
+    ("a delivery of two modules alone has one", "host", SERVER,
+     "    found.next().is_none().then_some(one)\n", "    Some(one)\n"),
+    ("a delivery with no device's runtime has a module alone", "host", SERVER,
+     "            alone: device.then(|| alone_module(artifacts)).flatten(),\n",
+     "            alone: alone_module(artifacts),\n"),
 ]
 
 
@@ -437,7 +485,7 @@ def packaging():
 
 def host():
     total = (0, 0)
-    for name in ("tests::page_bundle::",):
+    for name in ("tests::page_bundle::", "tests::alone_page::"):
         out, code = bounded(["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server", name], cwd=ROOT)
         if code is None:
             return True, 0, 1
@@ -483,9 +531,10 @@ def nested():
 def rows():
     """The large list, on a production build."""
     env = {**os.environ, "PW_PRODUCTION_ASSETS": "1"}
-    _, code = bounded(["bash", "spikes/own-renderer/rows.sh"], cwd=ROOT, env=env)
-    if code != 0:
-        return False, 0, 0
+    for script in ("spikes/own-renderer/rows.sh", "spikes/own-renderer/row-events.sh"):
+        _, code = bounded(["bash", script], cwd=ROOT, env=env)
+        if code != 0:
+            return False, 0, 0
     out, code = bounded(["pnpm", "exec", "playwright", "test", "e2e/rows.spec.mjs", "--project=chromium", "--reporter=line"],
                         cwd=ROOT / "spikes/own-renderer", env=env)
     if code is None:

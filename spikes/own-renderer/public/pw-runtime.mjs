@@ -42,6 +42,16 @@ const PW_FRAGMENT = true;
 const PW_AUTOFOCUS = true;
 const PW_PLANS = true;
 
+/** **Whether this runtime is a page alone in its build** (the one page's
+ * ADR): the page's document holds it, the page's code and the build's handler
+ * table, so it asks for neither. True in that page's one module alone, which
+ * the packaging writes; false, and folded away, everywhere else. */
+const PW_ALONE = false;
+
+/** The page's one module (ADR-0412), where this runtime is a page alone in
+ * its build: the packaging imports it into the module it writes. */
+let alonePage = null;
+
 /**
  * **This document's life** (ADR-0306). Every listener the
  * runtime adds is added with its signal, and its subscription asks under it:
@@ -437,7 +447,7 @@ function usesBundle() {
  * load that fails is not asked for again: each piece is asked for alone, as
  * in a build with no bundle. */
 function pageBundle() {
-  pageBundleLoading ??= import(delivered(pageBundleAt)).catch((error) => {
+  pageBundleLoading ??= (PW_ALONE ? Promise.resolve(alonePage) : import(delivered(pageBundleAt))).catch((error) => {
     pageBundleAt = null;
     log.push(`the page's module was not loaded: ${error.message ?? error}`);
     throw error;
@@ -525,13 +535,28 @@ const decider = (lines, page) => {
 };
 // --- end of the decision
 
+/** **The handler table a page alone in its build holds** (the one page's
+ * ADR): its document's, which holds this runtime too, so both are of one
+ * build, as ADR-0132 asks of a table. Empty where it cannot be read, and every
+ * handler is refused: the closed side. */
+const tableAlone = !PW_ALONE ? null : function tableAlone() {
+  try {
+    const table = JSON.parse(document.getElementById("pw-handlers")?.textContent ?? '""');
+    return typeof table === "string" ? table : "";
+  } catch {
+    return "";
+  }
+};
+
 async function bootDecision() {
   // What this build compiled (ADR-0132), from the server that served this
   // runtime and never from the document: a document cached from another build
   // names handlers this one may not have. Answered by the head's preload
   // (ADR-0399). If the table cannot be read, nothing is known and every
   // handler is refused, which is the closed side.
-  const lines = heardTable(await fetch(delivered("/pw-handlers")).then((r) => (r.ok ? r.text() : "")));
+  const lines = heardTable(
+    PW_ALONE ? tableAlone() : await fetch(delivered("/pw-handlers")).then((r) => (r.ok ? r.text() : "")),
+  );
   decide = decider(lines, PAGE);
   if (!PW_SERVER) return;
   log.push(`knows ${lines.filter((l) => l && l[0] !== "#").length} handler(s)`);

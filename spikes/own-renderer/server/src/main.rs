@@ -1845,7 +1845,17 @@ impl Server {
             .map_err(|e| format!("contracts.json: {e}"))?;
         let graph = pw_materialize::Graph::from_json(&read("graph.json")?)
             .map_err(|e| format!("graph.json: {e:?}"))?;
-        let components = components_in(&build.join("components"))?;
+        // A build whose contracts export pages alone compiled nothing a host
+        // runs, and has no `components` directory (a page of presses:
+        // `examples/rows/events.pw`, the one page's ADR). One whose contracts
+        // export anything else is a build that did not finish without it.
+        let pages_alone = contracts
+            .iter()
+            .all(|c| c.exports.iter().all(|e| e.kind == "page"));
+        let components = match components_in(&build.join("components")) {
+            Err(_) if pages_alone && !build.join("components").exists() => BTreeMap::new(),
+            other => other?,
+        };
         let mut plans = BTreeMap::new();
         // A program of queries and commands alone (`examples/tables`'s) has
         // no page, and its build no `pages` directory (track `data-path`).
@@ -7312,6 +7322,44 @@ impl Server {
         ))
     }
 
+    /// **What this build compiled, as its handler table says it** (ADR-0132):
+    /// what `/pw-handlers` answers, and what a page alone in its build holds
+    /// (the one page's ADR). One writer for both.
+    fn handlers_said(&self) -> String {
+        // The build's name, and each page's document: its schema and its
+        // scope (ADR-0300), which the browser's decision holds a document
+        // of that page to. `#` lines, as no handler's identity begins.
+        let mut table = format!("#build|{}\n", self.build_id);
+        // Whether the browser warms what this build's presses need
+        // (ADR-0399): the build's word, as the rest of
+        // this table is, and a `#` line the decision does not read.
+        // A host that keeps sessions warms as any other: a warm-up asks
+        // for its modules together, and overlapping admissions of one
+        // session are each answered (ADR-0389's overlap repair;
+        // `tests::session_overlap::`, ADR-0399, amended
+        // 2026-11-06).
+        if self.warm {
+            table.push_str("#warm|1\n");
+        }
+        // Each page whose code is one module (ADR-0412).
+        for page in &self.bundles {
+            table.push_str(&format!("#bundle|{page}|/bundle/{page}.mjs\n"));
+        }
+        for (page, plan) in &self.plans {
+            if let Some(template) = self.templates.iter().find(|t| &t.path == page) {
+                table.push_str(&format!(
+                    "#page|{page}|{}|{}\n",
+                    template.schema,
+                    plan["scope"].as_str().unwrap_or("public")
+                ));
+            }
+        }
+        for (identity, capture) in self.handler_table() {
+            table.push_str(&format!("{identity}|{capture}\n"));
+        }
+        table
+    }
+
     /// **Each page no reader decides, rendered once** (ADR-0409),
     /// in the public partition, once the deployment's origin and policy are
     /// settled. A page that does not render is said here, before the host
@@ -7326,20 +7374,31 @@ impl Server {
             let (document, _, _) = self
                 .render_page_in(page, &BTreeMap::new(), Partition::Public, &[])
                 .map_err(|why| format!("`{page}` cannot be prerendered: {why}"))?;
-            let document = if runs_on_device(plan) {
-                let bundle = format!("/bundle/{page}.mjs");
-                self.delivery.on_device(
-                    document,
-                    self.bundles.contains(page).then_some(bundle.as_str()),
-                )
-            } else {
-                document
+            // A page alone in its build is one document (the one page's
+            // ADR): the host holds the build to one page, whatever its
+            // packaging wrote.
+            let alone = (runs_on_device(plan)
+                && self.plans.len() == 1
+                && self.delivery.alone_page() == Some(page.as_str()))
+            .then(|| self.delivery.one_document(&document, &self.handlers_said()))
+            .flatten();
+            let script = alone.is_some().then(|| self.delivery.alone_script()).flatten();
+            let document = match alone {
+                Some(one) => one,
+                None if runs_on_device(plan) => {
+                    let bundle = format!("/bundle/{page}.mjs");
+                    self.delivery.on_device(
+                        document,
+                        self.bundles.contains(page).then_some(bundle.as_str()),
+                    )
+                }
+                None => document,
             };
             let (document, style) = self.delivery.styles_inline(document);
             let (build, delivery, _) = self.document_says();
             let policy = format!(
                 "content-security-policy: {}\r\n",
-                self.policy_allowing(style)
+                self.policy_allowing(style, script)
             );
             let document =
                 prerender::Prerendered::of(document, format!("{build}{delivery}{policy}"))
@@ -8078,14 +8137,19 @@ impl Server {
     }
 
     /// The policy of a document holding `style` as well (the inline styles'
-    /// ADR).
-    fn policy_allowing(&self, style: Option<String>) -> String {
+    /// ADR), and `script`, the one module of a page alone in its build (the
+    /// one page's ADR).
+    fn policy_allowing(&self, style: Option<String>, script: Option<&str>) -> String {
         let mut needs = self.needs.clone();
         needs.styles.extend(style);
-        self.policy_for(&needs)
+        self.policy_for_with(&needs, script)
     }
 
     fn policy_for(&self, needs: &csp::Needs) -> String {
+        self.policy_for_with(needs, None)
+    }
+
+    fn policy_for_with(&self, needs: &csp::Needs, alone: Option<&str>) -> String {
         let deployment = csp::Deployment {
             frames: self.payments.get().map(|p| p.provider.clone()),
             forms: self.identity.sign_in_origin(),
@@ -8094,8 +8158,12 @@ impl Server {
         // at its version, a production build's.
         let runtime = self.delivery.runtime_source();
         let device = self.delivery.device_source();
-        let mut scripts = vec![runtime.as_str()];
-        scripts.extend(device.as_deref());
+        // A page alone in its build runs its one module and no other script
+        // (the one page's ADR): its policy allows that alone.
+        let scripts = match alone {
+            Some(module) => vec![module],
+            None => std::iter::once(runtime.as_str()).chain(device.as_deref()).collect(),
+        };
         csp::document_with(&scripts, self.data.style(), needs, &deployment)
     }
 
@@ -11858,37 +11926,7 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
         // the build, so a document cached from another build cannot vouch
         // for a handler this one lacks.
         ("GET", "/pw-handlers") => {
-            // The build's name, and each page's document: its schema and its
-            // scope (ADR-0300), which the browser's decision holds a document
-            // of that page to. `#` lines, as no handler's identity begins.
-            let mut table = format!("#build|{}\n", server.build_id);
-            // Whether the browser warms what this build's presses need
-            // (ADR-0399): the build's word, as the rest of
-            // this table is, and a `#` line the decision does not read.
-            // A host that keeps sessions warms as any other: a warm-up asks
-            // for its modules together, and overlapping admissions of one
-            // session are each answered (ADR-0389's overlap repair;
-            // `tests::session_overlap::`, ADR-0399, amended
-            // 2026-11-06).
-            if server.warm {
-                table.push_str("#warm|1\n");
-            }
-            // Each page whose code is one module (ADR-0412).
-            for page in &server.bundles {
-                table.push_str(&format!("#bundle|{page}|/bundle/{page}.mjs\n"));
-            }
-            for (page, plan) in &server.plans {
-                if let Some(template) = server.templates.iter().find(|t| &t.path == page) {
-                    table.push_str(&format!(
-                        "#page|{page}|{}|{}\n",
-                        template.schema,
-                        plan["scope"].as_str().unwrap_or("public")
-                    ));
-                }
-            }
-            for (identity, capture) in server.handler_table() {
-                table.push_str(&format!("{identity}|{capture}\n"));
-            }
+            let table = server.handlers_said();
             // Asked for at this build's delivery (ADR-0399),
             // the table is the delivery's, and kept a year: the delivery's
             // id is a digest of the build's name and files, and a new build
@@ -12931,6 +12969,22 @@ fn warms(dist: &std::path::Path) -> bool {
     delivery_says(dist, "warm")
 }
 
+/// **The one module a page alone in its build has** (the one page's ADR):
+/// `(page, text)` where the packaging wrote exactly one into `alone/`, and
+/// none where it wrote none or several.
+fn alone_module(artifacts: &std::path::Path) -> Option<(String, String)> {
+    let mut found = std::fs::read_dir(artifacts.join("alone"))
+        .into_iter()
+        .flatten()
+        .flatten()
+        .filter_map(|e| {
+            let page = e.file_name().to_str()?.strip_suffix(".mjs")?.to_string();
+            Some((page, std::fs::read_to_string(e.path()).ok()?))
+        });
+    let one = found.next()?;
+    found.next().is_none().then_some(one)
+}
+
 /// Whether a build's packaging says `key` of its delivery: `true` at `key`
 /// in `delivery.json` beside its assets, and nothing else.
 /// The pages whose module the packaging of the build in `dist` wrote, where
@@ -13671,6 +13725,19 @@ struct Delivery {
     /// Each stylesheet this build could make part of a document, by its
     /// address (ADR-0415).
     styles: BTreeMap<String, InlineStyle>,
+    /// **The one module of a page alone in its build** (the one page's ADR),
+    /// by its page: the device's runtime and the page's code, which the
+    /// packaging wrote where its build has exactly one page.
+    alone: Option<(String, String)>,
+}
+
+/// **Whether `text` reads as one script inside a `<script>` element** (the
+/// one page's ADR): no `</script`, which would end it, and no `<script`,
+/// which after a `<!--` would hide its end, in any case (the HTML Standard's
+/// tokenizer, its script data escaped and double escaped states).
+fn one_script(text: &str) -> bool {
+    let lower = text.to_ascii_lowercase();
+    !lower.contains("</script") && !lower.contains("<script")
 }
 
 /// A stylesheet of a build that means the same inside a document.
@@ -13816,12 +13883,50 @@ impl Delivery {
             .take(8)
             .map(|b| format!("{b:02x}"))
             .collect::<String>();
+        let device = delivery_says(dist, "device") && dist.join("pw-runtime-device.mjs").is_file();
         Delivery {
-            device: delivery_says(dist, "device") && dist.join("pw-runtime-device.mjs").is_file(),
+            alone: device.then(|| alone_module(artifacts)).flatten(),
+            device,
             styles,
             version: Some(version),
             files,
         }
+    }
+
+    /// The page alone in this build, where its packaging wrote that page's
+    /// one module (the one page's ADR).
+    fn alone_page(&self) -> Option<&str> {
+        self.alone.as_ref().map(|(page, _)| page.as_str())
+    }
+
+    /// **`document`, the one document of a page alone in its build** (the one
+    /// page's ADR): its module as its one script and `table`, the build's
+    /// handler table, in a data block beside it, in place of the runtime's
+    /// script and of the head's links that fetch it, its table and its code.
+    /// `None` where this build has no such module, or its text would not read
+    /// as one script: the page is then delivered as any other.
+    fn one_document(&self, document: &str, table: &str) -> Option<String> {
+        let (_, module) = self.alone.as_ref()?;
+        if !one_script(module) {
+            return None;
+        }
+        let (boot, runtime) = (self.boot(), self.runtime());
+        if document.matches(&boot).count() != 1 || document.matches(&runtime).count() != 1 {
+            return None;
+        }
+        // No `<` in a script element's text (ADR-0097).
+        let said =
+            pw_render::escape::json_in_script(&serde_json::to_string(table).unwrap_or_default());
+        let held = format!(
+            "<script type=\"application/json\" id=\"pw-handlers\">{said}</script>\n\
+             <script type=\"module\">{module}</script>"
+        );
+        Some(document.replacen(&boot, "", 1).replacen(&runtime, &held, 1))
+    }
+
+    /// The script a page alone in its build runs, which its policy allows.
+    fn alone_script(&self) -> Option<&str> {
+        self.alone.as_ref().map(|(_, module)| module.as_str())
     }
 
     /// A file's address as a document names it: at the version, where the
@@ -18420,6 +18525,8 @@ public query Store(",
     mod browser_rows;
     mod inline_styles;
     mod page_bundle;
+    // A page alone in its build is one document (the one page's ADR).
+    mod alone_page;
 
     // TRACK SEAM (store-search): the store's search page, served (W9).
     mod store_search;

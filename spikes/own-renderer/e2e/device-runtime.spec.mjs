@@ -1,9 +1,10 @@
 // ADR-0413, in three engines, on a production build of
 // TodoMVC (`just e14-device-runtime` builds one, and only then is this spec
 // selected: `playwright.config.mjs`): a page no reader decides and with no
-// layout starts a runtime with no server's code in it, asks for its own code
-// and nothing else, and refuses a handler its build did not compile, as every
-// other page does.
+// layout starts a runtime with no server's code in it, and refuses a handler
+// its build did not compile, as every other page does. TodoMVC is a page
+// alone in its build (the one page's ADR): its document holds that runtime,
+// its code and its build's handler table, and it asks for nothing else.
 import { statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -43,14 +44,14 @@ const items = (page) => page.locator(".todo-list li");
 /** What the runtime logged. */
 const logged = (page) => page.evaluate(() => window.__pw.log.slice());
 
-test("a page that talks to no server asks for the device's runtime, its code and its stylesheets", async ({ page }) => {
+test("a page alone in its build asks for its document and nothing else, and runs", async ({ page }) => {
   const asked = watch(page);
   await open(page);
   await add(page, "buy some cheese");
   await expect(items(page)).toHaveCount(1);
   // A browser's own request for an icon is not the page's.
-  const code = [...asked].filter((p) => !p.endsWith(".css") && p !== "/favicon.ico").sort();
-  expect(code).toEqual(["/", "/bundle/todomvc.app.Todos~ui.mjs", "/pw-handlers", "/pw-runtime-device.mjs"]);
+  const code = [...asked].filter((p) => p !== "/favicon.ico").sort();
+  expect(code).toEqual(["/"]);
 });
 
 test("its stylesheets are part of its document: it asks for none, and they apply under its policy", async ({ page }) => {
@@ -66,18 +67,39 @@ test("its stylesheets are part of its document: it asks for none, and they apply
   expect(await page.evaluate(() => window.__refused)).toEqual([]);
 });
 
-test("its head fetches its code beside its runtime, and asks for it once", async ({ page }) => {
-  const asked = [];
-  page.on("request", (r) => asked.push(new URL(r.url()).pathname));
+test("its runtime and its code are its document's one script, which its policy allows", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__refused = [];
+    document.addEventListener("securitypolicyviolation", (e) => window.__refused.push(e.violatedDirective));
+  });
   await open(page);
-  const preloaded = await page.evaluate(() =>
-    [...document.querySelectorAll('link[rel="modulepreload"]')].map((l) => new URL(l.href).pathname),
-  );
-  expect(preloaded).toEqual(["/pw-runtime-device.mjs", "/bundle/todomvc.app.Todos~ui.mjs"]);
-  await add(page, "one fetch");
+  const held = await page.evaluate(() => ({
+    modules: document.querySelectorAll('script[type="module"]').length,
+    fetched: document.querySelectorAll("link[rel=modulepreload], link[rel=preload], script[src]").length,
+    table: document.getElementById("pw-handlers")?.type ?? null,
+  }));
+  expect(held).toEqual({ modules: 1, fetched: 0, table: "application/json" });
+  await add(page, "held in its document");
   await expect(items(page)).toHaveCount(1);
-  expect(asked.filter((p) => p.startsWith("/bundle/")).length).toBe(1);
+  expect(await page.evaluate(() => window.__refused)).toEqual([]);
 });
+
+/** The page's document with its handler table changed by `change`, which is
+ * given the table's text and returns the text the document holds instead. */
+async function tableChanged(page, change) {
+  await page.route(
+    (url) => url.pathname === "/",
+    async (route) => {
+      const response = await route.fetch();
+      const html = await response.text();
+      const body = html.replace(
+        /(<script type="application\/json" id="pw-handlers">)([^<]*)(<\/script>)/,
+        (_, open, said, close) => open + change(JSON.parse(said)) + close,
+      );
+      await route.fulfill({ response, body });
+    },
+  );
+}
 
 test("a press that changes one row parses that row alone", async ({ page }) => {
   await page.addInitScript(() => {
@@ -151,7 +173,7 @@ test("a handler its table names runs, on the decision the page made", async ({ p
 });
 
 test("a table that names no handler refuses each, and nothing runs", async ({ page }) => {
-  await page.route("**/pw-handlers*", (route) => route.fulfill({ contentType: "text/plain", body: "" }));
+  await tableChanged(page, () => JSON.stringify(""));
   await open(page);
   const refused = (await logged(page)).filter((line) => line.startsWith("refused"));
   expect(refused.length > 0).toBe(true);
@@ -163,19 +185,14 @@ test("a table that names no handler refuses each, and nothing runs", async ({ pa
 });
 
 test("a table that cannot be read refuses each, and nothing runs", async ({ page }) => {
-  await page.route("**/pw-handlers*", (route) => route.fulfill({ status: 500, body: "no" }));
+  await tableChanged(page, () => "no");
   await open(page);
   const refused = (await logged(page)).filter((line) => line.startsWith("refused"));
   expect(refused.length > 0).toBe(true);
 });
 
 test("a table of another document's schema refuses each, by that", async ({ page }) => {
-  await page.route("**/pw-handlers*", async (route) => {
-    const response = await route.fetch();
-    const table = await response.text();
-    const body = table.replace(/^(#page\|[^|]*\|)[^|]*/m, "$1another-schema");
-    await route.fulfill({ response, body });
-  });
+  await tableChanged(page, (table) => JSON.stringify(table.replace(/^(#page\|[^|]*\|)[^|]*/m, "$1another-schema")));
   await open(page);
   const refused = (await logged(page)).filter((line) => line.startsWith("refused"));
   expect(refused.length > 0).toBe(true);
