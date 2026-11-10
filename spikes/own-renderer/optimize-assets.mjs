@@ -157,12 +157,12 @@ function featuresIn(chunks, templates, out, seen) {
  * that cannot be read keeps everything.
  */
 async function deviceFeatures(directory) {
-  const everything = { PW_LINKS: true, PW_MATCH: true, PW_VIEWS: true, PW_DIALOGS: true, PW_KEPT: true, PW_FRAGMENT: true, PW_AUTOFOCUS: true, PW_PLANS: true };
+  const everything = { PW_LINKS: true, PW_MATCH: true, PW_VIEWS: true, PW_DIALOGS: true, PW_KEPT: true, PW_FRAGMENT: true, PW_AUTOFOCUS: true, PW_PLANS: true, PW_GRAPHS: true };
   const base = path.join(directory, "build");
   const text = await readIfThere(path.join(base, "templates.json"));
   if (text === null) return everything;
   const templates = JSON.parse(text);
-  const out = { PW_LINKS: false, PW_MATCH: false, PW_VIEWS: false, PW_DIALOGS: false, PW_KEPT: false, PW_FRAGMENT: false, PW_AUTOFOCUS: false, PW_PLANS: false };
+  const out = { PW_LINKS: false, PW_MATCH: false, PW_VIEWS: false, PW_DIALOGS: false, PW_KEPT: false, PW_FRAGMENT: false, PW_AUTOFOCUS: false, PW_PLANS: false, PW_GRAPHS: false };
   for (const name of await readdir(path.join(base, "pages")).catch(() => [])) {
     if (!name.endsWith(".json")) continue;
     const plan = JSON.parse(await readFile(path.join(base, "pages", name), "utf8"));
@@ -173,7 +173,22 @@ async function deviceFeatures(directory) {
     if (!template) return everything;
     featuresIn(template.chunks, templates, out, new Set());
   }
+  out.PW_GRAPHS = await writesGraphs(base);
   return out;
+}
+
+/** **Whether a build writes a value of a type that contains itself**
+ * (ADR-0430): as its nodes, `$graph`, which only a page's first value, a
+ * handler or a computed module writes, so a build none of whose files says
+ * so holds none, and its device's runtime reads none. */
+async function writesGraphs(base) {
+  for (const dir of ["pages", "handlers", "computed"]) {
+    for (const name of await readdir(path.join(base, dir)).catch(() => [])) {
+      if (!name.endsWith(".json") && !name.endsWith(".mjs")) continue;
+      if ((await readFile(path.join(base, dir, name), "utf8")).includes("$graph")) return true;
+    }
+  }
+  return false;
 }
 
 /**

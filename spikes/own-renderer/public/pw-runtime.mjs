@@ -42,6 +42,11 @@ const PW_FRAGMENT = true;
 const PW_AUTOFOCUS = true;
 const PW_PLANS = true;
 
+/** **Whether a value of a type that contains itself can reach the page**
+ * (ADR-0430), as its nodes (`$graph`, ADR-0205): only where the build writes
+ * one, a page's first value, a handler or a computed module. */
+const PW_GRAPHS = true;
+
 /** **Whether this runtime is a page alone in its build** (ADR-0426):
  * the page's document holds it, the page's code and the build's handler
  * table, so it asks for neither. True in that page's one module alone, which
@@ -1168,7 +1173,8 @@ const renderer = (() => {
   /** A value as it is read: a `$graph` is its tree. A `$node` outside one
    * is no value. */
   function opened(v) {
-    if (!isObject(v)) return v;
+    // A build that writes no graph holds no graph's reading (ADR-0430).
+    if (!PW_GRAPHS || !isObject(v)) return v;
     if ("$graph" in v && Object.keys(v).length === 1) {
       if (!graphs.has(v)) graphs.set(v, built(v.$graph));
       return graphs.get(v);
@@ -4895,10 +4901,12 @@ async function acted(part, event, modifiers, el, e) {
     loaded.delete(part.value);
     attempts.set(part.value, (attempts.get(part.value) ?? 0) + 1);
     // Told where the press was (ADR-0302): a refusal in its predicate's
-    // words, anything else in the platform's.
-    if (error instanceof Refused) {
+    // words, anything else in the platform's. Only a command is refused or
+    // unreachable, and a page that talks to no server sends none, so its
+    // runtime holds neither (ADR-0430).
+    if (PW_SERVER && error instanceof Refused) {
       tell(el, error.says || PLATFORM_SAYS.failed, `refused:${error.predicate}`);
-    } else if (error instanceof Unreachable) {
+    } else if (PW_SERVER && error instanceof Unreachable) {
       tell(el, PLATFORM_SAYS.unreachable, "unreachable");
     } else {
       tell(el, PLATFORM_SAYS.failed, "failed");
