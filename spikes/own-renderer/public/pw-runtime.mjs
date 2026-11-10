@@ -1502,8 +1502,11 @@ const renderer = (() => {
         return;
       case "text":
         // Nothing addresses a text inside a kept row: it is morphed whole.
-        if (out.bare) html.push(escaped(needText(e, p.value), p.context));
-        else html.push(start, escaped(needText(e, p.value), p.context), end);
+        if (out.bare) {
+          const text = needText(e, p.value);
+          if (!PW_SERVER && out.raws) out.raws[out.holes.length] = text;
+          html.push(escaped(text, p.context));
+        } else html.push(start, escaped(needText(e, p.value), p.context), end);
         return;
       case "attribute":
         if (p.context === "content") {
@@ -1513,13 +1516,19 @@ const renderer = (() => {
       // falls through: the attribute's value is `attributeOf`'s.
       case "interpolated_attribute": {
         const [name, value] = attributeOf(p, e);
+        // A planned row's attribute, as a plan sets it: its name and its
+        // value as written, or none.
+        if (!PW_SERVER && out.raws) out.raws[out.holes.length] = value === null ? null : [name, value];
         if (value !== null) html.push(`${name}="${value}"`);
         return;
       }
-      case "boolean_attribute":
-        if (attributeOf(p, e)[1] !== null) html.push(p.name);
+      case "boolean_attribute": {
+        const present = attributeOf(p, e)[1] !== null;
+        if (!PW_SERVER && out.raws) out.raws[out.holes.length] = present ? [p.name, ""] : null;
+        if (present) html.push(p.name);
         else dropSpace(html);
         return;
+      }
       case "event":
         html.push(capturesAttribute([p], e));
         return;
@@ -1636,19 +1645,40 @@ const renderer = (() => {
     const reads = new Map();
     const token = tokenOf(e, p.id, key);
     const at = `${p.id}@${token}`;
-    let holes, raws;
+    if (PW_PLANS && planned(p)) return plannedRowOf(p, e, others, item, at, token, reads);
     const text = rendered(others, (out) => {
       out.bare = !PW_SERVER && DELEGATED_ROWS;
-      if (PW_PLANS && planned(p)) {
-        out.holes = holes = [];
-        out.raws = raws = [];
-      }
       out.html.push(`<!--pw:s${at}-->`);
       emit(p.body, within(named({ ...e, reads }, p.binding, item), p.id, token), others, out);
       out.html.push(`<!--pw:e${at}-->`);
     });
-    return { key: at, text, item, reads, names: e.names, holes, raws };
+    return { key: at, text, item, reads, names: e.names };
   }
+
+  /** **A row a plan makes** (`planOf`): its holes, what each sets as it was
+   * before it was escaped (`raws`), and its text only when something reads
+   * it, a morph or a parse. Nothing in such a row is written later (no view
+   * is in it), so it needs none of the writer that waits for one, and its
+   * scope is made once. */
+  const plannedRowOf = !PW_PLANS ? null : function plannedRowOf(p, e, others, item, at, token, reads) {
+    const env = { ...e, reads, names: { name: p.binding, value: item, up: e.names }, frames: [...e.frames, { scope: p.id, instance: token }] };
+    const out = { html: [`<!--pw:s${at}-->`], later: [], lists: false, bare: true, holes: [], raws: [] };
+    emit(p.body, env, others, out);
+    out.html.push(`<!--pw:e${at}-->`);
+    const html = out.html;
+    let text = null;
+    return {
+      key: at,
+      item,
+      reads,
+      names: e.names,
+      holes: out.holes,
+      raws: out.raws,
+      get text() {
+        return (text ??= html.join(""));
+      },
+    };
+  };
 
   /** Each list part whose rows a plan can make, as `planned` found it. */
   const plannable = !PW_PLANS ? null : new WeakMap();
@@ -3167,8 +3197,14 @@ function attributeOfPiece(piece) {
  * for a new row), and for a handler's, what it captures before it was
  * escaped (`raw`). False, with the hole perhaps half set, for what a plan does
  * not take: the row is then morphed. */
-function holeSet(kind, node, piece, was, raw) {
+function holeSet(kind, node, piece, was, raw, wasRaw) {
   if (kind === "text") {
+    // As the parser reads the text the renderer escaped: a return a line, a
+    // NUL nothing.
+    if (raw !== undefined) {
+      node.data = /[\r\0]/.test(raw) ? raw.replace(/\r\n?/g, "\n").replaceAll("\0", "") : raw;
+      return true;
+    }
     const text = unescaped(piece, "");
     if (text === null) return false;
     node.data = text;
@@ -3182,8 +3218,11 @@ function holeSet(kind, node, piece, was, raw) {
     else node.setAttribute("data-pw-captures", raw);
     return true;
   }
-  const now = attributeOfPiece(piece);
-  const then = was === null ? null : attributeOfPiece(was);
+  // An attribute as the renderer wrote it, `[name, value]` or none: its value
+  // read back as the parser would, `undefined` for what it does not write.
+  const held = (r) => (r === null ? null : ((v) => (v === null ? undefined : [r[0], v]))(unescaped(r[1], "\ufffd")));
+  const now = raw !== undefined ? held(raw) : attributeOfPiece(piece);
+  const then = was === null ? null : wasRaw !== undefined ? held(wasRaw) : attributeOfPiece(was);
   if (now === undefined || then === undefined) return false;
   if (then && then[0] !== now?.[0]) node.removeAttribute(then[0]);
   if (now) node.setAttribute(now[0], now[1]);
@@ -3226,12 +3265,22 @@ function rowsChanged(changed, plan, inserted) {
   const morphed = changed.filter(([nodes, row, old]) => {
     if (!plan || !nodes[2] || !row.holes || !old.holes) return true;
     for (let h = 0; h < row.holes.length; h++) {
-      if (row.holes[h] !== old.holes[h] && !holeSet(plan.kinds[h], nodes[2][h], row.holes[h], old.holes[h], row.raws?.[h])) return true;
+      if (row.holes[h] !== old.holes[h] && !holeSet(plan.kinds[h], nodes[2][h], row.holes[h], old.holes[h], row.raws?.[h], old.raws?.[h])) return true;
     }
     return false;
   });
   for (const [nodes] of morphed) nodes.length = 2;
   rowsMorphed(morphed, inserted);
+}
+
+/** **Whether a row's markup differs from the one before it**: by its holes
+ * where both were written by them, the rest of a row being its template's,
+ * which equal holes make equal; by its text otherwise. A plan's row's text is
+ * written only when something asks for it. */
+function rowDiffers(old, row) {
+  if (!old.holes || !row.holes) return old.text !== row.text;
+  for (let h = 0; h < row.holes.length; h++) if (old.holes[h] !== row.holes[h]) return true;
+  return false;
 }
 
 /** **The rows of one list made what `now` says**, from what `was` shows: only
@@ -3253,7 +3302,7 @@ function listMade(was, now, inserted, range = index.get(addressOf([], now.part))
   if (inPlace) {
     const changed = [];
     for (let i = 0; i < b.length; i++) {
-      if (a[i] !== b[i] && a[i].text !== b[i].text) changed.push([shown.get(b[i].key), b[i], a[i]]);
+      if (a[i] !== b[i] && rowDiffers(a[i], b[i])) changed.push([shown.get(b[i].key), b[i], a[i]]);
     }
     if (PW_PLANS) rowsChanged(changed, plan, inserted);
     else rowsMorphed(changed, inserted);
@@ -3274,7 +3323,7 @@ function listMade(was, now, inserted, range = index.get(addressOf([], now.part))
   const changed = [];
   b.forEach((row, i) => {
     const old = places[i] < 0 ? null : a[places[i]];
-    if (old && old !== row && old.text !== row.text) changed.push([shown.get(row.key), row, old]);
+    if (old && old !== row && rowDiffers(old, row)) changed.push([shown.get(row.key), row, old]);
   });
   if (PW_PLANS) rowsChanged(changed, plan, inserted);
   else rowsMorphed(changed, inserted);

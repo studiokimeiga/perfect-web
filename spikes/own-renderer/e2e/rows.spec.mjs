@@ -171,6 +171,11 @@ test("a row a plan made shows what parsing it shows, whatever its text holds", a
     await page.locator("#name").fill(name);
     await page.click("#rename-to");
     await expect(page.locator("#items .name").nth(1)).toHaveText(name.replace(/\r\n?/g, "\n").replaceAll("\0", ""));
+    // An attribute it set reads as the parser reads one: a NUL the
+    // replacement character. The row holds what the field took, which keeps
+    // no line break.
+    const held = await page.evaluate(() => window.__pw.signals.items[1].name);
+    expect(await page.locator("#items .field").nth(1).getAttribute("value")).toBe(held.replaceAll("\0", "\uFFFD"));
     const html = await page.locator("#items li").nth(1).evaluate((li) => li.innerHTML);
     const parsed = await page.locator("#items li").nth(1).evaluate((li, html) => {
       const t = document.createElement("template");
@@ -262,6 +267,8 @@ test("a row a plan made reads a return as a line, as the parser would", async ({
   await listRendered(page);
   await page.click("#rename-cr");
   await expect(page.locator("#items .name").nth(1)).toHaveText("x\ny\nz");
+  // And an attribute's, as the parser reads one.
+  expect(await page.locator("#items .field").nth(1).getAttribute("value")).toBe("x\ny\nz");
   const html = await page.locator("#items li").nth(1).evaluate((li) => li.innerHTML);
   const parsed = await page.evaluate((html) => {
     const t = document.createElement("template");
