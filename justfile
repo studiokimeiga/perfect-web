@@ -578,11 +578,12 @@ e10-build:
        echo; echo "== what was written"; \
        (cd "$out" && find . -type f | sort | while read -r f; do printf '  %7d  %s\n' "$(wc -c < "$f")" "${f#./}"; done); \
        echo; echo "== byte-identical to the separately recorded artifacts"; \
+       same() { if cmp -s "$1" "$2"; then echo "  ${1#$out/} = $2${3:-}"; else echo "  DIFFERS: ${1#$out/} and $2${3:-}"; fi; }; \
        for id in store.page.add_to_cart store.page.clear_cart; do \
-         cmp "$out/components/$id.wasm" "docs/evidence/E10/$id.wasm" && echo "  components/$id.wasm = docs/evidence/E10/$id.wasm"; done; \
+         same "$out/components/$id.wasm" "docs/evidence/E10/$id.wasm"; done; \
        for f in docs/evidence/E10/handlers/*.mjs; do \
-         cmp "$out/handlers/$(basename "$f")" "$f" && echo "  handlers/$(basename "$f") = $f"; done; \
-       cmp "$out/templates.json" spikes/own-renderer/store-ir.json && echo "  templates.json = spikes/own-renderer/store-ir.json (pw emit-template)"; \
+         same "$out/handlers/$(basename "$f")" "$f"; done; \
+       same "$out/templates.json" spikes/own-renderer/store-ir.json " (pw emit-template)"; \
        rm -rf "$out"; \
        echo; echo "== compiler/pw-core/tests/build.rs"; echo; \
        cargo test --locked -p pw-core --test build 2>&1 | grep -E '^(test |test result)|panicked at'; \
@@ -594,6 +595,10 @@ e10-build:
        echo "builds depends on them."; \
      } > docs/evidence/E10/build.txt
     @cat docs/evidence/E10/build.txt
+    @# A build that differs from what is recorded fails here, rather than
+    @# leaving its line out (the rows train's template layout left the store's
+    @# recorded templates behind, and the record only lost a line).
+    @! grep -q '^  DIFFERS: ' docs/evidence/E10/build.txt
 
 # Every compiled server declaration beside an independent Rust reference of
 # what it means, 300 generated cases each, with inputs and data-layer answers

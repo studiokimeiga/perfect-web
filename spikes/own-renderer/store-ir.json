@@ -5,11 +5,11 @@
     "params": [
       "id"
     ],
-    "schema": "d6cc737ea73172cb",
+    "schema": "0fec144b19a63f01",
     "chunks": [
       {
         "chunk": "static",
-        "value": "<header>\n            <nav aria-label=\"Store\">\n                <a href=\"/\">Stores</a>\n                <a id=\"header-cart\" href=\"/cart\">Cart <span id=\"header-cart-count\">"
+        "value": "<header> <nav aria-label=\"Store\"> <a href=\"/\">Stores</a> <a id=\"header-cart\" href=\"/cart\">Cart <span id=\"header-cart-count\">"
       },
       {
         "chunk": "dynamic",
@@ -22,7 +22,7 @@
       },
       {
         "chunk": "static",
-        "value": "</span></a>\n            </nav>\n        </header><!--pw-slot--><main>\n            <h1>Delivery address</h1>\n            <label>Call it <input data-pw=\"0\" id=\"label\" type=\"text\" "
+        "value": "</span></a> </nav> </header><!--pw-slot--><main> <h1>Delivery address</h1> <label>Call it <input data-pw=\"0\" id=\"label\" type=\"text\" "
       },
       {
         "chunk": "dynamic",
@@ -48,7 +48,7 @@
       },
       {
         "chunk": "static",
-        "value": "></label>\n            <p id=\"address-said\" role=\"status\">"
+        "value": "></label> <p id=\"address-said\" role=\"status\">"
       },
       {
         "chunk": "dynamic",
@@ -61,7 +61,7 @@
       },
       {
         "chunk": "static",
-        "value": "</p>\n            <h2>Your addresses</h2>\n            <ul id=\"addresses\">\n                "
+        "value": "</p> <h2>Your addresses</h2> <ul id=\"addresses\"> "
       },
       {
         "chunk": "dynamic",
@@ -74,7 +74,7 @@
           "body": [
             {
               "chunk": "static",
-              "value": "\n                    <li>\n                        <span class=\"address-label\">"
+              "value": " <li> <span class=\"address-label\">"
             },
             {
               "chunk": "dynamic",
@@ -87,7 +87,7 @@
             },
             {
               "chunk": "static",
-              "value": "</span>\n                        <span class=\"address-place\">"
+              "value": "</span> <span class=\"address-place\">"
             },
             {
               "chunk": "dynamic",
@@ -100,7 +100,7 @@
             },
             {
               "chunk": "static",
-              "value": "</span>\n                        "
+              "value": "</span> "
             },
             {
               "chunk": "dynamic",
@@ -119,7 +119,7 @@
             },
             {
               "chunk": "static",
-              "value": "\n                        <button data-pw=\"1\" type=\"button\" "
+              "value": " <button data-pw=\"1\" type=\"button\" "
             },
             {
               "chunk": "dynamic",
@@ -158,7 +158,7 @@
             },
             {
               "chunk": "static",
-              "value": ">\n                            Deliver here\n                        </button>\n                        <button data-pw=\"2\" type=\"button\" "
+              "value": "> Deliver here </button> <button data-pw=\"2\" type=\"button\" "
             },
             {
               "chunk": "dynamic",
@@ -196,7 +196,7 @@
             },
             {
               "chunk": "static",
-              "value": ">\n                            Rename\n                        </button>\n                        <button data-pw=\"3\" type=\"button\" "
+              "value": "> Rename </button> <button data-pw=\"3\" type=\"button\" "
             },
             {
               "chunk": "dynamic",
@@ -234,14 +234,14 @@
             },
             {
               "chunk": "static",
-              "value": ">\n                            Remove\n                        </button>\n                    </li>\n                "
+              "value": "> Remove </button> </li> "
             }
           ]
         }
       },
       {
         "chunk": "static",
-        "value": "\n            </ul>\n            <h2>Save a new address</h2>\n            <ul id=\"places\">\n                "
+        "value": " </ul> <h2>Save a new address</h2> <ul id=\"places\"> "
       },
       {
         "chunk": "dynamic",
@@ -254,7 +254,7 @@
           "body": [
             {
               "chunk": "static",
-              "value": "\n                    <li>\n                        <span class=\"place-name\">"
+              "value": " <li> <span class=\"place-name\">"
             },
             {
               "chunk": "dynamic",
@@ -267,7 +267,7 @@
             },
             {
               "chunk": "static",
-              "value": "</span>\n                        <button data-pw=\"4\" type=\"button\" "
+              "value": "</span> <button data-pw=\"4\" type=\"button\" "
             },
             {
               "chunk": "dynamic",
@@ -306,14 +306,14 @@
             },
             {
               "chunk": "static",
-              "value": ">\n                            Save and deliver here\n                        </button>\n                    </li>\n                "
+              "value": "> Save and deliver here </button> </li> "
             }
           ]
         }
       },
       {
         "chunk": "static",
-        "value": "\n            </ul>\n        </main><!--/pw-slot-->"
+        "value": " </ul> </main><!--/pw-slot-->"
       },
       {
         "chunk": "dynamic",
@@ -334,11 +334,11 @@
     "path": "store.page.CartPage~ui",
     "name": "CartPage",
     "params": [],
-    "schema": "82d34bd843fa637b",
+    "schema": "b48de0bc67b169ef",
     "chunks": [
       {
         "chunk": "static",
-        "value": "<header>\n            <nav aria-label=\"Store\">\n                <a href=\"/\">Stores</a>\n                <a id=\"header-cart\" href=\"/cart\">Cart <span id=\"header-cart-count\">"
+        "value": "<header> <nav aria-label=\"Store\"> <a href=\"/\">Stores</a> <a id=\"header-cart\" href=\"/cart\">Cart <span id=\"header-cart-count\">"
       },
       {
         "chunk": "dynamic",
@@ -351,7 +351,7 @@
       },
       {
         "chunk": "static",
-        "value": "</span></a>\n            </nav>\n        </header><!--pw-slot--><main>\n            <h1 id=\"cart-heading\" tabindex=\"-1\">Your cart</h1>\n            <p aria-live=\"polite\" aria-atomic=\"true\">Items in cart: <span id=\"cart-count\">"
+        "value": "</span></a> </nav> </header><!--pw-slot--><main> <h1 id=\"cart-heading\" tabindex=\"-1\">Your cart</h1> <p aria-live=\"polite\" aria-atomic=\"true\">Items in cart: <span id=\"cart-count\">"
       },
       {
         "chunk": "dynamic",
@@ -364,7 +364,7 @@
       },
       {
         "chunk": "static",
-        "value": "</span></p>\n            <p data-pw=\"0\" id=\"cart-empty\" "
+        "value": "</span></p> <p data-pw=\"0\" id=\"cart-empty\" "
       },
       {
         "chunk": "dynamic",
@@ -378,7 +378,7 @@
       },
       {
         "chunk": "static",
-        "value": ">Your cart is empty.</p>\n            <ul id=\"cart-lines\">\n                "
+        "value": ">Your cart is empty.</p> <ul id=\"cart-lines\"> "
       },
       {
         "chunk": "dynamic",
@@ -391,7 +391,7 @@
           "body": [
             {
               "chunk": "static",
-              "value": "\n                    <li>\n                        <span>"
+              "value": " <li> <span>"
             },
             {
               "chunk": "dynamic",
@@ -404,7 +404,7 @@
             },
             {
               "chunk": "static",
-              "value": "</span>\n                        <button data-pw=\"1\" type=\"button\" "
+              "value": "</span> <button data-pw=\"1\" type=\"button\" "
             },
             {
               "chunk": "dynamic",
@@ -442,7 +442,7 @@
             },
             {
               "chunk": "static",
-              "value": ">\n                            −\n                        </button>\n                        <span>"
+              "value": "> − </button> <span>"
             },
             {
               "chunk": "dynamic",
@@ -455,7 +455,7 @@
             },
             {
               "chunk": "static",
-              "value": "</span>\n                        <button data-pw=\"2\" type=\"button\" "
+              "value": "</span> <button data-pw=\"2\" type=\"button\" "
             },
             {
               "chunk": "dynamic",
@@ -493,7 +493,7 @@
             },
             {
               "chunk": "static",
-              "value": ">\n                            +\n                        </button>\n                        <span>"
+              "value": "> + </button> <span>"
             },
             {
               "chunk": "dynamic",
@@ -506,7 +506,7 @@
             },
             {
               "chunk": "static",
-              "value": "</span>\n                        <button data-pw=\"3\" type=\"button\" "
+              "value": "</span> <button data-pw=\"3\" type=\"button\" "
             },
             {
               "chunk": "dynamic",
@@ -544,14 +544,14 @@
             },
             {
               "chunk": "static",
-              "value": ">\n                            Remove\n                        </button>\n                    </li>\n                "
+              "value": "> Remove </button> </li> "
             }
           ]
         }
       },
       {
         "chunk": "static",
-        "value": "\n            </ul>\n            <p>Subtotal: <span id=\"cart-subtotal\">"
+        "value": " </ul> <p>Subtotal: <span id=\"cart-subtotal\">"
       },
       {
         "chunk": "dynamic",
@@ -564,7 +564,7 @@
       },
       {
         "chunk": "static",
-        "value": "</span></p>\n            \n            "
+        "value": "</span></p>  "
       },
       {
         "chunk": "dynamic",
@@ -575,7 +575,7 @@
           "then": [
             {
               "chunk": "static",
-              "value": "<details id=\"cart-fees\">\n                <summary>Total <span id=\"checkout-total\">"
+              "value": "<details id=\"cart-fees\"> <summary>Total <span id=\"checkout-total\">"
             },
             {
               "chunk": "dynamic",
@@ -588,7 +588,7 @@
             },
             {
               "chunk": "static",
-              "value": "</span></summary>\n                <dl id=\"checkout-charges\">\n                    <dt>Subtotal</dt><dd id=\"charge-subtotal\">"
+              "value": "</span></summary> <dl id=\"checkout-charges\"> <dt>Subtotal</dt><dd id=\"charge-subtotal\">"
             },
             {
               "chunk": "dynamic",
@@ -601,7 +601,7 @@
             },
             {
               "chunk": "static",
-              "value": "</dd>\n                    <dt>Promo</dt><dd id=\"charge-discount\">"
+              "value": "</dd> <dt>Promo</dt><dd id=\"charge-discount\">"
             },
             {
               "chunk": "dynamic",
@@ -614,7 +614,7 @@
             },
             {
               "chunk": "static",
-              "value": "</dd>\n                    <dt>Delivery fee</dt><dd id=\"charge-delivery\">"
+              "value": "</dd> <dt>Delivery fee</dt><dd id=\"charge-delivery\">"
             },
             {
               "chunk": "dynamic",
@@ -627,7 +627,7 @@
             },
             {
               "chunk": "static",
-              "value": "</dd>\n                    <dt>Service fee</dt><dd id=\"charge-service\">"
+              "value": "</dd> <dt>Service fee</dt><dd id=\"charge-service\">"
             },
             {
               "chunk": "dynamic",
@@ -640,7 +640,7 @@
             },
             {
               "chunk": "static",
-              "value": "</dd>\n                    <dt>Small order fee</dt><dd id=\"charge-small\">"
+              "value": "</dd> <dt>Small order fee</dt><dd id=\"charge-small\">"
             },
             {
               "chunk": "dynamic",
@@ -653,7 +653,7 @@
             },
             {
               "chunk": "static",
-              "value": "</dd>\n                    <dt>Estimated tax</dt><dd id=\"charge-tax\">"
+              "value": "</dd> <dt>Estimated tax</dt><dd id=\"charge-tax\">"
             },
             {
               "chunk": "dynamic",
@@ -666,7 +666,7 @@
             },
             {
               "chunk": "static",
-              "value": "</dd>\n                    <dt>Tip</dt><dd id=\"charge-tip\">"
+              "value": "</dd> <dt>Tip</dt><dd id=\"charge-tip\">"
             },
             {
               "chunk": "dynamic",
@@ -679,7 +679,7 @@
             },
             {
               "chunk": "static",
-              "value": "</dd>\n                </dl>\n            </details>"
+              "value": "</dd> </dl> </details>"
             }
           ],
           "otherwise": []
@@ -687,7 +687,7 @@
       },
       {
         "chunk": "static",
-        "value": "\n            <p id=\"promo\">\n                <label>Promo code <input data-pw=\"4\" id=\"promo-code\" type=\"text\" "
+        "value": " <p id=\"promo\"> <label>Promo code <input data-pw=\"4\" id=\"promo-code\" type=\"text\" "
       },
       {
         "chunk": "dynamic",
@@ -713,7 +713,7 @@
       },
       {
         "chunk": "static",
-        "value": "></label>\n                <button data-pw=\"5\" id=\"apply-promo\" type=\"button\""
+        "value": "></label> <button data-pw=\"5\" id=\"apply-promo\" type=\"button\""
       },
       {
         "chunk": "dynamic",
@@ -728,7 +728,7 @@
       },
       {
         "chunk": "static",
-        "value": ">\n                    Apply\n                </button>\n            </p>\n            <p id=\"promo-said\">"
+        "value": "> Apply </button> </p> <p id=\"promo-said\">"
       },
       {
         "chunk": "dynamic",
@@ -741,7 +741,7 @@
       },
       {
         "chunk": "static",
-        "value": "</p>\n            "
+        "value": "</p> "
       },
       {
         "chunk": "dynamic",
@@ -771,7 +771,7 @@
                 },
                 {
                   "chunk": "static",
-                  "value": ">\n                Remove code\n            </button>\n            "
+                  "value": "> Remove code </button> "
                 }
               ]
             },
@@ -780,7 +780,7 @@
               "body": [
                 {
                   "chunk": "static",
-                  "value": "\n            "
+                  "value": " "
                 }
               ]
             }
@@ -789,7 +789,7 @@
       },
       {
         "chunk": "static",
-        "value": "\n            <fieldset id=\"tips\">\n                <legend>Tip your courier</legend>\n                <button data-pw=\"7\" type=\"button\" id=\"tip-none\""
+        "value": " <fieldset id=\"tips\"> <legend>Tip your courier</legend> <button data-pw=\"7\" type=\"button\" id=\"tip-none\""
       },
       {
         "chunk": "dynamic",
@@ -804,7 +804,7 @@
       },
       {
         "chunk": "static",
-        "value": ">No tip</button>\n                <button data-pw=\"8\" type=\"button\" id=\"tip-15\""
+        "value": ">No tip</button> <button data-pw=\"8\" type=\"button\" id=\"tip-15\""
       },
       {
         "chunk": "dynamic",
@@ -819,7 +819,7 @@
       },
       {
         "chunk": "static",
-        "value": ">15%</button>\n                <button data-pw=\"9\" type=\"button\" id=\"tip-18\""
+        "value": ">15%</button> <button data-pw=\"9\" type=\"button\" id=\"tip-18\""
       },
       {
         "chunk": "dynamic",
@@ -834,7 +834,7 @@
       },
       {
         "chunk": "static",
-        "value": ">18%</button>\n                <button data-pw=\"10\" type=\"button\" id=\"tip-20\""
+        "value": ">18%</button> <button data-pw=\"10\" type=\"button\" id=\"tip-20\""
       },
       {
         "chunk": "dynamic",
@@ -849,7 +849,7 @@
       },
       {
         "chunk": "static",
-        "value": ">20%</button>\n                <label>Other amount <input data-pw=\"11\" id=\"tip-amount\" type=\"text\" inputmode=\"decimal\" "
+        "value": ">20%</button> <label>Other amount <input data-pw=\"11\" id=\"tip-amount\" type=\"text\" inputmode=\"decimal\" "
       },
       {
         "chunk": "dynamic",
@@ -875,7 +875,7 @@
       },
       {
         "chunk": "static",
-        "value": "></label>\n                <button data-pw=\"12\" type=\"button\" id=\"tip-other\""
+        "value": "></label> <button data-pw=\"12\" type=\"button\" id=\"tip-other\""
       },
       {
         "chunk": "dynamic",
@@ -890,7 +890,7 @@
       },
       {
         "chunk": "static",
-        "value": ">Add tip</button>\n            </fieldset>\n            <p id=\"cart-hours\">"
+        "value": ">Add tip</button> </fieldset> <p id=\"cart-hours\">"
       },
       {
         "chunk": "dynamic",
@@ -903,7 +903,7 @@
       },
       {
         "chunk": "static",
-        "value": "</p>\n            \n            "
+        "value": "</p>  "
       },
       {
         "chunk": "dynamic",
@@ -935,7 +935,7 @@
       },
       {
         "chunk": "static",
-        "value": "\n            <p id=\"cart-notice\" role=\"status\">"
+        "value": " <p id=\"cart-notice\" role=\"status\">"
       },
       {
         "chunk": "dynamic",
@@ -948,7 +948,7 @@
       },
       {
         "chunk": "static",
-        "value": "</p>\n            <button data-pw=\"13\" id=\"clear-cart\" type=\"button\""
+        "value": "</p> <button data-pw=\"13\" id=\"clear-cart\" type=\"button\""
       },
       {
         "chunk": "dynamic",
@@ -963,7 +963,7 @@
       },
       {
         "chunk": "static",
-        "value": ">\n                Clear\n            </button>\n            \n            "
+        "value": "> Clear </button>  "
       },
       {
         "chunk": "dynamic",
@@ -992,7 +992,7 @@
             },
             {
               "chunk": "static",
-              "value": ">\n                Place order\n            </button>"
+              "value": "> Place order </button>"
             }
           ],
           "otherwise": []
@@ -1000,7 +1000,7 @@
       },
       {
         "chunk": "static",
-        "value": "\n            "
+        "value": " "
       },
       {
         "chunk": "dynamic",
@@ -1015,7 +1015,7 @@
               "body": [
                 {
                   "chunk": "static",
-                  "value": "<p id=\"order-link\"><a href=\"/order\">Follow your order</a></p>\n            "
+                  "value": "<p id=\"order-link\"><a href=\"/order\">Follow your order</a></p> "
                 }
               ]
             },
@@ -1024,7 +1024,7 @@
               "body": [
                 {
                   "chunk": "static",
-                  "value": "\n            "
+                  "value": " "
                 }
               ]
             }
@@ -1033,7 +1033,7 @@
       },
       {
         "chunk": "static",
-        "value": "\n        </main><!--/pw-slot-->"
+        "value": " </main><!--/pw-slot-->"
       },
       {
         "chunk": "dynamic",
@@ -1054,11 +1054,11 @@
     "path": "store.page.HomePage~ui",
     "name": "HomePage",
     "params": [],
-    "schema": "328fc906484af1c4",
+    "schema": "881386e48f4d6cba",
     "chunks": [
       {
         "chunk": "static",
-        "value": "<header>\n            <nav aria-label=\"Store\">\n                <a href=\"/\">Stores</a>\n                <a id=\"header-cart\" href=\"/cart\">Cart <span id=\"header-cart-count\">"
+        "value": "<header> <nav aria-label=\"Store\"> <a href=\"/\">Stores</a> <a id=\"header-cart\" href=\"/cart\">Cart <span id=\"header-cart-count\">"
       },
       {
         "chunk": "dynamic",
@@ -1071,7 +1071,7 @@
       },
       {
         "chunk": "static",
-        "value": "</span></a>\n            </nav>\n        </header><!--pw-slot--><main>\n            <h1>Stores</h1>\n            \n            <form id=\"home-search\" method=\"get\" action=\"/search\" role=\"search\"><label>Stores and dishes <input type=\"search\" name=\"q\"></label><button>Search</button></form>\n            <ul id=\"stores\">\n                "
+        "value": "</span></a> </nav> </header><!--pw-slot--><main> <h1>Stores</h1>  <form id=\"home-search\" method=\"get\" action=\"/search\" role=\"search\"><label>Stores and dishes <input type=\"search\" name=\"q\"></label><button>Search</button></form> <ul id=\"stores\"> "
       },
       {
         "chunk": "dynamic",
@@ -1084,7 +1084,7 @@
           "body": [
             {
               "chunk": "static",
-              "value": "\n                    <li>\n                        <h2><a data-pw=\"0\" "
+              "value": " <li> <h2><a data-pw=\"0\" "
             },
             {
               "chunk": "dynamic",
@@ -1121,7 +1121,7 @@
             },
             {
               "chunk": "static",
-              "value": "</a></h2>\n                        <p class=\"cuisine\">"
+              "value": "</a></h2> <p class=\"cuisine\">"
             },
             {
               "chunk": "dynamic",
@@ -1134,7 +1134,7 @@
             },
             {
               "chunk": "static",
-              "value": "</p>\n                        <p class=\"open\">"
+              "value": "</p> <p class=\"open\">"
             },
             {
               "chunk": "dynamic",
@@ -1147,7 +1147,7 @@
             },
             {
               "chunk": "static",
-              "value": "</p>\n                        <p class=\"rating\">"
+              "value": "</p> <p class=\"rating\">"
             },
             {
               "chunk": "dynamic",
@@ -1160,7 +1160,7 @@
             },
             {
               "chunk": "static",
-              "value": "</p>\n                        <p>"
+              "value": "</p> <p>"
             },
             {
               "chunk": "dynamic",
@@ -1173,14 +1173,14 @@
             },
             {
               "chunk": "static",
-              "value": "</p>\n                    </li>\n                "
+              "value": "</p> </li> "
             }
           ]
         }
       },
       {
         "chunk": "static",
-        "value": "\n            </ul>\n            <p aria-live=\"polite\" aria-atomic=\"true\">\n                <a id=\"cart-page\" href=\"/cart\">Your cart</a>: <span id=\"cart-count\">"
+        "value": " </ul> <p aria-live=\"polite\" aria-atomic=\"true\"> <a id=\"cart-page\" href=\"/cart\">Your cart</a>: <span id=\"cart-count\">"
       },
       {
         "chunk": "dynamic",
@@ -1193,7 +1193,7 @@
       },
       {
         "chunk": "static",
-        "value": "</span> items\n            </p>\n        </main><!--/pw-slot-->"
+        "value": "</span> items </p> </main><!--/pw-slot-->"
       },
       {
         "chunk": "dynamic",
@@ -1229,11 +1229,11 @@
     "path": "store.page.OrderPage~ui",
     "name": "OrderPage",
     "params": [],
-    "schema": "94e772a2b519ca9f",
+    "schema": "7d245cab92e4abad",
     "chunks": [
       {
         "chunk": "static",
-        "value": "<header>\n            <nav aria-label=\"Store\">\n                <a href=\"/\">Stores</a>\n                <a id=\"header-cart\" href=\"/cart\">Cart <span id=\"header-cart-count\">"
+        "value": "<header> <nav aria-label=\"Store\"> <a href=\"/\">Stores</a> <a id=\"header-cart\" href=\"/cart\">Cart <span id=\"header-cart-count\">"
       },
       {
         "chunk": "dynamic",
@@ -1246,7 +1246,7 @@
       },
       {
         "chunk": "static",
-        "value": "</span></a>\n            </nav>\n        </header><!--pw-slot--><main>\n            <h1>Your order</h1>\n            <section aria-label=\"Status\" aria-live=\"polite\" aria-atomic=\"true\">\n                "
+        "value": "</span></a> </nav> </header><!--pw-slot--><main> <h1>Your order</h1> <section aria-label=\"Status\" aria-live=\"polite\" aria-atomic=\"true\"> "
       },
       {
         "chunk": "dynamic",
@@ -1261,7 +1261,7 @@
               "body": [
                 {
                   "chunk": "static",
-                  "value": "\n                    "
+                  "value": " "
                 },
                 {
                   "chunk": "dynamic",
@@ -1275,7 +1275,7 @@
                         "body": [
                           {
                             "chunk": "static",
-                            "value": "<p id=\"order-status\">Placed: the store has your order.</p>\n                    "
+                            "value": "<p id=\"order-status\">Placed: the store has your order.</p> "
                           }
                         ]
                       },
@@ -1284,7 +1284,7 @@
                         "body": [
                           {
                             "chunk": "static",
-                            "value": "<p id=\"order-status\">Preparing: the store is making it.</p>\n                    "
+                            "value": "<p id=\"order-status\">Preparing: the store is making it.</p> "
                           }
                         ]
                       },
@@ -1293,7 +1293,7 @@
                         "body": [
                           {
                             "chunk": "static",
-                            "value": "<p id=\"order-status\">On its way to you.</p>\n                    "
+                            "value": "<p id=\"order-status\">On its way to you.</p> "
                           }
                         ]
                       },
@@ -1302,7 +1302,7 @@
                         "body": [
                           {
                             "chunk": "static",
-                            "value": "<p id=\"order-status\">Delivered.</p>\n                    "
+                            "value": "<p id=\"order-status\">Delivered.</p> "
                           }
                         ]
                       },
@@ -1312,7 +1312,7 @@
                         "body": [
                           {
                             "chunk": "static",
-                            "value": "<p id=\"order-status\">Awaiting your payment: pay below, on the provider's page.</p>\n                    "
+                            "value": "<p id=\"order-status\">Awaiting your payment: pay below, on the provider's page.</p> "
                           }
                         ]
                       },
@@ -1321,7 +1321,7 @@
                         "body": [
                           {
                             "chunk": "static",
-                            "value": "<p id=\"order-status\">Canceled: its items are back in your cart.</p>\n                    "
+                            "value": "<p id=\"order-status\">Canceled: its items are back in your cart.</p> "
                           }
                         ]
                       },
@@ -1344,7 +1344,7 @@
                           },
                           {
                             "chunk": "static",
-                            "value": ".</p>\n                    "
+                            "value": ".</p> "
                           }
                         ]
                       }
@@ -1353,7 +1353,7 @@
                 },
                 {
                   "chunk": "static",
-                  "value": "\n                    \n                    "
+                  "value": "  "
                 },
                 {
                   "chunk": "dynamic",
@@ -1404,7 +1404,7 @@
                           },
                           {
                             "chunk": "static",
-                            "value": "\n                    "
+                            "value": " "
                           }
                         ]
                       },
@@ -1450,7 +1450,7 @@
                           },
                           {
                             "chunk": "static",
-                            "value": "\n                    "
+                            "value": " "
                           }
                         ]
                       },
@@ -1459,7 +1459,7 @@
                         "body": [
                           {
                             "chunk": "static",
-                            "value": "<p id=\"order-total\">Nothing was charged.</p>\n                    "
+                            "value": "<p id=\"order-total\">Nothing was charged.</p> "
                           }
                         ]
                       }
@@ -1468,7 +1468,7 @@
                 },
                 {
                   "chunk": "static",
-                  "value": "\n                "
+                  "value": " "
                 }
               ]
             },
@@ -1477,7 +1477,7 @@
               "body": [
                 {
                   "chunk": "static",
-                  "value": "<p id=\"order-status\">You have no order yet.</p>\n                "
+                  "value": "<p id=\"order-status\">You have no order yet.</p> "
                 }
               ]
             }
@@ -1486,7 +1486,7 @@
       },
       {
         "chunk": "static",
-        "value": "\n            </section>\n            \n            "
+        "value": " </section>  "
       },
       {
         "chunk": "dynamic",
@@ -1501,7 +1501,7 @@
               "body": [
                 {
                   "chunk": "static",
-                  "value": "<section aria-label=\"Payment\">\n                <iframe data-pw=\"0\" id=\"payment\" "
+                  "value": "<section aria-label=\"Payment\"> <iframe data-pw=\"0\" id=\"payment\" "
                 },
                 {
                   "chunk": "dynamic",
@@ -1516,7 +1516,7 @@
                 },
                 {
                   "chunk": "static",
-                  "value": " title=\"Pay for your order\"></iframe>\n                \n                "
+                  "value": " title=\"Pay for your order\"></iframe>  "
                 },
                 {
                   "chunk": "dynamic",
@@ -1542,7 +1542,7 @@
                       },
                       {
                         "chunk": "static",
-                        "value": ">\n                    Cancel this order\n                </button>"
+                        "value": "> Cancel this order </button>"
                       }
                     ],
                     "otherwise": []
@@ -1550,7 +1550,7 @@
                 },
                 {
                   "chunk": "static",
-                  "value": "\n            </section>\n            "
+                  "value": " </section> "
                 }
               ]
             },
@@ -1559,7 +1559,7 @@
               "body": [
                 {
                   "chunk": "static",
-                  "value": "\n            "
+                  "value": " "
                 }
               ]
             }
@@ -1568,7 +1568,7 @@
       },
       {
         "chunk": "static",
-        "value": "\n            \n            "
+        "value": "  "
       },
       {
         "chunk": "dynamic",
@@ -1579,7 +1579,7 @@
           "then": [
             {
               "chunk": "static",
-              "value": "<section aria-labelledby=\"rate-heading\">\n                <h2 id=\"rate-heading\">Rate your order</h2>\n                <ul id=\"rate-links\">\n                    "
+              "value": "<section aria-labelledby=\"rate-heading\"> <h2 id=\"rate-heading\">Rate your order</h2> <ul id=\"rate-links\"> "
             },
             {
               "chunk": "dynamic",
@@ -1592,7 +1592,7 @@
                 "body": [
                   {
                     "chunk": "static",
-                    "value": "\n                        <li>"
+                    "value": " <li>"
                   },
                   {
                     "chunk": "dynamic",
@@ -1658,14 +1658,14 @@
                   },
                   {
                     "chunk": "static",
-                    "value": "</li>\n                    "
+                    "value": "</li> "
                   }
                 ]
               }
             },
             {
               "chunk": "static",
-              "value": "\n                </ul>\n            </section>"
+              "value": " </ul> </section>"
             }
           ],
           "otherwise": []
@@ -1673,7 +1673,7 @@
       },
       {
         "chunk": "static",
-        "value": "\n            \n            <p id=\"order-notice\" role=\"status\">"
+        "value": "  <p id=\"order-notice\" role=\"status\">"
       },
       {
         "chunk": "dynamic",
@@ -1686,7 +1686,7 @@
       },
       {
         "chunk": "static",
-        "value": "</p>\n            <p><a href=\"/\">Order from a store</a></p>\n        </main><!--/pw-slot-->"
+        "value": "</p> <p><a href=\"/\">Order from a store</a></p> </main><!--/pw-slot-->"
       },
       {
         "chunk": "dynamic",
@@ -1709,11 +1709,11 @@
     "params": [
       "id"
     ],
-    "schema": "05105d3e7f3570ba",
+    "schema": "9124a33fba066572",
     "chunks": [
       {
         "chunk": "static",
-        "value": "<header>\n            <nav aria-label=\"Store\">\n                <a href=\"/\">Stores</a>\n                <a id=\"header-cart\" href=\"/cart\">Cart <span id=\"header-cart-count\">"
+        "value": "<header> <nav aria-label=\"Store\"> <a href=\"/\">Stores</a> <a id=\"header-cart\" href=\"/cart\">Cart <span id=\"header-cart-count\">"
       },
       {
         "chunk": "dynamic",
@@ -1726,7 +1726,7 @@
       },
       {
         "chunk": "static",
-        "value": "</span></a>\n            </nav>\n        </header><!--pw-slot--><main>\n            <h1 id=\"store-name\">"
+        "value": "</span></a> </nav> </header><!--pw-slot--><main> <h1 id=\"store-name\">"
       },
       {
         "chunk": "dynamic",
@@ -1739,7 +1739,7 @@
       },
       {
         "chunk": "static",
-        "value": "</h1>\n            <p id=\"store-cuisine\">"
+        "value": "</h1> <p id=\"store-cuisine\">"
       },
       {
         "chunk": "dynamic",
@@ -1752,7 +1752,7 @@
       },
       {
         "chunk": "static",
-        "value": "</p>\n            <p id=\"store-open\">"
+        "value": "</p> <p id=\"store-open\">"
       },
       {
         "chunk": "dynamic",
@@ -1765,7 +1765,7 @@
       },
       {
         "chunk": "static",
-        "value": "</p>\n            <p id=\"store-rating\">"
+        "value": "</p> <p id=\"store-rating\">"
       },
       {
         "chunk": "dynamic",
@@ -1778,7 +1778,7 @@
       },
       {
         "chunk": "static",
-        "value": "</p>\n            <p id=\"store-description\">"
+        "value": "</p> <p id=\"store-description\">"
       },
       {
         "chunk": "dynamic",
@@ -1791,7 +1791,7 @@
       },
       {
         "chunk": "static",
-        "value": "</p>\n            <p id=\"menu-line\">"
+        "value": "</p> <p id=\"menu-line\">"
       },
       {
         "chunk": "dynamic",
@@ -1804,7 +1804,7 @@
       },
       {
         "chunk": "static",
-        "value": "</p>\n\n            \n            <p id=\"deliver-to\">\n                "
+        "value": "</p>  <p id=\"deliver-to\"> "
       },
       {
         "chunk": "dynamic",
@@ -1837,7 +1837,7 @@
       },
       {
         "chunk": "static",
-        "value": "\n                <a data-pw=\"0\" id=\"change-address\" "
+        "value": " <a data-pw=\"0\" id=\"change-address\" "
       },
       {
         "chunk": "dynamic",
@@ -1865,7 +1865,7 @@
       },
       {
         "chunk": "static",
-        "value": ">Change the address</a>\n            </p>\n            "
+        "value": ">Change the address</a> </p> "
       },
       {
         "chunk": "dynamic",
@@ -1910,7 +1910,7 @@
       },
       {
         "chunk": "static",
-        "value": "\n\n            <section aria-label=\"Delivery\" aria-live=\"polite\">\n                "
+        "value": " <section aria-label=\"Delivery\" aria-live=\"polite\"> "
       },
       {
         "chunk": "dynamic",
@@ -1976,7 +1976,7 @@
       },
       {
         "chunk": "static",
-        "value": "\n            </section>\n\n            <section aria-label=\"Menu\">\n                \n                <div id=\"menu\">\n                    "
+        "value": " </section> <section aria-label=\"Menu\">  <div id=\"menu\"> "
       },
       {
         "chunk": "dynamic",
@@ -1989,7 +1989,7 @@
           "body": [
             {
               "chunk": "static",
-              "value": "\n                        <h2>"
+              "value": " <h2>"
             },
             {
               "chunk": "dynamic",
@@ -2002,7 +2002,7 @@
             },
             {
               "chunk": "static",
-              "value": "</h2>\n                        <ul>\n                            "
+              "value": "</h2> <ul> "
             },
             {
               "chunk": "dynamic",
@@ -2015,7 +2015,7 @@
                 "body": [
                   {
                     "chunk": "static",
-                    "value": "\n                                <li>\n                                    <span>"
+                    "value": " <li> <span>"
                   },
                   {
                     "chunk": "dynamic",
@@ -2028,7 +2028,7 @@
                   },
                   {
                     "chunk": "static",
-                    "value": "</span>\n                                    <p>"
+                    "value": "</span> <p>"
                   },
                   {
                     "chunk": "dynamic",
@@ -2041,7 +2041,7 @@
                   },
                   {
                     "chunk": "static",
-                    "value": "</p>\n                                    <p>"
+                    "value": "</p> <p>"
                   },
                   {
                     "chunk": "dynamic",
@@ -2054,7 +2054,7 @@
                   },
                   {
                     "chunk": "static",
-                    "value": "</p>\n                                    \n                                    "
+                    "value": "</p>  "
                   },
                   {
                     "chunk": "dynamic",
@@ -2065,7 +2065,7 @@
                       "then": [
                         {
                           "chunk": "static",
-                          "value": "\n                                        \n                                        <button data-pw=\"1\" type=\"button\" "
+                          "value": "  <button data-pw=\"1\" type=\"button\" "
                         },
                         {
                           "chunk": "dynamic",
@@ -2106,34 +2106,34 @@
                         },
                         {
                           "chunk": "static",
-                          "value": ">\n                                            Add\n                                        </button>\n                                    "
+                          "value": "> Add </button> "
                         }
                       ],
                       "otherwise": [
                         {
                           "chunk": "static",
-                          "value": "\n                                        <p>Sold out</p>\n                                    "
+                          "value": " <p>Sold out</p> "
                         }
                       ]
                     }
                   },
                   {
                     "chunk": "static",
-                    "value": "\n                                </li>\n                            "
+                    "value": " </li> "
                   }
                 ]
               }
             },
             {
               "chunk": "static",
-              "value": "\n                        </ul>\n                    "
+              "value": " </ul> "
             }
           ]
         }
       },
       {
         "chunk": "static",
-        "value": "\n                </div>\n            </section>\n\n            <section aria-labelledby=\"cart-heading\">\n                \n                <h2 id=\"cart-heading\" tabindex=\"-1\">Cart</h2>\n                <p aria-live=\"polite\" aria-atomic=\"true\">Items in cart: <span id=\"cart-count\">"
+        "value": " </div> </section> <section aria-labelledby=\"cart-heading\">  <h2 id=\"cart-heading\" tabindex=\"-1\">Cart</h2> <p aria-live=\"polite\" aria-atomic=\"true\">Items in cart: <span id=\"cart-count\">"
       },
       {
         "chunk": "dynamic",
@@ -2146,7 +2146,7 @@
       },
       {
         "chunk": "static",
-        "value": "</span></p>\n                <p data-pw=\"2\" id=\"cart-empty\" "
+        "value": "</span></p> <p data-pw=\"2\" id=\"cart-empty\" "
       },
       {
         "chunk": "dynamic",
@@ -2160,7 +2160,7 @@
       },
       {
         "chunk": "static",
-        "value": ">Your cart is empty.</p>\n                <ul id=\"cart-lines\">\n                    "
+        "value": ">Your cart is empty.</p> <ul id=\"cart-lines\"> "
       },
       {
         "chunk": "dynamic",
@@ -2173,7 +2173,7 @@
           "body": [
             {
               "chunk": "static",
-              "value": "\n                        <li>\n                            <span>"
+              "value": " <li> <span>"
             },
             {
               "chunk": "dynamic",
@@ -2186,7 +2186,7 @@
             },
             {
               "chunk": "static",
-              "value": "</span>\n                            <button data-pw=\"3\" type=\"button\" "
+              "value": "</span> <button data-pw=\"3\" type=\"button\" "
             },
             {
               "chunk": "dynamic",
@@ -2227,7 +2227,7 @@
             },
             {
               "chunk": "static",
-              "value": ">\n                                −\n                            </button>\n                            <span>"
+              "value": "> − </button> <span>"
             },
             {
               "chunk": "dynamic",
@@ -2240,7 +2240,7 @@
             },
             {
               "chunk": "static",
-              "value": "</span>\n                            <button data-pw=\"4\" type=\"button\" "
+              "value": "</span> <button data-pw=\"4\" type=\"button\" "
             },
             {
               "chunk": "dynamic",
@@ -2281,7 +2281,7 @@
             },
             {
               "chunk": "static",
-              "value": ">\n                                +\n                            </button>\n                            <span>"
+              "value": "> + </button> <span>"
             },
             {
               "chunk": "dynamic",
@@ -2294,7 +2294,7 @@
             },
             {
               "chunk": "static",
-              "value": "</span>\n                            <button data-pw=\"5\" type=\"button\" "
+              "value": "</span> <button data-pw=\"5\" type=\"button\" "
             },
             {
               "chunk": "dynamic",
@@ -2335,14 +2335,14 @@
             },
             {
               "chunk": "static",
-              "value": ">\n                                Remove\n                            </button>\n                        </li>\n                    "
+              "value": "> Remove </button> </li> "
             }
           ]
         }
       },
       {
         "chunk": "static",
-        "value": "\n                </ul>\n                <p>Subtotal: <span id=\"cart-subtotal\">"
+        "value": " </ul> <p>Subtotal: <span id=\"cart-subtotal\">"
       },
       {
         "chunk": "dynamic",
@@ -2355,7 +2355,7 @@
       },
       {
         "chunk": "static",
-        "value": "</span></p>\n                "
+        "value": "</span></p> "
       },
       {
         "chunk": "dynamic",
@@ -2374,7 +2374,7 @@
       },
       {
         "chunk": "static",
-        "value": "\n                <p id=\"cart-notice\" role=\"status\">"
+        "value": " <p id=\"cart-notice\" role=\"status\">"
       },
       {
         "chunk": "dynamic",
@@ -2387,7 +2387,7 @@
       },
       {
         "chunk": "static",
-        "value": "</p>\n                <button data-pw=\"6\" id=\"clear-cart\" type=\"button\""
+        "value": "</p> <button data-pw=\"6\" id=\"clear-cart\" type=\"button\""
       },
       {
         "chunk": "dynamic",
@@ -2402,7 +2402,7 @@
       },
       {
         "chunk": "static",
-        "value": ">\n                    Clear\n                </button>\n                \n                <p>"
+        "value": "> Clear </button>  <p>"
       },
       {
         "chunk": "dynamic",
@@ -2439,7 +2439,7 @@
       },
       {
         "chunk": "static",
-        "value": "</p>\n            </section>\n\n            <section aria-label=\"Recommendations\">\n                "
+        "value": "</p> </section> <section aria-label=\"Recommendations\"> "
       },
       {
         "chunk": "dynamic",
@@ -2462,7 +2462,7 @@
             "body": [
               {
                 "chunk": "static",
-                "value": "\n                        <ul>\n                            "
+                "value": " <ul> "
               },
               {
                 "chunk": "dynamic",
@@ -2475,7 +2475,7 @@
                   "body": [
                     {
                       "chunk": "static",
-                      "value": "\n                                <li>"
+                      "value": " <li>"
                     },
                     {
                       "chunk": "dynamic",
@@ -2488,14 +2488,14 @@
                     },
                     {
                       "chunk": "static",
-                      "value": "</li>\n                            "
+                      "value": "</li> "
                     }
                   ]
                 }
               },
               {
                 "chunk": "static",
-                "value": "\n                        </ul>\n                    "
+                "value": " </ul> "
               }
             ]
           },
@@ -2511,7 +2511,7 @@
       },
       {
         "chunk": "static",
-        "value": "\n            </section>\n\n            \n            <section aria-labelledby=\"reviews-heading\">\n                <h2 id=\"reviews-heading\">What customers said</h2>\n                "
+        "value": " </section>  <section aria-labelledby=\"reviews-heading\"> <h2 id=\"reviews-heading\">What customers said</h2> "
       },
       {
         "chunk": "dynamic",
@@ -2522,7 +2522,7 @@
           "then": [
             {
               "chunk": "static",
-              "value": "\n                    <ul id=\"reviews\">\n                        "
+              "value": " <ul id=\"reviews\"> "
             },
             {
               "chunk": "dynamic",
@@ -2535,7 +2535,7 @@
                 "body": [
                   {
                     "chunk": "static",
-                    "value": "\n                            <li><p class=\"stars\">"
+                    "value": " <li><p class=\"stars\">"
                   },
                   {
                     "chunk": "dynamic",
@@ -2561,27 +2561,27 @@
                   },
                   {
                     "chunk": "static",
-                    "value": "</p></li>\n                        "
+                    "value": "</p></li> "
                   }
                 ]
               }
             },
             {
               "chunk": "static",
-              "value": "\n                    </ul>\n                "
+              "value": " </ul> "
             }
           ],
           "otherwise": [
             {
               "chunk": "static",
-              "value": "\n                    <p id=\"no-reviews\">No reviews yet.</p>\n                "
+              "value": " <p id=\"no-reviews\">No reviews yet.</p> "
             }
           ]
         }
       },
       {
         "chunk": "static",
-        "value": "\n            </section>\n        </main><!--/pw-slot-->"
+        "value": " </section> </main><!--/pw-slot-->"
       },
       {
         "chunk": "dynamic",
@@ -2619,11 +2619,11 @@
     "params": [
       "day"
     ],
-    "schema": "73de895d16d451dd",
+    "schema": "aca47562bd68dbb7",
     "chunks": [
       {
         "chunk": "static",
-        "value": "<header>\n            <nav aria-label=\"Store\">\n                <a href=\"/\">Stores</a>\n                <a id=\"header-cart\" href=\"/cart\">Cart <span id=\"header-cart-count\">"
+        "value": "<header> <nav aria-label=\"Store\"> <a href=\"/\">Stores</a> <a id=\"header-cart\" href=\"/cart\">Cart <span id=\"header-cart-count\">"
       },
       {
         "chunk": "dynamic",
@@ -2636,7 +2636,7 @@
       },
       {
         "chunk": "static",
-        "value": "</span></a>\n            </nav>\n        </header><!--pw-slot--><main>\n            <h1>When to deliver</h1>\n            <p id=\"when-said\">"
+        "value": "</span></a> </nav> </header><!--pw-slot--><main> <h1>When to deliver</h1> <p id=\"when-said\">"
       },
       {
         "chunk": "dynamic",
@@ -2649,7 +2649,7 @@
       },
       {
         "chunk": "static",
-        "value": "</p>\n            <button data-pw=\"0\" id=\"when-soon\" type=\"button\""
+        "value": "</p> <button data-pw=\"0\" id=\"when-soon\" type=\"button\""
       },
       {
         "chunk": "dynamic",
@@ -2664,7 +2664,7 @@
       },
       {
         "chunk": "static",
-        "value": ">\n                As soon as possible\n            </button>\n            \n            <nav aria-label=\"Days\">\n                <ul id=\"when-days\">\n                    "
+        "value": "> As soon as possible </button>  <nav aria-label=\"Days\"> <ul id=\"when-days\"> "
       },
       {
         "chunk": "dynamic",
@@ -2677,7 +2677,7 @@
           "body": [
             {
               "chunk": "static",
-              "value": "\n                        <li><p><a data-pw=\"1\" "
+              "value": " <li><p><a data-pw=\"1\" "
             },
             {
               "chunk": "dynamic",
@@ -2714,14 +2714,14 @@
             },
             {
               "chunk": "static",
-              "value": "</a></p></li>\n                    "
+              "value": "</a></p></li> "
             }
           ]
         }
       },
       {
         "chunk": "static",
-        "value": "\n                </ul>\n            </nav>\n            <h2 id=\"when-day\">"
+        "value": " </ul> </nav> <h2 id=\"when-day\">"
       },
       {
         "chunk": "dynamic",
@@ -2734,7 +2734,7 @@
       },
       {
         "chunk": "static",
-        "value": "</h2>\n            <ul id=\"when-windows\">\n                "
+        "value": "</h2> <ul id=\"when-windows\"> "
       },
       {
         "chunk": "dynamic",
@@ -2747,7 +2747,7 @@
           "body": [
             {
               "chunk": "static",
-              "value": "\n                    <li>\n                        <p><button data-pw=\"2\" type=\"button\" "
+              "value": " <li> <p><button data-pw=\"2\" type=\"button\" "
             },
             {
               "chunk": "dynamic",
@@ -2781,7 +2781,7 @@
             },
             {
               "chunk": "static",
-              "value": ">\n                            "
+              "value": "> "
             },
             {
               "chunk": "dynamic",
@@ -2794,14 +2794,14 @@
             },
             {
               "chunk": "static",
-              "value": "\n                        </button></p>\n                    </li>\n                "
+              "value": " </button></p> </li> "
             }
           ]
         }
       },
       {
         "chunk": "static",
-        "value": "\n            </ul>\n            <p id=\"when-notice\" role=\"status\">"
+        "value": " </ul> <p id=\"when-notice\" role=\"status\">"
       },
       {
         "chunk": "dynamic",
@@ -2814,7 +2814,7 @@
       },
       {
         "chunk": "static",
-        "value": "</p>\n            <p><a href=\"/cart\">Back to your cart</a></p>\n        </main><!--/pw-slot-->"
+        "value": "</p> <p><a href=\"/cart\">Back to your cart</a></p> </main><!--/pw-slot-->"
       },
       {
         "chunk": "dynamic",
@@ -2837,11 +2837,11 @@
     "params": [
       "id"
     ],
-    "schema": "7a5142035bf93cda",
+    "schema": "118ebc37f59e89e8",
     "chunks": [
       {
         "chunk": "static",
-        "value": "<header>\n            <nav aria-label=\"Store\">\n                <a href=\"/\">Stores</a>\n                <a id=\"header-cart\" href=\"/cart\">Cart <span id=\"header-cart-count\">"
+        "value": "<header> <nav aria-label=\"Store\"> <a href=\"/\">Stores</a> <a id=\"header-cart\" href=\"/cart\">Cart <span id=\"header-cart-count\">"
       },
       {
         "chunk": "dynamic",
@@ -2854,7 +2854,7 @@
       },
       {
         "chunk": "static",
-        "value": "</span></a>\n            </nav>\n        </header><!--pw-slot--><main>\n            <h1>Rate your order</h1>\n            \n            <p id=\"rate-state\">"
+        "value": "</span></a> </nav> </header><!--pw-slot--><main> <h1>Rate your order</h1>  <p id=\"rate-state\">"
       },
       {
         "chunk": "dynamic",
@@ -2867,7 +2867,7 @@
       },
       {
         "chunk": "static",
-        "value": "</p>\n            "
+        "value": "</p> "
       },
       {
         "chunk": "dynamic",
@@ -2899,7 +2899,7 @@
       },
       {
         "chunk": "static",
-        "value": "\n            \n            <section data-pw=\"0\" id=\"rate-form\" aria-label=\"Your rating\" "
+        "value": "  <section data-pw=\"0\" id=\"rate-form\" aria-label=\"Your rating\" "
       },
       {
         "chunk": "dynamic",
@@ -2913,7 +2913,7 @@
       },
       {
         "chunk": "static",
-        "value": ">\n                <p id=\"rate-store\">How was your order from "
+        "value": "> <p id=\"rate-store\">How was your order from "
       },
       {
         "chunk": "dynamic",
@@ -2926,7 +2926,7 @@
       },
       {
         "chunk": "static",
-        "value": "?</p>\n                <fieldset id=\"stars\">\n                    <legend>Your rating, out of 5</legend>\n                    <button data-pw=\"1\" type=\"button\" id=\"stars-1\" aria-label=\"1 out of 5\" "
+        "value": "?</p> <fieldset id=\"stars\"> <legend>Your rating, out of 5</legend> <button data-pw=\"1\" type=\"button\" id=\"stars-1\" aria-label=\"1 out of 5\" "
       },
       {
         "chunk": "dynamic",
@@ -2952,7 +2952,7 @@
       },
       {
         "chunk": "static",
-        "value": ">1</button>\n                    <button data-pw=\"2\" type=\"button\" id=\"stars-2\" aria-label=\"2 out of 5\" "
+        "value": ">1</button> <button data-pw=\"2\" type=\"button\" id=\"stars-2\" aria-label=\"2 out of 5\" "
       },
       {
         "chunk": "dynamic",
@@ -2978,7 +2978,7 @@
       },
       {
         "chunk": "static",
-        "value": ">2</button>\n                    <button data-pw=\"3\" type=\"button\" id=\"stars-3\" aria-label=\"3 out of 5\" "
+        "value": ">2</button> <button data-pw=\"3\" type=\"button\" id=\"stars-3\" aria-label=\"3 out of 5\" "
       },
       {
         "chunk": "dynamic",
@@ -3004,7 +3004,7 @@
       },
       {
         "chunk": "static",
-        "value": ">3</button>\n                    <button data-pw=\"4\" type=\"button\" id=\"stars-4\" aria-label=\"4 out of 5\" "
+        "value": ">3</button> <button data-pw=\"4\" type=\"button\" id=\"stars-4\" aria-label=\"4 out of 5\" "
       },
       {
         "chunk": "dynamic",
@@ -3030,7 +3030,7 @@
       },
       {
         "chunk": "static",
-        "value": ">4</button>\n                    <button data-pw=\"5\" type=\"button\" id=\"stars-5\" aria-label=\"5 out of 5\" "
+        "value": ">4</button> <button data-pw=\"5\" type=\"button\" id=\"stars-5\" aria-label=\"5 out of 5\" "
       },
       {
         "chunk": "dynamic",
@@ -3056,7 +3056,7 @@
       },
       {
         "chunk": "static",
-        "value": ">5</button>\n                </fieldset>\n                <p id=\"stars-chosen\" aria-live=\"polite\">"
+        "value": ">5</button> </fieldset> <p id=\"stars-chosen\" aria-live=\"polite\">"
       },
       {
         "chunk": "dynamic",
@@ -3069,7 +3069,7 @@
       },
       {
         "chunk": "static",
-        "value": "</p>\n                <label>A comment, if you like. It is shown on the store's page, without your name. <textarea data-pw=\"6\" id=\"comment\""
+        "value": "</p> <label>A comment, if you like. It is shown on the store's page, without your name. <textarea data-pw=\"6\" id=\"comment\""
       },
       {
         "chunk": "dynamic",
@@ -3099,7 +3099,7 @@
       },
       {
         "chunk": "static",
-        "value": "</textarea></label>\n                <button data-pw=\"7\" id=\"send-rating\" type=\"button\""
+        "value": "</textarea></label> <button data-pw=\"7\" id=\"send-rating\" type=\"button\""
       },
       {
         "chunk": "dynamic",
@@ -3120,7 +3120,7 @@
       },
       {
         "chunk": "static",
-        "value": ">\n                    Send rating\n                </button>\n            </section>\n            <p id=\"rate-said\" role=\"status\">"
+        "value": "> Send rating </button> </section> <p id=\"rate-said\" role=\"status\">"
       },
       {
         "chunk": "dynamic",
@@ -3133,7 +3133,7 @@
       },
       {
         "chunk": "static",
-        "value": "</p>\n            <p><a href=\"/order\">Back to your order</a></p>\n        </main><!--/pw-slot-->"
+        "value": "</p> <p><a href=\"/order\">Back to your order</a></p> </main><!--/pw-slot-->"
       },
       {
         "chunk": "dynamic",
@@ -3156,11 +3156,11 @@
     "params": [
       "q"
     ],
-    "schema": "97f41777abf471b9",
+    "schema": "325f240eaac723f1",
     "chunks": [
       {
         "chunk": "static",
-        "value": "<header>\n            <nav aria-label=\"Store\">\n                <a href=\"/\">Stores</a>\n                <a id=\"header-cart\" href=\"/cart\">Cart <span id=\"header-cart-count\">"
+        "value": "<header> <nav aria-label=\"Store\"> <a href=\"/\">Stores</a> <a id=\"header-cart\" href=\"/cart\">Cart <span id=\"header-cart-count\">"
       },
       {
         "chunk": "dynamic",
@@ -3173,7 +3173,7 @@
       },
       {
         "chunk": "static",
-        "value": "</span></a>\n            </nav>\n        </header><!--pw-slot--><main>\n            <h1>"
+        "value": "</span></a> </nav> </header><!--pw-slot--><main> <h1>"
       },
       {
         "chunk": "dynamic",
@@ -3186,7 +3186,7 @@
       },
       {
         "chunk": "static",
-        "value": "</h1>\n            <form id=\"search-form\" method=\"get\" action=\"/search\" role=\"search\">\n                <label>Stores and dishes <input data-pw=\"0\" id=\"search-q\" type=\"search\" name=\"q\" "
+        "value": "</h1> <form id=\"search-form\" method=\"get\" action=\"/search\" role=\"search\"> <label>Stores and dishes <input data-pw=\"0\" id=\"search-q\" type=\"search\" name=\"q\" "
       },
       {
         "chunk": "dynamic",
@@ -3201,7 +3201,7 @@
       },
       {
         "chunk": "static",
-        "value": "></label>\n                <button>Search</button>\n            </form>\n            \n            "
+        "value": "></label> <button>Search</button> </form>  "
       },
       {
         "chunk": "dynamic",
@@ -3242,7 +3242,7 @@
                 },
                 {
                   "chunk": "static",
-                  "value": "</p>\n            "
+                  "value": "</p> "
                 }
               ]
             },
@@ -3251,7 +3251,7 @@
               "body": [
                 {
                   "chunk": "static",
-                  "value": "<p id=\"search-intro\">Search the stores by name or cuisine, and their dishes by name or what they are.</p>\n            "
+                  "value": "<p id=\"search-intro\">Search the stores by name or cuisine, and their dishes by name or what they are.</p> "
                 }
               ]
             }
@@ -3260,7 +3260,7 @@
       },
       {
         "chunk": "static",
-        "value": "\n            <ul id=\"search-stores\">\n                "
+        "value": " <ul id=\"search-stores\"> "
       },
       {
         "chunk": "dynamic",
@@ -3273,7 +3273,7 @@
           "body": [
             {
               "chunk": "static",
-              "value": "\n                    <li>\n                        <h2><a data-pw=\"1\" "
+              "value": " <li> <h2><a data-pw=\"1\" "
             },
             {
               "chunk": "dynamic",
@@ -3310,7 +3310,7 @@
             },
             {
               "chunk": "static",
-              "value": "</a></h2>\n                        <p class=\"cuisine\">"
+              "value": "</a></h2> <p class=\"cuisine\">"
             },
             {
               "chunk": "dynamic",
@@ -3323,7 +3323,7 @@
             },
             {
               "chunk": "static",
-              "value": "</p>\n                        <p class=\"open\">"
+              "value": "</p> <p class=\"open\">"
             },
             {
               "chunk": "dynamic",
@@ -3336,7 +3336,7 @@
             },
             {
               "chunk": "static",
-              "value": "</p>\n                        <p class=\"rating\">"
+              "value": "</p> <p class=\"rating\">"
             },
             {
               "chunk": "dynamic",
@@ -3349,7 +3349,7 @@
             },
             {
               "chunk": "static",
-              "value": "</p>\n                        <p>"
+              "value": "</p> <p>"
             },
             {
               "chunk": "dynamic",
@@ -3362,7 +3362,7 @@
             },
             {
               "chunk": "static",
-              "value": "</p>\n                        "
+              "value": "</p> "
             },
             {
               "chunk": "dynamic",
@@ -3373,7 +3373,7 @@
                 "then": [
                   {
                     "chunk": "static",
-                    "value": "\n                            <ul data-pw=\"2\" "
+                    "value": " <ul data-pw=\"2\" "
                   },
                   {
                     "chunk": "dynamic",
@@ -3397,7 +3397,7 @@
                   },
                   {
                     "chunk": "static",
-                    "value": ">\n                                "
+                    "value": "> "
                   },
                   {
                     "chunk": "dynamic",
@@ -3410,7 +3410,7 @@
                       "body": [
                         {
                           "chunk": "static",
-                          "value": "\n                                    <li>\n                                        <a data-pw=\"3\" "
+                          "value": " <li> <a data-pw=\"3\" "
                         },
                         {
                           "chunk": "dynamic",
@@ -3447,7 +3447,7 @@
                         },
                         {
                           "chunk": "static",
-                          "value": "</a>\n                                        <span class=\"category\">"
+                          "value": "</a> <span class=\"category\">"
                         },
                         {
                           "chunk": "dynamic",
@@ -3460,7 +3460,7 @@
                         },
                         {
                           "chunk": "static",
-                          "value": "</span>\n                                        <p>"
+                          "value": "</span> <p>"
                         },
                         {
                           "chunk": "dynamic",
@@ -3473,7 +3473,7 @@
                         },
                         {
                           "chunk": "static",
-                          "value": "</p>\n                                        <p>"
+                          "value": "</p> <p>"
                         },
                         {
                           "chunk": "dynamic",
@@ -3486,14 +3486,14 @@
                         },
                         {
                           "chunk": "static",
-                          "value": "</p>\n                                    </li>\n                                "
+                          "value": "</p> </li> "
                         }
                       ]
                     }
                   },
                   {
                     "chunk": "static",
-                    "value": "\n                            </ul>\n                        "
+                    "value": " </ul> "
                   }
                 ],
                 "otherwise": []
@@ -3501,7 +3501,7 @@
             },
             {
               "chunk": "static",
-              "value": "\n                        "
+              "value": " "
             },
             {
               "chunk": "dynamic",
@@ -3533,14 +3533,14 @@
             },
             {
               "chunk": "static",
-              "value": "\n                    </li>\n                "
+              "value": " </li> "
             }
           ]
         }
       },
       {
         "chunk": "static",
-        "value": "\n            </ul>\n            "
+        "value": " </ul> "
       },
       {
         "chunk": "dynamic",
@@ -3572,7 +3572,7 @@
       },
       {
         "chunk": "static",
-        "value": "\n        </main><!--/pw-slot-->"
+        "value": " </main><!--/pw-slot-->"
       },
       {
         "chunk": "dynamic",
