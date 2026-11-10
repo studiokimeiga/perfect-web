@@ -32,6 +32,12 @@ In order:
 4. **Not measured yet:** real phones and real networks, apps beyond TodoMVC and
    the store, and the idle-visitors window past one hold.
 5. **JavaScript libraries behind a boundary** (ADR-0075's mounted resources).
+6. **The pull request's analyzers, made to measure** (ADR-0411's last
+   section): Fallow given the suites' coverage in Istanbul's format, so its
+   CRAP scores risk and not complexity alone, and each of the 54 ceilings
+   brought down to what that leaves; the decision `decider` returns named,
+   its ceiling narrowed to it; `setAttributeAt` reading an attribute back by
+   the renderer's escapes, with no parse.
 
 ## After train-14, 2026-11-07
 

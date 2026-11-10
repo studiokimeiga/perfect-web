@@ -159,3 +159,38 @@ A page has no module to fetch, compile and instantiate before it can render.
   `renderer-agreement.test.mjs`'s generator, or it will not be exercised by
   it: the runtime's `default` branches refuse what they do not know, and the
   test of the compiler's own templates reads whatever the compiler writes.
+
+## The pull request's analyzers
+
+The train's pull request (#100) ran two analyzers this ADR's code had not met
+on its own branch's runs, and each flagged it.
+
+- **Fallow's audit** (gate `new-only`) refused 56 functions new to the
+  repository: 33 in `pw-runtime.mjs` (the renderer's and the decision's), 17 in
+  `renderer-agreement.test.mjs`, 3 in `decision-agreement.test.mjs`, 2 in
+  `optimize-assets.mjs` and one in `e2e/page-bundle.spec.mjs`. Each is a CRAP
+  score scored with no coverage data, so the score is complexity alone: a
+  function of cyclomatic complexity 5 scores 30, the threshold. The renderer is
+  the server's, ported, and its branches are the server's: `emitPart` is one
+  case a part kind, as `pw-render`'s is. ADR-0383 split three such functions of
+  a spec; split here, 33 of them would no longer read beside the Rust they are
+  held to, and the train's records would be of code that no longer is. So each
+  is given a ceiling in `.fallowrc.json` (`health.thresholdOverrides`) at the
+  score it landed with, its reason beside it: none of them can grow, and every
+  new function is held to the threshold as before. The decision `decider`
+  returns is an arrow, and the ceiling on `<arrow>` in the runtime covers every
+  arrow there, which is wider than it should be.
+- **CodeQL** found one high alert, `js/xss-through-dom`, at `setAttributeAt`'s
+  parse of an attribute a change sets (ADR-0168): text from the document is
+  written into a `<template>`'s markup. The text is the renderer's escaped
+  attribute value, the parse is a template's content, which runs nothing and
+  loads nothing, and only that one attribute's value is read back, then set
+  with `setAttribute`. Nothing in it can run. It is new because the renderer
+  that writes that value was WebAssembly, which CodeQL does not read, and is
+  JavaScript now. Dismissed as a false positive, with this reason.
+
+Next (NEXT, after train-16, item 6): Fallow is given the coverage the suites
+already have (`health.coverage`, Istanbul's format), so its CRAP scores the risk
+it names, and each ceiling comes down to what that leaves; the decision is
+named, and its ceiling narrowed to it; and `setAttributeAt` reads the value back
+by the escapes the renderer writes (`unescaped`), with no parse at all.
