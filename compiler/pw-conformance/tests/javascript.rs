@@ -848,14 +848,30 @@ fn every_query_agrees_with_its_component_under_node() {
 fn a_list_of_literals_is_a_value_of_the_module() {
     let us = units(&[("j.pw", PROGRAM)]);
     let words = pw_core::backend::js_pure::module(&us, "j.Words").unwrap_or_else(|e| panic!("{e}"));
-    assert_eq!(words.matches("Object.freeze([\"red\", \"green\", \"blue\"])").count(), 1, "{words}");
+    assert_eq!(
+        words
+            .matches("Object.freeze([\"red\", \"green\", \"blue\"])")
+            .count(),
+        1,
+        "{words}"
+    );
     assert_eq!(words.matches("\"red\"").count(), 1, "{words}");
-    let tables = pw_core::backend::js_pure::module(&us, "j.Tables").unwrap_or_else(|e| panic!("{e}"));
-    assert_eq!(tables.matches("Object.freeze([1n, 2n, 3n])").count(), 1, "{tables}");
+    let tables =
+        pw_core::backend::js_pure::module(&us, "j.Tables").unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(
+        tables.matches("Object.freeze([1n, 2n, 3n])").count(),
+        1,
+        "{tables}"
+    );
     assert_eq!(tables.matches("1n, 2n, 3n").count(), 1, "{tables}");
     assert_eq!(tables.matches("Object.freeze(").count(), 1, "{tables}");
-    let counted = pw_core::backend::js_pure::module(&us, "j.Counted").unwrap_or_else(|e| panic!("{e}"));
-    assert_eq!(counted.matches("Object.freeze([4n, 5n, 6n])").count(), 1, "{counted}");
+    let counted =
+        pw_core::backend::js_pure::module(&us, "j.Counted").unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(
+        counted.matches("Object.freeze([4n, 5n, 6n])").count(),
+        1,
+        "{counted}"
+    );
 }
 
 /// **A type that contains itself** (ADR-0194): a module's value is nested,

@@ -653,7 +653,9 @@ fn a_handler_computes_what_it_sends() {
 fn a_handlers_list_of_literals_is_a_value_of_its_module() {
     let m = compiled("Tag([\"red\", \"blue\"], [])");
     assert_eq!(
-        m.source.matches("Object.freeze([\"red\", \"blue\"])").count(),
+        m.source
+            .matches("Object.freeze([\"red\", \"blue\"])")
+            .count(),
         1,
         "{}",
         m.source
@@ -667,7 +669,10 @@ fn a_handlers_list_of_literals_is_a_value_of_its_module() {
     // recursive, so compiled beside the handler as well as inlined into it.
     let called = compiled("Tag(colours(1), [])");
     assert_eq!(
-        called.source.matches("Object.freeze([\"red\", \"blue\"])").count(),
+        called
+            .source
+            .matches("Object.freeze([\"red\", \"blue\"])")
+            .count(),
         1,
         "{}",
         called.source

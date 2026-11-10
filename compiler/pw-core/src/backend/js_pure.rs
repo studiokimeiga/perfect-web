@@ -1042,7 +1042,8 @@ impl<'p> Emitter<'p> {
     /// (ADR-0427): a literal's line goes where its name is nowhere else in
     /// the body, as each literal a list was written with is read by it alone.
     fn unread_dropped(&mut self) {
-        let word = |c: Option<char>| c.is_some_and(|c| c.is_ascii_alphanumeric() || c == '_' || c == '$');
+        let word =
+            |c: Option<char>| c.is_some_and(|c| c.is_ascii_alphanumeric() || c == '_' || c == '$');
         for v in std::mem::take(&mut self.hoisted) {
             let name = val(v);
             let read = self
@@ -1057,9 +1058,13 @@ impl<'p> Emitter<'p> {
             if read != 1 {
                 continue;
             }
-            let Some(at) = self.body.find(&line) else { continue };
+            let Some(at) = self.body.find(&line) else {
+                continue;
+            };
             let start = self.body[..at].rfind('\n').map_or(0, |n| n + 1);
-            let end = self.body[at..].find('\n').map_or(self.body.len(), |n| at + n + 1);
+            let end = self.body[at..]
+                .find('\n')
+                .map_or(self.body.len(), |n| at + n + 1);
             self.body.replace_range(start..end, "");
         }
     }
