@@ -183,7 +183,14 @@ fn plan_of(markup: &str) -> pw_core::page_values::PageValues {
             src,
         })
         .collect();
-    let built = pw_core::build::build(&units).expect("builds");
+    // At its assert where it does not build, as the store fixture's beside it:
+    // run 42825062947's control of `bind:value` failed here at an `expect`,
+    // which the strict validator does not count.
+    let built = pw_core::build::build(&units);
+    assert!(built.is_ok(), "builds: {:?}", built.as_ref().err());
+    let Ok(built) = built else {
+        unreachable!("asserted above")
+    };
     built
         .pages
         .iter()
