@@ -1816,7 +1816,10 @@ const renderer = (() => {
 
   const scalar = (v) => (typeof v === "boolean" ? "b" : isInt(v) ? "i" : "t") + shown(v);
 
-  /** Whether two values are one value, as the server's `==` has it. */
+  /** Whether two values are one value, as the server's `==` has it. What two
+   * values hold as one is one value, and is not looked into: a list of a
+   * thousand rows, each a new record of the same fields, is compared field by
+   * field without a pair made for each. */
   function same(a, b) {
     const pairs = [[a, b]];
     while (pairs.length) {
@@ -1826,18 +1829,18 @@ const renderer = (() => {
       if (x === y) continue;
       if (isList(x) || isList(y)) {
         if (!isList(x) || !isList(y) || x.length !== y.length) return false;
-        x.forEach((v, i) => pairs.push([v, y[i]]));
+        for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) pairs.push([x[i], y[i]]);
       } else if (!isObject(x) || !isObject(y)) {
         if (isObject(x) || isObject(y) || scalar(x) !== scalar(y)) return false;
       } else if (isVariant(x) || isVariant(y)) {
         if (x.$case !== y.$case || Object.hasOwn(x, "value") !== Object.hasOwn(y, "value")) return false;
-        if (Object.hasOwn(x, "value")) pairs.push([x.value, y.value]);
+        if (Object.hasOwn(x, "value") && x.value !== y.value) pairs.push([x.value, y.value]);
       } else {
         const keys = Object.keys(x);
         if (keys.length !== Object.keys(y).length) return false;
         for (const k of keys) {
           if (!Object.hasOwn(y, k)) return false;
-          pairs.push([x[k], y[k]]);
+          if (x[k] !== y[k]) pairs.push([x[k], y[k]]);
         }
       }
     }
