@@ -449,11 +449,15 @@ fn a_long_hold_left_alone_looks_once_a_second() {
         .cloned()
         .collect::<Vec<_>>()
         .join("\n");
-    let passes: u64 = trail
+    // At its assert where there is none: a hold ended at once says no passes
+    // (run 42772395298's control, which the strict validator could not count).
+    let passes: Option<u64> = trail
         .split("after its passes (")
         .nth(1)
         .and_then(|rest| rest.split(')').next())
-        .and_then(|n| n.parse().ok())
-        .unwrap_or_else(|| panic!("its passes in {trail}"));
-    assert!((2..=5).contains(&passes), "{passes} passes: {trail}");
+        .and_then(|n| n.parse().ok());
+    assert!(
+        passes.is_some_and(|n| (2..=5).contains(&n)),
+        "{passes:?} passes: {trail}"
+    );
 }
