@@ -78,12 +78,12 @@ MUTANTS = [
     ("a blocked part writes nothing", RUNTIME, """      case "blocked":\n        throw unrepresented(p.reason);\n""", """      case "blocked":\n        return;\n"""),
     ("a loop's missing key is rendered", RUNTIME, """    const key = keyOf(item, p.key);\n    if (key === "") throw new Blocked("MissingLoopKey", p.key);\n""", """    const key = keyOf(item, p.key);\n"""),
     ("a loop's duplicate key is rendered", RUNTIME, """    if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);\n    seen.add(key);\n    return key;\n""", """    seen.add(key);\n    return key;\n"""),
-    ("a row is kept whatever a block around it bound", RUNTIME, """      if (!a || !b || a.name !== b.name || !same(a.value, b.value)) return false;\n""", """      if (!a || !b || a.name !== b.name) return false;\n"""),
+    ("a row is kept whatever a block around it bound", RUNTIME, """      if (!a || !b || !same(a.value, b.value)) return false;\n""", """      if (!a || !b) return false;\n"""),
     # Not "a row is kept whichever names a block around it bound": the names
     # around a list are its template's, the same at every render of it, so a
-    # mutant that drops their comparison changes nothing a page can show (run
-    # 42772395298 found it surviving). The comparison of what they hold is the
-    # one above.
+    # mutant that dropped their comparison changed nothing a page can show
+    # (run 42772395298 found it surviving), and the runtime compares only
+    # what they hold.
     ("a loop that is no list renders nothing", RUNTIME, "    if (!isList(items)) throw missing(p.collection);\n", "    if (!isList(items)) return;\n"),
     ("a nested instance may pass what a browser nests", RUNTIME, "  const NESTED_ELEMENTS = 500;\n", "  const NESTED_ELEMENTS = 501;\n"),
     ("an instance counts no elements around it", RUNTIME, "    const root = e.elements + (p.elements ?? 0);\n", "    const root = e.elements;\n"),

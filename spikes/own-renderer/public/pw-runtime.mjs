@@ -1644,9 +1644,11 @@ const renderer = (() => {
 
   function holdsStill(row, item, e, p) {
     if (!same(row.item, item)) return false;
-    // What a `{#match}` around the list bound, which a row can read.
+    // What a `{#match}` around the list bound, which a row can read. The
+    // names are the template's, the same at every render of the list, so
+    // what they hold is compared and not they.
     for (let a = row.names, b = e.names; a || b; a = a.up, b = b.up) {
-      if (!a || !b || a.name !== b.name || !same(a.value, b.value)) return false;
+      if (!a || !b || !same(a.value, b.value)) return false;
     }
     for (const [name, value] of row.reads) if (e.page.get(name) !== value) return false;
     return computedHold(row, item, e, p);
