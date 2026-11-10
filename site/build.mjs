@@ -662,6 +662,25 @@ export const SPEED = [
       ["Server CPU for 20 idle pages, ms a second", "server CPU, ms a second, for 20 idle visitors, median"],
     ],
   },
+  {
+    app: "rows",
+    title: "A list of a thousand rows, against the same list in React and Svelte, each written by this project",
+    rows: [
+      ["Lines of the app", "source the developer writes: app lines"],
+      ["Ready to use, first visit, Slow 4G", "interactive, ms, median (chromium, cold, slow-4g)"],
+      ["First paint, Slow 4G", "first contentful paint, ms, median (chromium, cold, slow-4g)"],
+      ["A thousand rows made, to their frame", 'interaction "create 1,000 rows" to its frame, ms, median (chromium, cold)'],
+      ["A thousand rows added, to their frame", 'interaction "append 1,000 rows" to its frame, ms, median (chromium, cold)'],
+      ["A thousand rows replaced, to their frame", 'interaction "replace all rows" to its frame, ms, median (chromium, cold)'],
+      ["Every tenth row changed, to its frame", 'interaction "update every 10th row" to its frame, ms, median (chromium, cold)'],
+      ["A row selected, to its frame", 'interaction "select a row" to its frame, ms, median (chromium, cold)'],
+      ["Two rows swapped, to their frame", 'interaction "swap two rows" to its frame, ms, median (chromium, cold)'],
+      ["A row removed, to its frame", 'interaction "remove a row" to its frame, ms, median (chromium, cold)'],
+      ["Every row cleared, to its frame", 'interaction "clear all rows" to its frame, ms, median (chromium, cold)'],
+      ["Bytes downloaded on a first visit", "first load, bytes received as each host sent them (Chromium, cold)"],
+      ["Requests on a first visit", "first load, requests (Chromium, cold)"],
+    ],
+  },
 ];
 
 /** **Where Pleris stands**, over the whole record, not the rows a page
@@ -757,7 +776,7 @@ function provenance(rec) {
 /** **The home page's measured section**: what its tables are, the tables,
  * and where their numbers come from. */
 export function speed(rec) {
-  return `<p class="sub">Two apps against their rivals, by the project's own instrument, on one PC. A time is Chromium's, the median of ${rec.runs} runs; a server's number is the median of ${rec.serverRuns}. Slow 4G is Lighthouse's slow-phone profile, which also slows the CPU four times. A marked number is the instrument's verdict, and the last column names it: Pleris, ahead of both; each framework ahead of Pleris; or none, when neither holds.</p>
+  return `<p class="sub">Three apps against their rivals, by the project's own instrument, on one PC. A time is Chromium's, the median of ${rec.runs} runs; a server's number is the median of ${rec.serverRuns}. Slow 4G is Lighthouse's slow-phone profile, which also slows the CPU four times. A marked number is the instrument's verdict, and the last column names it: Pleris, ahead of both; each framework ahead of Pleris; or none, when neither holds.</p>
 ${SPEED.map((t) => benchTable(t, rec)).join("\n")}
 <p class="note">${provenance(rec)} Field performance is not claimed. An idle Pleris page asks for its live updates, which the other two stores do not have. The store's add is left out: Pleris's store shows it before the server answers, and the other two, as their shared contract wrote them, wait for the server. <a href="/measured">Every row the instrument measures</a>, in three browsers.</p>`;
 }

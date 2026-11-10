@@ -67,6 +67,18 @@ On a page that talks to no server, and for what is said below on every page:
    `<pre>`, `<textarea>`, `<script>` and `<style>` every character is content, and
    so is a value: text meant to keep its line breaks under a style such as
    `white-space: pre-line` is written as one, `{"first\\nsecond"}`, or in a `<pre>`.
+8. **A row a plan can make is a clone.** Where nothing inside a list's rows
+   changes their shape and nothing reads an anchor inside one (`planned`: each
+   part of a row's template is text, an attribute or a handler), the row's
+   markup is parsed once (`planOf`), with an empty text where each text hole
+   is and a mark on each element an attribute or a handler is on. A new row is
+   a clone of it given its values; a changed row is given the values that
+   changed. Each is set as the parser would read what the renderer wrote
+   (`holeSet`, `unescaped`), and what a row's handlers capture as it was
+   before it was escaped. A row whose values a plan does not take (an escape
+   the renderer does not write) is made as before, parsed or morphed, and a
+   list whose parse does not hold each hole once has no plan. A build holds
+   plans only where a page's list can use one (ADR-0419).
 
 An independent review of this branch's first version found what is kept could
 outlive what it described: a block inside another, its signal changed while the
