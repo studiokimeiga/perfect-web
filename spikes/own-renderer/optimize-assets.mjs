@@ -124,16 +124,35 @@ async function deviceFeatures(directory) {
   return out;
 }
 
+/**
+ * **The runtime of a page with a server**: the runtime as written, `PW_SERVER`
+ * the literal it is declared as, so that what only a page with no server runs
+ * falls away, as the device's runtime drops a server's (`packDeviceRuntime`).
+ * esbuild folds no constant into the functions that read it: until 2026-11-10
+ * a server's page carried the rows' reconciliation, their plans and the
+ * presses heard at the document, 2.6 KB as sent.
+ */
+function serverRuntimeSource(source) {
+  // A runtime that declares neither, a test's stand-in, is minified as written;
+  // `optimize-assets.test.mjs` holds the runtime's own to what falls away.
+  const declared = "const PW_SERVER = true;";
+  if (!source.includes(declared)) return source;
+  const server = source.replace(declared, "").replaceAll("PW_SERVER", "true");
+  const delegated = "const DELEGATED = !true && !PW_VIEWS;";
+  return server.includes(delegated) ? server.replace(delegated, "").replaceAll("DELEGATED", "false") : server;
+}
+
 async function packAsset(directory, entry) {
   const file = path.join(directory, entry.name);
   let body = await readFile(file);
   if (entry.name === "pw-runtime.mjs") {
     await packDeviceRuntime(directory, body.toString("utf8"));
-    const result = await transform(body.toString("utf8"), {
+    const result = await transform(serverRuntimeSource(body.toString("utf8")), {
       loader: "js",
       format: "esm",
       target: "es2022",
       minify: true,
+      treeShaking: true,
       legalComments: "inline",
       charset: "utf8",
     });

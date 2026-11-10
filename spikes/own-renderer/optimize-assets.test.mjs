@@ -301,6 +301,28 @@ test("the runtime of a page that talks to no server holds none of a server's cod
   }
 });
 
+// What only a page that talks to no server runs, by a word each leaves.
+const DEVICE_ONLY = {
+  "a row's plan": "data-pwh",
+  "presses heard at the document": "composedPath",
+};
+
+test("the runtime of a page with a server holds none of what only a page with no server runs", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "pw-assets-"));
+  try {
+    const source = await readFile(new URL("./public/pw-runtime.mjs", import.meta.url), "utf8");
+    await copyFile(new URL("./public/pw-runtime.mjs", import.meta.url), path.join(dir, "pw-runtime.mjs"));
+    await optimizeAssets(dir);
+    const full = (await readFile(path.join(dir, "pw-runtime.mjs"))).toString();
+    for (const [what, word] of Object.entries(DEVICE_ONLY)) {
+      assert.ok(source.includes(word), `the runtime's source has ${what}`);
+      assert.ok(!full.includes(word), `a server's runtime has no ${what}: ${word}`);
+    }
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("a production build minifies its stylesheets, and keeps what they draw", async () => {
   const dir = await mkdtemp(path.join(tmpdir(), "pw-assets-"));
   try {
