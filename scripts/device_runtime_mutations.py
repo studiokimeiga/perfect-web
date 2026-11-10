@@ -199,11 +199,16 @@ MUTANTS = [
      "    const later = [];\n"),
     ("a list that is its own block is rewritten the first time", "rows", RUNTIME,
      "      if (rowsMade(r, { strs: html.strs, lists: [{ part: id, rows: [] }] }, html, inserted)) return inserted;\n", ""),
-    ("a list that is its own block is not rendered again", "rows", SERVER,
+    # The host's to say: run 42825062947 found the rows' suite blind to it,
+    # a page the device runs rendering what its build planned.
+    ("a list that is its own block is not rendered again", "host", SERVER,
      "            Some(\"conditional\" | \"match\" | \"instance\" | \"each\")\n",
      "            Some(\"conditional\" | \"match\" | \"instance\")\n"),
     ("a changed row is morphed", "rows", RUNTIME,
-     "    if (!plan || !nodes[2] || !row.holes || !old.holes) return true;\n", "    return true;\n"),
+     "    if (!plan || !row.holes || !old.holes) return true;\n", "    return true;\n"),
+    # A row the document holds is set by its holes (ADR-0420, decision 6).
+    ("a row the document holds is morphed", "rows", RUNTIME,
+     "    if (!nodes[2]) nodes[2] = holesFound(nodes, plan) ?? undefined;\n", ""),
     ("text holding an escape is read back as written", "rows", RUNTIME,
      '  if (!/[&\\r\\0]/.test(text)) return text;\n', '  if (!/[\\r\\0]/.test(text)) return text;\n'),
     ("text holding a return is read back as written", "rows", RUNTIME,
@@ -484,7 +489,7 @@ def packaging():
 
 def host():
     total = (0, 0)
-    for name in ("tests::page_bundle::", "tests::alone_page::"):
+    for name in ("tests::page_bundle::", "tests::browser_rows::", "tests::alone_page::"):
         out, code = bounded(["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server", name], cwd=ROOT)
         if code is None:
             return True, 0, 1

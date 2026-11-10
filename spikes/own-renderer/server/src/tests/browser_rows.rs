@@ -79,6 +79,10 @@ fn the_rows_compute(s: &Server, page: &str) {
     assert_eq!(class_of("b"), "on", "{page}");
     // The page holds its rows as they are: nothing computed is in them.
     let parts = manifest(page);
+    // And its list is a block of its own (ADR-0421), named among the blocks
+    // it renders again, so a change to its signal renders it.
+    let blocks = parts["blocks"].as_object().map_or(0, |b| b.len());
+    assert!(blocks > 0, "{parts:#}");
     assert_eq!(
         parts["signals"]["rows"],
         serde_json::json!([{ "id": 1, "label": "a" }, { "id": 2, "label": "b" }]),

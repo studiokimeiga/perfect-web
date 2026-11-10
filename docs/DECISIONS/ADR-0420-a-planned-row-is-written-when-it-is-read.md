@@ -46,6 +46,19 @@ a view in it has no plan. Its holes say all that differs from its template.
    (`unescaped`). A row whose hole is refused is morphed, as before.
 5. **On a server's page nothing changes**: a server's runtime holds none of it
    (`PW_SERVER`), and its rows are written as text.
+6. **A row the plan did not make is set by its holes where the plan finds
+   them** (`holesFound`; added 2026-11-10, from this train's full verify). A
+   row the document holds, or one a morph wrote, is its template with its
+   values, so each hole is where the plan's is. Where each node on a hole's
+   path is of the kind and tag of the plan's, among as many siblings, the
+   row's holes are those nodes, and it is set by them from its first change,
+   as one the plan made. Where one is not (text beside a hole's text is one
+   text node in a document, an empty hole's text none), it is morphed, as
+   before. The run found the press fixture's list, a block of its own since
+   ADR-0421, keeping the rows its document held and morphing them at every
+   change: no control of the holes' text and attributes was reached, and
+   eleven survived (run 42825062947). The block's first render on the device
+   still morphs a document's rows whole, once (ADR-0421, decision 4).
 
 ## Why not the other ways
 

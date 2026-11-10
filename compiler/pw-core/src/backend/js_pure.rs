@@ -836,9 +836,12 @@ const HELPERS: &[(&str, &[&str], &str)] = &[
         "range",
         &["trap"],
         "// The whole numbers from `start` up to `end`, as `List.range`; one of\n\
-         // more than 2^28 - 1 traps for the component's cause (ADR-0267).\n\
-         function range(start, end) {\n  if (end - start > 268435455n) trap(\"a value too long for memory\");\n  \
-         const out = [];\n  for (let i = start; i < end; i++) out.push(i);\n  return out;\n}",
+         // more than 2^28 - 1 traps for the component's cause (ADR-0267). Filled\n\
+         // to its counted length, as the component writes it.\n\
+         function range(start, end) {\n  const n = end > start ? end - start : 0n;\n  \
+         if (n > 268435455n) trap(\"a value too long for memory\");\n  \
+         const out = new Array(Number(n));\n  \
+         for (let k = 0; k < out.length; k++) out[k] = start + BigInt(k);\n  return out;\n}",
     ),
     (
         "swap",

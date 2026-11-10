@@ -133,10 +133,13 @@ MUTANTS = [
         r'trap(\"a range too long\")',
     ),
     (
+        # Filled to its counted length (run 42825062947: a loop from zero to
+        # the end near the greatest `Int` was stopped by the memory bound, and
+        # no assertion counted it).
         "the module's range starts at zero",
         JS,
-        "for (let i = start; i < end; i++)",
-        "for (let i = 0n; i < end; i++)",
+        "out[k] = start + BigInt(k);",
+        "out[k] = BigInt(k);",
     ),
     # `List.swap`.
     (

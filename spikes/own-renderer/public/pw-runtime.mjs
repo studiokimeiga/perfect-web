@@ -3352,7 +3352,11 @@ function rowsPlanned(rows, plan, shown, inserted) {
  * morphed otherwise, which leaves it no holes to be set by. */
 function rowsChanged(changed, plan, inserted) {
   const morphed = changed.filter(([nodes, row, old]) => {
-    if (!plan || !nodes[2] || !row.holes || !old.holes) return true;
+    if (!plan || !row.holes || !old.holes) return true;
+    // A row the document holds, or one a morph wrote, is set by its holes
+    // where the plan finds them in it (ADR-0420, decision 6).
+    if (!nodes[2]) nodes[2] = holesFound(nodes, plan) ?? undefined;
+    if (!nodes[2]) return true;
     for (let h = 0; h < row.holes.length; h++) {
       if (row.holes[h] !== old.holes[h] && !holeSet(plan.kinds[h], nodes[2][h], row.holes[h], old.holes[h], row.raws?.[h], old.raws?.[h])) return true;
     }
@@ -3360,6 +3364,33 @@ function rowsChanged(changed, plan, inserted) {
   });
   for (const [nodes] of morphed) nodes.length = 2;
   rowsMorphed(morphed, inserted);
+}
+
+/** **The holes of a row the plan did not make** (ADR-0420, decision 6): the
+ * document's rows, and a morph's, are the row's template with its values, so
+ * each hole is where the plan's is. Found where each node on its path is of
+ * the kind and tag of the plan's, among as many siblings; `null` where one is
+ * not, as where text beside a hole's text is one text node, or an empty
+ * hole's text is none. */
+function holesFound([start, end], plan) {
+  const row = [];
+  for (let n = start.nextSibling; n && n !== end; n = n.nextSibling) row.push(n);
+  const proto = [...plan.proto.childNodes];
+  const alike = (n, p, siblings) =>
+    n && p && n.nodeType === p.nodeType && n.nodeName === p.nodeName && siblings(n) === siblings(p);
+  const holes = [];
+  for (const path of plan.paths) {
+    let n = row[path[0]];
+    let p = proto[path[0]];
+    if (row.length !== proto.length || !alike(n, p, () => 0)) return null;
+    for (let i = 1; i < path.length; i++) {
+      n = n.childNodes[path[i]];
+      p = p.childNodes[path[i]];
+      if (!alike(n, p, (x) => x.parentNode.childNodes.length)) return null;
+    }
+    holes.push(n);
+  }
+  return holes;
 }
 
 /** **Whether a row's markup differs from the one before it**: by its holes
