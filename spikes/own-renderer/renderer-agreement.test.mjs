@@ -856,6 +856,9 @@ test("the renderer is small", async () => {
   const end = runtime.indexOf(END);
   const { code } = await transform(runtime.slice(start, end), { minify: true, format: "esm" });
   const sent = brotliCompressSync(Buffer.from(code), { params: { [constants.BROTLI_PARAM_QUALITY]: 11 } }).length;
-  // With what a list keeps of its rows ("a press changes what it changes").
-  assert.ok(sent < 6 * 1024, `the renderer is ${sent} bytes as sent, and was 77 KB as WebAssembly`);
+  // With what a list keeps of its rows ("a press changes what it changes"),
+  // a planned row emitted into its holes (the planned row's ADR), and what a
+  // row computes and keeps (the row's computed holes' ADR): 6,283 bytes when
+  // the last two came, from under 6 KB.
+  assert.ok(sent < 6.5 * 1024, `the renderer is ${sent} bytes as sent, and was 77 KB as WebAssembly`);
 });
