@@ -3458,6 +3458,7 @@ impl<'a> Lower<'a> {
             }
             (I::ListReverse, [Some(t @ Type::List(_))]) => t.clone(),
             (I::ListRange, [Some(Type::Int), Some(Type::Int)]) => Type::List(Box::new(Type::Int)),
+            (I::ListSwap, [Some(t @ Type::List(_)), Some(Type::Int), Some(Type::Int)]) => t.clone(),
             (I::StrSlice, [Some(Type::Str), Some(Type::Int), Some(Type::Int)]) => Type::Str,
             (I::ListConcat, [Some(a @ Type::List(_)), Some(b)]) if a == b => a.clone(),
             (I::StrLength, [Some(Type::Str)]) => Type::Int,
@@ -6420,6 +6421,7 @@ fn intrinsic_argument(op: Intrinsic, k: usize, prior: &[Type]) -> Option<Type> {
         (I::ListGet | I::ListTake | I::ListDrop, 1) => Some(Type::Int),
         (I::ListSlice | I::StrSlice, 1 | 2) => Some(Type::Int),
         (I::ListRange, 0 | 1) => Some(Type::Int),
+        (I::ListSwap, 1 | 2) => Some(Type::Int),
         (I::StrSlice, 0) => Some(Type::Str),
         // A key or an element where the map or set before it fixes it.
         (I::MapGet | I::MapContains | I::MapRemove | I::MapInsert, 1) => match prior.first() {

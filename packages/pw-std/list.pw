@@ -64,6 +64,11 @@ fn range(start: Int, end: Int) -> List<Int> !{}
 fn reverse<T>(items: List<T>) -> List<T> !{}
     intrinsic "list.reverse"
 
+// The list with the elements at places `i` and `j` exchanged, each counted
+// from 0 as `get` counts; the list as it is where either is no place in it.
+fn swap<T>(items: List<T>, i: Int, j: Int) -> List<T> !{}
+    intrinsic "list.swap"
+
 fn concat<T>(first: List<T>, second: List<T>) -> List<T> !{}
     intrinsic "list.concat"
 

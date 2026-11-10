@@ -5562,6 +5562,85 @@ impl Enc<'_> {
                 ty: rt,
                 locals: call(self, Helper::Range, &[flats[0].1[0], flats[1].1[0]]),
             },
+            // **A copy, the elements at `i` and `j` exchanged**, each
+            // element's bytes moved whole; the list as it is, shared, where
+            // either is no place in it.
+            N::ListSwap => {
+                let (ptr, len) = (flats[0].1[0], flats[0].1[1]);
+                let (i, j) = (flats[1].1[0], flats[2].1[0]);
+                let Some(et) = self.element_of(flats[0].0) else {
+                    blocked!("`{}` swaps in a value that is not a list", self.export);
+                };
+                let (esize, ealign) = self.layout(&et);
+                let size = esize as i32;
+                let inside = self.locals.fresh(ValType::I32);
+                let out = self.locals.fresh(ValType::I32);
+                // Each a place in the list: 0 <= i < len, and so j.
+                let place = |at: u32| {
+                    [
+                        I::LocalGet(at),
+                        I::I64Const(0),
+                        I::I64GeS,
+                        I::LocalGet(at),
+                        I::LocalGet(len),
+                        I::I64ExtendI32U,
+                        I::I64LtS,
+                        I::I32And,
+                    ]
+                };
+                self.ops.extend(place(i));
+                self.ops.extend(place(j));
+                self.ops.extend([
+                    I::I32And,
+                    I::LocalSet(inside),
+                    I::LocalGet(ptr),
+                    I::LocalSet(out),
+                    I::LocalGet(inside),
+                    I::If(Empty),
+                ]);
+                let copy = self.alloc_array(len, esize, ealign);
+                // The element at `to` in the copy is the original's at `from`.
+                let moved = |to: u32, from: u32| {
+                    [
+                        I::LocalGet(copy),
+                        I::LocalGet(to),
+                        I::I32WrapI64,
+                        I::I32Const(size),
+                        I::I32Mul,
+                        I::I32Add,
+                        I::LocalGet(ptr),
+                        I::LocalGet(from),
+                        I::I32WrapI64,
+                        I::I32Const(size),
+                        I::I32Mul,
+                        I::I32Add,
+                        I::I32Const(size),
+                        I::MemoryCopy {
+                            src_mem: 0,
+                            dst_mem: 0,
+                        },
+                    ]
+                };
+                self.ops.extend([
+                    I::LocalGet(copy),
+                    I::LocalGet(ptr),
+                    I::LocalGet(len),
+                    I::I32Const(size),
+                    I::I32Mul,
+                    I::MemoryCopy {
+                        src_mem: 0,
+                        dst_mem: 0,
+                    },
+                ]);
+                self.ops.extend(moved(i, j));
+                self.ops.extend(moved(j, i));
+                self.ops
+                    .extend([I::LocalGet(copy), I::LocalSet(out), I::End]);
+                Held::Flat {
+                    ty: rt,
+                    locals: vec![out, len],
+                }
+            }
             // A copy, the last element first, each element's bytes moved
             // whole: what an element points to is shared, and never changes.
             N::ListReverse => {

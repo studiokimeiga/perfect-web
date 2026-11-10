@@ -146,6 +146,10 @@ public query WordsBackwards(words: List<Word>) -> List<Word> { List.reverse(word
 
 public query Range(a: Int, b: Int) -> List<Int> { List.range(a, b) }
 
+public query Swapped(xs: List<Int>, i: Int, j: Int) -> List<Int> { List.swap(xs, i, j) }
+
+public query WordsSwapped(words: List<Word>, i: Int, j: Int) -> List<Word> { List.swap(words, i, j) }
+
 public query TextPart(text: String, a: Int, b: Int) -> String { String.slice(text, a, b) }
 
 public query Total(xs: List<Float>) -> Float { List.sum(xs) }
@@ -639,6 +643,49 @@ fn ranges_agree_with_rust_and_a_range_too_long_traps_for_its_cause() {
                 "List.range({a}, {b})"
             );
         }
+    }
+}
+
+/// **`List.swap` is `Vec::swap` where both are places in the list**, and the
+/// list as it is where either is not: a negative place, one past the end,
+/// and the bounds of an `Int` among them. Records are moved whole.
+#[test]
+fn swaps_agree_with_vec_and_a_place_outside_leaves_the_list() {
+    let (swapped, words_swapped) = (compiled("s.Swapped"), compiled("s.WordsSwapped"));
+    let mut rng = Rng(0x5a);
+    let place = |rng: &mut Rng, len: usize| match rng.below(6) {
+        0 => [i64::MIN, i64::MAX, -1, len as i64][rng.below(4) as usize],
+        _ => rng.below(len as u64 + 1) as i64,
+    };
+    for _ in 0..CASES {
+        let xs = rng.ints();
+        let (i, j) = (place(&mut rng, xs.len()), place(&mut rng, xs.len()));
+        let within = |k: i64| usize::try_from(k).ok().filter(|k| *k < xs.len());
+        let mut want = xs.clone();
+        if let (Some(a), Some(b)) = (within(i), within(j)) {
+            want.swap(a, b);
+        }
+        assert_eq!(
+            call(&swapped, &[ints(&xs), Val::S64(i), Val::S64(j)]),
+            Ok(ints(&want)),
+            "List.swap({xs:?}, {i}, {j})"
+        );
+        let words: Vec<(String, i64)> = (0..rng.below(8))
+            .map(|_| (rng.string(), rng.int()))
+            .collect();
+        let (i, j) = (place(&mut rng, words.len()), place(&mut rng, words.len()));
+        let within = |k: i64| usize::try_from(k).ok().filter(|k| *k < words.len());
+        let mut want = words.clone();
+        if let (Some(a), Some(b)) = (within(i), within(j)) {
+            want.swap(a, b);
+        }
+        let vals = Val::List(words.iter().map(|(t, s)| word(t, *s)).collect());
+        let want = Val::List(want.iter().map(|(t, s)| word(t, *s)).collect());
+        assert_eq!(
+            call(&words_swapped, &[vals, Val::S64(i), Val::S64(j)]),
+            Ok(want),
+            "List.swap(words, {i}, {j})"
+        );
     }
 }
 

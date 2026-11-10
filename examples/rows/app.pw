@@ -55,23 +55,6 @@ fn updated(rows: List<Row>) -> List<Row> !{} {
     })
 }
 
-fn swapped(rows: List<Row>) -> List<Row> !{} {
-    if List.length(rows) < 999 {
-        rows
-    } else {
-        match List.get(rows, 1) {
-            Some(a) => match List.get(rows, 998) {
-                Some(b) => List.concat(
-                    List.concat(List.take(rows, 1), [b]),
-                    List.concat(List.slice(rows, 2, 998), List.concat([a], List.drop(rows, 999)))
-                ),
-                None => rows,
-            },
-            None => rows,
-        }
-    }
-}
-
 fn removed(rows: List<Row>, id: Int) -> List<Row> !{} {
     List.filter(rows, (r) => r.id != id)
 }
@@ -101,7 +84,7 @@ page Rows() {
             }}>Append 1,000 rows</button>
             <button id="update" type="button" on:press={() => rows = updated(rows)}>Update every 10th row</button>
             <button id="clear" type="button" on:press={() => rows = []}>Clear</button>
-            <button id="swaprows" type="button" on:press={() => rows = swapped(rows)}>Swap rows</button>
+            <button id="swaprows" type="button" on:press={() => rows = List.swap(rows, 1, 998)}>Swap rows</button>
             <table>
                 <tbody id="tbody">
                     {#each rows as row (row.id)}

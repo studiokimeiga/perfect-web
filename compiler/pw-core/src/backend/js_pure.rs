@@ -841,6 +841,16 @@ const HELPERS: &[(&str, &[&str], &str)] = &[
          const out = [];\n  for (let i = start; i < end; i++) out.push(i);\n  return out;\n}",
     ),
     (
+        "swap",
+        &[],
+        "// The list with the elements at `i` and `j` exchanged, as `List.swap`;\n\
+         // the list as it is where either is no place in it.\n\
+         function swap(xs, i, j) {\n  const n = BigInt(xs.length);\n  \
+         if (i < 0n || j < 0n || i >= n || j >= n) return xs;\n  \
+         const out = [...xs];\n  const a = Number(i);\n  const b = Number(j);\n  \
+         [out[a], out[b]] = [out[b], out[a]];\n  return out;\n}",
+    ),
+    (
         "slice",
         &[],
         "// `start` up to `end`, each clamped to the array, as `List.slice` and\n\
@@ -1950,6 +1960,9 @@ impl<'p> Emitter<'p> {
                     Intrinsic::ListReverse => format!("[...{}].reverse()", arg(0)),
                     Intrinsic::ListRange => {
                         format!("{}({}, {})", self.uses("range"), arg(0), arg(1))
+                    }
+                    Intrinsic::ListSwap => {
+                        format!("{}({}, {}, {})", self.uses("swap"), arg(0), arg(1), arg(2))
                     }
                     Intrinsic::StrSlice => format!(
                         "{}(Array.from({}), {}, {}).join(\"\")",
