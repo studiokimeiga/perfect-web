@@ -43,6 +43,23 @@ const marked = (page) =>
 /** Every row as the document holds it, by its mark, in order. */
 const marks = (page) => page.evaluate(() => [...document.getElementById("tbody").children].map((tr) => tr.mark ?? ""));
 
+/** Where the document first shows otherwise than the page's rows say, or ""
+ * where it shows them all, and `size` of them: compared in the page, so a step
+ * sends back one line rather than every row. */
+const firstDifference = (page, size) =>
+  page.evaluate((size) => {
+    const { rows, selected } = window.__pw.signals;
+    const shown = document.getElementById("tbody").children;
+    if (shown.length !== size || rows.length !== size) return `${shown.length} rows shown, ${rows.length} held, ${size} made`;
+    for (let i = 0; i < size; i++) {
+      const [id, label] = shown[i].children;
+      const now = [Number(id.textContent), label.textContent, shown[i].className];
+      const said = [rows[i].id, rows[i].label, rows[i].id === selected ? "danger" : ""];
+      if (now.some((v, k) => v !== said[k])) return `row ${i}: shown ${JSON.stringify(now)}, held ${JSON.stringify(said)}`;
+    }
+    return "";
+  }, size);
+
 async function counted(page, n) {
   await page.waitForFunction((n) => document.getElementById("tbody").children.length === n, n, { timeout: 30000 });
 }
@@ -53,6 +70,10 @@ async function created(page) {
 }
 
 test("whatever is pressed, in any order, the page shows what its rows say", async ({ page }) => {
+  // Sixty presses over as many as several thousand rows, each step compared
+  // whole: under ten seconds on a workstation, several times that on a
+  // shared runner with three engines at once.
+  test.setTimeout(120_000);
   await open(page);
   // A seeded walk, the same in every engine.
   let seed = 1234;
@@ -83,15 +104,7 @@ test("whatever is pressed, in any order, the page shows what its rows say", asyn
       await page.click("#clear");
       size = 0;
     }
-    await counted(page, size);
-    await page.waitForFunction(() => {
-      const { rows, selected } = window.__pw.signals;
-      return [...document.getElementById("tbody").children].every(
-        (tr, i) => Number(tr.querySelector(".id").textContent) === rows[i].id && tr.className === (rows[i].id === selected ? "danger" : ""),
-      );
-    });
-    const { said, shown } = await bothViews(page);
-    expect(shown).toEqual(said);
+    await expect.poll(() => firstDifference(page, size), { timeout: 30_000, intervals: [16, 50, 100, 250] }).toBe("");
   }
   expect(page.errors).toEqual([]);
 });
