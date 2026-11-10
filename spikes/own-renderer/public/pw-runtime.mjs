@@ -2921,10 +2921,16 @@ function morphBlock(id, html) {
     const before = lastRendered.get(r.start);
     lastRendered.set(r.start, html);
     if (before && rowsMade(r, before, html, inserted)) return inserted;
+    // A list that is its own block, rendered for the first time: shown with
+    // no rows, its rows are put in by key as any change's are. A document
+    // that shows some is morphed whole, once.
+    if (!before && html.strs.length === 2 && html.lists.length === 1 && html.lists[0].part === id) {
+      if (rowsMade(r, { strs: html.strs, lists: [{ part: id, rows: [] }] }, html, inserted)) return inserted;
+    }
     rewritten = true;
     // A list the block did not hold before is put in by its plan, once the
     // block around it is: no row of it is parsed.
-    const later = !PW_PLANS ? [] : html.lists.filter((list) => list.rows.length > 0 && list.of && planOf(list.of) && !before?.lists.some((b) => b.part === list.part));
+    const later = !PW_PLANS ? [] : html.lists.filter((list) => list.part !== id && list.rows.length > 0 && list.of && planOf(list.of) && !before?.lists.some((b) => b.part === list.part));
     morphChildren(parent, between(r.start, r.end), parseInstance(textOfBlock(html, later)), r.end.nextSibling, inserted);
     for (const list of later) {
       const range = rangeOf(r, list.part);

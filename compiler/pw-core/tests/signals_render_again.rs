@@ -156,12 +156,65 @@ fn a_block_a_signal_decides_reads_the_signals_and_its_own_names() {
 }
 
 #[test]
-fn a_list_a_signal_holds_is_rendered_again_only_inside_its_block() {
-    refuses(
-        "<ul>{#each tags as t (t)}<li>{t}</li>{/each}</ul>",
-        "is a list the signal `tags` holds",
-    );
+fn a_list_a_signal_holds_is_rendered_again_by_its_rows_at_the_top_and_inside_its_block() {
+    // ADR-0137 refused one at the top of the page, which the browser
+    // rendered once. It is its own block now, rendered again by its rows.
+    builds("<ul>{#each tags as t (t)}<li>{t}</li>{/each}</ul>");
     builds("{#if open}<ul>{#each tags as t (t)}<li>{t}</li>{/each}</ul>{/if}");
+    // Its rows read the signals and the name it binds, as any block a signal
+    // decides: a query's list there is refused.
+    refuses(
+        "<ul>{#each tags as t (t)}<li>{t}{#each menu as item (item.id)}<b>{item.name}</b>{/each}</li>{/each}</ul>",
+        "reads `menu` inside a block a signal decides",
+    );
+}
+
+/// The plan of the page `page(markup)` makes, `List` imported.
+fn plan_of(markup: &str) -> pw_core::page_values::PageValues {
+    let mut sources = library();
+    let src = page(markup).replacen("module t\n\n", "module t\n\nimport List\n", 1);
+    assert!(src.contains("import List"), "{src}");
+    sources.push(("t.pw".to_string(), src));
+    let units: Vec<Unit> = sources
+        .into_iter()
+        .map(|(path, src)| Unit {
+            path,
+            hir: lower_file(&src, &parse_tree(&src).green),
+            src,
+        })
+        .collect();
+    let built = pw_core::build::build(&units).expect("builds");
+    built
+        .pages
+        .iter()
+        .find(|p| p.page == "t.P~ui")
+        .expect("a plan")
+        .plan
+        .clone()
+        .expect("planned")
+}
+
+#[test]
+fn a_list_at_the_top_is_its_own_block_read_again_for_what_its_rows_read() {
+    // A list a signal holds: rendered again when it changes, or when a signal
+    // a row reads does.
+    let plan = plan_of("<ul>{#each tags as t (t)}<li>{t} {count}</li>{/each}</ul>");
+    let each: Vec<_> = plan.live.iter().filter(|l| l.kind == "each").collect();
+    assert_eq!(each.len(), 1, "{:#?}", plan.live);
+    assert_eq!(each[0].signal, "tags");
+    assert_eq!(each[0].reads, ["count", "tags"]);
+    // A list the browser computes from one: rendered again when it changes.
+    let computed = plan_of("<ul>{#each List.reverse(tags) as t (t)}<li>{t}</li>{/each}</ul>");
+    let each: Vec<_> = computed.live.iter().filter(|l| l.kind == "each").collect();
+    assert_eq!(each.len(), 1, "{:#?}", computed.live);
+    assert_eq!(each[0].reads, ["tags"]);
+    // Control: a list inside a signal's block is rendered with the block.
+    let inside = plan_of("{#if open}<ul>{#each tags as t (t)}<li>{t}</li>{/each}</ul>{/if}");
+    assert!(
+        inside.live.iter().all(|l| l.kind != "each"),
+        "{:#?}",
+        inside.live
+    );
 }
 
 #[test]

@@ -118,16 +118,14 @@ page Rows() {
             <button id="swaprows" type="button" on:press={() => rows = swapped(rows)}>Swap rows</button>
             <table>
                 <tbody id="tbody">
-                    {#if List.length(rows) > 0}
-                        {#each shown(rows, selected) as row (row.id)}
-                            <tr class={row.class}>
-                                <td class="id">{row.id}</td>
-                                <td class="label"><button type="button" class="select" on:press={resumable(captures = { row }) => selected = row.id}>{row.label}</button></td>
-                                <td class="rm"><button type="button" class="remove" aria-label="Remove" on:press={resumable(captures = { row }) => rows = removed(rows, row.id)}>x</button></td>
-                                <td class="pad"></td>
-                            </tr>
-                        {/each}
-                    {/if}
+                    {#each shown(rows, selected) as row (row.id)}
+                        <tr class={row.class}>
+                            <td class="id">{row.id}</td>
+                            <td class="label"><button type="button" class="select" on:press={resumable(captures = { row }) => selected = row.id}>{row.label}</button></td>
+                            <td class="rm"><button type="button" class="remove" aria-label="Remove" on:press={resumable(captures = { row }) => rows = removed(rows, row.id)}>x</button></td>
+                            <td class="pad"></td>
+                        </tr>
+                    {/each}
                 </tbody>
             </table>
         </main>

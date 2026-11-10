@@ -13039,7 +13039,7 @@ fn signal_manifest(
         // A block, or a view's instance (ADR-0203): rendered again whole.
         if !matches!(
             live["kind"].as_str(),
-            Some("conditional" | "match" | "instance")
+            Some("conditional" | "match" | "instance" | "each")
         ) {
             continue;
         }

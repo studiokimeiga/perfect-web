@@ -224,36 +224,34 @@ page Todos() {
                     on:press={() => todos = toggled_all(todos)} />
                 <label for="toggle-all">Mark all as complete</label>
                 <ul class="todo-list">
-                    {#if List.length(todos) > 0}
-                        {#each rows(todos, filter, editing) as row (row.id)}
-                            <li class={row.class}>
-                                <div class="view">
-                                    <input class="toggle" type="checkbox" aria-label="Completed" checked={row.completed}
-                                        on:press={resumable(captures = { row }) => todos = toggled(todos, row.id)} />
-                                    <label on:dblclick={resumable(captures = { row }) => {
-                                        edit_text = row.title
-                                        editing = row.id
-                                    }}>{row.title}</label>
-                                    <button class="destroy" type="button" aria-label="Delete"
-                                        on:press={resumable(captures = { row }) => todos = removed(todos, row.id)}></button>
-                                </div>
-                                {#if row.editing}
-                                    <input class="edit" aria-label="Edit" autofocus value={row.title}
-                                        on:input={(e: InputEvent) => edit_text = e.value}
-                                        on:keydown={(e: KeyEvent) => if e.key == "Enter" {
-                                            todos = retitled(todos, editing, edit_text)
-                                            editing = 0
-                                        } else if e.key == "Escape" {
-                                            editing = 0
-                                        }}
-                                        on:blur={(e: BlurEvent) => if editing != 0 {
-                                            todos = retitled(todos, editing, edit_text)
-                                            editing = 0
-                                        }} />
-                                {/if}
-                            </li>
-                        {/each}
-                    {/if}
+                    {#each rows(todos, filter, editing) as row (row.id)}
+                        <li class={row.class}>
+                            <div class="view">
+                                <input class="toggle" type="checkbox" aria-label="Completed" checked={row.completed}
+                                    on:press={resumable(captures = { row }) => todos = toggled(todos, row.id)} />
+                                <label on:dblclick={resumable(captures = { row }) => {
+                                    edit_text = row.title
+                                    editing = row.id
+                                }}>{row.title}</label>
+                                <button class="destroy" type="button" aria-label="Delete"
+                                    on:press={resumable(captures = { row }) => todos = removed(todos, row.id)}></button>
+                            </div>
+                            {#if row.editing}
+                                <input class="edit" aria-label="Edit" autofocus value={row.title}
+                                    on:input={(e: InputEvent) => edit_text = e.value}
+                                    on:keydown={(e: KeyEvent) => if e.key == "Enter" {
+                                        todos = retitled(todos, editing, edit_text)
+                                        editing = 0
+                                    } else if e.key == "Escape" {
+                                        editing = 0
+                                    }}
+                                    on:blur={(e: BlurEvent) => if editing != 0 {
+                                        todos = retitled(todos, editing, edit_text)
+                                        editing = 0
+                                    }} />
+                            {/if}
+                        </li>
+                    {/each}
                 </ul>
             </section>
             <footer class="footer" hidden={List.length(todos) == 0}>

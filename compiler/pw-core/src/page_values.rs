@@ -488,12 +488,11 @@ fn rendered_again(
                                  rendered; a handler reads a signal through its context (ADR-0133)"
                             ));
                         }
-                        (Part::Each { .. }, Reach::Top) => {
-                            return Err(format!(
-                                "part {id} is a list {named} holds, which the browser \
-                                 does not render again outside a block a signal decides (ADR-0137)"
-                            ));
-                        }
+                        // A list a signal holds, or one the browser computes
+                        // from them, at the top of the page: rendered again by
+                        // its rows, as its own block (ADR-0137, amended by the
+                        // ADR of a list a signal holds).
+                        (Part::Each { .. }, Reach::Top) => {}
                         // A value computed from the signals, inside a block a
                         // host renders, which the browser does not render
                         // again (track `device-store`).
@@ -524,10 +523,20 @@ fn rendered_again(
         }
         // Into the part's regions.
         match p {
-            Part::Each { binding, body, .. } => {
+            Part::Each {
+                collection,
+                binding,
+                body,
+                ..
+            } => {
                 let inner = match reach {
                     Reach::Live(bound) => {
                         Reach::Live([bound.clone(), vec![binding.clone()]].concat())
+                    }
+                    // A list a signal holds, rendered again as its own block:
+                    // its rows read the signals and the name it binds.
+                    Reach::Top if signal(collection) || browser.contains(collection) => {
+                        Reach::Live(vec![binding.clone()])
                     }
                     _ => Reach::Frame,
                 };
@@ -716,8 +725,11 @@ fn block_reads(
         })
         .filter(|r| signals.contains(r))
         .collect();
+    // A list that is its own block (ADR-0137, amended) holds its rows: what
+    // they read is read inside its loop, where nothing is set in place.
+    let framed = matches!(part, Part::Each { .. });
     for region in part.nested() {
-        walk(region, signals, false, &root, &mut out);
+        walk(region, signals, framed, &root, &mut out);
     }
     out.into_iter().collect()
 }
@@ -2134,6 +2146,35 @@ fn plan(
                 Computes::Browser { inputs }
                     if read.nested || read.kind == crate::template_ir::ReadKind::List =>
                 {
+                    // **A list at the top of the page the browser computes**
+                    // (ADR-0137, amended): its own block, rendered again when
+                    // a signal it is computed from, or one a row reads,
+                    // changes.
+                    if !read.nested
+                        && read.kind == crate::template_ir::ReadKind::List
+                        && let Some(part) = find_part(&template.chunks, read.part.0)
+                        && template.chunks.iter().any(|c| {
+                            matches!(c, crate::template_ir::Chunk::Dynamic(p) if p.id() == Some(read.part))
+                        })
+                    {
+                        let mut reads: Vec<String> = inputs.iter().map(|(s, _)| s.clone()).collect();
+                        for s in block_reads(part, &signals, &computed_inputs) {
+                            if !reads.contains(&s) {
+                                reads.push(s);
+                            }
+                        }
+                        live.push(Live {
+                            part: read.part.0,
+                            signal: inputs.first().map(|(s, _)| s.clone()).unwrap_or_default(),
+                            path: String::new(),
+                            kind: "each".to_string(),
+                            reads,
+                            attribute: String::new(),
+                            owns: owned(read.part.0),
+                            derived: String::new(),
+                            paths: Vec::new(),
+                        });
+                    }
                     live.push(computed_live(
                         read.part.0,
                         "value",
@@ -2433,6 +2474,29 @@ fn plan(
                     1 => Vec::new(),
                     _ => inputs.iter().map(|(_, p)| p.clone()).collect(),
                 },
+            });
+        }
+        // **A list a signal holds, at the top of the page** (ADR-0137,
+        // amended): rendered again by its rows, as a block it decides is.
+        // One inside a block is rendered with that block.
+        if entry.kind == "each"
+            && let Some(root) = entry.value.split('.').next()
+            && signals.iter().any(|s| s == root)
+            && let Some(part) = find_part(&template.chunks, entry.id.0)
+            && template.chunks.iter().any(
+                |c| matches!(c, crate::template_ir::Chunk::Dynamic(p) if p.id() == Some(entry.id)),
+            )
+        {
+            live.push(Live {
+                part: entry.id.0,
+                kind: "each".to_string(),
+                owns: owned(entry.id.0),
+                signal: root.to_string(),
+                path: entry.value.clone(),
+                reads: block_reads(part, &signals, &computed_inputs),
+                attribute: String::new(),
+                derived: String::new(),
+                paths: Vec::new(),
             });
         }
         // A block a signal decides (ADR-0130). What the browser cannot

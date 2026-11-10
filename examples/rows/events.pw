@@ -66,11 +66,9 @@ page Events() {
             <p id="wrapped">{wrapped}</p>
             <p id="picked">{picked}</p>
             <ul id="items">
-                {#if List.length(items) > 0}
-                    {#each items as item (item.id)}
-                        <li><span class="name">{item.name}</span> <span class="note">{note}</span> <input class="field" aria-label="Field" value={item.name} /> <button class="pick" type="button" on:press={resumable(captures = { item }) => picked = item.name}>Pick</button></li>
-                    {/each}
-                {/if}
+                {#each items as item (item.id)}
+                    <li><span class="name">{item.name}</span> <span class="note">{note}</span> <input class="field" aria-label="Field" value={item.name} /> <button class="pick" type="button" on:press={resumable(captures = { item }) => picked = item.name}>Pick</button></li>
+                {/each}
             </ul>
         </main>
     }
