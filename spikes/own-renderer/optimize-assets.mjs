@@ -316,6 +316,72 @@ async function readIfThere(file) {
   }
 }
 
+/** A prelude's paragraph that declares one name a page's handlers can
+ * share: a helper, a case table or a list of literals, its comment before
+ * it. A function compiled beside one handler is named by its place in it
+ * (`callee0`, `closure0`), and another's of that name is another. */
+const SHAREABLE = /^((?:\/\/[^\n]*\n)*)(function|const)\s+([A-Za-z_$][\w$]*)/;
+const PLACED = /^(?:callee|closure)\d+$/;
+
+/** **What a page's handlers write alike, written once** (ADR-0430): each
+ * compiled handler's prelude, what precedes its `name`, is its declarations,
+ * one to a paragraph; one that two or more of them hold word for word is a
+ * shared module's, which each imports, so the page's module holds it once
+ * where esbuild would hold a copy for each. A helper's own helpers are in
+ * each prelude that holds it, and so shared with it. `null` where nothing is
+ * shared. `texts`: each handler's file, by its path. */
+export function sharedPreludes(texts) {
+  const paragraphs = new Map();
+  const counts = new Map();
+  for (const [file, text] of texts) {
+    const at = text.indexOf("\nexport const name = ");
+    // The last paragraph as any other, without the line that ends it.
+    const head = at < 0 ? [] : text.slice(0, at).replace(/\n+$/, "").split("\n\n");
+    paragraphs.set(file, head);
+    for (const p of new Set(head)) {
+      const m = SHAREABLE.exec(p);
+      // One name to a paragraph, or it is not shared: an import names one.
+      const declared = (p.match(/^(?:function|const|let|var|class)\s/gm) ?? []).length;
+      if (m && declared === 1 && !PLACED.test(m[3])) counts.set(p, (counts.get(p) ?? 0) + 1);
+    }
+  }
+  // A name two paragraphs declare otherwise is shared by neither.
+  const held = [...counts].filter(([, n]) => n > 1).map(([p]) => p);
+  const declaring = new Map();
+  for (const p of held) {
+    const name = SHAREABLE.exec(p)[3];
+    declaring.set(name, (declaring.get(name) ?? 0) + 1);
+  }
+  const common = held.filter((p) => declaring.get(SHAREABLE.exec(p)[3]) === 1);
+  if (common.length === 0) return null;
+  const names = new Map(common.map((p) => [p, SHAREABLE.exec(p)[3]]));
+  const rewritten = new Map();
+  for (const [file, text] of texts) {
+    const head = paragraphs.get(file);
+    const mine = head.filter((p) => names.has(p));
+    if (mine.length === 0) continue;
+    const at = text.indexOf("\nexport const name = ");
+    const kept = head.filter((p) => !names.has(p));
+    const imports = `import { ${mine.map((p) => names.get(p)).join(", ")} } from "pw:shared";`;
+    rewritten.set(file, `${imports}\n\n${kept.join("\n\n")}\n${text.slice(at)}`);
+  }
+  const module = common.map((p) => p.replace(SHAREABLE, (_, comment, kind, name) => `${comment}export ${kind} ${name}`)).join("\n\n");
+  return { module, rewritten };
+}
+
+/** The esbuild plugin that reads each handler as `shared` rewrote it, and
+ * `pw:shared` as the module it shares. */
+function sharing(shared) {
+  return {
+    name: "pw-shared-preludes",
+    setup(b) {
+      b.onResolve({ filter: /^pw:shared$/ }, () => ({ path: "shared", namespace: "pw-shared" }));
+      b.onLoad({ filter: /.*/, namespace: "pw-shared" }, () => ({ contents: shared.module, loader: "js" }));
+      b.onLoad({ filter: /\.mjs$/ }, (args) => (shared.rewritten.has(args.path) ? { contents: shared.rewritten.get(args.path), loader: "js" } : undefined));
+    },
+  };
+}
+
 /**
  * **Each page's code in one module** (ADR-0412): its handlers,
  * its computed values and its speculations, which a production page warms
@@ -356,6 +422,12 @@ export async function bundlePages(directory) {
       lines.push(`export * as speculation from "./speculations/${page}.mjs";`);
     }
     if (lines.length === 0) continue;
+    const texts = new Map();
+    for (const id of handlers) {
+      const file = path.join(base, "handlers", `${id}.mjs`);
+      texts.set(file, await readFile(file, "utf8"));
+    }
+    const shared = sharedPreludes(texts);
     const result = await build({
       stdin: { contents: lines.join("\n"), resolveDir: base, loader: "js", sourcefile: `${page}.entry.mjs` },
       bundle: true,
@@ -366,6 +438,7 @@ export async function bundlePages(directory) {
       legalComments: "none",
       write: false,
       logLevel: "silent",
+      plugins: shared ? [sharing(shared)] : [],
     });
     const body = result.outputFiles[0].contents;
     const file = path.join(base, "bundles", `${page}.mjs`);
