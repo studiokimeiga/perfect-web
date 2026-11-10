@@ -382,7 +382,7 @@ MUTANTS = [
         "server",
         SERVER,
         "                server.kept_answer(&session, *document, id, &args, interaction.as_deref())\n",
-        "                {\n                    let _ = document;\n                    None\n                }\n",
+        "                {\n                    let _ = document;\n                    Ok::<Option<Answered>, String>(None)\n                }\n",
     ),
     (
         "a current reader's kept answer is ignored when its page is gone",
