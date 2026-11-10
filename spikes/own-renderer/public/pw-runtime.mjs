@@ -2479,7 +2479,18 @@ function readsOf(live) {
 async function renderBlock(id) {
   const computed = await computedNow();
   const values = renderer.env([...signals, ...computed]);
-  return PW_SERVER ? renderer.part(parts.blocks[id], values, TEMPLATES) : renderer.block(parts.blocks[id], values, TEMPLATES);
+  if (PW_SERVER) return renderer.part(parts.blocks[id], values, TEMPLATES);
+  const block = renderer.block(parts.blocks[id], values, TEMPLATES);
+  block.boxes = boxesIn(id);
+  return block;
+}
+
+/** Whether block `id` can show a box: an `<input>` its markup writes, or a
+ * view it shows may. Read once a block, as its template does not change. */
+const boxed = new Map();
+function boxesIn(id) {
+  if (!boxed.has(id)) boxed.set(id, PW_VIEWS || /<input[\s>/]/i.test(JSON.stringify(parts.blocks[id])));
+  return boxed.get(id);
 }
 
 /** A block as the text of the document, the rows of each list of `without`
@@ -3260,7 +3271,10 @@ function rowsMade(block, was, now, inserted) {
     if (!listMade(was.lists[i], now.lists[i], inserted)) return false;
   }
   // A box in a row left alone shows what its rendering says, as morphing the
-  // whole block makes it. Only a box that differs from its attribute matches.
+  // whole block makes it. Only a box that differs from its attribute matches,
+  // and only a block that can show one is looked over: a thousand rows of
+  // buttons are not.
+  if (!now.boxes) return true;
   for (const box of block.start.parentNode.querySelectorAll("input:checked:not(:default),input:not(:checked):default")) {
     const after = block.start.compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING;
     const before = block.end.compareDocumentPosition(box) & Node.DOCUMENT_POSITION_PRECEDING;

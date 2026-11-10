@@ -135,8 +135,8 @@ MUTANTS = [
         "a send's deadline is read from `?load-deadline=`",
         "browser",
         RUNTIME,
-        'const sendDeadline = lowered("deadline");\n',
-        'const sendDeadline = lowered("load-deadline");\n',
+        'const sendDeadline = !PW_SERVER ? 0 : lowered("deadline");\n',
+        'const sendDeadline = !PW_SERVER ? 0 : lowered("load-deadline");\n',
     ),
     (
         "`/bench/hold` arms nothing",
