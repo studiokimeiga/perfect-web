@@ -271,6 +271,18 @@ test("a row a plan made reads a return as a line, as the parser would", async ({
   expect(parsed).toBe(html);
 });
 
+test("a row's handler is given what its row holds, whatever its text holds", async ({ page }) => {
+  await listRendered(page);
+  await page.click("#rename-cr");
+  await expect(page.locator("#items .name").nth(1)).toHaveText("x\ny\nz");
+  // What the row was made with, its returns as they are: what the handler
+  // captures is the value, not what its text shows.
+  await page.locator("#items .pick").nth(1).click();
+  await expect.poll(() => page.evaluate(() => window.__pw.signals.picked)).toBe("x\r\ny\rz");
+  await page.locator("#items .pick").nth(0).click();
+  await expect.poll(() => page.evaluate(() => window.__pw.signals.picked)).toBe("one");
+});
+
 test("a field a person typed in shows its row's value when that changes", async ({ page }) => {
   await listRendered(page);
   await page.locator("#items .field").nth(1).fill("typed");

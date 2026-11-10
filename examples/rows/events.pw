@@ -43,6 +43,7 @@ page Events() {
     signal note: String = "first"
     signal items: List<Item> = [Item { id: 1, name: "one" }, Item { id: 2, name: "two" }]
     signal typed_name: String = ""
+    signal picked: String = ""
 
     view {
         <title>Events</title>
@@ -63,10 +64,11 @@ page Events() {
             <div id="wrap" role="button" tabindex="0" on:blur={() => wrapped = wrapped + 1} on:keydown={() => wrapped = wrapped + 0}><input id="inside" aria-label="Inside" /></div>
             <p id="counts">{outer} {inner} {left} {typed}</p>
             <p id="wrapped">{wrapped}</p>
+            <p id="picked">{picked}</p>
             <ul id="items">
                 {#if List.length(items) > 0}
                     {#each items as item (item.id)}
-                        <li><span class="name">{item.name}</span> <span class="note">{note}</span> <input class="field" aria-label="Field" value={item.name} /></li>
+                        <li><span class="name">{item.name}</span> <span class="note">{note}</span> <input class="field" aria-label="Field" value={item.name} /> <button class="pick" type="button" on:press={resumable(captures = { item }) => picked = item.name}>Pick</button></li>
                     {/each}
                 {/if}
             </ul>

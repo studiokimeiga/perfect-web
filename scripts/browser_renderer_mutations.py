@@ -91,7 +91,7 @@ MUTANTS = [
     ("what a host set on a row is captured", RUNTIME, """      return new Map(Object.keys(v).filter((k) => !k.includes(".")).map((k) => [k, captured(v[k])]));\n""", """      return new Map(Object.keys(v).map((k) => [k, captured(v[k])]));\n"""),
     ("a case is captured", RUNTIME, """    if (isVariant(v)) throw unrepresented(`${v.$case} cannot be captured by a handler`);\n""", ""),
     ("keys sort as JavaScript's strings do", RUNTIME, """    return `{${[...v.keys()].sort(byPoint).map(""", """    return `{${[...v.keys()].sort().map("""),
-    ("captures are not escaped", RUNTIME, "    return escAttribute(written(object));\n", "    return written(object);\n"),
+    ("captures are not escaped", RUNTIME, "  const escapedCaptures = (text) => (text === null ? null : escAttribute(text));\n", "  const escapedCaptures = (text) => text;\n"),
     ("one name from two places is not refused", RUNTIME, """        if (paths.has(path) && paths.get(path) !== at) {\n          throw unrepresented("two handlers on one element capture one name from two places");\n        }\n""", ""),
     ("a rename is not followed", RUNTIME, """        if (Object.hasOwn(renames, root)) at = dot < 0 ? renames[root] : `${renames[root]}${path.slice(dot)}`;\n""", ""),
     ("one path through another's value is taken", RUNTIME, """    if (at.has(leaf)) throw unrepresented("one capture path runs through another's value");\n""", ""),

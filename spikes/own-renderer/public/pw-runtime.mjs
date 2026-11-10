@@ -1463,8 +1463,14 @@ const renderer = (() => {
           run.push(q.value);
         }
         i += run.length;
-        out.html.push(capturesAttribute(run, e));
-        if (!PW_SERVER && out.holes) out.holes.push(out.html[out.html.length - 1]);
+        const text = capturedText(run, e);
+        out.html.push(capturesAttribute(run, e, text));
+        // A row's plan sets what the handlers capture as it was before it was
+        // escaped: nothing is read back.
+        if (!PW_SERVER && out.holes) {
+          out.holes.push(out.html[out.html.length - 1]);
+          out.raws[out.holes.length - 1] = text;
+        }
         continue;
       } else {
         const mark = out.html.length;
@@ -1630,15 +1636,18 @@ const renderer = (() => {
     const reads = new Map();
     const token = tokenOf(e, p.id, key);
     const at = `${p.id}@${token}`;
-    let holes;
+    let holes, raws;
     const text = rendered(others, (out) => {
       out.bare = !PW_SERVER && DELEGATED_ROWS;
-      if (PW_PLANS && planned(p)) out.holes = holes = [];
+      if (PW_PLANS && planned(p)) {
+        out.holes = holes = [];
+        out.raws = raws = [];
+      }
       out.html.push(`<!--pw:s${at}-->`);
       emit(p.body, within(named({ ...e, reads }, p.binding, item), p.id, token), others, out);
       out.html.push(`<!--pw:e${at}-->`);
     });
-    return { key: at, text, item, reads, names: e.names, holes };
+    return { key: at, text, item, reads, names: e.names, holes, raws };
   }
 
   /** Each list part whose rows a plan can make, as `planned` found it. */
@@ -1782,6 +1791,14 @@ const renderer = (() => {
   /** What an element's handlers capture, as the document writes it, or
    * `null` where nothing is captured. */
   function captures(parts, e) {
+    return escapedCaptures(capturedText(parts, e));
+  }
+
+  /** The one place what a handler captures is escaped. */
+  const escapedCaptures = (text) => (text === null ? null : escAttribute(text));
+
+  /** What `parts` capture, as text before it is escaped; `null` for nothing. */
+  function capturedText(parts, e) {
     const paths = new Map();
     for (const p of parts) {
       if (p.part !== "event") continue;
@@ -1806,11 +1823,11 @@ const renderer = (() => {
       if (v === NONE) throw missing(at);
       insertAt(object, path, captured(v));
     }
-    return escAttribute(written(object));
+    return written(object);
   }
 
-  function capturesAttribute(run, e) {
-    const value = captures(run, e);
+  function capturesAttribute(run, e, text = capturedText(run, e)) {
+    const value = escapedCaptures(text);
     return value === null ? "" : ` data-pw-captures="${value}"`;
   }
 
@@ -3079,7 +3096,7 @@ function planOf(p) {
     // An element's handlers write one attribute, as `emit` writes them.
     while (c.value.part === "event" && p.body[i + 1]?.value?.part === "event" && p.body[i + 1].value.owner === c.value.owner) i++;
     html += c.value.part === "text" ? `<!--pwh${kinds.length}-->` : ` data-pwh${kinds.length}=""`;
-    kinds.push(c.value.part === "text" ? "text" : "attribute");
+    kinds.push(c.value.part === "text" ? "text" : c.value.part === "event" ? "event" : "attribute");
   }
   const template = document.createElement("template");
   template.innerHTML = html;
@@ -3139,13 +3156,22 @@ function attributeOfPiece(piece) {
 }
 
 /** One hole given what the renderer wrote for it, where it was `was` (`null`
- * for a new row). False, with the hole perhaps half set, for what a plan does
+ * for a new row), and for a handler's, what it captures before it was
+ * escaped (`raw`). False, with the hole perhaps half set, for what a plan does
  * not take: the row is then morphed. */
-function holeSet(kind, node, piece, was) {
+function holeSet(kind, node, piece, was, raw) {
   if (kind === "text") {
     const text = unescaped(piece, "");
     if (text === null) return false;
     node.data = text;
+    return true;
+  }
+  // What a row's handlers capture, as the renderer wrote it before escaping
+  // it (`capturesAttribute`). It is JSON's text, so no character in it is one
+  // the parser changes in an attribute: no return, no NUL.
+  if (kind === "event" && raw !== undefined) {
+    if (raw === null) node.removeAttribute("data-pw-captures");
+    else node.setAttribute("data-pw-captures", raw);
     return true;
   }
   const now = attributeOfPiece(piece);
@@ -3169,8 +3195,13 @@ function rowsPlanned(rows, plan, shown, inserted) {
   const content = document.createDocumentFragment();
   for (const row of rows) {
     const clone = plan.proto.cloneNode(true);
-    const holes = plan.paths.map((path) => path.reduce((n, i) => n.childNodes[i], clone));
-    for (let h = 0; h < holes.length; h++) if (!holeSet(plan.kinds[h], holes[h], row.holes[h], null)) return null;
+    const holes = new Array(plan.paths.length);
+    for (let h = 0; h < holes.length; h++) {
+      let n = clone;
+      for (const i of plan.paths[h]) n = n.childNodes[i];
+      holes[h] = n;
+      if (!holeSet(plan.kinds[h], n, row.holes[h], null, row.raws?.[h])) return null;
+    }
     const start = document.createComment(`pw:s${row.key}`);
     const end = document.createComment(`pw:e${row.key}`);
     content.append(start, clone, end);
@@ -3187,7 +3218,7 @@ function rowsChanged(changed, plan, inserted) {
   const morphed = changed.filter(([nodes, row, old]) => {
     if (!plan || !nodes[2] || !row.holes || !old.holes) return true;
     for (let h = 0; h < row.holes.length; h++) {
-      if (row.holes[h] !== old.holes[h] && !holeSet(plan.kinds[h], nodes[2][h], row.holes[h], old.holes[h])) return true;
+      if (row.holes[h] !== old.holes[h] && !holeSet(plan.kinds[h], nodes[2][h], row.holes[h], old.holes[h], row.raws?.[h])) return true;
     }
     return false;
   });
