@@ -1,8 +1,8 @@
 ADR-0038 - every match is analysed, and each pattern against its own type
 
 produced by: just e10-match
-commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: bd1aaeeb8ba8d969afb7228305df754828267487
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the checker (compiler/pw-core/tests/match_exhaustiveness.rs)
@@ -22,22 +22,22 @@ test the_kiokun_slices_matches_are_proven_now ... ok
 test a_type_no_pattern_takes_apart_is_matched_by_a_name_only ... ok
 test what_the_analysis_cannot_read_is_blocked_not_proven ... ok
 test exhaustive_matches_pass ... ok
-test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.07s
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.63s
 
 == the analysis (compiler/pw-core/src/exhaust.rs)
 
 test exhaust::tests::a_right_nested_or_chain_expands_completely ... ok
-test exhaust::tests::bool_needs_both_arms ... ok
-test exhaust::tests::a_blocked_analysis_is_not_a_proof_of_exhaustiveness ... ok
-test exhaust::tests::a_pattern_whose_arity_disagrees_with_its_constructor_does_not_crash ... ok
 test exhaust::tests::a_nested_pattern_is_validated_against_its_fields_type ... ok
+test exhaust::tests::a_pattern_whose_arity_disagrees_with_its_constructor_does_not_crash ... ok
+test exhaust::tests::a_blocked_analysis_is_not_a_proof_of_exhaustiveness ... ok
+test exhaust::tests::bool_needs_both_arms ... ok
 test exhaust::tests::empty_arm_list_over_a_finite_type_reports_every_constructor ... ok
 test exhaust::tests::infinite_types_always_need_a_wildcard ... ok
 test exhaust::tests::complete_match_is_exhaustive ... ok
 test exhaust::tests::opaque_types_cannot_be_matched_structurally ... ok
-test exhaust::tests::missing_variants_are_named_not_merely_counted ... ok
 test exhaust::tests::nested_patterns_find_nested_gaps ... ok
 test exhaust::tests::or_patterns_count_toward_coverage ... ok
+test exhaust::tests::missing_variants_are_named_not_merely_counted ... ok
 test exhaust::tests::recursive_list_type_terminates_and_reports_cons ... ok
 test exhaust::tests::unreachable_arms_are_reported ... ok
 test exhaust::tests::wildcard_makes_any_match_exhaustive ... ok
@@ -48,7 +48,7 @@ test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 183 filtered out; f
 test grammar::tests::a_return_in_an_arm_keeps_the_value_on_its_line ... ok
 test grammar::tests::an_arm_without_an_arrow_is_reported ... ok
 test grammar::tests::return_is_a_statement_not_an_operand ... ok
-test result: ok. 98 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 98 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 
 == mutation controls (scripts/match_mutations.py)
 

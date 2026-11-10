@@ -1,30 +1,30 @@
 E9C - coverage-guided fuzzing: each target, 600 inputs (just fuzz's run)
 
 produced by: just e14-fuzz-floor
-commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: bd1aaeeb8ba8d969afb7228305df754828267487
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 host: Linux 7.0.0-1017-azure x86_64
 
 building the instrumented harness...
 [parser-to-hir] starting with 44 seed(s)
-[parser-to-hir] 551 execs, 1925 covered regions, 0 finding(s), 18.3 execs/s, 30s
-done [parser-to-hir] 600 execs, 1925 covered regions, 0 finding(s), 18.3 execs/s, 32s
+[parser-to-hir] 519 execs, 1921 covered regions, 0 finding(s), 17.3 execs/s, 30s
+done [parser-to-hir] 600 execs, 1925 covered regions, 0 finding(s), 17.3 execs/s, 34s
 [resolution-to-typing] starting with 97 seed(s)
-[resolution-to-typing] 529 execs, 6524 covered regions, 0 finding(s), 17.6 execs/s, 30s
-done [resolution-to-typing] 600 execs, 6527 covered regions, 0 finding(s), 17.6 execs/s, 34s
+[resolution-to-typing] 497 execs, 6452 covered regions, 0 finding(s), 16.5 execs/s, 30s
+done [resolution-to-typing] 600 execs, 6527 covered regions, 0 finding(s), 16.5 execs/s, 36s
 [labels-and-effects] starting with 9 seed(s)
-[labels-and-effects] 542 execs, 3062 covered regions, 0 finding(s), 18.1 execs/s, 30s
-done [labels-and-effects] 600 execs, 3067 covered regions, 0 finding(s), 18.0 execs/s, 33s
+[labels-and-effects] 506 execs, 3061 covered regions, 0 finding(s), 16.8 execs/s, 30s
+done [labels-and-effects] 600 execs, 3067 covered regions, 0 finding(s), 16.9 execs/s, 35s
 [exhaustiveness] starting with 2 seed(s)
-[exhaustiveness] 545 execs, 2403 covered regions, 0 finding(s), 18.1 execs/s, 30s
-done [exhaustiveness] 600 execs, 2410 covered regions, 0 finding(s), 18.1 execs/s, 33s
+[exhaustiveness] 513 execs, 2400 covered regions, 0 finding(s), 17.1 execs/s, 30s
+done [exhaustiveness] 600 execs, 2410 covered regions, 0 finding(s), 17.1 execs/s, 35s
 [manifest-decoding] starting with 3 seed(s)
-[manifest-decoding] 577 execs, 71 covered regions, 0 finding(s), 19.2 execs/s, 30s
-done [manifest-decoding] 600 execs, 71 covered regions, 0 finding(s), 19.2 execs/s, 31s
+[manifest-decoding] 549 execs, 71 covered regions, 0 finding(s), 18.3 execs/s, 30s
+done [manifest-decoding] 600 execs, 71 covered regions, 0 finding(s), 18.3 execs/s, 32s
 [resume-compatibility] starting with 2 seed(s)
-[resume-compatibility] 576 execs, 87 covered regions, 0 finding(s), 19.2 execs/s, 30s
-done [resume-compatibility] 600 execs, 87 covered regions, 0 finding(s), 19.2 execs/s, 31s
+[resume-compatibility] 549 execs, 87 covered regions, 0 finding(s), 18.3 execs/s, 30s
+done [resume-compatibility] 600 execs, 87 covered regions, 0 finding(s), 18.3 execs/s, 32s
 coverage-guided fuzzing
   toolchain: rustc 1.97.1 stable, -C instrument-coverage, llvm-profdata
   llvm-profdata: /home/runner/.rustup/toolchains/1.97.1-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/bin/llvm-profdata

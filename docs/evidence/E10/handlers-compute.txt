@@ -1,8 +1,8 @@
 ADR-0058 - handlers that compute
 
 produced by: just e10-handlers-compute
-commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: bd1aaeeb8ba8d969afb7228305df754828267487
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
@@ -11,12 +11,12 @@ node: v22.21.1
 test a_command_inside_a_function_is_refused ... ok
 test a_command_parameter_a_browser_cannot_send_is_refused ... ok
 test a_command_is_sent_again_as_its_retry_clause_says ... ok
-test a_handler_branches_between_commands ... ok
 test a_case_and_a_record_holding_one_are_sent_as_the_browser_holds_them ... ok
+test a_handler_branches_between_commands ... ok
 test a_handler_calls_several_commands_in_order ... ok
 test a_handler_that_calls_no_command_is_refused ... ok
-test a_handler_that_discards_its_answer_by_name_sends_it ... ok
 test a_handler_that_discards_its_answer_with_underscore_sends_it ... ok
+test a_handler_that_discards_its_answer_by_name_sends_it ... ok
 test a_handler_computes_what_it_sends ... ok
 test a_record_or_a_list_is_sent_as_json_carries_it ... ok
 test a_refused_command_stops_the_handler_before_the_next ... ok
@@ -29,7 +29,7 @@ test a_program_that_does_not_check_compiles_no_handlers ... ok
 test a_handler_calls_its_commands_by_the_contracts_own_ids ... ok
 test the_stores_handlers_compile_to_the_calls_their_bodies_make ... ok
 test a_module_and_its_event_part_name_one_handler ... ok
-test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.94s
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.68s
 
 == mutation controls (scripts/handler_mutations.py)
 

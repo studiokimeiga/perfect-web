@@ -88,8 +88,18 @@ one there by name, and one from two values anywhere. So the app made a type,
 
 The large list counts 77 lines (Svelte's 81, React's 99), from 116, with
 `List.swap` (ADR-0425). TodoMVC counts 179, from 188, its `Row` and
-`rows()` gone. The head-to-head's figures go here when it has run at this
-branch's commit.
+`rows()` gone. In the head-to-head at `7ac4f20c` the large list's app lines
+are ahead of both (77, React's 99, Svelte's 81), where they were behind.
+
+What it costs, in the A/B of ADR-0420's result: in Chromium nothing
+(selecting a row 15 ms, updating every tenth 17 to 21, as before; Svelte's
+15 and 15 to 16). In Firefox, selecting is 7 ms from 6, cold, and 6 from
+5, warm (Svelte's 4 and 5), and updating every tenth row, cold, 15 and 16
+from 13 (Svelte's 10). A selection now computes each row's class again
+where it read the selection (`computedHold`), where the app's list held
+each row's class before; whether that is the millisecond, and what the
+update's two are, is not profiled yet. NEXT has both, as this train's
+costs.
 
 ## Consequences
 

@@ -1,21 +1,21 @@
 ADR-0166 - the store and its items say what they are
 
 produced by: just e14-descriptions
-commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: bd1aaeeb8ba8d969afb7228305df754828267487
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 playwright: Version 1.58.0
 
 == a host's answer, read through the declared type (runtime/pw-host/tests/host_answers.rs)
 
-test a_field_in_another_order_is_read_by_its_name ... ok
-test a_field_the_type_declares_and_the_answer_lacks_is_refused ... ok
 test a_field_under_neither_name_is_refused_by_both ... ok
+test a_field_the_type_declares_and_the_answer_lacks_is_refused ... ok
+test a_field_in_another_order_is_read_by_its_name ... ok
 test a_field_the_type_does_not_declare_is_not_passed_in ... ok
-test a_field_written_as_the_program_names_it_is_read ... ok
 test an_answer_as_the_type_declares_it_is_passed_as_it_is ... ok
+test a_field_written_as_the_program_names_it_is_read ... ok
 test a_list_s_rows_and_a_declared_error_are_read_through_their_types ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
 
 == the store checks
 
@@ -24,11 +24,11 @@ pw check: 74 file(s), no diagnostics
 == the development server (pw-dev-server), the benchmark's store among its tests
 
 test tests::the_store_and_each_item_say_what_they_are ... ok
-test result: ok. 1025 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 448.37s
+test result: ok. 1028 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 490.05s
 
 == the slots, three engines, WebKit painting the store before them (e2e/slots.spec.mjs)
 
-  21 passed (35.5s)
+  21 passed (36.2s)
 
 == mutation controls (scripts/descriptions_mutations.py)
 

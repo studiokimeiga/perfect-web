@@ -1,8 +1,8 @@
 ADR-0162 - each store at its route
 
 produced by: just e14-stores
-commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: bd1aaeeb8ba8d969afb7228305df754828267487
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 playwright: Version 1.58.0
 
@@ -11,11 +11,11 @@ playwright: Version 1.58.0
 test tests::a_change_to_one_stores_menu_reaches_that_stores_pages_only ... ok
 test tests::a_path_gives_a_route_its_parameters ... ok
 test tests::each_store_is_served_at_its_route ... ok
-test result: ok. 1025 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 326.68s
+test result: ok. 1028 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 489.68s
 
 == each store at its route, and test 11 (e2e/stores.spec.mjs), three engines
 
-  24 passed (37.6s)
+  24 passed (45.8s)
 
 == mutation controls (scripts/stores_mutations.py)
 

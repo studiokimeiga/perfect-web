@@ -1,29 +1,34 @@
 ADR-0137 - what the browser renders again, it can
 
 produced by: just e14-signals-render-again
-commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: bd1aaeeb8ba8d969afb7228305df754828267487
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the plan's refusals (compiler/pw-core/tests/signals_render_again.rs)
 
-test a_list_a_signal_holds_is_rendered_again_only_inside_its_block ... ok
+test a_list_at_the_top_is_its_own_block_read_again_for_what_its_rows_read ... ok
 test a_signal_read_in_a_block_a_query_decides_is_refused ... ok
+test a_list_a_signal_holds_is_rendered_again_by_its_rows_at_the_top_and_inside_its_block ... ok
 test a_block_a_signal_decides_reads_the_signals_and_its_own_names ... ok
 test an_attribute_a_signal_decides_is_set_in_place_or_refused ... ok
 test what_a_handler_captures_in_a_signal_s_block_is_the_block_s ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 24.11s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 35.90s
 
 == mutation controls (scripts/signals_render_again_mutations.py)
 
-baseline: 5 passed, 0 failed
-the plan does not ask what the browser renders again: KILLED (5 of 5 tests fail)
-a loop a query decides is not a frame: KILLED (2 of 5 tests fail)
-a block a signal decides may read anything: KILLED (2 of 5 tests fail)
-a loop's name is not its block's: KILLED (2 of 5 tests fail)
-an arm's names are not its block's: KILLED (1 of 5 tests fail)
-a list a signal holds is live outside its block: KILLED (1 of 5 tests fail)
-an attribute a signal decides is live: KILLED (1 of 5 tests fail)
-the plan does not know what a handler captures: KILLED (1 of 5 tests fail)
-8 of 8 mutants killed
+baseline: 6 passed, 0 failed
+the plan does not ask what the browser renders again: KILLED (5 of 6 tests fail)
+a loop a query decides is not a frame: KILLED (2 of 6 tests fail)
+a block a signal decides may read anything: KILLED (3 of 6 tests fail)
+a loop's name is not its block's: KILLED (3 of 6 tests fail)
+an arm's names are not its block's: KILLED (1 of 6 tests fail)
+a list a signal holds at the top is refused: KILLED (2 of 6 tests fail)
+a list's rows are read as the top of the page: KILLED (2 of 6 tests fail)
+a list at the top has no block of its own: KILLED (1 of 6 tests fail)
+what a list's rows read is not read again: KILLED (1 of 6 tests fail)
+a list the browser computes at the top has no block of its own: KILLED (1 of 6 tests fail)
+an attribute a signal decides is live: KILLED (1 of 6 tests fail)
+the plan does not know what a handler captures: KILLED (1 of 6 tests fail)
+12 of 12 mutants killed
 memory bound: no process was stopped

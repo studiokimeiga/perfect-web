@@ -1,37 +1,37 @@
 ADR-0197 - a pattern tells a case from a binding by its capital
 
 produced by: just e14-case-names
-commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: bd1aaeeb8ba8d969afb7228305df754828267487
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the rule (compiler/pw-core/tests/case_names.rs, sum_types.rs)
 
 test a_case_written_twice_in_one_pattern_binds_nothing ... ok
 test a_case_named_in_lowercase_is_refused_where_it_is_declared ... ok
-test a_template_arms_field_that_is_a_case_is_no_arm ... ok
 test another_types_case_is_refused_against_this_one ... ok
+test a_template_arms_field_that_is_a_case_is_no_arm ... ok
 test a_misspelt_case_is_a_case_its_type_lacks_not_a_binding ... ok
 test true_and_false_are_bools_cases_in_a_pattern ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.38s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.50s
 test a_case_alone_through_a_module_is_a_case_not_a_binding ... ok
 test a_bare_case_is_the_one_type_that_has_it ... ok
 test a_case_is_its_types_value ... ok
 test a_bare_case_with_a_payload_is_the_one_type_that_has_it ... ok
 test a_cases_fields_are_its_arguments ... ok
 test a_generic_sum_type_is_instantiated_where_it_is_used ... ok
-test a_case_its_type_does_not_declare_is_refused ... ok
 test a_pattern_through_its_type_is_a_case_not_a_binding ... ok
+test a_case_its_type_does_not_declare_is_refused ... ok
 test a_patterns_qualifier_must_name_the_type_matched ... ok
 test an_arms_fields_are_typed_in_its_body ... ok
 test an_options_payload_is_typed_in_its_arm ... ok
 test a_bare_case_is_the_case_of_the_type_expected ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.43s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s
 
 == compiled patterns (compiler/pw-conformance/tests/patterns.rs, sum_types.rs)
 
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.63s
-test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.10s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.81s
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.05s
 
 == the corpus at C14 (corpus-check, generality.rs, checking_source.rs)
 
@@ -45,9 +45,9 @@ test every_rejected_fixture_emits_only_its_own_defect ... ok
 test every_rejected_fixtures_rule_is_a_code_its_check_reports ... ok
 test every_diagnostic_carries_what_charter_16_3_requires has been running for over 60 seconds
 test every_diagnostic_carries_what_charter_16_3_requires ... ok
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 132.75s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 179.87s
 test generality_is_reported_separately_from_conformance ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 124.75s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 167.92s
 
 == mutation controls (scripts/case_names_mutations.py)
 

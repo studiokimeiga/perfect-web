@@ -78,7 +78,15 @@ render a list again that is not inside a block.
 
 ## Result
 
-The head-to-head's figures go here when it has run at this branch's commit.
+Both apps write their lists alone: the large list's `{#if
+List.length(rows) > 0}` and TodoMVC's are gone, and the large list counts
+77 lines with ADR-0424 (Svelte's 81). Its presses in the A/B of ADR-0420's
+result: clearing a thousand rows lands on the next frame in Chromium as
+before (14 and 15 ms, Svelte's 14 and 15), and in Firefox in 11 from 12
+(Svelte's 11 and 12). TodoMVC, measured the same way, twice each in
+Chromium and WebKit, moved in no row: toggling in WebKit, cold, 13 and 14
+ms from 19 and 17 (Svelte's 13), and both builds have a slow first toggle
+in some cold runs, up to 70 ms, which Svelte's never has (NEXT).
 
 ## Consequences
 

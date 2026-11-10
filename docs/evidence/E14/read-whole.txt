@@ -1,8 +1,8 @@
 ADR-0237 - what lowering parses, it reports
 
 produced by: just e14-read-whole
-commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: bd1aaeeb8ba8d969afb7228305df754828267487
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the checker (compiler/pw-core/tests/read_whole.rs)
@@ -13,7 +13,7 @@ test a_block_markers_expression_is_one_expression ... ok
 test a_hole_is_one_expression ... ok
 test a_clauses_values_are_separated_by_commas ... ok
 test an_optimistic_clause_is_read_whole ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.28s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.54s
 
 == the parser (compiler/pw-syntax/src/grammar.rs)
 
@@ -29,7 +29,7 @@ accepted: 44/44 charter §16 categories covered
 rejected: 97 files
 rejected: 97/97 charter §16 categories covered
 corpus-check: OK
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 133.81s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 87.01s
 
 == mutation controls (scripts/read_whole_mutations.py)
 
