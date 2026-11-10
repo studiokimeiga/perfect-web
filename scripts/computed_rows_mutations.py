@@ -8,6 +8,10 @@ and what the feed's rows and likes found: a field of a value charged a
 same-named function's effects, and an opaque value that did not compare. The
 feed's like shown before the server answers must fail too.
 
+And a row of a list the browser renders (the row's computed holes' ADR):
+the plan's entry, its inputs, its list's reads, the module's function, the
+refusals it keeps, and the host's first render, module and manifest.
+
 The compiler's and the server's tests must fail for a mutant of the compiler
 ("cargo"). A mutant of the feed must fail `e2e/feed.spec.mjs` in three
 engines, against a build of the mutated source ("browser").
@@ -30,9 +34,89 @@ SPECULATION = ROOT / "compiler/pw-core/src/backend/speculation.rs"
 EFFECTS = ROOT / "compiler/pw-core/src/effects.rs"
 LOWER = ROOT / "compiler/pw-core/src/backend/lower.rs"
 FEED = ROOT / "examples/feed/app.pw"
+COMPUTED = ROOT / "compiler/pw-core/src/backend/computed.rs"
+SERVER = ROOT / "spikes/own-renderer/server/src/main.rs"
 
 # (what is undone, suite, file, anchor, replacement)
 MUTANTS = [
+    # --- a row of a list the browser renders (the row's computed holes' ADR)
+    (
+        "a row of a list the browser renders is refused, as before",
+        "cargo",
+        VALUES,
+        "        if browser_list(&collection) {\n",
+        "        if false && browser_list(&collection) {\n",
+    ),
+    (
+        "a row's value reads its item alone",
+        "cargo",
+        VALUES,
+        "                    inputs: inputs.iter().map(|(_, read)| read.clone()).collect(),\n",
+        "                    inputs: inputs.iter().take(1).map(|(_, read)| read.clone()).collect(),\n",
+    ),
+    (
+        "what a row's value reads is not its list's",
+        "cargo",
+        VALUES,
+        "            (!read.is_empty()).then(|| (path.clone(), read))\n",
+        "            (false && !read.is_empty()).then(|| (path.clone(), read))\n",
+    ),
+    (
+        "a row of a list inside another row is not refused by name",
+        "cargo",
+        VALUES,
+        "            && browser_list(&root_of(outer))\n",
+        "            && browser_list(&root_of(outer))\n            && false\n",
+    ),
+    (
+        "a row that is no record is computed",
+        "cargo",
+        VALUES,
+        "                && (t.as_primitive().is_some() || t.as_builtin().is_some())\n",
+        "                && false\n",
+    ),
+    (
+        "the module holds no row's function",
+        "cargo",
+        COMPUTED,
+        "            Some(_) => rows.push_str(&line),\n",
+        "            Some(_) => {}\n",
+    ),
+    (
+        "a request's render computes no row's value",
+        "cargo",
+        SERVER,
+        "        self.with_browser_rows(with_signals(env, plan), plan, self.template_of(page))\n",
+        "        Ok::<Env, String>(with_signals(env, plan))\n",
+    ),
+    (
+        "a page rendered before the host listens computes no row's value",
+        "cargo",
+        SERVER,
+        "        let env = self.with_browser_rows(with_signals(env, plan), plan, template)?;\n",
+        "        let env = with_signals(env, plan);\n",
+    ),
+    (
+        "a row's value is computed from what the page holds of no row",
+        "cargo",
+        SERVER,
+        "                            let mut value = if root == binding {\n",
+        "                            let mut value = if root == \"\" {\n",
+    ),
+    (
+        "a page whose rows compute names no module",
+        "cargo",
+        SERVER,
+        "        || plan[\"browser_rows\"].as_array().is_some_and(|r| !r.is_empty())\n",
+        "",
+    ),
+    (
+        "the manifest names no row's value",
+        "cargo",
+        SERVER,
+        "        manifest[\"rowsComputed\"] = serde_json::Value::Array(rows);\n",
+        "",
+    ),
     (
         "a row's value is named by no item",
         "cargo",
@@ -130,10 +214,12 @@ CARGO = [
         "cargo", "test", "--quiet", "--locked", "-p", "pw-core",
         "--test", "computed_rows", "--test", "computed_holes", "--test", "computed_signals",
         "--test", "effects_through_values", "--test", "optimistic_keys",
+        "--test", "device_store",
     ],
     [
         "cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--",
         "each_rows_and_sent", "compares_as_its_representation",
+        "a_signals_rows_are_served_with_what_each_computes",
     ],
 ]
 

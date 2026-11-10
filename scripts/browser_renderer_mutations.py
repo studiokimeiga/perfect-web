@@ -59,8 +59,8 @@ MUTANTS = [
     ("zero holds", RUNTIME, """        return Number.isFinite(v) && v !== 0;\n""", """        return Number.isFinite(v);\n"""),
     ("an empty list holds", RUNTIME, """        return isList(v) ? v.length > 0 : v !== null && v !== undefined;\n""", """        return isList(v) ? true : v !== null && v !== undefined;\n"""),
     ("a case is a condition", RUNTIME, """    if (isVariant(v)) throw unrepresented("an Option or a Result is taken apart with {#match}");\n""", ""),
-    ("a field set whole is not read", RUNTIME, """        const all = field(value, segments.slice(rest).join("."));\n        if (all !== NONE) return all;\n""", ""),
-    ("a field of a case is read", RUNTIME, "        if (!isRecord(value)) return NONE;\n        const all =", "        if (!isObject(value)) return NONE;\n        const all ="),
+    ("a field set whole is not read", RUNTIME, """        const all = field(value, whole);\n        if (all !== NONE) return all;\n""", ""),
+    ("a field of a case is read", RUNTIME, "        if (!isRecord(value)) return NONE;\n        const whole =", "        if (!isObject(value)) return NONE;\n        const whole ="),
     ("a key reads through what is no record", RUNTIME, """      if (name === "") continue;\n      if (!isRecord(v)) return "";\n""", """      if (name === "") continue;\n      if (!isObject(v)) return "";\n"""),
     # --- graphs ---------------------------------------------------------------
     ("a node may be held twice", RUNTIME, "      const node = nodes[i];\n      nodes[i] = NONE;\n      return node;\n", "      return nodes[i];\n"),

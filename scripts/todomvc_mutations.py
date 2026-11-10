@@ -164,8 +164,10 @@ MUTANTS = [
         "the model does not filter",
         PROGRAM,
         APP,
-        "    List.map(List.filter(todos, (t) => shown(t, filter)), (t) => Row {\n",
-        "    List.map(todos, (t) => Row {\n",
+        # Re-anchored by the row's computed holes' ADR: the list iterates the
+        # todos the filter shows.
+        "    List.filter(todos, (t) => shown(t, filter))\n",
+        "    todos\n",
     ),
     (
         "the clear button counts what is left",
@@ -178,8 +180,17 @@ MUTANTS = [
         "no row is the one being edited",
         PROGRAM,
         APP,
-        "        editing: t.id == editing,\n",
-        "        editing: false,\n",
+        # Re-anchored by the row's computed holes' ADR: each row computes
+        # whether it is edited, its field and its class apart.
+        "                            {#if row.id == editing}\n",
+        "                            {#if false}\n",
+    ),
+    (
+        "no row's class says it is edited",
+        PROGRAM,
+        APP,
+        "<li class={row_class(row.completed, row.id == editing)}>",
+        "<li class={row_class(row.completed, false)}>",
     ),
     (
         "an edited todo that is completed is not shown completed",

@@ -22,9 +22,10 @@ MUTANTS = [
     (
         "the store renders without its signals",
         SERVER,
-        # Re-anchored by ADR-0190: by its page's plan.
-        "        // Its signals, at their first values (ADR-0140).\n        with_signals(env, plan)\n",
-        "        // Its signals, at their first values (ADR-0140).\n        env\n",
+        # Re-anchored by ADR-0190: by its page's plan; and by the row's
+        # computed holes' ADR, its rows' values set after its signals.
+        "        self.with_browser_rows(with_signals(env, plan), plan, self.template_of(page))\n",
+        "        self.with_browser_rows(env, plan, self.template_of(page))\n",
     ),
     (
         "the store's document carries no signals",

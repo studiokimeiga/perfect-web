@@ -3,7 +3,7 @@
 placeholders computed.
 
 Each mutant undoes one piece of `List.drop`, `List.slice`, `List.reverse`,
-`String.slice`, `List.sum`, `List.maximum` or `List.range`, in the
+`String.slice`, `List.sum`, `List.maximum`, `List.range` or `List.swap`, in the
 component, the JavaScript module or the standard library's own Pleris, and
 the tests must then fail.
 
@@ -129,6 +129,45 @@ MUTANTS = [
         JS,
         "for (let i = start; i < end; i++)",
         "for (let i = 0n; i < end; i++)",
+    ),
+    # `List.swap`.
+    (
+        "a swap moves one element",
+        WASM,
+        "                self.ops.extend(moved(i, j));\n                self.ops.extend(moved(j, i));\n",
+        "                self.ops.extend(moved(i, j));\n",
+    ),
+    (
+        "a swap copies only the two it moves",
+        WASM,
+        "                    I::LocalGet(copy),\n                    I::LocalGet(ptr),\n"
+        "                    I::LocalGet(len),\n                    I::I32Const(size),\n"
+        "                    I::I32Mul,\n",
+        "                    I::LocalGet(copy),\n                    I::LocalGet(ptr),\n"
+        "                    I::I32Const(0),\n                    I::I32Const(size),\n"
+        "                    I::I32Mul,\n",
+    ),
+    (
+        "a place past the end is a place to swap",
+        WASM,
+        "                        I::I64ExtendI32U,\n                        I::I64LtS,\n"
+        "                        I::I32And,\n                    ]\n                };\n"
+        "                self.ops.extend(place(i));\n",
+        "                        I::I64ExtendI32U,\n                        I::Drop,\n"
+        "                        I::Drop,\n                    ]\n                };\n"
+        "                self.ops.extend(place(i));\n",
+    ),
+    (
+        "the module swaps the list it was given",
+        JS,
+        "const out = [...xs];\\n  const a = Number(i);",
+        "const out = xs;\\n  const a = Number(i);",
+    ),
+    (
+        "the module takes a negative place",
+        JS,
+        "if (i < 0n || j < 0n || i >= n || j >= n) return xs;",
+        "if (i >= n || j >= n) return xs;",
     ),
 ]
 

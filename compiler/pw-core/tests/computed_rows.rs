@@ -103,7 +103,7 @@ fn signal_page(markup: &str) -> Vec<(String, String)> {
              [Row {{ id: 7, label: \"q\", open: true, tags: [] }}]\n}}\n\n\
              page P() {{\n    route \"/p\"\n    cache private\n\n    \
              signal rows: List<Row> = [Row {{ id: 1, label: \"a\", open: true, tags: [\"x\"] }}]\n    \
-             signal selected: Int = 0\n    let posts = query Posts()\n\n    \
+             signal selected: Int = 0\n    signal names: List<String> = [\"x\"]\n    let posts = query Posts()\n\n    \
              view {{\n        <title>P</title>\n        <main>\n            {markup}\n            \
              <button type=\"button\" on:press={{() => selected = 1}}>Select</button>\n        \
              </main>\n    }}\n}}\n"
@@ -312,6 +312,11 @@ fn what_a_row_does_not_compute_yet_is_refused_by_name() {
             ),
             "computes a value in a row of a list inside another row, which the browser computes \
              none of yet",
+        ),
+        // A row that is no record: what a row computes is held in its item.
+        (
+            signal_page("<ul>{#each names as n (n)}<li>{shown(n == \"x\")}</li>{/each}</ul>"),
+            "computes a value in a row of `n`, which is no record",
         ),
         // A row's value from the item and another value.
         (
