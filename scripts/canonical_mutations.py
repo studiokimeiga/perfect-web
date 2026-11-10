@@ -188,11 +188,11 @@ MUTANTS = [
         "    if server.states_canonical() && !deployment.development && !stated && false {\n",
     ),
     (
-        "the server is given no origin",
+        "the server is given an origin not its deployment's",
         "browser",
         SERVER,
         "            let _ = server.origin.set(origin);\n",
-        "            let _ = origin;\n",
+        "            let _ = (origin, server.origin.set(\"https://elsewhere.invalid\".to_string()));\n",
     ),
     (
         "a navigation takes only the next page's description",
