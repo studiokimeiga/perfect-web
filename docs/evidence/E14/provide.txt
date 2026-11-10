@@ -1,8 +1,8 @@
 ADR-0144 - a view's own signals, and a signal a page provides
 
 produced by: just e14-provide
-commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 playwright: Version 1.58.0
 
@@ -20,11 +20,11 @@ test a_view_that_holds_a_signal_is_not_used_in_a_row ... ok
 test binding_and_dialogs_read_a_module_signal ... ok
 test each_use_of_a_view_holds_its_own_signal ... ok
 test what_nothing_provides_is_refused ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.89s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.80s
 
 == the browser (spikes/own-renderer/e2e/provide.spec.mjs), three engines
 
-  18 passed (14.2s)
+  18 passed (13.8s)
 
 == mutation controls (scripts/provide_mutations.py)
 

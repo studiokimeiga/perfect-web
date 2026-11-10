@@ -65,6 +65,11 @@
       const c = document.querySelector("#cart-count");
       return !!c && c.textContent.trim() === text;
     },
+    rows: (n) => document.getElementById("tbody")?.children.length === n,
+    firstRow: (id) => document.querySelector("#tbody tr .id")?.textContent === id,
+    secondRow: (id) => document.getElementById("tbody")?.children[1]?.querySelector(".id")?.textContent === id,
+    updated: () => !!document.querySelector("#tbody tr .select")?.textContent.endsWith("!!!"),
+    selected: (at) => document.getElementById("tbody")?.children[at]?.className === "danger",
   };
   const check = () => {
     if (h.t.appInDom == null && document.querySelector(APP)) {

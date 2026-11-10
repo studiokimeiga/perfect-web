@@ -1,27 +1,38 @@
 ADR-0143 - what names a form control
 
 produced by: just e14-labels
-commit: f15117dede242fac2bc2d54aa973180e47cad1c6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39526960864 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the rule (compiler/pw-core/tests/labels.rs)
 
+test a_button_input_with_no_value_has_no_label ... ok
+test a_button_is_refused_with_the_repair_a_button_takes ... ok
+test a_blank_aria_label_names_nothing ... ok
+test a_button_is_named_by_its_value ... ok
+test a_button_whose_value_is_blank_has_no_label ... ok
+test a_button_with_no_label_of_its_own_is_named_as_any_control_is ... ok
+test a_hidden_input_is_no_control ... ok
+test a_control_and_what_names_it_are_read_whatever_their_case ... ok
 test a_label_names_the_first_element_with_its_id ... ok
 test a_reference_to_an_id_every_row_has_is_its_ids_defect_alone ... ok
-test a_blank_aria_label_names_nothing ... ok
 test a_label_names_its_control_only_when_it_has_text ... ok
 test a_wrapping_label_names_only_its_first_control ... ok
-test a_label_that_wraps_its_control_names_it ... ok
 test an_id_inside_each_names_no_one_row ... ok
-test which_control_a_label_names_must_not_depend_on_what_renders ... ok
-test hidden_submit_and_button_inputs_need_no_label ... ok
+test a_label_that_wraps_its_control_names_it ... ok
+test a_reset_or_submit_button_with_no_value_has_the_label_html_gives_it ... ok
 test an_id_names_nothing_by_itself ... ok
+test only_an_input_has_a_type ... ok
+test an_image_button_is_named_by_its_alt_and_reported_once ... ok
 test aria_labelledby_must_reach_an_element_with_text ... ok
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.94s
+test which_control_a_label_names_must_not_depend_on_what_renders ... ok
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.30s
 
 == each witness (examples/generality/control_without_label)
 
+blank-submit.pw          GENERAL    [PW5014] `<input type="submit">` has no label
+buttons.pw               NEIGHBOUR  no diagnostics
 caught.pw                GENERAL    [PW5014] `<select>` has no associated label
 id-alone.pw              GENERAL    [PW5014] `<input>` has no associated label
 label-for-another.pw     GENERAL    [PW5014] `<select>` has no associated label
@@ -31,26 +42,44 @@ wrapped.pw               NEIGHBOUR  no diagnostics
 
 == the generality suite (compiler/pw-core/tests/generality.rs)
 
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 174.65s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 124.54s
 
 == mutation controls (scripts/labels_mutations.py)
 
-baseline: 17 passed, 0 failed
-an `id` names a control again: KILLED (4 of 17 tests fail)
-a label with `for` is read as one that wraps: KILLED (7 of 17 tests fail)
-a label that wraps its control names nothing: KILLED (5 of 17 tests fail)
-a label with no text names its control: KILLED (2 of 17 tests fail)
-the last element with an `id` is the one a label names: KILLED (1 of 17 tests fail)
-an `id` inside `{#each}` names no row: KILLED (1 of 17 tests fail)
-a control inside a block is a label's first: KILLED (1 of 17 tests fail)
-a composed view holds no control: KILLED (1 of 17 tests fail)
-a hidden input is labelable: KILLED (1 of 17 tests fail)
-a control's own options are its label: KILLED (1 of 17 tests fail)
-hidden text names a control: KILLED (1 of 17 tests fail)
-a blank `aria-label` names a control: KILLED (1 of 17 tests fail)
-a computed `aria-label` is refused: KILLED (1 of 17 tests fail)
-`aria-labelledby` names a control whatever it reaches: KILLED (1 of 17 tests fail)
-an IDREF to an element with no text names a control: KILLED (1 of 17 tests fail)
-an input's `type` is read case by case: KILLED (1 of 17 tests fail)
-16 of 16 mutants killed
+baseline: 26 passed, 0 failed
+an `id` names a control again: KILLED (5 of 26 tests fail)
+a label with `for` is read as one that wraps: KILLED (8 of 26 tests fail)
+a label that wraps its control names nothing: KILLED (9 of 26 tests fail)
+a label with no text names its control: KILLED (2 of 26 tests fail)
+the last element with an `id` is the one a label names: KILLED (1 of 26 tests fail)
+an `id` inside `{#each}` names no row: KILLED (1 of 26 tests fail)
+a control inside a block is a label's first: KILLED (1 of 26 tests fail)
+a composed view holds no control: KILLED (1 of 26 tests fail)
+a hidden input is labelable: KILLED (1 of 26 tests fail)
+a control's own options are its label: KILLED (1 of 26 tests fail)
+hidden text names a control: KILLED (1 of 26 tests fail)
+a blank `aria-label` names a control: KILLED (2 of 26 tests fail)
+a name the program computes is refused: an `aria-label`'s, a `value`'s: KILLED (2 of 26 tests fail)
+an attribute written alone names: an `aria-label`, a `value`: KILLED (2 of 26 tests fail)
+a blank attribute names: an `aria-label`, a `value`: KILLED (5 of 26 tests fail)
+`aria-labelledby` names a control whatever it reaches: KILLED (1 of 26 tests fail)
+an IDREF to an element with no text names a control: KILLED (1 of 26 tests fail)
+an input's `type` is read case by case: KILLED (5 of 26 tests fail)
+an image button is PW5014's again, refused for having no `<label>`: KILLED (4 of 26 tests fail)
+a hidden input is a control: KILLED (3 of 26 tests fail)
+a `<select>`'s or a `<textarea>`'s `type` is read: KILLED (1 of 26 tests fail)
+a button names itself whatever element it is: KILLED (1 of 26 tests fail)
+a `submit` or `reset` with no `value` has no label: KILLED (2 of 26 tests fail)
+a `button` input with no `value` has a label: KILLED (3 of 26 tests fail)
+a button's `value` is not read: KILLED (3 of 26 tests fail)
+a blank `value` names a button: KILLED (2 of 26 tests fail)
+a button is refused with a field's message, reason and repair: KILLED (3 of 26 tests fail)
+a button is refused with a field's message: KILLED (3 of 26 tests fail)
+the note does not say a button's `value` is blank: KILLED (1 of 26 tests fail)
+the note does not say a `button` input has no `value`: KILLED (1 of 26 tests fail)
+a field is given a button's note: KILLED (7 of 26 tests fail)
+a control is read by its name case by case: KILLED (1 of 26 tests fail)
+a `<label>` is read by its name case by case: KILLED (1 of 26 tests fail)
+a labelable element is read by its name case by case: KILLED (1 of 26 tests fail)
+34 of 34 mutants killed
 memory bound: no process was stopped

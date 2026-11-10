@@ -1,15 +1,15 @@
 ADR-0069 - a list's items share one type, and an Int literal fits an Int
 
 produced by: just e10-lists
-commit: ddaeeb1dfba9630371b7dd5b127c23855d245c74
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39131257549 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == lists and literals (compiler/pw-core/tests/lists_and_literals.rs)
 
 test an_int_literal_fits_an_int ... ok
 test a_lists_items_share_one_type ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
 
 == mutation controls (scripts/list_literal_mutations.py)
 

@@ -1,8 +1,8 @@
 ADR-0094 - a template writes no code
 
 produced by: just e10-code-in-markup
-commit: 320c52a44840a80423609ab476eb847c04de34a6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39442025240 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == code in markup (compiler/pw-core/tests/code_in_markup.rs)
@@ -12,7 +12,7 @@ test a_stylesheet_holds_no_value_a_program_writes ... ok
 test a_template_writes_no_script ... ok
 test a_template_writes_no_inline_handler ... ok
 test a_template_writes_no_script_url ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 
 == mutation controls (scripts/code_in_markup_mutations.py)
 

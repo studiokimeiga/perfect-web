@@ -1,8 +1,8 @@
 ADR-0300 - a build is named by what it built
 
 produced by: just e14-build-id
-commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -11,13 +11,13 @@ playwright: Version 1.58.0
 
 test the_same_sources_build_the_same_name ... ok
 test a_change_to_what_the_build_writes_changes_its_name ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.46s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.43s
 
 == the host serves it, and each page's document
 
 test tests::a_build_that_names_no_build_is_not_served ... ok
 test tests::a_host_serves_its_build_by_its_name ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1028 filtered out; finished in 1.74s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1032 filtered out; finished in 1.68s
 
 == the decision holds a document to its page (runtime/pw-resume-wasm)
 
@@ -26,7 +26,7 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 == a document of another schema, in three engines (e2e/recovery.spec.mjs)
 
-  18 passed (26.1s)
+  18 passed (24.5s)
 
 == mutation controls (scripts/build_id_mutations.py)
 

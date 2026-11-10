@@ -1,8 +1,8 @@
 E10 - the kiokun slice
 
 produced by: just e10-kiokun
-commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == pw build, examples/kiokun
@@ -18,7 +18,7 @@ pw build: 2 template(s), 0 handler(s), 4 component(s), 6 contract(s) -> docs/evi
   module     shards.Places  8527 bytes
   page       kiokun.page.WordPage~ui  0 binding(s), 0 part(s)
   page       kiokun.page.SearchPage~ui  0 binding(s), 0 part(s)
-  build      b78f77bfdeca6d96a
+  build      bcfb90ecaea9557c3
 
 == the sample shard (examples/kiokun/data/han-1char-3/MANIFEST.txt)
 
@@ -45,7 +45,7 @@ test tests::the_compiled_shard_rule_places_every_word_kiokun_has ... ignored, re
 test tests::the_pages_are_the_compiled_templates_with_no_script ... ok
 test tests::the_sample_is_one_shard ... sample: 28 entries, 293 rows, 4 aliases
 test tests::the_shard_rule_is_kiokuns ... ok
-test result: ok. 10 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 1.26s
+test result: ok. 10 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 1.57s
 
 == the whole shard, and every word kiokun has
 
@@ -53,4 +53,4 @@ test result: ok. 10 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; fin
 
 == in browser engines (spikes/own-renderer/e2e/kiokun.spec.mjs)
 
-  21 passed (9.3s)
+  21 passed (10.7s)

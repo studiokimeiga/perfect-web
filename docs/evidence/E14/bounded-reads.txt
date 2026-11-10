@@ -1,8 +1,8 @@
 4c - a read is bounded by construction (PW0405, PW0406, PW0407)
 
 produced by: just e14-bounded-reads
-commit: 34f3c2d1de6bfa075a1db82ae5a61fddf4af4e95
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39538607183 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the rules (compiler/pw-core/tests/bounded_reads.rs, and bounded's own)
@@ -32,30 +32,30 @@ test a_sources_sets_is_one_call_chunked_or_per_key ... ok
 test set_and_sets_head_a_clause_only_where_a_name_follows ... ok
 test a_known_read_is_known_only_where_the_list_names_it ... ok
 test the_ledger_reads_its_lines_together_and_checks ... ok
-test the_feed_reads_nothing_per_element ... ok
 test every_combinator_that_applies_its_callback_to_elements_is_a_loop ... ok
+test the_feed_reads_nothing_per_element ... ok
 test the_store_reads_nothing_per_element ... ok
 test the_stores_loop_is_seen_and_refused_where_it_reads_per_element ... ok
 test kiokun_reads_per_element_where_it_is_known_to_and_nowhere_else ... ok
 test what_is_no_read_per_element_is_accepted ... ok
 test the_stores_pairs_and_source_cost_are_declared_together ... ok
-test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.58s
+test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.07s
 test a_generated_read_named_as_the_callback_has_the_same_matching_row_repair ... ok
 test a_generated_many_read_before_the_loop_selects_each_turns_matching_rows ... ok
 test a_generated_read_in_a_generic_result_callback_remains_a_read_per_row ... ok
-test generated_many_reads_accept_one_call_and_chunked_sources ... ok
 test a_generated_batch_before_generic_row_selection_keeps_its_source_cost ... ok
+test generated_many_reads_accept_one_call_and_chunked_sources ... ok
 test generated_many_reads_warn_for_default_and_per_key_sources ... ok
 test generated_key_prefix_and_index_repairs_name_the_matching_many_read ... ok
 test a_generated_read_through_a_member_stays_a_read_per_row ... ok
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.29s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.02s
 test bounded::tests::a_component_is_a_cycle_or_a_call_of_itself ... ok
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 197 filtered out; finished in 0.00s
 
 == the corpus: each fixture its own defect, and the generality witnesses (checking_source.rs, generality.rs)
 
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 184.47s
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 172.17s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 176.95s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 164.70s
 
 == the reference programs: the store, the accepted corpus, the feed, kiokun-site
 

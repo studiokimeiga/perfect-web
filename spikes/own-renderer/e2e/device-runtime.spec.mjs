@@ -1,4 +1,4 @@
-// The device runtime's ADR, in three engines, on a production build of
+// ADR-0413, in three engines, on a production build of
 // TodoMVC (`just e14-device-runtime` builds one, and only then is this spec
 // selected: `playwright.config.mjs`): a page no reader decides and with no
 // layout starts a runtime with no server's code in it, asks for its own code
@@ -20,7 +20,7 @@ test.use({
 const SPIKE = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 /** What the device's runtime measured when this was written, as sent, and a
  * little over: it may not grow by accident. */
-const AT_MOST = 14_600;
+const AT_MOST = 15_500;
 
 /** Each path the page asks for. */
 function watch(page) {
@@ -64,6 +64,82 @@ test("its stylesheets are part of its document: it asks for none, and they apply
   const background = await page.evaluate(() => getComputedStyle(document.querySelector(".todoapp")).backgroundColor);
   expect(background).toBe("rgb(255, 255, 255)");
   expect(await page.evaluate(() => window.__refused)).toEqual([]);
+});
+
+test("its head fetches its code beside its runtime, and asks for it once", async ({ page }) => {
+  const asked = [];
+  page.on("request", (r) => asked.push(new URL(r.url()).pathname));
+  await open(page);
+  const preloaded = await page.evaluate(() =>
+    [...document.querySelectorAll('link[rel="modulepreload"]')].map((l) => new URL(l.href).pathname),
+  );
+  expect(preloaded).toEqual(["/pw-runtime-device.mjs", "/bundle/todomvc.app.Todos~ui.mjs"]);
+  await add(page, "one fetch");
+  await expect(items(page)).toHaveCount(1);
+  expect(asked.filter((p) => p.startsWith("/bundle/")).length).toBe(1);
+});
+
+test("a press that changes one row parses that row alone", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__parsed = [];
+    const set = Object.getOwnPropertyDescriptor(Element.prototype, "innerHTML").set;
+    Object.defineProperty(HTMLTemplateElement.prototype, "innerHTML", {
+      set(html) {
+        window.__parsed.push(html);
+        set.call(this, html);
+      },
+    });
+  });
+  await open(page);
+  for (const title of ["first of three", "second of three", "third of three"]) await add(page, title);
+  await expect(items(page)).toHaveCount(3);
+  await page.evaluate(() => (window.__parsed = []));
+  await items(page).nth(1).locator(".toggle").check();
+  await expect(items(page).nth(1)).toHaveClass(/completed/);
+  await expect(items(page).nth(0)).not.toHaveClass(/completed/);
+  const parsed = await page.evaluate(() => window.__parsed.join(""));
+  expect(parsed.includes("second of three")).toBe(true);
+  expect(parsed.includes("first of three")).toBe(false);
+  expect(parsed.includes("third of three")).toBe(false);
+});
+
+test("a box in a row a render left alone shows what its row says", async ({ page }) => {
+  await open(page);
+  for (const title of ["first", "second", "third"]) await add(page, title);
+  await expect(items(page)).toHaveCount(3);
+  await items(page).nth(1).locator(".toggle").check();
+  await expect(items(page).nth(1)).toHaveClass(/completed/);
+  // What nothing the page rendered says, as a press whose handler changed
+  // nothing would leave it.
+  await items(page).nth(0).locator(".toggle").evaluate((box) => (box.checked = true));
+  await items(page).nth(1).locator(".toggle").evaluate((box) => (box.checked = false));
+  await items(page).nth(2).locator(".toggle").check();
+  await expect(items(page).nth(2)).toHaveClass(/completed/);
+  await expect(items(page).nth(0).locator(".toggle")).not.toBeChecked();
+  await expect(items(page).nth(1).locator(".toggle")).toBeChecked();
+});
+
+test("a box outside the block a render morphed keeps what it was given", async ({ page }) => {
+  await open(page);
+  await add(page, "one row");
+  await expect(items(page)).toHaveCount(1);
+  // Either side of the block, in its parent: no render of the block writes them.
+  await page.evaluate(() => {
+    const list = document.querySelector(".todo-list");
+    for (const [id, place] of [["before", "prepend"], ["beside", "append"]]) {
+      const box = document.createElement("input");
+      box.type = "checkbox";
+      box.id = id;
+      list[place](box);
+      box.checked = true;
+    }
+  });
+  await add(page, "another row");
+  await expect(items(page)).toHaveCount(2);
+  await items(page).nth(0).locator(".toggle").check();
+  await expect(items(page).nth(0)).toHaveClass(/completed/);
+  await expect(page.locator("#before")).toBeChecked();
+  await expect(page.locator("#beside")).toBeChecked();
 });
 
 test("a handler its table names runs, on the decision the page made", async ({ page }) => {

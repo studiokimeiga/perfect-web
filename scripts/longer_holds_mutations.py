@@ -54,6 +54,7 @@ TEST_NAMES = [
     "tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills",
     "tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is",
     "tests::longer_holds::a_long_hold_gives_its_place_back",
+    "tests::longer_holds::a_long_hold_left_alone_looks_once_a_second",
 ]
 COMMAND = ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server",
            "--", *TEST_NAMES, "--exact", "--test-threads=1", "--format=pretty"]
@@ -131,6 +132,8 @@ MUTANTS = [
     ("a place held is never given back", MAIN,
      "impl Drop for HeldLong<'_> {\n    fn drop(&mut self) {\n        self.0.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);\n",
      "impl Drop for HeldLong<'_> {\n    fn drop(&mut self) {\n        let _ = self.0;\n"),
+    ("a hold left alone looks as often as a brief one", MAIN,
+     "        server.wake_at_least.max(LONG_LOOK)\n", "        server.wake_at_least\n"),
     ("a stream's queue fills", MAIN,
      "            if filling {\n                break;\n            }\n", ""),
     ("a stream's queue is full before it ends", MAIN,

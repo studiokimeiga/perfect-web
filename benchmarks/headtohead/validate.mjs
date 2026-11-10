@@ -143,6 +143,26 @@ function checkVendored(build, served, io) {
   return problems;
 }
 
+/** A served file of a build committed here: its problem, or null where it is the file. */
+function committedProblem(build, q, p, { exists, readFile }) {
+  const rel = `${build.dir}/${p.slice(build.prefix.length) || "index.html"}`;
+  const file = path.join(build.root, rel);
+  if (!exists(file)) return `build: ${p} is not a file of the committed build (${rel})`;
+  const blob = gitBlob(readFile(file));
+  return blob === q.blob ? null : `build: ${p} is not the committed ${rel} (blob ${q.blob}, committed ${blob})`;
+}
+
+/** A build this repository made and committed: what was served is its files. */
+function checkCommitted(build, served, io) {
+  const verdicts = served
+    .map((q) => [q, new URL(q.url).pathname])
+    .filter(([q, p]) => isServedFile(build, q, p))
+    .map(([q, p]) => committedProblem(build, q, p, io));
+  const problems = verdicts.filter(Boolean);
+  if (!verdicts.some((v) => v === null)) problems.push("build: no served file was matched to the committed build");
+  return problems;
+}
+
 /** A source the Pleris build lists: gone, or changed since it was built. */
 function sourceProblem(f, { exists, readFile }) {
   if (!exists(f.path)) return `build: its source ${f.path} is gone`;
@@ -206,6 +226,7 @@ function checkFramework(build, served, io) {
 
 const BUILD_CHECKS = new Map([
   ["vendored", checkVendored],
+  ["committed", checkCommitted],
   ["pleris", checkPleris],
   ["next", checkFramework],
   ["sveltekit", checkFramework],

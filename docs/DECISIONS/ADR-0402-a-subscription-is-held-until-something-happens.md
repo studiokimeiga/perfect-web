@@ -17,7 +17,7 @@ seconds and a long poll one, then answered with nothing, and the page asked
 again at once.
 
 - **An idle page cost the host about 30 requests a minute**, 60 by long
-  poll. The first press's ADR lists it among what Pleris still loses: the
+  poll. ADR-0399 lists it among what Pleris still loses: the
   store's live page asked 29.7 times a minute where a Next.js or SvelteKit
   page asks nothing (they have no live updates).
 - **The short holds no longer buy anything.** They were set when a held
@@ -112,6 +112,13 @@ here before it lands. The hold above is now what a page asks for.
    page acknowledges it, which is its next request; 25 s of a busy page's frames
    could pass `MAX_WAITING` and tell a page that was keeping up to reload. A
    stream that has half that waiting ends, and its page asks again at once.
+
+A subscription held long also **looks at its table once a second**
+(`LONG_LOOK`) when nothing wakes it, where one held briefly looks every
+`WAKE_AT_LEAST`, 250 ms. That still renews its page's `LIVE`, 3 s, sees its page
+gone soon, and is four times fewer looks for every idle page: twenty idle
+visitors cost the store's host 3.00 ms of CPU a second at `3b0e7c4f`, against
+SvelteKit's 1.00.
 
 ## Result
 

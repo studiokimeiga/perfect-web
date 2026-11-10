@@ -1,15 +1,15 @@
 ADR-0327 - money is rounded only where a program names how
 
 produced by: just e14-money
-commit: 2fad034d799482be4add99c326919c49cf0f48ff
-ci: https://github.com/Kimeiga/perfect-web/actions/runs/38629460236 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
 == each rounding, both ways (compiler/pw-conformance/tests/javascript.rs)
 
 test money_is_rounded_as_the_program_names_it ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 4.01s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 3.27s
 
 == mutation controls (scripts/money_mutations.py)
 

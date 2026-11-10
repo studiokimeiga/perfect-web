@@ -1,8 +1,8 @@
 ADR-0258 - accounts and sign-in: Pleris the relying party, the provider the deployment's
 
 produced by: just e14-identity
-commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -41,31 +41,31 @@ test identity::tests::two_overlapping_admissions_of_one_session_are_each_answere
 test tests::receiver_identity::a_local_receiver_getter_runs_instead_of_a_namesake_type_constructor ... ok
 test accounts::tests::a_password_is_kept_only_as_its_argon2id_hash ... ok
 test accounts::tests::a_code_is_exchanged_once_by_its_verifier ... ok
-test accounts::tests::signing_in_takes_the_password_and_says_nothing_of_who_exists ... ok
 test tests::sign_in::a_callback_another_browser_started_is_refused ... ok
-test tests::sign_in::a_control_is_shown_where_its_commands_predicate_holds ... ok
 test tests::sign_in::a_command_from_another_origin_is_refused ... ok
+test tests::sign_in::a_control_is_shown_where_its_commands_predicate_holds ... ok
+test accounts::tests::signing_in_takes_the_password_and_says_nothing_of_who_exists ... ok
 test tests::sign_in::a_documents_answers_are_its_own_for_its_life ... ok
 test tests::sign_in::a_fresh_sessions_cookie_is_http_only_and_unguessable ... ok
 test tests::sign_in::a_page_holds_its_announcer_from_the_first_byte ... ok
 test tests::sign_in::a_post_and_a_reply_are_their_signed_in_authors ... ok
 test tests::sign_in::a_refusal_says_the_programs_words_for_its_predicate ... ok
-test tests::sign_in::a_predicate_the_deployment_cannot_evaluate_is_refused_at_start ... ok
 test tests::sign_in::a_refused_press_sent_again_is_refused_again ... ok
 test tests::sign_in::a_refusal_the_program_gives_no_words_is_told_in_the_deployments ... ok
+test tests::sign_in::a_predicate_the_deployment_cannot_evaluate_is_refused_at_start ... ok
 test tests::sign_in::a_session_is_no_one_until_a_provider_vouches_for_it ... ok
 test tests::sign_in::an_answer_is_read_by_the_compilers_name_for_it ... ok
 test tests::sign_in::a_sign_in_rotates_the_session_and_the_old_one_is_no_one ... ok
 test tests::sign_in::a_signed_out_reader_reads_and_cannot_post ... ok
 test tests::sign_in::each_feed_operation_answers_its_requests_session_alone ... ok
 test tests::sign_in::nothing_the_feed_keeps_holds_a_session_cookie ... ok
-test tests::sign_in::on_postgres::a_delete_on_postgres_is_its_authors_alone ... ok
 test tests::sign_in::on_postgres::each_feed_operation_answers_its_requests_session_alone_on_postgres ... ok
 test tests::sign_in::on_postgres::a_post_on_postgres_is_its_signed_in_authors ... ok
-test tests::sign_in::signing_out_forgets_the_principal ... ok
-test tests::sign_in::only_its_author_deletes_a_post ... ok
-test tests::sign_in::on_postgres::nothing_kept_on_postgres_holds_a_session_cookie ... ok
+test tests::sign_in::on_postgres::a_delete_on_postgres_is_its_authors_alone ... ok
 test tests::sign_in::a_token_not_this_sign_ins_is_refused ... ok
+test tests::sign_in::only_its_author_deletes_a_post ... ok
+test tests::sign_in::signing_out_forgets_the_principal ... ok
+test tests::sign_in::on_postgres::nothing_kept_on_postgres_holds_a_session_cookie ... ok
 test tests::sign_in::the_guest_models_reader_is_its_sessions_guest ... ok
 test tests::sign_in::the_relying_party_answers_the_routes_the_compiler_knows ... ok
 test tests::sign_in::the_development_provider_signs_up_and_in_through_the_flow ... ok
@@ -79,14 +79,14 @@ test tests::store_accounts::a_session_keyed_carts_change_reaches_no_other_sessio
 test tests::store_accounts::a_shared_entry_still_reaches_every_reader ... ok
 test tests::store_accounts::a_stale_press_is_refused_before_the_order_waits ... ok
 test tests::store_accounts::nothing_a_session_keyed_store_keeps_holds_a_session_cookie ... ok
-test tests::store_accounts::an_order_is_no_other_users_to_read ... ok
 test tests::store_accounts::a_users_cart_reaches_each_of_their_sessions_and_no_one_elses ... ok
+test tests::store_accounts::an_order_is_no_other_users_to_read ... ok
 test tests::store_accounts::two_users_carts_never_share_a_line ... ok
-test result: ok. 72 passed; 0 failed; 0 ignored; 0 measured; 958 filtered out; finished in 23.61s
+test result: ok. 72 passed; 0 failed; 0 ignored; 0 measured; 962 filtered out; finished in 43.36s
 
 == the flows in three engines (e2e/identity.spec.mjs)
 
-  21 passed (29.1s)
+  21 passed (36.9s)
 
 == mutation controls (scripts/identity_mutations.py)
 

@@ -28,6 +28,10 @@
       "dist": "dist-todomvc",
       "prerequisite": "todomvc.sh"
     },
+    "rows": {
+      "dist": "dist-rows",
+      "prerequisite": "rows.sh"
+    },
     "guestbook": {
       "dist": "dist-guestbook",
       "prerequisite": "guestbook.sh"
@@ -214,6 +218,14 @@
       },
       "build": "todomvc"
     },
+    "rows": {
+      "offsets": {
+        "chromium": 213,
+        "firefox": 214,
+        "webkit": 215
+      },
+      "build": "rows"
+    },
     "store-accounts": {
       "offsets": {
         "chromium": 160,
@@ -315,6 +327,7 @@
     "MESSAGES_PORTS": "messages",
     "KIOKUN_PORTS": "kiokun",
     "TODOMVC_PORTS": "todomvc",
+    "ROWS_PORTS": "rows",
     "STORE_ACCOUNTS_PORTS": "store-accounts",
     "STORE_SEARCH_PORTS": "store-search",
     "STORE_PAYMENTS_PORTS": "payments",
@@ -482,6 +495,11 @@
       ]
     },
     "navigate.spec.mjs": {
+      "roles": [
+        "base"
+      ]
+    },
+    "nested-blocks.spec.mjs": {
       "roles": [
         "base"
       ]
@@ -662,6 +680,11 @@
     "todomvc.spec.mjs": {
       "roles": [
         "todomvc"
+      ]
+    },
+    "rows.spec.mjs": {
+      "roles": [
+        "rows"
       ]
     },
     "transport.spec.mjs": {

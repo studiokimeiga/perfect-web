@@ -1,8 +1,8 @@
 ADR-0080 - the affine rule follows bindings, not names
 
 produced by: just e10-affine-bindings
-commit: f15117dede242fac2bc2d54aa973180e47cad1c6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39526960864 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == affine bindings (compiler/pw-core/tests/affine_bindings.rs)
@@ -11,7 +11,7 @@ test a_lambdas_own_name_is_not_the_transaction ... ok
 test a_local_bound_to_a_release_is_that_release ... ok
 test an_inner_transaction_does_not_end_an_outer_one ... ok
 test a_transaction_given_to_a_function_value_is_refused ... ok
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.95s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.31s
 
 == mutation controls (scripts/affine_binding_mutations.py)
 

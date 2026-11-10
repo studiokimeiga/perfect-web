@@ -69,14 +69,14 @@ MUTANTS = [
     (
         "`?keepalive=` raises the budget past 64 KiB",
         RUNTIME,
-        "const keepaliveBudget = Math.min(\n  64 * 1024,\n",
-        "const keepaliveBudget = Math.min(\n  Infinity,\n",
+        "  : Math.min(64 * 1024, Number(",
+        "  : Math.min(Infinity, Number(",
     ),
     (
         "an unreadable `?keepalive=` keeps the whole budget",
         RUNTIME,
-        '  Number(new URLSearchParams(location.search).get("keepalive") ?? 64 * 1024) || 0,\n',
-        '  Number(new URLSearchParams(location.search).get("keepalive") ?? 64 * 1024) || 64 * 1024,\n',
+        '.get("keepalive") ?? 64 * 1024) || 0);\n',
+        '.get("keepalive") ?? 64 * 1024) || 64 * 1024);\n',
     ),
 ]
 

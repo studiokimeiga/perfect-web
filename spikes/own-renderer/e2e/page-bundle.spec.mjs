@@ -1,4 +1,4 @@
-// The page bundle's ADR: a production build puts each page's code in one
+// ADR-0412: a production build puts each page's code in one
 // module, and a page asks for that rather than for each piece of it.
 //
 // The build these run against is the development one, whose table names no

@@ -1,8 +1,8 @@
 ADR-0137 - what the browser renders again, it can
 
 produced by: just e14-signals-render-again
-commit: c714d1c35cee98ec923946aac6c873624c971b7f
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39542637844 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the plan's refusals (compiler/pw-core/tests/signals_render_again.rs)
@@ -12,7 +12,7 @@ test a_signal_read_in_a_block_a_query_decides_is_refused ... ok
 test a_block_a_signal_decides_reads_the_signals_and_its_own_names ... ok
 test an_attribute_a_signal_decides_is_set_in_place_or_refused ... ok
 test what_a_handler_captures_in_a_signal_s_block_is_the_block_s ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.53s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 24.11s
 
 == mutation controls (scripts/signals_render_again_mutations.py)
 

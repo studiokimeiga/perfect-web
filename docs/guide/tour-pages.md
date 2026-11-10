@@ -80,6 +80,13 @@ page Search(q: Option<String>) {
 A link or a `GET` form may give only the parameters the route declares
 (PW5050).
 
+The way markup is laid out in your source is not part of the page. A run of
+white space with a line break in it is one space, and nothing at all where text
+can never be shown, such as between the rows of a table. Inside `<pre>` and
+`<textarea>` every character is kept, and so is a value: text that has to keep
+its line breaks under `white-space: pre-line` is written as one,
+`{"first\nsecond"}`.
+
 ## Markup blocks
 
 ```pw

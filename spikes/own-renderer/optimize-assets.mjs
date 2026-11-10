@@ -23,7 +23,15 @@ const ASSET = /\.(?:mjs|js|wasm|css|svg)$/;
  * drift, and a page's document names which it runs.
  */
 async function packDeviceRuntime(directory, source) {
-  const { code } = await transform(source.replace("const PW_SERVER = true;", "").replaceAll("PW_SERVER", "false"), {
+  const uses = await deviceFeatures(directory);
+  let device = source.replace("const PW_SERVER = true;", "").replaceAll("PW_SERVER", "false");
+  // Whether a press is heard at the document, as the views say: a literal, so
+  // what only a listener on each element needs falls away with it.
+  device = device.replace("const DELEGATED = !false && !PW_VIEWS;", "").replaceAll("DELEGATED", String(!uses.PW_VIEWS));
+  for (const [flag, used] of Object.entries(uses)) {
+    device = device.replace(`const ${flag} = true;`, "").replaceAll(flag, String(used));
+  }
+  const { code } = await transform(device, {
     loader: "js",
     format: "esm",
     target: "es2022",
@@ -38,16 +46,113 @@ async function packDeviceRuntime(directory, source) {
   await writeFile(file + ".gz", gzipSync(Buffer.from(code), { level: 9, mtime: 0 }));
 }
 
+/** A part a row's plan sets in place, as the runtime's `planned` reads it:
+ * held twice, as the packaging decides what the runtime would, and held
+ * together by `optimize-assets.test.mjs`. */
+// fallow-ignore-next-line code-duplication
+const HOLES = (v) =>
+  (v.part === "text" && v.context === "text") ||
+  (v.part === "attribute" && v.context !== "content") ||
+  v.part === "interpolated_attribute" ||
+  v.part === "boolean_attribute" ||
+  v.part === "event";
+
+/** **Each part of `chunks`**, and of each template its instances reach,
+ * through every block, each template once: `visit(part)` for a part, and
+ * `visit(null, chunk)` for markup. */
+function walkParts(chunks, templates, visit, seen) {
+  for (const chunk of chunks) {
+    if (chunk.chunk === "static") {
+      visit(null, chunk);
+      continue;
+    }
+    const part = chunk.value;
+    visit(part, chunk);
+    if (part.part === "instance" && !seen.has(part.path)) {
+      seen.add(part.path);
+      const view = templates.find((t) => t.path === part.path);
+      if (view) walkParts(view.chunks, templates, visit, seen);
+    }
+    for (const inner of [part.then, part.otherwise, part.body, part.placeholder, part.ready?.body, part.failed?.body, ...(part.arms ?? []).map((a) => a.body)]) {
+      if (inner) walkParts(inner, templates, visit, seen);
+    }
+  }
+}
+
+/** What a template's parts need of the runtime. */
+function featuresIn(chunks, templates, out, seen) {
+  walkParts(chunks, templates, function needs(part, chunk) {
+    if (part === null) {
+      if (/<dialog[\s>]/i.test(chunk.value)) out.PW_DIALOGS = true;
+      if (/\sautofocus[\s=>/]/i.test(chunk.value)) out.PW_AUTOFOCUS = true;
+      return;
+    }
+    if (part.part === "match") out.PW_MATCH = true;
+    if (part.context === "url" || part.context === "style") out.PW_LINKS = true;
+    if (part.name === "autofocus") out.PW_AUTOFOCUS = true;
+    if (part.part === "each" && part.key != null && part.body.every((c) => c.chunk === "static" || HOLES(c.value))) out.PW_PLANS = true;
+    if (part.part === "instance") {
+      out.PW_VIEWS = true;
+    }
+  }, seen);
+  return out;
+}
+
+/**
+ * **What this build's pages that talk to no server use** (the device runtime's
+ * ADR): the host starts the device's runtime for a page no reader decides and
+ * with no layout, and each of these is true where one of them needs it. A build
+ * that cannot be read keeps everything.
+ */
+async function deviceFeatures(directory) {
+  const everything = { PW_LINKS: true, PW_MATCH: true, PW_VIEWS: true, PW_DIALOGS: true, PW_KEPT: true, PW_FRAGMENT: true, PW_AUTOFOCUS: true, PW_PLANS: true };
+  const base = path.join(directory, "build");
+  const text = await readIfThere(path.join(base, "templates.json"));
+  if (text === null) return everything;
+  const templates = JSON.parse(text);
+  const out = { PW_LINKS: false, PW_MATCH: false, PW_VIEWS: false, PW_DIALOGS: false, PW_KEPT: false, PW_FRAGMENT: false, PW_AUTOFOCUS: false, PW_PLANS: false };
+  for (const name of await readdir(path.join(base, "pages")).catch(() => [])) {
+    if (!name.endsWith(".json")) continue;
+    const plan = JSON.parse(await readFile(path.join(base, "pages", name), "utf8"));
+    if (plan.prerender !== true || (plan.layout !== undefined && plan.layout !== null)) continue;
+    if ((plan.device ?? []).length > 0) out.PW_KEPT = true;
+    if (plan.fragment) out.PW_FRAGMENT = true;
+    const template = templates.find((t) => t.path === name.slice(0, -".json".length));
+    if (!template) return everything;
+    featuresIn(template.chunks, templates, out, new Set());
+  }
+  return out;
+}
+
+/**
+ * **The runtime of a page with a server**: the runtime as written, `PW_SERVER`
+ * the literal it is declared as, so that what only a page with no server runs
+ * falls away, as the device's runtime drops a server's (`packDeviceRuntime`).
+ * esbuild folds no constant into the functions that read it: until 2026-11-10
+ * a server's page carried the rows' reconciliation, their plans and the
+ * presses heard at the document, 2.6 KB as sent.
+ */
+function serverRuntimeSource(source) {
+  // A runtime that declares neither, a test's stand-in, is minified as written;
+  // `optimize-assets.test.mjs` holds the runtime's own to what falls away.
+  const declared = "const PW_SERVER = true;";
+  if (!source.includes(declared)) return source;
+  const server = source.replace(declared, "").replaceAll("PW_SERVER", "true");
+  const delegated = "const DELEGATED = !true && !PW_VIEWS;";
+  return server.includes(delegated) ? server.replace(delegated, "").replaceAll("DELEGATED", "false") : server;
+}
+
 async function packAsset(directory, entry) {
   const file = path.join(directory, entry.name);
   let body = await readFile(file);
   if (entry.name === "pw-runtime.mjs") {
     await packDeviceRuntime(directory, body.toString("utf8"));
-    const result = await transform(body.toString("utf8"), {
+    const result = await transform(serverRuntimeSource(body.toString("utf8")), {
       loader: "js",
       format: "esm",
       target: "es2022",
       minify: true,
+      treeShaking: true,
       legalComments: "inline",
       charset: "utf8",
     });
@@ -123,19 +228,10 @@ async function modulesIn(directory) {
 /** The handlers `chunks` names, and each template its instances reach,
  * through every block, each once. */
 function handlersIn(chunks, templates, out, seen) {
-  for (const chunk of chunks) {
-    if (chunk.chunk !== "dynamic") continue;
-    const part = chunk.value;
+  walkParts(chunks, templates, function named(part) {
+    if (part === null) return;
     if (part.part === "event") out.add(part.handler);
-    if (part.part === "instance" && !seen.has(part.path)) {
-      seen.add(part.path);
-      const view = templates.find((t) => t.path === part.path);
-      if (view) handlersIn(view.chunks, templates, out, seen);
-    }
-    for (const inner of [part.then, part.otherwise, part.body, part.placeholder, part.ready?.body, part.failed?.body, ...(part.arms ?? []).map((a) => a.body)]) {
-      if (inner) handlersIn(inner, templates, out, seen);
-    }
-  }
+  }, seen);
   return out;
 }
 

@@ -2,6 +2,28 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**Train-17, 2026-11-10:** on train-16, the rows train. A press changes only
+what it changed (ADR-0417): on a page that talks to no server a block's keyed
+rows are made by key, a row whose value and reads are unchanged is kept with
+its nodes, only the rows out of place move, a list whose rows keep their shape
+is made from one parsed row, and presses are heard at the document. Another
+tab's write waits its turn (ADR-0418). A device's runtime holds what its
+build's pages use (ADR-0419), and a server's runtime leaves the device's code:
+the store's first load is 28,109 bytes as sent, from 30,721. A subscription
+held long looks once a second (ADR-0402, amended). The large list
+(`examples/rows`, krausest's operations) is the head-to-head's third app,
+beside React and Svelte, and a template's text is laid out as the browser
+shows it. Found on the way: the layout rule had left the store's recorded
+templates behind, and `e10-build`'s record only lost a line; it now fails on
+any artifact that differs. WebKit's cut-off test failed in two of four verify
+runs of this branch, once with its network process gone and once with a long
+poll never answered, and passed in the other two; train-18 keeps a dropped
+command to its session and records the server's trail when it fails. The
+head-to-head at `2d2b57ea`: of 264 rows, Pleris is ahead in 73 and behind in
+71, where it was behind in 79 at `6a112c3d`: 52 of them the large list's
+(making, appending and replacing a thousand rows; its 19.3 KB page to
+Svelte's 13.2), TodoMVC's 10, the store's 9.
+
 **Train-16, 2026-11-10:** on train-15, the size train. A page no reader decides
 is one document, compressed and revalidated as a file is (PR #96, ADR-0409). The
 browser renders with a page of JavaScript, 5 KB as sent where the WebAssembly

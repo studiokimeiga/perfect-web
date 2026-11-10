@@ -133,8 +133,8 @@ MUTANTS = [
         "the browser renders a block without what it computes",
         "browser",
         RUNTIME,
-        "  return renderer.part(parts.blocks[id], renderer.env([...signals, ...computed]), TEMPLATES);\n",
-        "  return renderer.part(parts.blocks[id], renderer.env([...signals]), TEMPLATES);\n",
+        "  const values = renderer.env([...signals, ...computed]);\n",
+        "  const values = renderer.env([...signals]);\n",
     ),
     (
         "the browser sets a block in place",

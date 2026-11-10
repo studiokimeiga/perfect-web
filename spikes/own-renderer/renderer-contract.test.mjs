@@ -104,3 +104,56 @@ test("a failed rollback load leaves neither owned ID pending", async () => {
   assert.deepEqual(states.get("second").pending, [{ id: 13 }]);
   assert.equal(drawn.length, 0);
 });
+
+/** The two pure questions a list's rows are put in order by. */
+function rowOrder() {
+  return vm.runInNewContext(`${source("function placesOf(a, b) {", "// --- end of which rows changed")}\n({ placesOf, staying })`);
+}
+
+const keyed = (keys) => keys.map((key) => ({ key }));
+
+test("each row of a render is at its place in the last, or new", () => {
+  const { placesOf } = rowOrder();
+  assert.deepEqual([...placesOf(keyed(["a", "b", "c"]), keyed(["c", "x", "a"]))], [2, -1, 0]);
+  assert.deepEqual([...placesOf([], keyed(["a"]))], [-1]);
+});
+
+/** The longest run of `places` that increases, by trying them all. */
+function longestRun(places) {
+  const best = places.map(() => 1);
+  let most = 0;
+  places.forEach((v, i) => {
+    if (v < 0) return;
+    for (let j = 0; j < i; j++) if (places[j] >= 0 && places[j] < v) best[i] = Math.max(best[i], best[j] + 1);
+    most = Math.max(most, best[i]);
+  });
+  return most;
+}
+
+test("as many rows as can stay stay, and those that stay are in order", () => {
+  const { staying } = rowOrder();
+  // A seeded walk: each list a shuffle of the last's places, some rows new.
+  let seed = 7;
+  const next = (n) => (seed = (seed * 16807) % 2147483647) % n;
+  for (let round = 0; round < 500; round++) {
+    const size = 1 + next(40);
+    const places = Array.from({ length: size }, (_, i) => i);
+    for (let i = size - 1; i > 0; i--) {
+      const j = next(i + 1);
+      [places[i], places[j]] = [places[j], places[i]];
+    }
+    for (let i = 0; i < size; i++) if (next(5) === 0) places[i] = -1;
+    const still = [...staying(places)].sort((a, b) => a - b);
+    assert.equal(still.length, longestRun(places), JSON.stringify(places));
+    for (const i of still) assert.ok(places[i] >= 0, "a new row does not stay");
+    for (let k = 1; k < still.length; k++) assert.ok(places[still[k - 1]] < places[still[k]], JSON.stringify(places));
+  }
+});
+
+test("a list with nothing in common has nothing that stays", () => {
+  const { staying } = rowOrder();
+  assert.equal(staying([-1, -1, -1]).size, 0);
+  assert.equal(staying([]).size, 0);
+  assert.deepEqual([...staying([0, 1, 2])].sort(), [0, 1, 2]);
+});
+

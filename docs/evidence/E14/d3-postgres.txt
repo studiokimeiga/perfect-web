@@ -1,8 +1,8 @@
 D3 - any program's declared tables on PostgreSQL, answering as the memory adapter does
 
 produced by: just e14-d3-postgres
-commit: 850fbfe94bcf15a880068354d2008b083bd4333d
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42617416601 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 postgres: 18.6 (Debian 18.6-1.pgdg13+2)
 
@@ -12,16 +12,16 @@ test a_delete_deletes_its_key_and_a_prefix_its_rows_alone ... ok
 test a_nested_float_is_answered_bit_for_bit ... ok
 test a_row_is_answered_exactly_as_it_was_written ... ok
 test a_row_another_writer_left_out_of_its_type_is_refused_not_answered ... ok
-test a_statement_is_prepared_once_on_a_connection_never_per_call ... ok
 test a_refinement_is_held_by_its_check_whoever_writes ... ok
+test a_statement_is_prepared_once_on_a_connection_never_per_call ... ok
 test a_write_is_refused_by_the_row_holding_its_key_then_a_unique_value ... ok
 test all_refuses_a_table_another_writer_grew_past_its_bound ... ok
 test reads_come_in_tables_json_order_strings_by_their_bytes ... ok
 test a_write_whose_answer_cannot_be_read_fails_its_command ... ok
-test the_compilers_functions_are_each_served ... ok
 test what_a_function_is_given_is_held_before_the_database_sees_it ... ok
+test the_compilers_functions_are_each_served ... ok
 test each_primitive_is_one_statement_at_two_sizes ... ok
-test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.15s
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.08s
 
 == tests/commands.rs
 test a_command_touching_no_table_costs_the_database_nothing ... ok
@@ -36,14 +36,14 @@ test a_put_at_read_committed_is_answered_from_the_row_it_replaced ... ok
 test a_snapshot_reads_one_moment_whatever_commits_meanwhile ... ok
 test a_transaction_runs_again_where_the_database_could_not_serialize_it ... ok
 test one_command_of_a_host_writes_at_a_time ... ok
-test serializable_refuses_write_skew_between_two_hosts ... ok
 test provides_measures_what_a_command_is_given ... ok
+test serializable_refuses_write_skew_between_two_hosts ... ok
 test the_connections_default_read_committed_admits_write_skew ... ok
+test written_names_each_table_a_command_changed_and_no_other ... ok
 test the_platforms_records_commit_with_the_writes ... ok
 test the_outbox_takes_its_ids_in_commit_order ... ok
-test written_names_each_table_a_command_changed_and_no_other ... ok
 test render_seats_are_bounded_and_every_one_given_back ... ok
-test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.02s
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.58s
 
 == tests/migrations.rs
 test a_backfill_is_the_value_stated_whatever_the_servers_string_syntax ... ok
@@ -59,19 +59,19 @@ test an_older_build_that_would_only_drop_an_index_is_refused ... ok
 test hosts_racing_under_a_serializable_default_each_open_it_made_once ... ok
 test a_table_no_schema_recorded_or_a_record_edited_by_hand_refuses_the_start ... ok
 test a_catalog_changed_by_hand_refuses_the_start ... ok
-test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.44s
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.42s
 
 == tests/parity.rs
 test an_ended_commands_functions_act_on_nothing_on_either_adapter ... ok
 test the_compiled_writers_answer_alike_on_memory_and_postgresql ... ok
 test the_compiled_app_answers_alike_on_memory_and_postgresql ... ok
 test a_random_workload_answers_alike_on_memory_and_postgresql ... ok
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.34s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.22s
 
 == tests/durability.rs
 test the_first_host_commits_and_ends ... ok
 test a_commit_outlives_the_host_that_made_it ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.51s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.66s
 
 == mutation controls (scripts/d3_postgres_mutations.py)
 

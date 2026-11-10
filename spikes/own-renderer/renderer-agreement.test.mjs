@@ -25,11 +25,19 @@ const runtime = readFileSync(path.join(here, "public/pw-runtime.mjs"), "utf8");
 const BEGIN = "const renderer = (() => {";
 const END = "// --- end of the browser's renderer";
 
-function loadRenderer() {
+function loadRenderer(server = true) {
   const start = runtime.indexOf(BEGIN);
   const end = runtime.indexOf(END);
   assert.ok(start >= 0 && end > start, "the runtime holds the renderer between its markers");
-  return vm.runInNewContext(`${runtime.slice(start, end)}\nrenderer`, { TextEncoder });
+  return vm.runInNewContext(`${runtime.slice(start, end)}\nrenderer`, {
+    TextEncoder,
+    PW_SERVER: server,
+    PW_LINKS: true,
+    PW_MATCH: true,
+    PW_VIEWS: true,
+    PW_DIALOGS: true,
+    PW_PLANS: true,
+  });
 }
 const renderer = loadRenderer();
 
@@ -518,6 +526,92 @@ test("the two renderers agree over generated templates of every part and context
   assert.ok(refused < answered * 0.7, `${refused} of ${answered} refused`);
 });
 
+/** A block as a page that talks to no server keeps it, as its text. */
+function textOfKept(block) {
+  return block.lists.reduce((text, list, i) => text + list.rows.map((row) => row.text).join("") + block.strs[i + 1], block.strs[0]);
+}
+
+test("a block kept in pieces is the text the renderer writes, the second time too", () => {
+  // Views stay on, so nothing leaves out a text's anchors: the same text, to
+  // the byte, whatever is asked for.
+  const device = loadRenderer(false);
+  let rendered = 0;
+  let again = 0;
+  for (const [name, request] of generatedRequests(1500)) {
+    if (name !== "render_part") continue;
+    const values = () => Object.entries(request.values ?? {});
+    const templates = request.templates ?? [];
+    let whole;
+    try {
+      whole = renderer.part(request.part, renderer.env(values()), templates);
+    } catch (error) {
+      if (error.kind === undefined) throw error;
+      assert.throws(() => device.block(request.part, device.env(values()), templates), (e) => e.kind === error.kind, wire(request));
+      continue;
+    }
+    const first = device.block(request.part, device.env(values()), templates);
+    assert.equal(numbered(textOfKept(first)), numbered(whole), wire(request));
+    rendered += 1;
+    const second = device.block(request.part, device.env(values()), templates);
+    assert.equal(numbered(textOfKept(second)), numbered(whole), wire(request));
+    first.lists.forEach((list, i) => list.rows.forEach((row, k) => {
+      assert.equal(row, second.lists[i].rows[k], "a row nothing changed is the row kept");
+      again += 1;
+    }));
+  }
+  assert.ok(rendered > 500, `rendered ${rendered}`);
+  assert.ok(again > 50, `kept ${again} rows`);
+});
+
+test("a row is written again when what it reads changes, and not otherwise", () => {
+  const device = loadRenderer(false);
+  const part = {
+    part: "each", id: 3, collection: "items", binding: "item", key: "id", body: [
+      { chunk: "static", value: "<li>" },
+      { chunk: "dynamic", value: { part: "text", id: 4, value: "item.name", context: "text" } },
+      { chunk: "static", value: ":" },
+      { chunk: "dynamic", value: { part: "text", id: 5, value: "note", context: "text" } },
+      { chunk: "static", value: "</li>" },
+    ],
+  };
+  const items = [{ id: 1, name: "a" }, { id: 2, name: "b" }];
+  const render = (values) => device.block(part, device.env(Object.entries(values)), []);
+  const first = render({ items, note: "n" }).lists[0].rows;
+  const same = render({ items: items.map((i) => ({ ...i })), note: "n" }).lists[0].rows;
+  assert.equal(same[0], first[0], "an equal value is the row kept");
+  const renamed = render({ items: [{ id: 1, name: "z" }, items[1]], note: "n" }).lists[0].rows;
+  assert.notEqual(renamed[0], same[0], "a value that changed is written");
+  assert.equal(renamed[1], same[1], "the row beside it is kept");
+  const noted = render({ items: [{ id: 1, name: "z" }, items[1]], note: "m" }).lists[0].rows;
+  assert.notEqual(noted[1], renamed[1], "what a row read of the page changed");
+  assert.match(noted[1].text, /b:<!--pw:s5-->m|b<!--pw:e4-->:<!--pw:s5-->m/);
+});
+
+test("a row is written again when what a block around it bound changes", () => {
+  const device = loadRenderer(false);
+  const part = {
+    part: "match", id: 2, value: "o", arms: [
+      {
+        case: "Some", binding: "f", fields: [], body: [{ chunk: "dynamic", value: {
+          part: "each", id: 3, collection: "items", binding: "item", key: "id", body: [
+            { chunk: "dynamic", value: { part: "text", id: 5, value: "f", context: "text" } },
+          ],
+        } }],
+      },
+      { case: "None", binding: null, fields: [], body: [] },
+    ],
+  };
+  const items = [{ id: 1 }];
+  const render = (f) => device.block(part, device.env(Object.entries({ items, o: { $case: "Some", value: f } })), []);
+  const first = render("a");
+  assert.match(textOfKept(first), />a<|-->a<!--/);
+  const again = render("a");
+  assert.equal(again.lists[0].rows[0], first.lists[0].rows[0], "what it read is the same");
+  const second = render("b");
+  assert.notEqual(second.lists[0].rows[0], first.lists[0].rows[0], "what it read changed");
+  assert.match(textOfKept(second), />b<|-->b<!--/);
+});
+
 test("the two renderers agree over the compiler's own templates", () => {
   const { answered, refused } = agree(compiledRequests());
   assert.ok(answered > 1_000, `asked ${answered}`);
@@ -762,5 +856,6 @@ test("the renderer is small", async () => {
   const end = runtime.indexOf(END);
   const { code } = await transform(runtime.slice(start, end), { minify: true, format: "esm" });
   const sent = brotliCompressSync(Buffer.from(code), { params: { [constants.BROTLI_PARAM_QUALITY]: 11 } }).length;
-  assert.ok(sent < 5.5 * 1024, `the renderer is ${sent} bytes as sent, and was 77 KB as WebAssembly`);
+  // With what a list keeps of its rows ("a press changes what it changes").
+  assert.ok(sent < 6 * 1024, `the renderer is ${sent} bytes as sent, and was 77 KB as WebAssembly`);
 });

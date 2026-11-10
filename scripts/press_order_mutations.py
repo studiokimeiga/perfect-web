@@ -25,8 +25,8 @@ MUTANTS = [
     (
         "a press's handler starts without waiting for the press before it",
         RUNTIME,
-        "          await myTurn;\n          started();\n",
-        "          started();\n",
+        "      await myTurn;\n      started();\n",
+        "      started();\n",
     ),
 ]
 

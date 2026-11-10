@@ -114,7 +114,7 @@ MUTANTS = [
         "browser",
         RUNTIME,
         # Re-anchored by ADR-0182, which sets it only when it changes.
-        "  const value = parsed.content.firstChild.getAttribute(op.name) ?? \"\";\n",
+        "  const value = unescaped(op.value, \"\\ufffd\");\n",
         "  const value = op.value;\n",
     ),
     (

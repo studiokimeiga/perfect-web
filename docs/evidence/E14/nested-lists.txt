@@ -1,19 +1,19 @@
 ADR-0170 - a loop over a list inside a query's value
 
 produced by: just e14-nested-lists
-commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the plan, and what a speculation would not reach (compiler/pw-core/tests/nested_lists.rs)
 
-test a_list_inside_a_querys_value_is_iterated_by_its_path ... ok
 test a_region_whose_handler_captures_what_the_browser_does_not_hold_is_refused ... ok
-test a_speculated_value_read_in_a_block_no_region_renders_is_refused ... ok
+test a_list_inside_a_querys_value_is_iterated_by_its_path ... ok
 test a_region_that_reads_what_the_browser_does_not_hold_is_refused ... ok
+test a_speculated_value_read_in_a_block_no_region_renders_is_refused ... ok
 test the_count_alone_is_speculated_as_before ... ok
 test a_part_that_reads_a_speculated_value_is_rendered_again ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.27s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.93s
 
 == a value computed for a row, read whole (runtime/pw-render/tests/paths.rs)
 
@@ -28,11 +28,11 @@ test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 == the development server (pw-dev-server)
 
 test tests::a_block_a_query_decides_is_rendered ... ok
-test tests::a_block_that_shows_the_arm_it_showed_is_told_part_by_part ... ok
 test tests::a_block_a_speculation_renders_is_rendered_again_whole ... ok
+test tests::a_block_that_shows_the_arm_it_showed_is_told_part_by_part ... ok
 test tests::a_block_whose_rendering_changed_is_rendered_again ... ok
 test tests::a_list_inside_a_querys_value_is_rendered_and_patched_where_it_is ... ok
-test result: ok. 1021 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 623.80s
+test result: ok. 1025 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 593.10s
 
 == the store checks
 

@@ -1,8 +1,8 @@
 ADR-0061 - a declared sum type in a template's match
 
 produced by: just e10-template-sum-types
-commit: f15117dede242fac2bc2d54aa973180e47cad1c6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39526960864 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the checker and the template IR (compiler/pw-core/tests/template_blocks.rs)
@@ -19,7 +19,7 @@ test an_arms_binding_has_its_payloads_type ... ok
 test else_is_the_other_branch_not_more_of_the_first ... ok
 test match_takes_an_option_apart_with_its_payload_bound ... ok
 test a_malformed_block_is_refused ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.93s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.87s
 
 == the renderer (runtime/pw-render/tests/branches.rs)
 
@@ -27,11 +27,11 @@ test a_conditional_renders_exactly_one_branch_and_refuses_a_variant ... ok
 test a_match_refuses_what_it_cannot_take_apart ... ok
 test a_declared_case_renders_with_each_field_bound ... ok
 test a_match_renders_the_arm_its_case_names_with_the_payload_bound ... ok
-test a_value_in_a_url_is_one_component_whatever_it_holds ... ok
-test a_value_cannot_give_a_url_a_scheme_or_another_segment ... ok
 test a_part_inside_an_arm_can_be_rendered_alone ... ok
-test an_interpolated_attribute_refuses_a_missing_value ... ok
 test a_variant_has_no_text_form ... ok
+test a_value_cannot_give_a_url_a_scheme_or_another_segment ... ok
+test an_interpolated_attribute_refuses_a_missing_value ... ok
+test a_value_in_a_url_is_one_component_whatever_it_holds ... ok
 test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
 == kiokun's server

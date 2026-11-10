@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Mutation controls for the soft navigation's ADR: a navigation keeps the
+"""Mutation controls for ADR-0306: a navigation keeps the
 layout and shows the next page in it.
 
 Each mutant undoes one piece of the runtime's navigation:
@@ -39,7 +39,7 @@ MUTANTS = [
     (
         "a handler's navigation after its commit loads its page whole",
         RUNTIME,
-        '  if (PW_SERVER && parts.layout) return softNavigate(url, "push", mine);\n',
+        '  if (parts.layout) return softNavigate(url, "push", mine);\n',
         "",
     ),
     (

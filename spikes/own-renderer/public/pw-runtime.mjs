@@ -28,8 +28,22 @@ const parts = JSON.parse(document.getElementById("pw-parts")?.textContent ?? "{}
  * that keeps the layout. */
 const PW_SERVER = true;
 
+/** **What a build's pages that talk to no server use** (the device runtime's
+ * ADR), which the packaging reads from their templates, and what none of them
+ * uses falls away with these: a value in a URL or a style, a `{#match}`, a view
+ * used inside another, a `<dialog>`, a value the device keeps, a signal bound to
+ * the address's fragment, an `autofocus`, a list whose rows a plan can make. */
+const PW_LINKS = true;
+const PW_MATCH = true;
+const PW_VIEWS = true;
+const PW_DIALOGS = true;
+const PW_KEPT = true;
+const PW_FRAGMENT = true;
+const PW_AUTOFOCUS = true;
+const PW_PLANS = true;
+
 /**
- * **This document's life** (the soft navigation's ADR). Every listener the
+ * **This document's life** (ADR-0306). Every listener the
  * runtime adds is added with its signal, and its subscription asks under it:
  * a navigation that shows the next page in this one's layout hands the
  * document to a runtime of the next document's, and aborting this ends all
@@ -127,6 +141,17 @@ function buildIndex() {
       if (side === "s") {
         const part = entries.get(template)?.get(Number(id));
         const view = part?.kind === "instance";
+        if (DELEGATED && !view) {
+          // Nothing asks for what is inside a row here, and a press finds
+          // its element at the document.
+          const close = `pw:e${id}@${token}`;
+          let end = node.nextSibling;
+          while (end && !(end.nodeType === Node.COMMENT_NODE && end.data === close)) end = end.nextSibling;
+          if (end) {
+            walker.currentNode = end;
+            continue;
+          }
+        }
         if (view) open.set(`${at()}|${id}@${token}`, { start: node, path: [...path], template });
         path.push([Number(id), token]);
         within.push(view ? part.value : template);
@@ -471,7 +496,7 @@ const decider = (lines, page) => {
   // Told nothing of this page, a document's schema and scope are not compared,
   // as no build has spoken for them.
   const told = lines.find((l) => l.startsWith(`#page|${page}|`))?.split("|");
-  return (manifest) => {
+  return function decided(manifest) {
     const [scheme, abi, , handler, capture = "", schema = "", scope = "", captures, construct] = manifest.split("|");
     const code = !captures && capture
       ? 9
@@ -529,15 +554,15 @@ window.__pw = {
   address: (path, part) => addressOf(path, part),
   /** A page's address from its route and its parameters' values, as a
    * navigation goes to it (ADR-0280). */
-  pageAddress: (route, args) => pageAddress(route, args),
+  pageAddress: !PW_SERVER ? null : (route, args) => pageAddress(route, args),
   /** The build that served this runtime (ADR-0300). */
   build: () => servedBuild,
   indexSize: () => index.size,
   /** The bytes of command bodies kept alive and not yet answered, and what
-   * they may come to (ADR-0268). */
-  keepalive: () => ({ inFlight: keptAlive, budget: keepaliveBudget }),
+   * they may come to (ADR-0268). A page with no server sends none. */
+  keepalive: !PW_SERVER ? null : () => ({ inFlight: keptAlive, budget: keepaliveBudget }),
   /** How long each send of a command waits for its answer (ADR-0381). */
-  deadline: () => sendDeadline,
+  deadline: !PW_SERVER ? null : () => sendDeadline,
   /** How long a press's module may take to load (ADR-0382). */
   loadDeadline: () => loadDeadline,
   /** How many presses have not finished (ADR-0280's `pressing`). */
@@ -809,10 +834,10 @@ async function send(component, args, interaction, retry, after, before) {
  * adapter; it never raises it.
  */
 let keptAlive = 0;
-const keepaliveBudget = Math.min(
-  64 * 1024,
-  Number(new URLSearchParams(location.search).get("keepalive") ?? 64 * 1024) || 0,
-);
+// A page with no server sends no command.
+const keepaliveBudget = !PW_SERVER
+  ? 0
+  : Math.min(64 * 1024, Number(new URLSearchParams(location.search).get("keepalive") ?? 64 * 1024) || 0);
 
 /**
  * How long to wait before sending a command again (ADR-0173): a second,
@@ -843,7 +868,7 @@ function lowered(name) {
   const asked = Number(new URLSearchParams(location.search).get(name));
   return asked > 0 ? Math.min(10_000, Math.max(500, asked)) : 10_000;
 }
-const sendDeadline = lowered("deadline");
+const sendDeadline = !PW_SERVER ? 0 : lowered("deadline");
 const loadDeadline = lowered("load-deadline");
 
 // --- ADR-0122: optimistic transitions -----------------------------------
@@ -1184,35 +1209,6 @@ const renderer = (() => {
     }
   }
 
-  const scalar = (v) => (typeof v === "boolean" ? "b" : isInt(v) ? "i" : "t") + shown(v);
-
-  /** Whether two values are one value, as the server's `==` has it. */
-  function same(a, b) {
-    const pairs = [[a, b]];
-    while (pairs.length) {
-      const [p, q] = pairs.pop();
-      const x = opened(p);
-      const y = opened(q);
-      if (isList(x) || isList(y)) {
-        if (!isList(x) || !isList(y) || x.length !== y.length) return false;
-        x.forEach((v, i) => pairs.push([v, y[i]]));
-      } else if (!isObject(x) || !isObject(y)) {
-        if (isObject(x) || isObject(y) || scalar(x) !== scalar(y)) return false;
-      } else if (isVariant(x) || isVariant(y)) {
-        if (x.$case !== y.$case || Object.hasOwn(x, "value") !== Object.hasOwn(y, "value")) return false;
-        if (Object.hasOwn(x, "value")) pairs.push([x.value, y.value]);
-      } else {
-        const keys = Object.keys(x);
-        if (keys.length !== Object.keys(y).length) return false;
-        for (const k of keys) {
-          if (!Object.hasOwn(y, k)) return false;
-          pairs.push([x[k], y[k]]);
-        }
-      }
-    }
-    return true;
-  }
-
   // --- what a render has -----------------------------------------------------
 
   /** The values a render has, by path. A name bound inside it goes in front
@@ -1223,7 +1219,10 @@ const renderer = (() => {
 
   function bound(e, key) {
     for (let n = e.names; n; n = n.up) if (n.name === key) return opened(n.value);
-    return e.page.has(key) ? opened(e.page.get(key)) : NONE;
+    if (!e.page.has(key)) return NONE;
+    // What a row read of the page, to say whether its text still holds.
+    if (!PW_SERVER && e.reads) e.reads.set(key, e.page.get(key));
+    return opened(e.page.get(key));
   }
 
   /** The value at `path`: a whole path set directly, or the longest name
@@ -1290,9 +1289,12 @@ const renderer = (() => {
 
   /** **An instance's address in this page.** One per instance and key, for
    * as long as the page is open, and so never the same for two; the server's
-   * are a keyed hash, under a key a page does not hold. */
+   * are a keyed hash, under a key a page does not hold. A row of a list with
+   * no list around it is addressed by its list and key, in the characters an
+   * anchor may hold, so nothing is kept for a row the page has let go. */
   const tokens = new Map();
   function tokenOf(e, id, key) {
+    if (e.frames.length === 0) return `k${id}_${key.replace(/[^A-Za-z0-9-]/g, (c) => `_${c.charCodeAt(0).toString(16)}_`)}`;
     const said = `${e.frames.map((f) => `${f.scope}@${f.instance}`).join("/")}|${id}|${key}`;
     let token = tokens.get(said);
     if (token === undefined) tokens.set(said, (token = `b${tokens.size}`));
@@ -1306,78 +1308,82 @@ const renderer = (() => {
   const escText = (v) => v.replace(/[&<>]/g, entity);
   const escAttribute = (v) => v.replace(/[&"'<>`]/g, entity);
   const escContent = (v) => (/^[\n\r]/.test(v) ? "\n" : "") + escText(v);
-  const lowerAscii = (s) => s.replace(/[A-Z]+/g, (m) => m.toLowerCase());
-  const UNSEEN = /[\p{White_Space}\p{Cc}]/gu;
-  const DANGEROUS = ["javascript:", "vbscript:", "data:"];
-  const utf8 = new TextEncoder();
+  // The escaping of a value in a URL or a style: only a page with one needs it.
+  const { escUrlComponent, escUrl, escStyle } = !PW_LINKS ? {} : (() => {
+    const lowerAscii = (s) => s.replace(/[A-Z]+/g, (m) => m.toLowerCase());
+    const UNSEEN = /[\p{White_Space}\p{Cc}]/gu;
+    const DANGEROUS = ["javascript:", "vbscript:", "data:"];
+    const utf8 = new TextEncoder();
 
-  /** A value inside a URL whose text the author wrote around it: one
-   * component, every UTF-8 byte but RFC 3986's unreserved encoded. */
-  function escUrlComponent(v) {
-    let out = "";
-    for (const b of utf8.encode(v)) {
-      const plain = (b > 47 && b < 58) || (b > 64 && b < 91) || (b > 96 && b < 123) || b === 45 || b === 46 || b === 95 || b === 126;
-      out += plain ? String.fromCharCode(b) : `%${b.toString(16).toUpperCase().padStart(2, "0")}`;
-    }
-    return out;
-  }
-
-  function digits(text, radix, shape) {
-    if (!shape.test(text)) return null;
-    let n = 0;
-    for (const d of text.replace("+", "")) {
-      n = n * radix + parseInt(d, radix);
-      if (n > 0xffffffff) return null;
-    }
-    return n;
-  }
-
-  /** What a reference's body says, `""` for what a parser drops, `null` for
-   * what this does not read. The text is lowercased already. */
-  function referenced(body) {
-    let code;
-    if (body.startsWith("#x")) code = digits(body.slice(2), 16, /^\+?[0-9a-f]+$/);
-    else if (body[0] === "#") code = digits(body.slice(1), 10, /^\+?[0-9]+$/);
-    else return body === "colon" ? ":" : body === "amp" ? "&" : null;
-    if (code === null || code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff)) return null;
-    const c = String.fromCodePoint(code);
-    return c.replace(UNSEEN, "");
-  }
-
-  function decodeEntities(s) {
-    let out = "";
-    let rest = s;
-    for (let i = rest.indexOf("&"); i >= 0; i = rest.indexOf("&")) {
-      out += rest.slice(0, i);
-      rest = rest.slice(i);
-      // Within twelve characters, as the server's is within twelve bytes:
-      // a body holding a wide character is no number, and leaves an `&` at
-      // the front of what is compared, wherever its window ends.
-      const end = rest.slice(0, 12).indexOf(";");
-      if (end < 0) {
-        out += "&";
-        rest = rest.slice(1);
-        continue;
+    /** A value inside a URL whose text the author wrote around it: one
+     * component, every UTF-8 byte but RFC 3986's unreserved encoded. */
+    function escUrlComponent(v) {
+      let out = "";
+      for (const b of utf8.encode(v)) {
+        const plain = (b > 47 && b < 58) || (b > 64 && b < 91) || (b > 96 && b < 123) || b === 45 || b === 46 || b === 95 || b === 126;
+        out += plain ? String.fromCharCode(b) : `%${b.toString(16).toUpperCase().padStart(2, "0")}`;
       }
-      out += referenced(rest.slice(1, end)) ?? rest.slice(0, end + 1);
-      rest = rest.slice(end + 1);
+      return out;
     }
-    return out + rest;
-  }
 
-  /** A URL-valued attribute: a scheme that executes is replaced, whatever
-   * spelling reaches the parser, and then the attribute's rules. */
-  function escUrl(v) {
-    const decoded = decodeEntities(lowerAscii(v.replace(UNSEEN, "")));
-    return DANGEROUS.some((s) => decoded.startsWith(s)) ? "about:blank" : escAttribute(v);
-  }
+    function digits(text, radix, shape) {
+      if (!shape.test(text)) return null;
+      let n = 0;
+      for (const d of text.replace("+", "")) {
+        n = n * radix + parseInt(d, radix);
+        if (n > 0xffffffff) return null;
+      }
+      return n;
+    }
 
-  function escStyle(v) {
-    const lower = lowerAscii(v);
-    const suspicious =
-      lower.includes("expression(") || DANGEROUS.some((s) => lower.includes(`url(${s}`) || lower.includes(`url('${s}`));
-    return suspicious ? "" : escAttribute(v);
-  }
+    /** What a reference's body says, `""` for what a parser drops, `null` for
+     * what this does not read. The text is lowercased already. */
+    function referenced(body) {
+      let code;
+      if (body.startsWith("#x")) code = digits(body.slice(2), 16, /^\+?[0-9a-f]+$/);
+      else if (body[0] === "#") code = digits(body.slice(1), 10, /^\+?[0-9]+$/);
+      else return body === "colon" ? ":" : body === "amp" ? "&" : null;
+      if (code === null || code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff)) return null;
+      const c = String.fromCodePoint(code);
+      return c.replace(UNSEEN, "");
+    }
+
+    function decodeEntities(s) {
+      let out = "";
+      let rest = s;
+      for (let i = rest.indexOf("&"); i >= 0; i = rest.indexOf("&")) {
+        out += rest.slice(0, i);
+        rest = rest.slice(i);
+        // Within twelve characters, as the server's is within twelve bytes:
+        // a body holding a wide character is no number, and leaves an `&` at
+        // the front of what is compared, wherever its window ends.
+        const end = rest.slice(0, 12).indexOf(";");
+        if (end < 0) {
+          out += "&";
+          rest = rest.slice(1);
+          continue;
+        }
+        out += referenced(rest.slice(1, end)) ?? rest.slice(0, end + 1);
+        rest = rest.slice(end + 1);
+      }
+      return out + rest;
+    }
+
+    /** A URL-valued attribute: a scheme that executes is replaced, whatever
+     * spelling reaches the parser, and then the attribute's rules. */
+    function escUrl(v) {
+      const decoded = decodeEntities(lowerAscii(v.replace(UNSEEN, "")));
+      return DANGEROUS.some((s) => decoded.startsWith(s)) ? "about:blank" : escAttribute(v);
+    }
+
+    function escStyle(v) {
+      const lower = lowerAscii(v);
+      const suspicious =
+        lower.includes("expression(") || DANGEROUS.some((s) => lower.includes(`url(${s}`) || lower.includes(`url('${s}`));
+      return suspicious ? "" : escAttribute(v);
+    }
+    return { escUrlComponent, escUrl, escStyle };
+  })();
 
   /** The one place a context becomes an escaping function. */
   function escaped(v, context) {
@@ -1404,8 +1410,14 @@ const renderer = (() => {
    * view that contains itself goes as deep as its data, and this stays no
    * deeper on the stack (ADR-0203). */
   function rendered(others, first) {
-    const opening = (write) => {
-      const out = { html: [], later: [] };
+    return written_(others, first, false).join("");
+  }
+
+  /** The same, its pieces: text, and where `lists`, each keyed list at the top
+   * of the block apart from it. */
+  function written_(others, first, lists) {
+    const opening = (write, whole) => {
+      const out = { html: [], later: [], lists: whole && lists };
       let failed = null;
       try {
         write(out);
@@ -1415,7 +1427,7 @@ const renderer = (() => {
       }
       return { out, failed, next: 0, written: 0 };
     };
-    const open = [opening(first)];
+    const open = [opening(first, true)];
     const doc = [];
     const copy = (top, until) => {
       for (; top.written < until; top.written++) doc.push(top.out.html[top.written]);
@@ -1432,7 +1444,7 @@ const renderer = (() => {
       if (top.failed) throw top.failed;
       copy(top, top.out.html.length);
     }
-    return doc.join("");
+    return doc;
   }
 
   function emit(chunks, e, others, out) {
@@ -1451,10 +1463,19 @@ const renderer = (() => {
           run.push(q.value);
         }
         i += run.length;
-        out.html.push(capturesAttribute(run, e));
+        const text = capturedText(run, e);
+        out.html.push(capturesAttribute(run, e, text));
+        // A row's plan sets what the handlers capture as it was before it was
+        // escaped: nothing is read back.
+        if (!PW_SERVER && out.holes) {
+          out.holes.push(out.html[out.html.length - 1]);
+          out.raws[out.holes.length - 1] = text;
+        }
         continue;
       } else {
+        const mark = out.html.length;
         emitPart(c.value, e, others, out);
+        if (!PW_SERVER && out.holes) out.holes.push(out.html.slice(mark).join(""));
       }
       i += 1;
     }
@@ -1480,7 +1501,9 @@ const renderer = (() => {
       case "canonical":
         return;
       case "text":
-        html.push(start, escaped(needText(e, p.value), p.context), end);
+        // Nothing addresses a text inside a kept row: it is morphed whole.
+        if (out.bare) html.push(escaped(needText(e, p.value), p.context));
+        else html.push(start, escaped(needText(e, p.value), p.context), end);
         return;
       case "attribute":
         if (p.context === "content") {
@@ -1539,8 +1562,12 @@ const renderer = (() => {
     const html = out.html;
     const items = need(e, p.collection);
     if (!isList(items)) throw missing(p.collection);
-    const seen = new Set();
     html.push(start);
+    if (!PW_SERVER && out.lists && e.frames.length === 0 && p.key !== null && p.key !== undefined) {
+      html.push(rowsKept(p, e, others, items), end);
+      return;
+    }
+    const seen = new Set();
     for (const raw of items) {
       const item = opened(raw);
       const scoped = named(e, p.binding, item);
@@ -1548,10 +1575,7 @@ const renderer = (() => {
         emit(p.body, scoped, others, out);
         continue;
       }
-      const key = keyOf(item, p.key);
-      if (key === "") throw new Blocked("MissingLoopKey", p.key);
-      if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);
-      seen.add(key);
+      const key = rowKey(item, p, seen);
       const token = tokenOf(e, p.id, key);
       html.push(`<!--pw:s${p.id}@${token}-->`);
       emit(p.body, within(scoped, p.id, token), others, out);
@@ -1560,10 +1584,98 @@ const renderer = (() => {
     html.push(end);
   }
 
+  /** An item's key in its list, and no other item's. */
+  function rowKey(item, p, seen) {
+    const key = keyOf(item, p.key);
+    if (key === "") throw new Blocked("MissingLoopKey", p.key);
+    if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);
+    seen.add(key);
+    return key;
+  }
+
+  /** Whether nothing asks for what is inside a row, as `DELEGATED` says. */
+  const DELEGATED_ROWS = !PW_SERVER && !PW_VIEWS;
+
+  /** How many rows' text the last block's render wrote. */
+  let rowsWritten = 0;
+
+  /** What each keyed list at the top of a block last wrote, by its key: each
+   * row's value, what it read of the page, and its text. */
+  const kept = new Map();
+
+  /** **The rows of list `p`**, each the one kept where nothing it reads has
+   * changed, so a press writes the text of the rows it changed. */
+  function rowsKept(p, e, others, items) {
+    const was = kept.get(p.id);
+    const now = new Map();
+    const seen = new Set();
+    const rows = items.map((raw) => {
+      const item = opened(raw);
+      const key = rowKey(item, p, seen);
+      const old = was?.get(key);
+      const row = old && holdsStill(old, item, e) ? old : rowOf(p, e, others, item, key);
+      now.set(key, row);
+      return row;
+    });
+    kept.set(p.id, now);
+    return { part: p.id, rows, of: PW_PLANS && planned(p) ? p : null };
+  }
+
+  function holdsStill(row, item, e) {
+    if (!same(row.item, item)) return false;
+    // What a `{#match}` around the list bound, which a row can read.
+    for (let a = row.names, b = e.names; a || b; a = a.up, b = b.up) {
+      if (!a || !b || a.name !== b.name || !same(a.value, b.value)) return false;
+    }
+    for (const [name, value] of row.reads) if (e.page.get(name) !== value) return false;
+    return true;
+  }
+
+  function rowOf(p, e, others, item, key) {
+    rowsWritten += 1;
+    const reads = new Map();
+    const token = tokenOf(e, p.id, key);
+    const at = `${p.id}@${token}`;
+    let holes, raws;
+    const text = rendered(others, (out) => {
+      out.bare = !PW_SERVER && DELEGATED_ROWS;
+      if (PW_PLANS && planned(p)) {
+        out.holes = holes = [];
+        out.raws = raws = [];
+      }
+      out.html.push(`<!--pw:s${at}-->`);
+      emit(p.body, within(named({ ...e, reads }, p.binding, item), p.id, token), others, out);
+      out.html.push(`<!--pw:e${at}-->`);
+    });
+    return { key: at, text, item, reads, names: e.names, holes, raws };
+  }
+
+  /** Each list part whose rows a plan can make, as `planned` found it. */
+  const plannable = !PW_PLANS ? null : new WeakMap();
+
+  /** **Whether a list's rows can be made from one parsed row** (`planOf`):
+   * nothing inside a row changes its shape, and no anchor inside it is read.
+   * A build with no such list holds none of this (an expression, so that
+   * the build drops it). */
+  const planned = !PW_PLANS ? null : function planned(p) {
+    if (!plannable.has(p)) {
+      // The packaging holds this too (`HOLES`), to know a build needs plans.
+      // fallow-ignore-next-line code-duplication
+      const hole = (v) =>
+        (v.part === "text" && v.context === "text") ||
+        (v.part === "attribute" && v.context !== "content") ||
+        v.part === "interpolated_attribute" ||
+        v.part === "boolean_attribute" ||
+        v.part === "event";
+      plannable.set(p, DELEGATED_ROWS && p.body.every((c) => c.chunk === "static" || hole(c.value)));
+    }
+    return plannable.get(p);
+  };
+
   /** The most elements a page may nest (`NESTED_ELEMENTS`, ADR-0203). */
   const NESTED_ELEMENTS = 500;
 
-  function emitInstance(p, e, others, out) {
+  const emitInstance = !PW_VIEWS ? null : function emitInstance(p, e, others, out) {
     const t = others.find((o) => o.path === p.path);
     if (!t) throw new Blocked("UnknownInstance", p.path);
     const root = e.elements + (p.elements ?? 0);
@@ -1574,10 +1686,10 @@ const renderer = (() => {
     out.html.push(`<!--pw:s${p.id}@${token}-->`);
     out.later.push({ at: out.html.length, chunks: t.chunks, env: child });
     out.html.push(`<!--pw:e${p.id}@${token}-->`);
-  }
+  };
 
   /** The arm a `{#match}` shows, and what its body is rendered in. */
-  function armShown(arms, path, e) {
+  const armShown = !PW_MATCH ? null : function armShown(arms, path, e) {
     const v = need(e, path);
     if (!isVariant(v)) throw unrepresented("a {#match} takes an Option or a Result apart");
     const arm = arms.find((a) => a.case === v.$case);
@@ -1596,7 +1708,7 @@ const renderer = (() => {
       fields.forEach((name, i) => (scoped = named(scoped, name, parts[i])));
     }
     return [arm, scoped];
-  }
+  };
 
   /** An attribute part's name and its value as the document writes it,
    * `null` for a boolean attribute that is absent; `null` for no attribute. */
@@ -1681,6 +1793,14 @@ const renderer = (() => {
   /** What an element's handlers capture, as the document writes it, or
    * `null` where nothing is captured. */
   function captures(parts, e) {
+    return escapedCaptures(capturedText(parts, e));
+  }
+
+  /** The one place what a handler captures is escaped. */
+  const escapedCaptures = (text) => (text === null ? null : escAttribute(text));
+
+  /** What `parts` capture, as text before it is escaped; `null` for nothing. */
+  function capturedText(parts, e) {
     const paths = new Map();
     for (const p of parts) {
       if (p.part !== "event") continue;
@@ -1705,203 +1825,261 @@ const renderer = (() => {
       if (v === NONE) throw missing(at);
       insertAt(object, path, captured(v));
     }
-    return escAttribute(written(object));
+    return written(object);
   }
 
-  function capturesAttribute(run, e) {
-    const value = captures(run, e);
+  function capturesAttribute(run, e, text = capturedText(run, e)) {
+    const value = escapedCaptures(text);
     return value === null ? "" : ` data-pw-captures="${value}"`;
   }
 
-  // --- what changed --------------------------------------------------------
+  const scalar = (v) => (typeof v === "boolean" ? "b" : isInt(v) ? "i" : "t") + shown(v);
 
-  function nested(p) {
-    switch (p.part) {
-      case "conditional":
-        return [p.then, p.otherwise];
-      case "each":
-        return [p.body];
-      case "match":
-        return p.arms.map((a) => a.body);
-      case "stream":
-        return [p.placeholder, p.ready.body, p.failed.body];
-      default:
-        return [];
-    }
-  }
-
-  function handlersWithin(chunks, out) {
-    for (const c of chunks) {
-      if (c.chunk !== "dynamic") continue;
-      const p = c.value;
-      if (p.part === "event") {
-        if (!out.has(p.owner)) out.set(p.owner, []);
-        out.get(p.owner).push(p);
-      }
-      for (const inner of nested(p)) handlersWithin(inner, out);
-    }
-  }
-
-  /** What changed in one row, part by part; `null` where it is rendered again. */
-  function rowChanges(p, was, now, e, others) {
-    const scoped = (item) => within(named(e, p.binding, item), p.id, tokenOf(e, p.id, keyOf(item, p.key)));
-    const before = scoped(was);
-    const after = scoped(now);
-    const handlers = new Map();
-    handlersWithin(p.body, handlers);
-    const out = [];
-    return changesWithin(p.body, before, after, handlers, others, out) ? out : null;
-  }
-
-  function changesWithin(chunks, before, after, handlers, others, out) {
-    for (const c of chunks) {
-      if (c.chunk !== "dynamic") continue;
-      const p = c.value;
-      const differs = () => {
-        const one = [c];
-        return rendered(others, (o) => emit(one, before, others, o)) !== rendered(others, (o) => emit(one, after, others, o));
-      };
-      switch (p.part) {
-        case "text": {
-          const x = shown(need(before, p.value));
-          const y = shown(need(after, p.value));
-          if (x === null || y === null) {
-            if (differs()) return false;
-          } else if (x !== y) {
-            out.push([p.id, { text: y }]);
-          }
-          break;
+  /** Whether two values are one value, as the server's `==` has it. What two
+   * values hold as one is one value, and is not looked into: a list of a
+   * thousand rows, each a new record of the same fields, is compared field by
+   * field without a pair made for each. */
+  function same(a, b) {
+    const pairs = [[a, b]];
+    while (pairs.length) {
+      const [p, q] = pairs.pop();
+      const x = opened(p);
+      const y = opened(q);
+      if (x === y) continue;
+      if (isList(x) || isList(y)) {
+        if (!isList(x) || !isList(y) || x.length !== y.length) return false;
+        for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) pairs.push([x[i], y[i]]);
+      } else if (!isObject(x) || !isObject(y)) {
+        if (isObject(x) || isObject(y) || scalar(x) !== scalar(y)) return false;
+      } else if (isVariant(x) || isVariant(y)) {
+        if (x.$case !== y.$case || Object.hasOwn(x, "value") !== Object.hasOwn(y, "value")) return false;
+        if (Object.hasOwn(x, "value") && x.value !== y.value) pairs.push([x.value, y.value]);
+      } else {
+        const keys = Object.keys(x);
+        if (keys.length !== Object.keys(y).length) return false;
+        for (const k of keys) {
+          if (!Object.hasOwn(y, k)) return false;
+          if (x[k] !== y[k]) pairs.push([x[k], y[k]]);
         }
-        case "attribute":
-        case "boolean_attribute":
-        case "interpolated_attribute": {
-          const x = attributeOf(p, before);
-          const y = attributeOf(p, after);
-          if (x[0] !== y[0] || x[1] !== y[1]) out.push([p.id, { attribute: y[0], value: y[1] }]);
-          break;
-        }
-        case "event": {
-          const run = handlers.get(p.owner) ?? [];
-          if (run[0]?.id !== p.id) break;
-          const x = captures(run, before);
-          const y = captures(run, after);
-          if (x !== y) out.push([p.id, { attribute: "data-pw-captures", value: y }]);
-          break;
-        }
-        case "conditional": {
-          const x = holds(need(before, p.value));
-          const y = holds(need(after, p.value));
-          if (x !== y || !changesWithin(x ? p.then : p.otherwise, before, after, handlers, others, out)) return false;
-          break;
-        }
-        case "match": {
-          const [x, was] = armShown(p.arms, p.value, before);
-          const [y, now] = armShown(p.arms, p.value, after);
-          if (x.case !== y.case || !changesWithin(y.body, was, now, handlers, others, out)) return false;
-          break;
-        }
-        case "each": {
-          const x = p.key === null || p.key === undefined ? NONE : read(before, p.collection);
-          const y = p.key === null || p.key === undefined ? NONE : read(after, p.collection);
-          if (isList(x) && isList(y)) {
-            // A list inside a row: its row is rendered again in the browser,
-            // and whether it changed is what is asked here.
-            if (!same(x, y) && listChanged(p, x, y, after, others)) out.push([p.id, { list: true }]);
-          } else if (differs()) {
-            return false;
-          }
-          break;
-        }
-        default:
-          if (differs()) return false;
       }
     }
     return true;
   }
 
-  /** Whether the keyed loop `p` goes from `old` to `now` by any operation,
-   * refusing as the server's derivation of them does (`each_changes`). */
-  function listChanged(p, old, now, e, others) {
-    const seen = new Set();
-    for (const raw of now) {
-      const key = keyOf(opened(raw), p.key);
-      if (key === "") throw new Blocked("MissingLoopKey", p.key);
-      if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);
-      seen.add(key);
-    }
-    const token = (v) => tokenOf(e, p.id, keyOf(opened(v), p.key));
-    const wanted = now.map(token);
-    const current = [];
-    let changed = false;
-    for (const v of old) {
-      const t = token(v);
-      if (wanted.includes(t)) current.push([t, v]);
-      else changed = true;
-    }
-    now.forEach((raw, i) => {
-      const item = opened(raw);
-      const found = current.findIndex(([t]) => t === wanted[i]);
-      if (found < 0) {
-        eachInstance(p, item, e, others);
-        current.splice(i, 0, [wanted[i], item]);
-        changed = true;
-        return;
-      }
-      if (found !== i) {
-        current.splice(i, 0, current.splice(found, 1)[0]);
-        changed = true;
-      }
-      if (!same(current[i][1], item)) {
-        if (rowChanges(p, opened(current[i][1]), item, e, others) === null) eachInstance(p, item, e, others);
-        current[i][1] = item;
-        changed = true;
-      }
-    });
-    return changed;
-  }
-
-  function eachInstance(p, item, e, others) {
-    if (p.key === null || p.key === undefined) throw unrepresented("an unkeyed loop has no addressable instance");
-    const key = keyOf(item, p.key);
-    if (key === "") throw new Blocked("MissingLoopKey", p.key);
-    const token = tokenOf(e, p.id, key);
-    const scoped = within(named(e, p.binding, item), p.id, token);
-    return rendered(others, (out) => {
-      out.html.push(`<!--pw:s${p.id}@${token}-->`);
-      emit(p.body, scoped, others, out);
-      out.html.push(`<!--pw:e${p.id}@${token}-->`);
-    });
-  }
-
   // --- what the page asks ---------------------------------------------------
 
-  return {
+  const asked = {
     env,
-    same,
     letGo: () => tokens.clear(),
     /** One part, its anchors included. */
     part: (p, e, others) => rendered(others, (out) => emit([{ chunk: "dynamic", value: p }], e, others, out)),
+    /** A block as a page that talks to no server keeps it: what is around
+     * each of its keyed lists (`strs`, one more than `lists`), and the rows. */
+    block: PW_SERVER
+      ? null
+      : (p, e, others) => {
+          const strs = [""];
+          const lists = [];
+          rowsWritten = 0;
+          const write = (out) => emit([{ chunk: "dynamic", value: p }], e, others, out);
+          for (const piece of written_(others, write, true)) {
+            if (typeof piece === "string") strs[strs.length - 1] += piece;
+            else {
+              lists.push(piece);
+              strs.push("");
+            }
+          }
+          return { strs, lists, written: rowsWritten };
+        },
+    same,
+    captures,
+  };
+
+  // Only a page with a server is sent a list's changes to compare with what
+  // it holds, so the runtime of a page that talks to none has none of this.
+  if (PW_SERVER) {
+    // --- what changed --------------------------------------------------------
+
+    function nested(p) {
+      switch (p.part) {
+        case "conditional":
+          return [p.then, p.otherwise];
+        case "each":
+          return [p.body];
+        case "match":
+          return p.arms.map((a) => a.body);
+        case "stream":
+          return [p.placeholder, p.ready.body, p.failed.body];
+        default:
+          return [];
+      }
+    }
+
+    function handlersWithin(chunks, out) {
+      for (const c of chunks) {
+        if (c.chunk !== "dynamic") continue;
+        const p = c.value;
+        if (p.part === "event") {
+          if (!out.has(p.owner)) out.set(p.owner, []);
+          out.get(p.owner).push(p);
+        }
+        for (const inner of nested(p)) handlersWithin(inner, out);
+      }
+    }
+
+    /** What changed in one row, part by part; `null` where it is rendered again. */
+    function rowChanges(p, was, now, e, others) {
+      const scoped = (item) => within(named(e, p.binding, item), p.id, tokenOf(e, p.id, keyOf(item, p.key)));
+      const before = scoped(was);
+      const after = scoped(now);
+      const handlers = new Map();
+      handlersWithin(p.body, handlers);
+      const out = [];
+      return changesWithin(p.body, before, after, handlers, others, out) ? out : null;
+    }
+
+    function changesWithin(chunks, before, after, handlers, others, out) {
+      for (const c of chunks) {
+        if (c.chunk !== "dynamic") continue;
+        const p = c.value;
+        const differs = () => {
+          const one = [c];
+          return rendered(others, (o) => emit(one, before, others, o)) !== rendered(others, (o) => emit(one, after, others, o));
+        };
+        switch (p.part) {
+          case "text": {
+            const x = shown(need(before, p.value));
+            const y = shown(need(after, p.value));
+            if (x === null || y === null) {
+              if (differs()) return false;
+            } else if (x !== y) {
+              out.push([p.id, { text: y }]);
+            }
+            break;
+          }
+          case "attribute":
+          case "boolean_attribute":
+          case "interpolated_attribute": {
+            const x = attributeOf(p, before);
+            const y = attributeOf(p, after);
+            if (x[0] !== y[0] || x[1] !== y[1]) out.push([p.id, { attribute: y[0], value: y[1] }]);
+            break;
+          }
+          case "event": {
+            const run = handlers.get(p.owner) ?? [];
+            if (run[0]?.id !== p.id) break;
+            const x = captures(run, before);
+            const y = captures(run, after);
+            if (x !== y) out.push([p.id, { attribute: "data-pw-captures", value: y }]);
+            break;
+          }
+          case "conditional": {
+            const x = holds(need(before, p.value));
+            const y = holds(need(after, p.value));
+            if (x !== y || !changesWithin(x ? p.then : p.otherwise, before, after, handlers, others, out)) return false;
+            break;
+          }
+          case "match": {
+            const [x, was] = armShown(p.arms, p.value, before);
+            const [y, now] = armShown(p.arms, p.value, after);
+            if (x.case !== y.case || !changesWithin(y.body, was, now, handlers, others, out)) return false;
+            break;
+          }
+          case "each": {
+            const x = p.key === null || p.key === undefined ? NONE : read(before, p.collection);
+            const y = p.key === null || p.key === undefined ? NONE : read(after, p.collection);
+            if (isList(x) && isList(y)) {
+              // A list inside a row: its row is rendered again in the browser,
+              // and whether it changed is what is asked here.
+              if (!same(x, y) && listChanged(p, x, y, after, others)) out.push([p.id, { list: true }]);
+            } else if (differs()) {
+              return false;
+            }
+            break;
+          }
+          default:
+            if (differs()) return false;
+        }
+      }
+      return true;
+    }
+
+    /** Whether the keyed loop `p` goes from `old` to `now` by any operation,
+     * refusing as the server's derivation of them does (`each_changes`). */
+    function listChanged(p, old, now, e, others) {
+      const seen = new Set();
+      for (const raw of now) {
+        const key = keyOf(opened(raw), p.key);
+        if (key === "") throw new Blocked("MissingLoopKey", p.key);
+        if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);
+        seen.add(key);
+      }
+      const token = (v) => tokenOf(e, p.id, keyOf(opened(v), p.key));
+      const wanted = now.map(token);
+      const current = [];
+      let changed = false;
+      for (const v of old) {
+        const t = token(v);
+        if (wanted.includes(t)) current.push([t, v]);
+        else changed = true;
+      }
+      now.forEach((raw, i) => {
+        const item = opened(raw);
+        const found = current.findIndex(([t]) => t === wanted[i]);
+        if (found < 0) {
+          eachInstance(p, item, e, others);
+          current.splice(i, 0, [wanted[i], item]);
+          changed = true;
+          return;
+        }
+        if (found !== i) {
+          current.splice(i, 0, current.splice(found, 1)[0]);
+          changed = true;
+        }
+        if (!same(current[i][1], item)) {
+          if (rowChanges(p, opened(current[i][1]), item, e, others) === null) eachInstance(p, item, e, others);
+          current[i][1] = item;
+          changed = true;
+        }
+      });
+      return changed;
+    }
+
+    function eachInstance(p, item, e, others) {
+      if (p.key === null || p.key === undefined) throw unrepresented("an unkeyed loop has no addressable instance");
+      const key = keyOf(item, p.key);
+      if (key === "") throw new Blocked("MissingLoopKey", p.key);
+      const token = tokenOf(e, p.id, key);
+      const scoped = within(named(e, p.binding, item), p.id, token);
+      return rendered(others, (out) => {
+        out.html.push(`<!--pw:s${p.id}@${token}-->`);
+        emit(p.body, scoped, others, out);
+        out.html.push(`<!--pw:e${p.id}@${token}-->`);
+      });
+    }
+
     /** One instance of a keyed loop, for its item. */
-    instance(p, item, e, others) {
+    asked.instance = (p, item, e, others) => {
       if (p.part === "blocked") throw malformed("the part is no loop");
       if (p.part !== "each") throw unrepresented("the part is not a keyed loop");
       return eachInstance(p, opened(item), e, others);
-    },
+    };
     /** What changed in one instance, `null` where it is rendered again. */
-    changes(p, was, now, e, others) {
+    asked.changes = (p, was, now, e, others) => {
       if (p.part === "blocked") throw malformed("the part is no loop");
       if (p.part !== "each" || p.key === null || p.key === undefined) throw unrepresented("the part is not a keyed loop");
       const found = rowChanges(p, opened(was), opened(now), e, others);
       return found && found.some(([, change]) => change.list) ? null : found;
-    },
+    };
     /** An attribute's name, and its value as the document writes it. */
-    attribute(p, e) {
+    asked.attribute = (p, e) => {
       const found = attributeOf(p, e);
       if (found === null) throw malformed("the part is no attribute");
       return found;
-    },
-    captures,
-  };
+    };
+  }
+
+  return asked;
 })();
 // --- end of the browser's renderer
 
@@ -2322,7 +2500,30 @@ function readsOf(live) {
  * the page computes from them. */
 async function renderBlock(id) {
   const computed = await computedNow();
-  return renderer.part(parts.blocks[id], renderer.env([...signals, ...computed]), TEMPLATES);
+  const values = renderer.env([...signals, ...computed]);
+  if (PW_SERVER) return renderer.part(parts.blocks[id], values, TEMPLATES);
+  const block = renderer.block(parts.blocks[id], values, TEMPLATES);
+  block.boxes = boxesIn(id);
+  return block;
+}
+
+/** Whether block `id` can show a box: an `<input>` its markup writes, or a
+ * view it shows may. Read once a block, as its template does not change. */
+const boxed = new Map();
+function boxesIn(id) {
+  if (!boxed.has(id)) boxed.set(id, PW_VIEWS || /<input[\s>/]/i.test(JSON.stringify(parts.blocks[id])));
+  return boxed.get(id);
+}
+
+/** A block as the text of the document, the rows of each list of `without`
+ * left out. */
+function textOfBlock(block, without = []) {
+  if (PW_SERVER) return block;
+  let text = block.strs[0];
+  block.lists.forEach((list, i) => {
+    text += (without.includes(list) ? "" : list.rows.map((row) => row.text).join("")) + block.strs[i + 1];
+  });
+  return text;
 }
 
 /** The nodes from `start` to `end`, both included. */
@@ -2533,10 +2734,10 @@ function rowsOf(nodes) {
   for (let i = 0; i < nodes.length; i++) {
     const a = rowAnchor(nodes[i]);
     if (a?.start) {
-      const end = nodes.findIndex(
-        (n, j) => j > i && n.nodeType === Node.COMMENT_NODE && n.data === `pw:e${a.part}@${a.token}`,
-      );
-      if (end > i) {
+      const close = `pw:e${a.part}@${a.token}`;
+      let end = i + 1;
+      while (end < nodes.length && !(nodes[end].nodeType === Node.COMMENT_NODE && nodes[end].data === close)) end++;
+      if (end < nodes.length) {
         items.push({ key: `${a.part}@${a.token}`, nodes: nodes.slice(i, end + 1) });
         i = end;
         continue;
@@ -2634,10 +2835,12 @@ function morphChildren(parent, olds, freshes, before, inserted) {
   }
   // What the new rendering has not, gone: a modal dialog among it closed
   // first, its focus given back (ADR-0141).
-  for (const o of old) {
+  if (!PW_DIALOGS) {
+    runsGone(old, used);
+  } else for (const o of old) {
     if (used.has(o)) continue;
     for (const n of o.nodes ?? [o.node]) {
-      if (n.nodeType === Node.ELEMENT_NODE) {
+      if (PW_DIALOGS && n.nodeType === Node.ELEMENT_NODE) {
         for (const d of dialogsIn([n], true)) {
           d.close();
           giveFocusBack(d);
@@ -2650,6 +2853,17 @@ function morphChildren(parent, olds, freshes, before, inserted) {
   let anchor = before;
   for (let i = placed.length - 1; i >= 0; i--) {
     const n = placed[i];
+    if (!n.isConnected) {
+      // New nodes side by side go in as one.
+      let first = i;
+      while (first > 0 && !placed[first - 1].isConnected) first--;
+      const run = document.createDocumentFragment();
+      for (let k = first; k <= i; k++) run.appendChild(placed[k]);
+      parent.insertBefore(run, anchor);
+      anchor = placed[first];
+      i = first;
+      continue;
+    }
     if (n.parentNode !== parent || n.nextSibling !== anchor) {
       if (n.isConnected && n.parentNode === parent) moveNodes(parent, [n], anchor);
       else parent.insertBefore(n, anchor);
@@ -2658,15 +2872,454 @@ function morphChildren(parent, olds, freshes, before, inserted) {
   }
 }
 
+/** The siblings from `first` to `last` gone. Where only comments and text are
+ * left beside them the parent's children are replaced in one step, which every
+ * engine does at once; a `Range` over ten thousand rows took WebKit three
+ * seconds. */
+function spanGone(first, last) {
+  const parent = first.parentNode;
+  const rest = [];
+  for (let n = parent.firstChild; n; n = n.nextSibling) {
+    if (n === first) {
+      n = last;
+      continue;
+    }
+    if (n.nodeType === Node.ELEMENT_NODE || rest.length === 64) {
+      for (let gone = first; ; ) {
+        const next = gone.nextSibling;
+        gone.remove();
+        if (gone === last) return;
+        gone = next;
+      }
+    }
+    rest.push(n);
+  }
+  parent.replaceChildren(...rest);
+}
+
+/** Each run of items side by side that a morph does not keep, gone at once:
+ * a thousand rows are one step for the browser, not a thousand. */
+function runsGone(old, used) {
+  for (let i = 0; i < old.length; i++) {
+    if (used.has(old[i])) continue;
+    let last = i;
+    while (last + 1 < old.length && !used.has(old[last + 1])) last++;
+    spanGone(old[i].nodes?.[0] ?? old[i].node, old[last].nodes?.at(-1) ?? old[last].node);
+    i = last;
+  }
+}
+
 /** **A block the browser renders again, morphed**: what it rendered kept
  * where the new rendering has it, and the nodes it inserted. */
 function morphBlock(id, html) {
   const r = index.get(addressOf([], id));
-  if (!r?.start) return [];
+  // Not shown, or taken away by a block around it earlier in this same pass.
+  if (!r?.start?.isConnected) return [];
   const parent = r.start.parentNode;
   const inserted = [];
-  morphChildren(parent, between(r.start, r.end), parseInstance(html), r.end.nextSibling, inserted);
+  if (!PW_SERVER) {
+    const before = lastRendered.get(r.start);
+    lastRendered.set(r.start, html);
+    if (before && rowsMade(r, before, html, inserted)) return inserted;
+    rewritten = true;
+    // A list the block did not hold before is put in by its plan, once the
+    // block around it is: no row of it is parsed.
+    const later = !PW_PLANS ? [] : html.lists.filter((list) => list.rows.length > 0 && list.of && planOf(list.of) && !before?.lists.some((b) => b.part === list.part));
+    morphChildren(parent, between(r.start, r.end), parseInstance(textOfBlock(html, later)), r.end.nextSibling, inserted);
+    for (const list of later) {
+      const range = rangeOf(r, list.part);
+      if (!range || !listMade({ part: list.part, rows: [], nodes: new Map() }, list, inserted, range)) {
+        morphChildren(parent, between(r.start, r.end), parseInstance(textOfBlock(html)), r.end.nextSibling, inserted);
+        return inserted;
+      }
+    }
+    return inserted;
+  }
+  morphChildren(parent, between(r.start, r.end), parseInstance(textOfBlock(html)), r.end.nextSibling, inserted);
   return inserted;
+}
+
+/** The anchors of list `part` inside block `r`, as the document holds them. */
+function rangeOf(r, part) {
+  const walker = document.createTreeWalker(r.start.parentNode, NodeFilter.SHOW_COMMENT);
+  walker.currentNode = r.start;
+  let start = null;
+  for (let n = walker.nextNode(); n && n !== r.end; n = walker.nextNode()) {
+    if (n.data === `pw:s${part}`) start = n;
+    else if (start && n.data === `pw:e${part}` && n.parentNode === start.parentNode) return { start, end: n };
+  }
+  return null;
+}
+
+/** What each block last rendered, on a page that talks to no server, by the
+ * anchor that opens it. While that anchor stands, only the block's own renders
+ * change what it shows: a block around it renders it the same. One that block
+ * took away and showed again has a new anchor, so nothing is kept for it,
+ * whatever its signals did while it was gone. */
+const lastRendered = new WeakMap();
+
+/** Whether a pass of the signals rewrote a whole block: what the page indexed
+ * inside it is gone. */
+let rewritten = false;
+
+// --- which rows changed ---
+
+/** For each index of `b`, the index in `a` of the row with its key, or -1. */
+function placesOf(a, b) {
+  const at = new Map(a.map((row, i) => [row.key, i]));
+  return b.map((row) => at.get(row.key) ?? -1);
+}
+
+/** The indexes of `places` that need not move: a longest run of them whose
+ * values increase. */
+function staying(places) {
+  const tails = [];
+  const before = new Int32Array(places.length);
+  places.forEach((value, i) => {
+    if (value < 0) return;
+    let low = 0;
+    let high = tails.length;
+    while (low < high) {
+      const middle = (low + high) >> 1;
+      if (places[tails[middle]] < value) low = middle + 1;
+      else high = middle;
+    }
+    before[i] = low > 0 ? tails[low - 1] : -1;
+    tails[low] = i;
+  });
+  const out = new Set();
+  for (let i = tails.length > 0 ? tails[tails.length - 1] : -1; i >= 0; i = before[i]) out.add(i);
+  return out;
+}
+// --- end of which rows changed
+
+/** Each row of list `part` the document holds, by its key: its two anchors.
+ * `null` where one is not closed. */
+function rowsShown(part, range) {
+  const shown = new Map();
+  const opens = `pw:s${part}@`;
+  for (let n = range.start.nextSibling; n && n !== range.end; n = n.nextSibling) {
+    if (n.nodeType !== Node.COMMENT_NODE || !n.data.startsWith(opens)) continue;
+    const key = n.data.slice("pw:s".length);
+    const close = `pw:e${key}`;
+    let end = n.nextSibling;
+    while (end && !(end.nodeType === Node.COMMENT_NODE && end.data === close)) end = end.nextSibling;
+    if (!end) return null;
+    shown.set(key, [n, end]);
+    n = end;
+  }
+  return shown;
+}
+
+/** One row gone. */
+function rowGone([start, end]) {
+  if (PW_DIALOGS) {
+    for (const d of dialogsIn(between(start, end), true)) {
+      d.close();
+      giveFocusBack(d);
+    }
+  }
+  for (let n = start; ; ) {
+    const next = n.nextSibling;
+    n.remove();
+    if (n === end) return;
+    n = next;
+  }
+}
+
+/** Every row between a list's anchors gone at once. */
+function rowsAllGone(range) {
+  if (range.start.nextSibling !== range.end) spanGone(range.start.nextSibling, range.end.previousSibling);
+}
+
+/** Rows their text says changed, each `[its anchors, its row]`, morphed where
+ * they are, parsed as one. */
+function rowsMorphed(changed, inserted) {
+  if (changed.length === 0) return;
+  const parsed = parseInstance(changed.map(([, row]) => row.text).join(""));
+  let at = 0;
+  for (const [[start, end], row] of changed) {
+    const close = `pw:e${row.key}`;
+    const from = at;
+    while (!(parsed[at].nodeType === Node.COMMENT_NODE && parsed[at].data === close)) at++;
+    at++;
+    morphChildren(start.parentNode, between(start, end), parsed.slice(from, at), end.nextSibling, inserted);
+  }
+}
+
+/** The new rows of a list, parsed as one, each noted in `shown`. Their nodes
+ * are the fragment's until they are placed. */
+function rowsParsed(rows, shown, inserted) {
+  const template = document.createElement("template");
+  template.innerHTML = rows.map((row) => row.text).join("");
+  const content = template.content;
+  let n = content.firstChild;
+  for (const row of rows) {
+    const close = `pw:e${row.key}`;
+    const start = n;
+    while (!(n.nodeType === Node.COMMENT_NODE && n.data === close)) n = n.nextSibling;
+    shown.set(row.key, [start, n]);
+    n = n.nextSibling;
+  }
+  if (PW_DIALOGS) inserted.push(...content.childNodes);
+  return content;
+}
+
+/** The nodes of one row put before `anchor`, from wherever they are. */
+function rowPut(parent, [start, end], anchor) {
+  for (let n = start; ; ) {
+    const next = n.nextSibling;
+    parent.insertBefore(n, anchor);
+    if (n === end) return;
+    n = next;
+  }
+}
+
+// --- rows a plan makes ---
+
+/** What each list part's plan is, once made; `null` where none holds. */
+const plans = new WeakMap();
+
+/** **One row's plan**: its markup parsed once, an empty text where each text
+ * hole is and a mark on the element each attribute hole is on, so a new row is
+ * a clone given its values, and a changed one is given the values that
+ * changed: no row is parsed. `null` where the parse does not hold each hole
+ * once (a hole inside a `<textarea>`'s text is text, and no comment). */
+function planOf(p) {
+  if (plans.has(p)) return plans.get(p);
+  let html = "";
+  const kinds = [];
+  for (let i = 0; i < p.body.length; i++) {
+    const c = p.body[i];
+    if (c.chunk === "static") {
+      html += c.value;
+      continue;
+    }
+    // An element's handlers write one attribute, as `emit` writes them.
+    while (c.value.part === "event" && p.body[i + 1]?.value?.part === "event" && p.body[i + 1].value.owner === c.value.owner) i++;
+    html += c.value.part === "text" ? `<!--pwh${kinds.length}-->` : ` data-pwh${kinds.length}=""`;
+    kinds.push(c.value.part === "text" ? "text" : c.value.part === "event" ? "event" : "attribute");
+  }
+  const template = document.createElement("template");
+  template.innerHTML = html;
+  const found = new Array(kinds.length).fill(null);
+  const walker = document.createTreeWalker(template.content, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_COMMENT);
+  const comments = [];
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (n.nodeType === Node.COMMENT_NODE) {
+      const m = /^pwh(\d+)$/.exec(n.data);
+      if (m) comments.push([Number(m[1]), n]);
+      continue;
+    }
+    for (const name of n.getAttributeNames()) {
+      const m = /^data-pwh(\d+)$/.exec(name);
+      if (!m) continue;
+      n.removeAttribute(name);
+      found[Number(m[1])] = found[Number(m[1])] ? false : n;
+    }
+  }
+  for (const [at, comment] of comments) {
+    const text = document.createTextNode("");
+    comment.replaceWith(text);
+    found[at] = found[at] ? false : text;
+  }
+  const pathOf = (node) => {
+    const path = [];
+    for (let n = node; n.parentNode; n = n.parentNode) path.unshift([...n.parentNode.childNodes].indexOf(n));
+    return path;
+  };
+  const plan = found.every(Boolean) ? { proto: template.content, kinds, paths: found.map(pathOf) } : null;
+  plans.set(p, plan);
+  return plan;
+}
+
+const ESCAPED = { "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#39;": "'", "&#96;": "`" };
+
+/** **What the renderer escaped, as the parser reads it back**: its escapes
+ * undone, line breaks as the parser makes them, and a NUL as `nul`. `null`
+ * for any escape the renderer does not write. */
+function unescaped(text, nul) {
+  // Most text holds nothing the renderer escaped and no character the parser
+  // changes: it is read back as it is.
+  if (!/[&\r\0]/.test(text)) return text;
+  if (/&(?!(?:amp|lt|gt|quot|#39|#96);)/.test(text)) return null;
+  return text.replace(/&(?:amp|lt|gt|quot|#39|#96);/g, (m) => ESCAPED[m]).replace(/\r\n?/g, "\n").replaceAll("\0", nul);
+}
+
+/** An attribute the renderer wrote, `name="value"` or `name`: `[name, value]`,
+ * `null` for none, `undefined` for what it does not write. */
+function attributeOfPiece(piece) {
+  const written = piece.trim();
+  if (written === "") return null;
+  const m = /^([^\s="'<>`/]+)(?:="([^"]*)")?$/.exec(written);
+  if (!m) return undefined;
+  const value = m[2] === undefined ? "" : unescaped(m[2], "\ufffd");
+  return value === null ? undefined : [m[1], value];
+}
+
+/** One hole given what the renderer wrote for it, where it was `was` (`null`
+ * for a new row), and for a handler's, what it captures before it was
+ * escaped (`raw`). False, with the hole perhaps half set, for what a plan does
+ * not take: the row is then morphed. */
+function holeSet(kind, node, piece, was, raw) {
+  if (kind === "text") {
+    const text = unescaped(piece, "");
+    if (text === null) return false;
+    node.data = text;
+    return true;
+  }
+  // What a row's handlers capture, as the renderer wrote it before escaping
+  // it (`capturesAttribute`). It is JSON's text, so no character in it is one
+  // the parser changes in an attribute: no return, no NUL.
+  if (kind === "event" && raw !== undefined) {
+    if (raw === null) node.removeAttribute("data-pw-captures");
+    else node.setAttribute("data-pw-captures", raw);
+    return true;
+  }
+  const now = attributeOfPiece(piece);
+  const then = was === null ? null : attributeOfPiece(was);
+  if (now === undefined || then === undefined) return false;
+  if (then && then[0] !== now?.[0]) node.removeAttribute(then[0]);
+  if (now) node.setAttribute(now[0], now[1]);
+  if (was === null) return true;
+  // A field's value follows the rendering where it changed it, as a morph's
+  // does. A box's is the block's own pass over its boxes (`rowsMade`).
+  if ((then?.[0] === "value" || now?.[0] === "value") && "value" in node && node.tagName !== "TEXTAREA") {
+    node.value = now?.[0] === "value" ? now[1] : "";
+  }
+  return true;
+}
+
+/** New rows, each a clone of its plan given its values, noted in `shown` with
+ * the node of each hole. `null`, with nothing put in, where one row's values
+ * are not a plan's. */
+function rowsPlanned(rows, plan, shown, inserted) {
+  const content = document.createDocumentFragment();
+  for (const row of rows) {
+    const clone = plan.proto.cloneNode(true);
+    const holes = new Array(plan.paths.length);
+    for (let h = 0; h < holes.length; h++) {
+      let n = clone;
+      for (const i of plan.paths[h]) n = n.childNodes[i];
+      holes[h] = n;
+      if (!holeSet(plan.kinds[h], n, row.holes[h], null, row.raws?.[h])) return null;
+    }
+    const start = document.createComment(`pw:s${row.key}`);
+    const end = document.createComment(`pw:e${row.key}`);
+    content.append(start, clone, end);
+    shown.set(row.key, [start, end, holes]);
+  }
+  if (PW_DIALOGS) inserted.push(...content.childNodes);
+  return content;
+}
+
+/** Rows changed in place, each `[its nodes, its row, its row before]`: by the
+ * plan where the row was made by one and the plan takes what changed, and
+ * morphed otherwise, which leaves it no holes to be set by. */
+function rowsChanged(changed, plan, inserted) {
+  const morphed = changed.filter(([nodes, row, old]) => {
+    if (!plan || !nodes[2] || !row.holes || !old.holes) return true;
+    for (let h = 0; h < row.holes.length; h++) {
+      if (row.holes[h] !== old.holes[h] && !holeSet(plan.kinds[h], nodes[2][h], row.holes[h], old.holes[h], row.raws?.[h])) return true;
+    }
+    return false;
+  });
+  for (const [nodes] of morphed) nodes.length = 2;
+  rowsMorphed(morphed, inserted);
+}
+
+/** **The rows of one list made what `now` says**, from what `was` shows: only
+ * those it changed parsed, only those out of place moved. False, with nothing
+ * touched, where the document does not hold what `was` says. */
+function listMade(was, now, inserted, range = index.get(addressOf([], now.part))) {
+  if (!range?.end?.isConnected) return false;
+  const plan = PW_PLANS && now.of ? planOf(now.of) : null;
+  let shown = was.nodes;
+  if (!shown) {
+    shown = rowsShown(now.part, range);
+    if (!shown || shown.size !== was.rows.length || was.rows.some((row) => !shown.has(row.key))) return false;
+  }
+  now.nodes = shown;
+  const a = was.rows;
+  const b = now.rows;
+  let inPlace = a.length === b.length;
+  for (let i = 0; inPlace && i < a.length; i++) inPlace = a[i].key === b[i].key;
+  if (inPlace) {
+    const changed = [];
+    for (let i = 0; i < b.length; i++) {
+      if (a[i] !== b[i] && a[i].text !== b[i].text) changed.push([shown.get(b[i].key), b[i], a[i]]);
+    }
+    if (PW_PLANS) rowsChanged(changed, plan, inserted);
+    else rowsMorphed(changed, inserted);
+    return true;
+  }
+  const places = placesOf(a, b);
+  const stay = new Set(places.filter((p) => p >= 0));
+  if (stay.size === 0 && !PW_DIALOGS) {
+    rowsAllGone(range);
+    shown.clear();
+  } else {
+    a.forEach((row, i) => {
+      if (stay.has(i)) return;
+      rowGone(shown.get(row.key));
+      shown.delete(row.key);
+    });
+  }
+  const changed = [];
+  b.forEach((row, i) => {
+    const old = places[i] < 0 ? null : a[places[i]];
+    if (old && old !== row && old.text !== row.text) changed.push([shown.get(row.key), row, old]);
+  });
+  if (PW_PLANS) rowsChanged(changed, plan, inserted);
+  else rowsMorphed(changed, inserted);
+  const parent = range.end.parentNode;
+  const fresh = b.filter((_, i) => places[i] < 0);
+  const content =
+    fresh.length === 0
+      ? null
+      : (PW_PLANS && plan && fresh.every((row) => row.holes) && rowsPlanned(fresh, plan, shown, inserted)) || rowsParsed(fresh, shown, inserted);
+  // The new rows side by side go in together, as one parsed fragment.
+  const first = places.indexOf(-1);
+  const together = fresh.length > 0 && places.lastIndexOf(-1) - first + 1 === fresh.length;
+  const still = staying(places);
+  let anchor = range.end;
+  for (let i = b.length - 1; i >= 0; i--) {
+    const nodes = shown.get(b[i].key);
+    if (places[i] >= 0) {
+      if (!still.has(i)) moveNodes(parent, between(nodes[0], nodes[1]), anchor);
+    } else if (together) {
+      const opens = shown.get(b[first].key)[0];
+      parent.insertBefore(content, anchor);
+      anchor = opens;
+      i = first;
+      continue;
+    } else {
+      rowPut(parent, nodes, anchor);
+    }
+    anchor = nodes[0];
+  }
+  return true;
+}
+
+/** **A block's rows made what its render says**, where nothing around them
+ * changed. False where something else did: the whole block is morphed. */
+function rowsMade(block, was, now, inserted) {
+  if (was.strs.length !== now.strs.length || was.strs.some((text, i) => text !== now.strs[i])) return false;
+  if (was.lists.some((list, i) => list.part !== now.lists[i].part)) return false;
+  for (let i = 0; i < now.lists.length; i++) {
+    if (!listMade(was.lists[i], now.lists[i], inserted)) return false;
+  }
+  // A box in a row left alone shows what its rendering says, as morphing the
+  // whole block makes it. Only a box that differs from its attribute matches,
+  // and only a block that can show one is looked over: a thousand rows of
+  // buttons are not.
+  if (!now.boxes) return true;
+  for (const box of block.start.parentNode.querySelectorAll("input:checked:not(:default),input:not(:checked):default")) {
+    const after = block.start.compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING;
+    const before = block.end.compareDocumentPosition(box) & Node.DOCUMENT_POSITION_PRECEDING;
+    if (after && before && box.checked !== box.hasAttribute("checked")) box.checked = !box.checked;
+  }
+  return true;
 }
 
 /** The range at `key` replaced by `html`, or `null` where the document has
@@ -2767,7 +3420,7 @@ let sources = new Map();
 /** A handler changed `name`: held now, and rendered once per press. A value
  * the signal already holds changes nothing, and renders nothing. */
 function setSignal(name, value, source, kept = true) {
-  if (JSON.stringify(signals.get(name)) === JSON.stringify(value)) return;
+  if (renderer.same(signals.get(name), value)) return;
   signals.set(name, value);
   if (source) sources.set(name, source);
   else sources.delete(name);
@@ -2775,7 +3428,7 @@ function setSignal(name, value, source, kept = true) {
   // A value the device keeps is written as it changes (track
   // `device-store`), unless the change is the device's own: read at start,
   // or another tab's.
-  if (kept && deviceHeld.has(name)) keep(deviceHeld.get(name), value, source);
+  if (PW_KEPT && kept && deviceHeld.has(name)) keep(deviceHeld.get(name), value, source);
   flushing ??= Promise.resolve().then(flushSignals);
 }
 
@@ -2786,6 +3439,7 @@ async function flushSignals() {
   sources = new Map();
   flushing = null;
   let rendered = false;
+  rewritten = false;
   const inserted = [];
   for (const live of parts.live ?? []) {
     // A value computed for a block's render alone (track `device-store`):
@@ -2820,19 +3474,27 @@ async function flushSignals() {
       }
       // Morphed, so what it held is kept where it is rendered again (track
       // `device-store`): a row by its key.
-      inserted.push(...morphBlock(live.part, await renderBlock(live.part)));
+      const block = await renderBlock(live.part);
+      inserted.push(...morphBlock(live.part, block));
       rendered = true;
       log.push(`signal ${[...changed].join(",")} -> block ${live.part}`);
+      if (!PW_SERVER) log.push(`block ${live.part} wrote ${block.written} of ${block.lists.reduce((n, l) => n + l.rows.length, 0)} rows`);
     }
   }
   if (rendered) {
-    buildIndex();
-    bindEvents();
+    if (!DELEGATED || rewritten) {
+      buildIndex();
+      bindEvents();
+    }
     // Shown once what is in it can be pressed (ADR-0141).
-    showDialogs(inserted);
+    if (PW_DIALOGS) showDialogs(inserted);
   }
   if (PW_SERVER) readAgain(changed);
   window.__pw.signals = Object.fromEntries(signals);
+  if (!PW_SERVER) log.push(`${index.size} indexed`);
+  // What the tests and a developer read, as far back as is any use: a page
+  // left open keeps nothing without end.
+  if (log.length > 4000) log.splice(0, 2000);
 }
 
 // --- the address's fragment, bound to a signal (track `todomvc`) ------------
@@ -3153,9 +3815,9 @@ function keep(held, value, source) {
 }
 
 /** What another tab's write of `held` says, decoded as a read is. */
-function heardValue(held, e) {
-  if (e.newValue === null) return { state: "default" };
-  const got = decodeKept(e.newValue, held.schemas[held.version - 1]);
+function heardValue(held, text) {
+  if (text === null) return { state: "default" };
+  const got = decodeKept(text, held.schemas[held.version - 1]);
   return got.error ? { state: "unreadable", why: got.error } : { state: "read", value: got.value };
 }
 
@@ -3166,7 +3828,9 @@ async function heardKept(e) {
   if (!store || e.storageArea !== store) return;
   for (const held of deviceHeld.values()) {
     if (e.key === null || e.key === deviceKey(held, held.version)) {
-      const got = e.key === null ? await readKept(store, held) : heardValue(held, e);
+      // What the device holds now, which may be later than what the event
+      // said: it waited for this tab to be idle.
+      const got = e.key === null ? await readKept(store, held) : heardValue(held, store.getItem(e.key));
       deviceState[held.signal] = got.state;
       if (got.state === "unreadable") log.push(`device: ${held.name} unreadable: ${got.why}`);
       log.push(`device: ${held.name} heard from another tab`);
@@ -3207,13 +3871,35 @@ async function readDevice() {
     for (const [held, got] of read) {
       if ("value" in got) setSignal(held.signal, got.value, null, false);
     }
-    if (parts.fragment) followFragment(parts.fragment);
+    if (PW_FRAGMENT && parts.fragment) followFragment(parts.fragment);
     if (flushing) await flushing;
   } finally {
     document.documentElement.dataset.pwDevice = "read";
     window.__pw.device = { state: { ...deviceState }, writes: deviceWrites };
   }
-  addEventListener("storage", (e) => void heardKept(e), { signal: life.signal });
+  addEventListener("storage", heardLater, { signal: life.signal });
+}
+
+/** Each key another tab has written since this tab last had a moment. */
+const heardWaiting = new Map();
+
+/** How long another tab's write waits before this tab shows it, in ms: a
+ * frame or three, too little to see in a tab no one is pressing in. */
+const HEARD_AFTER = 50;
+
+/** **Another tab's write waits its turn.** A press in the tab someone is using
+ * has a frame to make, and with many tabs of the app open each of them drawing
+ * what it heard at once delayed that frame by a third. A short wait lets that
+ * frame go first, and shows a burst of writes once. */
+function heardLater(e) {
+  if (heardWaiting.size === 0) {
+    setTimeout(() => {
+      const events = [...heardWaiting.values()];
+      heardWaiting.clear();
+      for (const event of events) void heardKept(event);
+    }, HEARD_AFTER);
+  }
+  heardWaiting.set(e.key, e);
 }
 
 // --- ADR-0152: a key a page changes ---------------------------------------
@@ -3438,36 +4124,38 @@ function recoverOnPress(part, owners, verdict) {
   const { listens } = eventOf(part);
   if (!listens) return;
   for (const el of owners) {
-    if (!claim(el, part.id)) continue;
-    el.addEventListener(listens, (e) => {
-      const asks = verdict.recovery === "require-user-confirmation";
-      if (!RELOADING.has(verdict.recovery) && !asks) {
-        tell(el, PLATFORM_SAYS.stale, verdict.recovery);
-        log.push(`press on refused ${part.id}: ${verdict.recovery}, nothing to do`);
-        return;
-      }
-      e.preventDefault();
-      if (asks && !confirm("This page is out of date. Load it again? What you typed is not kept.")) {
-        return;
-      }
-      const key = `pw-recovered:${location.pathname}`;
-      let last = 0;
-      try {
-        last = Number(sessionStorage.getItem(key) ?? 0);
-      } catch {}
-      if (Date.now() - last < 10_000) {
-        tell(el, PLATFORM_SAYS.stale, "reload-loop");
-        log.push(`press on refused ${part.id}: read again already; not again`);
-        return;
-      }
-      try {
-        sessionStorage.setItem(key, String(Date.now()));
-      } catch {}
-      log.push(`press on refused ${part.id}: ${verdict.recovery}, reading the page again`);
-      window.__pw.reloading = true;
-      location.reload();
-    }, { signal: life.signal });
+    if (claim(el, part.id)) el.addEventListener(listens, (e) => refusedPress(part, el, verdict, e), { signal: life.signal });
   }
+}
+
+/** A press of an element whose handler the decision refused. */
+function refusedPress(part, el, verdict, e) {
+  const asks = verdict.recovery === "require-user-confirmation";
+  if (!RELOADING.has(verdict.recovery) && !asks) {
+    tell(el, PLATFORM_SAYS.stale, verdict.recovery);
+    log.push(`press on refused ${part.id}: ${verdict.recovery}, nothing to do`);
+    return;
+  }
+  e.preventDefault();
+  if (asks && !confirm("This page is out of date. Load it again? What you typed is not kept.")) {
+    return;
+  }
+  const key = `pw-recovered:${location.pathname}`;
+  let last = 0;
+  try {
+    last = Number(sessionStorage.getItem(key) ?? 0);
+  } catch {}
+  if (Date.now() - last < 10_000) {
+    tell(el, PLATFORM_SAYS.stale, "reload-loop");
+    log.push(`press on refused ${part.id}: read again already; not again`);
+    return;
+  }
+  try {
+    sessionStorage.setItem(key, String(Date.now()));
+  } catch {}
+  log.push(`press on refused ${part.id}: ${verdict.recovery}, reading the page again`);
+  window.__pw.reloading = true;
+  location.reload();
 }
 /** When the latest press's handler started (ADR-0152): the next press's
  * starts after it, so presses run in the order they were made. */
@@ -3493,7 +4181,7 @@ addEventListener(
     // A frozen page hears no `storage` event, so another tab's writes while
     // it was kept went unheard: everything the device keeps is read again,
     // as after a `clear()` (ADR-0409).
-    void heardKept({ key: null, storageArea: deviceStore() });
+    if (PW_KEPT) void heardKept({ key: null, storageArea: deviceStore() });
     if (PW_SERVER && leaving && parts.listens !== false) {
       leaving = false;
       subscribe();
@@ -3514,9 +4202,9 @@ addEventListener(
  */
 async function navigate(route, args, mine) {
   const url = pageAddress(route, args);
-  // A page shown in a layout keeps it (the soft navigation's ADR), held to
+  // A page shown in a layout keeps it (ADR-0306), held to
   // the same two rules, by the same two functions.
-  if (PW_SERVER && parts.layout) return softNavigate(url, "push", mine);
+  if (parts.layout) return softNavigate(url, "push", mine);
   if (!taken(url)) return;
   navigating = true;
   await pressedBefore(mine);
@@ -3658,6 +4346,58 @@ function eventRecord(name, e) {
 }
 let booted = false;
 
+/** **Whether a press is heard at the document**: on a page that talks to no
+ * server and shows no view inside itself, an element's `data-pw` says which of
+ * the page's handlers it has, so ten thousand rows need no listener each, and
+ * nothing need be bound or indexed inside a row. */
+const DELEGATED = !PW_SERVER && !PW_VIEWS;
+
+/** The events that reach no parent: heard on their way down, for their target. */
+const STAYS_ON_TARGET = new Set(["blur", "close"]);
+
+/** Each of the page's event parts, by the element that has it. */
+const handlers = new Map();
+
+function heardAtTheDocument() {
+  if (handlers.size > 0) return;
+  const heard = new Set();
+  for (const part of manifests.get(PAGE)) {
+    if (part.kind !== "event") continue;
+    const { event, listens } = eventOf(part);
+    if (!listens) {
+      log.push(`no listener for event ${event} of part ${part.id}`);
+      continue;
+    }
+    // Asked now: a refused handler's code is never fetched.
+    verdictOf(nameOf(PAGE, part), part);
+    const owner = String(part.owner);
+    handlers.set(owner, [...(handlers.get(owner) ?? []), part]);
+    if (heard.has(listens)) continue;
+    heard.add(listens);
+    document.addEventListener(listens, pressHeard, { capture: STAYS_ON_TARGET.has(listens), signal: life.signal });
+  }
+}
+
+/** Each element on the event's way that has a handler for it, innermost
+ * first, up to one that stops it. */
+function pressHeard(e) {
+  for (const el of STAYS_ON_TARGET.has(e.type) ? [e.target] : e.composedPath()) {
+    const owner = el.dataset?.pw;
+    if (owner === undefined) continue;
+    let stop = false;
+    for (const part of handlers.get(owner) ?? []) {
+      const { event, listens } = eventOf(part);
+      if (listens !== e.type) continue;
+      const verdict = verdictOf(nameOf(PAGE, part), part);
+      const modifiers = part.modifiers ?? [];
+      if (verdict.attach) acted(part, event, modifiers, el, e);
+      else refusedPress(part, el, verdict, e);
+      stop ||= modifiers.includes("stop");
+    }
+    if (stop) return;
+  }
+}
+
 /**
  * Bind each authorised handler to each of its elements not bound yet.
  *
@@ -3665,11 +4405,13 @@ let booted = false;
  * is rendered again (ADR-0130), what it made: its old elements are gone with
  * their listeners, and the elements still standing keep theirs.
  */
-function bindEvents() {
-  for (const [template, list] of manifests) {
-    for (const part of list) bindEvent(template, part);
-  }
-}
+const bindEvents = DELEGATED
+  ? () => heardAtTheDocument()
+  : () => {
+      for (const [template, list] of manifests) {
+        for (const part of list) bindEvent(template, part);
+      }
+    };
 
 /**
  * **The decision for one handler part**, asked once and kept, by the name
@@ -3768,142 +4510,144 @@ function bindEvent(template, part) {
   if (!binding) return;
   const { event, listens, modifiers } = binding;
   const fresh = binding.owners.filter((el) => claim(el, part.id));
-  for (const el of fresh) {
-    el.addEventListener(listens, async (e) => {
-      // Declared, so done now, synchronously (ADR-0131).
-      if (modifiers.includes("prevent")) e.preventDefault();
-      if (modifiers.includes("stop")) e.stopPropagation();
-      // **A page that is leaving takes no press** (ADR-0280): a handler has
-      // gone to another page once its command committed, and that page is
-      // loading. A press now would send what no one here would read.
-      if (navigating) {
-        log.push(`press on ${part.value} not taken: the page is leaving`);
-        return;
-      }
-      lastActed = el;
-      // What its last press was told, taken back (ADR-0302).
-      untell(el);
-      const record = eventRecord(event, e);
-      // Which instance each signal the handler names is, for this use of
-      // its view (ADR-0144). Read at the press: the element is the one the
-      // block rendered last.
-      const instances = JSON.parse(el.dataset.pwSignals ?? "{}");
-      const instance = (name) => instances[name] ?? name;
-      // **Presses run in the order they were made** (ADR-0152). Each
-      // handler's module loads on its own, so a second press's could arrive
-      // first; its handler waits for the press before it to start. Until
-      // 2026-10-03 it did not wait: Hot then Cold, pressed quickly, could
-      // leave Hot chosen.
-      const myTurn = lastPressStarted;
-      let started;
-      lastPressStarted = new Promise((resolve) => (started = resolve));
-      // This press until its handler finishes: a navigation waits for each
-      // press made before it (ADR-0280).
-      let finished;
-      const done = new Promise((resolve) => (finished = resolve));
-      pressing.add(done);
-      try {
-        // Authorised above; loaded here. The order is the point of E7-L:
-        // the bytes for this handler do not exist in this page until
-        // somebody presses this button.
-        let module;
-        try {
-          // Within this press's own deadline (ADR-0382).
-          module = await within(loadHandler(part.value), `the handler ${part.value}`);
-        } finally {
-          // Its turn, loaded or not: a press whose code failed to load
-          // must not hold up every press after it.
-          await myTurn;
-          started();
-        }
-        // The command COMMITS and returns nothing about the cart. The
-        // browser learns the new value from the RESOURCE, because that is
-        // what the program declares the page depends on:
-        //
-        //   command add_to_cart(..) invalidates Cart(current_session())
-        //
-        // A response carrying the value would make the UI change because an
-        // endpoint said so, which is the thing E6 exists to replace.
-        //
-        // The module is the handler's compiled BODY (E10, 2026-09-25). It
-        // reads what it captured from this element, where the renderer
-        // serialized exactly the paths it reads, and calls its command with
-        // the arguments it computed.
-        // `getRandomValues`, not `randomUUID`: the second exists only in a
-        // secure context, and a press must have an interaction everywhere.
-        const press = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) =>
-          b.toString(16).padStart(2, "0"),
-        ).join("");
-        let calls = 0;
-        await module.run({
-          captures: JSON.parse(el.dataset.pwCaptures ?? "{}"),
-          // What the event was, read in the listener (ADR-0138).
-          event: record,
-          // The page's signals (ADR-0130), as JSON carries them, and where
-          // a change came from (ADR-0142).
-          // Through the instance this element's use of a view holds each
-          // signal as, where the compiler wrote one (ADR-0144).
-          get: (name) => signals.get(instance(name)),
-          set: (name, value) => setSignal(instance(name), value, { el, event }),
-          // Each command speculates before its request (ADR-0122), and its
-          // speculation is resolved by the answer, whatever it is.
-          command: !PW_SERVER ? null : async (component, args, how = {}) => {
-            const interaction = `${press}-${calls++}`;
-            const ids = await speculate(component, args, interaction);
-            let answer;
-            try {
-              answer = await command(component, args, interaction, how.retry);
-            } catch (error) {
-              await restoreSpeculation(ids);
-              throw error;
-            }
-            await resolveSpeculation(ids, answer.committed === true, answer.basis);
-            // What the command answered, as its handler's code reads it
-            // (ADR-0157): `Ok`, or a declared `Err` the handler can show.
-            // A command that trapped or was refused answered no value, and
-            // the press fails visibly.
-            if (!("result" in answer)) {
-              throw new Error(`${component} answered no value`);
-            }
-            // **An answer that is not a declared error is a commit**
-            // (ADR-0280): an `Ok` arm runs only after one, and a navigation
-            // in it goes only after one. One that did not commit has failed
-            // the press, whatever it says.
-            if (answer.committed !== true && answer.result?.$case !== "err") {
-              throw new Error(`${component} answered without committing`);
-            }
-            return answer.result;
-          },
-          // Goes to a page once the command it follows commits (ADR-0280).
-          navigate: (route, args) => navigate(route, args, done),
-        }, { signal: life.signal });
-      } catch (error) {
-        // A load or a refused command is VISIBLE and leaves the button
-        // usable. A silent failure here is the worst outcome available: the
-        // press did nothing, the page looks fine, and the next press is the
-        // user's only way to find out.
-        loaded.delete(part.value);
-        attempts.set(part.value, (attempts.get(part.value) ?? 0) + 1);
-        // Told where the press was (ADR-0302): a refusal in its predicate's
-        // words, anything else in the platform's.
-        if (error instanceof Refused) {
-          tell(el, error.says || PLATFORM_SAYS.failed, `refused:${error.predicate}`);
-        } else if (error instanceof Unreachable) {
-          tell(el, PLATFORM_SAYS.unreachable, "unreachable");
-        } else {
-          tell(el, PLATFORM_SAYS.failed, "failed");
-        }
-        log.push(`handler ${part.value} failed: ${error.message ?? error}`);
-        window.__pw.handlerErrors = (window.__pw.handlerErrors ?? 0) + 1;
-      } finally {
-        pressing.delete(done);
-        finished();
-      }
-    });
-  }
+  for (const el of fresh) el.addEventListener(listens, (e) => acted(part, event, modifiers, el, e));
   if (fresh.length > 0) {
     const { named, owners, addresses } = binding;
     log.push(`attached ${named} to ${owners.length} instance(s): ${addresses.join(" ")}`);
+  }
+}
+
+/** **One press of one element**, from the event to the end of its handler. */
+async function acted(part, event, modifiers, el, e) {
+  // Declared, so done now, synchronously (ADR-0131).
+  if (modifiers.includes("prevent")) e.preventDefault();
+  if (modifiers.includes("stop")) e.stopPropagation();
+  // **A page that is leaving takes no press** (ADR-0280): a handler has
+  // gone to another page once its command committed, and that page is
+  // loading. A press now would send what no one here would read.
+  if (navigating) {
+    log.push(`press on ${part.value} not taken: the page is leaving`);
+    return;
+  }
+  lastActed = el;
+  // What its last press was told, taken back (ADR-0302).
+  untell(el);
+  const record = eventRecord(event, e);
+  // Which instance each signal the handler names is, for this use of
+  // its view (ADR-0144). Read at the press: the element is the one the
+  // block rendered last.
+  const instances = JSON.parse(el.dataset.pwSignals ?? "{}");
+  const instance = (name) => instances[name] ?? name;
+  // **Presses run in the order they were made** (ADR-0152). Each
+  // handler's module loads on its own, so a second press's could arrive
+  // first; its handler waits for the press before it to start. Until
+  // 2026-10-03 it did not wait: Hot then Cold, pressed quickly, could
+  // leave Hot chosen.
+  const myTurn = lastPressStarted;
+  let started;
+  lastPressStarted = new Promise((resolve) => (started = resolve));
+  // This press until its handler finishes: a navigation waits for each
+  // press made before it (ADR-0280).
+  let finished;
+  const done = new Promise((resolve) => (finished = resolve));
+  pressing.add(done);
+  try {
+    // Authorised above; loaded here. The order is the point of E7-L:
+    // the bytes for this handler do not exist in this page until
+    // somebody presses this button.
+    let module;
+    try {
+      // Within this press's own deadline (ADR-0382).
+      module = await within(loadHandler(part.value), `the handler ${part.value}`);
+    } finally {
+      // Its turn, loaded or not: a press whose code failed to load
+      // must not hold up every press after it.
+      await myTurn;
+      started();
+    }
+    // The command COMMITS and returns nothing about the cart. The
+    // browser learns the new value from the RESOURCE, because that is
+    // what the program declares the page depends on:
+    //
+    //   command add_to_cart(..) invalidates Cart(current_session())
+    //
+    // A response carrying the value would make the UI change because an
+    // endpoint said so, which is the thing E6 exists to replace.
+    //
+    // The module is the handler's compiled BODY (E10, 2026-09-25). It
+    // reads what it captured from this element, where the renderer
+    // serialized exactly the paths it reads, and calls its command with
+    // the arguments it computed.
+    // `getRandomValues`, not `randomUUID`: the second exists only in a
+    // secure context, and a press must have an interaction everywhere.
+    const press = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) =>
+      b.toString(16).padStart(2, "0"),
+    ).join("");
+    let calls = 0;
+    await module.run({
+      captures: JSON.parse(el.dataset.pwCaptures ?? "{}"),
+      // What the event was, read in the listener (ADR-0138).
+      event: record,
+      // The page's signals (ADR-0130), as JSON carries them, and where
+      // a change came from (ADR-0142).
+      // Through the instance this element's use of a view holds each
+      // signal as, where the compiler wrote one (ADR-0144).
+      get: (name) => signals.get(instance(name)),
+      set: (name, value) => setSignal(instance(name), value, { el, event }),
+      // Each command speculates before its request (ADR-0122), and its
+      // speculation is resolved by the answer, whatever it is.
+      command: !PW_SERVER ? null : async (component, args, how = {}) => {
+        const interaction = `${press}-${calls++}`;
+        const ids = await speculate(component, args, interaction);
+        let answer;
+        try {
+          answer = await command(component, args, interaction, how.retry);
+        } catch (error) {
+          await restoreSpeculation(ids);
+          throw error;
+        }
+        await resolveSpeculation(ids, answer.committed === true, answer.basis);
+        // What the command answered, as its handler's code reads it
+        // (ADR-0157): `Ok`, or a declared `Err` the handler can show.
+        // A command that trapped or was refused answered no value, and
+        // the press fails visibly.
+        if (!("result" in answer)) {
+          throw new Error(`${component} answered no value`);
+        }
+        // **An answer that is not a declared error is a commit**
+        // (ADR-0280): an `Ok` arm runs only after one, and a navigation
+        // in it goes only after one. One that did not commit has failed
+        // the press, whatever it says.
+        if (answer.committed !== true && answer.result?.$case !== "err") {
+          throw new Error(`${component} answered without committing`);
+        }
+        return answer.result;
+      },
+      // Goes to a page once the command it follows commits (ADR-0280).
+      // After a command's answer alone, and such a page sends none.
+      navigate: !PW_SERVER ? null : (route, args) => navigate(route, args, done),
+    }, { signal: life.signal });
+  } catch (error) {
+    // A load or a refused command is VISIBLE and leaves the button
+    // usable. A silent failure here is the worst outcome available: the
+    // press did nothing, the page looks fine, and the next press is the
+    // user's only way to find out.
+    loaded.delete(part.value);
+    attempts.set(part.value, (attempts.get(part.value) ?? 0) + 1);
+    // Told where the press was (ADR-0302): a refusal in its predicate's
+    // words, anything else in the platform's.
+    if (error instanceof Refused) {
+      tell(el, error.says || PLATFORM_SAYS.failed, `refused:${error.predicate}`);
+    } else if (error instanceof Unreachable) {
+      tell(el, PLATFORM_SAYS.unreachable, "unreachable");
+    } else {
+      tell(el, PLATFORM_SAYS.failed, "failed");
+    }
+    log.push(`handler ${part.value} failed: ${error.message ?? error}`);
+    window.__pw.handlerErrors = (window.__pw.handlerErrors ?? 0) + 1;
+  } finally {
+    pressing.delete(done);
+    finished();
   }
 }
 
@@ -3956,7 +4700,8 @@ function warmable() {
   const later = new Set();
   for (const [template, list] of manifests) {
     for (const part of list.filter((p) => authorised(template, p))) {
-      (addressesFor(`e${part.owner}`, template).length > 0 ? shown : later).add(part.value);
+      const isShown = DELEGATED ? document.querySelector(`[data-pw="${part.owner}"]`) : addressesFor(`e${part.owner}`, template).length > 0;
+      (isShown ? shown : later).add(part.value);
     }
   }
   return new Set([...shown, ...later]);
@@ -4010,13 +4755,13 @@ function blockOf(live) {
 }
 
 function warmsOn({ nodes }) {
-  if (!nodes || dialogsIn(nodes, true).length || dialogsIn(nodes, false).length) return false;
+  if (!nodes || (PW_DIALOGS && (dialogsIn(nodes, true).length || dialogsIn(nodes, false).length))) return false;
   const elements = nodes.reduce((n, node) => n + (node.nodeType === 1 ? 1 + node.getElementsByTagName("*").length : 0), 0);
   return elements <= WARM_ELEMENTS;
 }
 
 async function warmBlock({ part, nodes }) {
-  const html = await renderBlock(part);
+  const html = textOfBlock(await renderBlock(part));
   if (!(await idleAndLive())) return;
   const inert = document.implementation.createHTMLDocument("");
   const copy = inert.createElement("div");
@@ -4073,7 +4818,7 @@ async function attach() {
 
   // What the device keeps, read, and what it decides shown, before any
   // handler binds (track `device-store`).
-  await readDevice();
+  if (PW_KEPT) await readDevice();
 
   bindEvents();
   booted = true;
@@ -4082,7 +4827,7 @@ async function attach() {
   for (const live of parts.live ?? []) {
     if (live.kind !== "conditional" && live.kind !== "match") continue;
     const r = index.get(addressOf([], live.part));
-    if (r?.start) showDialogs(between(r.start, r.end));
+    if (PW_DIALOGS && r?.start) showDialogs(between(r.start, r.end));
   }
 
   performance.mark("pw:activate:end");
@@ -4095,9 +4840,9 @@ async function attach() {
   // (ADR-0130): no resource of its changes on the server.
   if (PW_SERVER && parts.listens !== false) subscribe();
   // The signal a page binds to its address's fragment follows it from here.
-  if (parts.fragment) bindFragment(parts.fragment);
+  if (PW_FRAGMENT && parts.fragment) bindFragment(parts.fragment);
   // What a block shows from here on, with `autofocus`, takes focus.
-  followAutofocus();
+  if (PW_AUTOFOCUS) followAutofocus();
   window.__pw.signals = Object.fromEntries(signals);
   window.__pw.ready = true;
   document.documentElement.dataset.pwReady = "1";
@@ -4189,9 +4934,11 @@ function setAttributeAt(address, op) {
     if (op.name === "checked" && "checked" in element) element.checked = false;
     return true;
   }
-  const parsed = document.createElement("template");
-  parsed.innerHTML = `<i ${op.name}="${op.value}"></i>`;
-  const value = parsed.content.firstChild.getAttribute(op.name) ?? "";
+  // As the parser reads the attribute the renderer wrote: its escapes undone,
+  // a return a line, a NUL U+FFFD. A value with an escape the renderer does
+  // not write is none it wrote, and the change is refused.
+  const value = unescaped(op.value, "\ufffd");
+  if (value === null) return false;
   // A value set again, the same, is a change all the same, and a control's
   // name changed is said again where it has focus (ADR-0182).
   if (element.getAttribute(op.name) !== value) element.setAttribute(op.name, value);
@@ -4545,7 +5292,7 @@ async function subscribe() {
 // than about the transport.
 if (PW_SERVER) window.__pwTestApply = applyFrame;
 // And a batch, as a transport delivers one: what a page leaving does with
-// it is the batch's guard, not a frame's (the soft navigation's ADR).
+// it is the batch's guard, not a frame's (ADR-0306).
 if (PW_SERVER) window.__pwTestBatch = applyBatch;
 window.__pwHeld = () => Object.fromEntries(held);
 window.__pwKnown = () => Object.fromEntries(known);
@@ -4567,7 +5314,7 @@ function apply(values) {
   }
 }
 
-// --- a navigation that keeps the layout (the soft navigation's ADR) ---------
+// --- a navigation that keeps the layout (ADR-0306) ---------
 //
 // The owner's Next.js bug, its second half: save, go to a page, and see the
 // header mounted again. A page shown in a layout (the layouts' ADR) is shown
@@ -4775,7 +5522,7 @@ async function softNavigate(url, how, mine, chosen = false) {
   if (going.signal.aborted || window.__pwUnloading) return;
   pending = null;
   const at = response.url || url;
-  // The same build, by the name it says of itself (the build id's ADR).
+  // The same build, by the name it says of itself (ADR-0300).
   if (!response.ok || !servedBuild || response.headers.get("pw-build") !== servedBuild) {
     return loadWhole(at, how);
   }

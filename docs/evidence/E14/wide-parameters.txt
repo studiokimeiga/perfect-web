@@ -1,15 +1,15 @@
 ADR-0266 - an export's parameters past the flat limit arrive in memory
 
 produced by: just e14-wide-parameters
-commit: 29cae71e8ffe8b9c02bef73a0e024087f5dbf486
-ci: https://github.com/Kimeiga/perfect-web/actions/runs/37933879838 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == through the host (compiler/pw-conformance/tests/wide_parameters.rs)
 
 test seventeen_parameters_arrive_each_in_its_place ... ok
 test a_record_past_the_limit_arrives_aligned_after_what_comes_before_it ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.72s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.51s
 
 == mutation controls (scripts/wide_parameter_mutations.py)
 

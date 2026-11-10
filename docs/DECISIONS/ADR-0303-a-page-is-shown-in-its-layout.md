@@ -2,8 +2,7 @@
 
 Status: proposed by the integrator, 2026-10-09, under the owner's delegation
 of 2026-10-02. The second of three steps to the parts two pages share kept in
-place (NEXT, the DoorDash customer app's item 1): the build is named (the
-build id's ADR), a page names its layout (this), a navigation keeps the
+place (NEXT, the DoorDash customer app's item 1): the build is named (ADR-0300), a page names its layout (this), a navigation keeps the
 layout (the third). Builds on ADR-0136 (a view is written where it is used),
 ADR-0144 (signals), ADR-0172 (a page's audience), ADR-0183 and ADR-0186 (a
 page's title and description), ADR-0280 (a navigation after a commit).

@@ -108,7 +108,7 @@ fn device_delivery() -> (tempfile::TempDir, Delivery) {
 fn a_page_that_talks_to_no_server_starts_the_devices_runtime() {
     let (_dir, delivery) = device_delivery();
     let document = delivery.deliver(format!("<head>{BOOT}</head><body>{RUNTIME}</body>"));
-    let on_device = delivery.on_device(document.clone());
+    let on_device = delivery.on_device(document.clone(), None);
     let device = delivery.device_source().expect("a device runtime");
     assert!(
         on_device.contains(&format!("<script>{device}</script>")),
@@ -124,13 +124,31 @@ fn a_page_that_talks_to_no_server_starts_the_devices_runtime() {
 }
 
 #[test]
+fn a_page_that_talks_to_no_server_fetches_its_code_beside_its_runtime() {
+    let (_dir, delivery) = device_delivery();
+    let document = delivery.deliver(format!("<head>{BOOT}</head><body>{RUNTIME}</body>"));
+    let at = |path: &str| delivery.named(path);
+    let bundled = delivery.on_device(document.clone(), Some("/bundle/p.mjs"));
+    assert!(
+        bundled.contains(&format!(
+            "<link rel=\"modulepreload\" href=\"{}\">\n<link rel=\"modulepreload\" href=\"{}\">",
+            at("/pw-runtime-device.mjs"),
+            at("/bundle/p.mjs")
+        )),
+        "{bundled}"
+    );
+    let alone = delivery.on_device(document, None);
+    assert!(!alone.contains("/bundle/"), "{alone}");
+}
+
+#[test]
 fn a_build_with_no_device_runtime_leaves_a_document_as_it_was() {
     let dir = tempfile::tempdir().expect("a directory");
     std::fs::write(dir.path().join("delivery.json"), "{\"versioned\": true}\n").expect("written");
     let delivery = Delivery::of(dir.path(), dir.path(), "b1");
     assert_eq!(delivery.device_source(), None);
     let document = delivery.deliver(format!("<head>{BOOT}</head><body>{RUNTIME}</body>"));
-    assert_eq!(delivery.on_device(document.clone()), document);
+    assert_eq!(delivery.on_device(document.clone(), None), document);
 }
 
 #[test]
@@ -244,4 +262,57 @@ fn a_production_build_of_the_page_starts_the_devices_runtime() {
         .find(|l| l.starts_with("content-security-policy:"))
         .unwrap_or_else(|| panic!("a policy in {html}"));
     assert!(policy.contains(&csp::sha256_source(&device)), "{policy}");
+}
+
+/// **In a production build, the page's head names its module** beside its
+/// runtime, so the module is fetched while the document is read.
+#[test]
+fn a_production_build_of_the_page_fetches_its_code_beside_its_runtime() {
+    const PAGE: &str = "todomvc.app.Todos~ui";
+    let (_dir, out) = super::todomvc::built_todomvc();
+    std::fs::write(
+        out.join("delivery.json"),
+        "{\"versioned\": true, \"device\": true, \"bundled\": true}\n",
+    )
+    .expect("written");
+    for file in ["pw-runtime.mjs", "pw-runtime-device.mjs"] {
+        std::fs::write(out.join(file), "export {};\n").expect("written");
+    }
+    let bundles = out.join("bundles");
+    std::fs::create_dir_all(&bundles).expect("a directory");
+    std::fs::write(bundles.join(format!("{PAGE}.mjs")), "export const a = 1;\n").expect("written");
+    let s = Server::from_build(out.clone(), out).expect("served");
+    s.prerender().expect("prerendered");
+    let html = super::todomvc::page(&s, "a");
+    let module = s.delivery.named(&format!("/bundle/{PAGE}.mjs"));
+    assert!(
+        html.contains(&format!("<link rel=\"modulepreload\" href=\"{module}\">")),
+        "{html}"
+    );
+}
+
+/// **A page whose build wrote no module for it names none** (ADR-0419,
+/// decision 6): it runs on the device's runtime and preloads
+/// that alone. Named, its module would be a request no host answers, made
+/// beside the runtime's on every first load (run 42783891441's control).
+#[test]
+fn a_production_build_of_a_page_with_no_module_names_none() {
+    let (_dir, out) = super::todomvc::built_todomvc();
+    std::fs::write(
+        out.join("delivery.json"),
+        "{\"versioned\": true, \"device\": true}\n",
+    )
+    .expect("written");
+    for file in ["pw-runtime.mjs", "pw-runtime-device.mjs"] {
+        std::fs::write(out.join(file), "export {};\n").expect("written");
+    }
+    let s = Server::from_build(out.clone(), out).expect("served");
+    s.prerender().expect("prerendered");
+    let html = super::todomvc::page(&s, "a");
+    let runtime = s.delivery.named("/pw-runtime-device.mjs");
+    assert!(
+        html.contains(&format!("<link rel=\"modulepreload\" href=\"{runtime}\">")),
+        "{html}"
+    );
+    assert!(!html.contains("/bundle/"), "{html}");
 }

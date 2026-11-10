@@ -102,31 +102,31 @@ MUTANTS = [
         "an answer is assumed before it comes",
         BROWSER,
         RUNTIME,
-        "              answer = await command(component, args, interaction, how.retry);\n",
-        "              command(component, args, interaction, how.retry);\n"
-        "              answer = { committed: true, result: { $case: \"ok\" } };\n",
+        "          answer = await command(component, args, interaction, how.retry);\n",
+        "          command(component, args, interaction, how.retry);\n"
+        "          answer = { committed: true, result: { $case: \"ok\" } };\n",
     ),
     (
         "an `Ok` that did not commit is a commit",
         BROWSER,
         RUNTIME,
-        '            if (answer.committed !== true && answer.result?.$case !== "err") {\n',
-        "            if (false) {\n",
+        '        if (answer.committed !== true && answer.result?.$case !== "err") {\n',
+        "        if (false) {\n",
     ),
     (
         "a press made while the page leaves is taken",
         BROWSER,
         RUNTIME,
-        "      if (navigating) {\n"
-        "        log.push(`press on ${part.value} not taken: the page is leaving`);\n",
-        "      if (false) {\n"
-        "        log.push(`press on ${part.value} not taken: the page is leaving`);\n",
+        "  if (navigating) {\n"
+        "    log.push(`press on ${part.value} not taken: the page is leaving`);\n",
+        "  if (false) {\n"
+        "    log.push(`press on ${part.value} not taken: the page is leaving`);\n",
     ),
     (
         "a second navigation is taken",
         BROWSER,
         RUNTIME,
-        # Re-anchored by the soft navigation's ADR: one rule for both ways a
+        # Re-anchored by ADR-0306: one rule for both ways a
         # page leaves, which the store's pages, shown in a layout, reach softly.
         "  if (navigating && !(chosen && pending)) {\n"
         "    log.push(`navigation to ${url} not taken: the page is already leaving`);\n",
@@ -145,15 +145,15 @@ MUTANTS = [
         "a press is not counted while it runs",
         BROWSER,
         RUNTIME,
-        "      pressing.add(done);\n",
+        "  pressing.add(done);\n",
         "",
     ),
     (
         "a press never finishes",
         BROWSER,
         RUNTIME,
-        "        pressing.delete(done);\n        finished();\n",
-        "        pressing.delete(done);\n",
+        "    pressing.delete(done);\n    finished();\n",
+        "    pressing.delete(done);\n",
     ),
     (
         "a stopped navigation leaves the page leaving",

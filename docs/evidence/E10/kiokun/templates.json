@@ -6,11 +6,11 @@
       "q",
       "hits"
     ],
-    "schema": "bd9b03ee42132e6a",
+    "schema": "330e2d1f7f69208e",
     "chunks": [
       {
         "chunk": "static",
-        "value": "<main>\n            <form action=\"/search\" method=\"get\" role=\"search\">\n                <input data-pw=\"0\" id=\"q\" type=\"search\" name=\"q\" "
+        "value": "<main> <form action=\"/search\" method=\"get\" role=\"search\"> <input data-pw=\"0\" id=\"q\" type=\"search\" name=\"q\" "
       },
       {
         "chunk": "dynamic",
@@ -25,7 +25,7 @@
       },
       {
         "chunk": "static",
-        "value": " aria-label=\"Search the dictionary\">\n            </form>\n            "
+        "value": " aria-label=\"Search the dictionary\"> </form> "
       },
       {
         "chunk": "dynamic",
@@ -36,7 +36,7 @@
           "then": [
             {
               "chunk": "static",
-              "value": "\n                <ul id=\"hits\">\n                    "
+              "value": " <ul id=\"hits\"> "
             },
             {
               "chunk": "dynamic",
@@ -49,7 +49,7 @@
                 "body": [
                   {
                     "chunk": "static",
-                    "value": "\n                        <li>\n                            <a data-pw=\"1\" "
+                    "value": " <li> <a data-pw=\"1\" "
                   },
                   {
                     "chunk": "dynamic",
@@ -86,7 +86,7 @@
                   },
                   {
                     "chunk": "static",
-                    "value": "</a>\n                            <span class=\"language\">"
+                    "value": "</a> <span class=\"language\">"
                   },
                   {
                     "chunk": "dynamic",
@@ -99,7 +99,7 @@
                   },
                   {
                     "chunk": "static",
-                    "value": "</span>\n                            <span class=\"pronunciation\">"
+                    "value": "</span> <span class=\"pronunciation\">"
                   },
                   {
                     "chunk": "dynamic",
@@ -112,7 +112,7 @@
                   },
                   {
                     "chunk": "static",
-                    "value": "</span>\n                            <span class=\"definition\">"
+                    "value": "</span> <span class=\"definition\">"
                   },
                   {
                     "chunk": "dynamic",
@@ -125,14 +125,14 @@
                   },
                   {
                     "chunk": "static",
-                    "value": "</span>\n                        </li>\n                    "
+                    "value": "</span> </li> "
                   }
                 ]
               }
             },
             {
               "chunk": "static",
-              "value": "\n                </ul>\n            "
+              "value": " </ul> "
             }
           ],
           "otherwise": [
@@ -145,7 +145,7 @@
                 "then": [
                   {
                     "chunk": "static",
-                    "value": "\n                <p id=\"nothing\">No entry matches "
+                    "value": " <p id=\"nothing\">No entry matches "
                   },
                   {
                     "chunk": "dynamic",
@@ -158,7 +158,7 @@
                   },
                   {
                     "chunk": "static",
-                    "value": ".</p>\n            "
+                    "value": ".</p> "
                   }
                 ],
                 "otherwise": []
@@ -169,7 +169,7 @@
       },
       {
         "chunk": "static",
-        "value": "\n        </main>"
+        "value": " </main>"
       }
     ]
   },
@@ -180,11 +180,11 @@
       "word",
       "entry"
     ],
-    "schema": "26a3e97f249328aa",
+    "schema": "81646dd9957adf56",
     "chunks": [
       {
         "chunk": "static",
-        "value": "<main>\n            <form action=\"/search\" method=\"get\" role=\"search\">\n                <input id=\"q\" type=\"search\" name=\"q\" aria-label=\"Search the dictionary\">\n            </form>\n            "
+        "value": "<main> <form action=\"/search\" method=\"get\" role=\"search\"> <input id=\"q\" type=\"search\" name=\"q\" aria-label=\"Search the dictionary\"> </form> "
       },
       {
         "chunk": "dynamic",
@@ -199,7 +199,7 @@
               "body": [
                 {
                   "chunk": "static",
-                  "value": "\n                    <h1 id=\"headword\">"
+                  "value": " <h1 id=\"headword\">"
                 },
                 {
                   "chunk": "dynamic",
@@ -212,7 +212,7 @@
                 },
                 {
                   "chunk": "static",
-                  "value": "</h1>\n                    "
+                  "value": "</h1> "
                 },
                 {
                   "chunk": "dynamic",
@@ -223,7 +223,7 @@
                     "then": [
                       {
                         "chunk": "static",
-                        "value": "\n                        <section aria-label=\"Chinese\">\n                            <h2>Chinese</h2>\n                            <ul id=\"chinese\">\n                                "
+                        "value": " <section aria-label=\"Chinese\"> <h2>Chinese</h2> <ul id=\"chinese\"> "
                       },
                       {
                         "chunk": "dynamic",
@@ -236,7 +236,7 @@
                           "body": [
                             {
                               "chunk": "static",
-                              "value": "\n                                    <li>\n                                        <span class=\"pinyin\">"
+                              "value": " <li> <span class=\"pinyin\">"
                             },
                             {
                               "chunk": "dynamic",
@@ -249,7 +249,7 @@
                             },
                             {
                               "chunk": "static",
-                              "value": "</span>\n                                        <span class=\"forms\">"
+                              "value": "</span> <span class=\"forms\">"
                             },
                             {
                               "chunk": "dynamic",
@@ -262,7 +262,7 @@
                             },
                             {
                               "chunk": "static",
-                              "value": "</span>\n                                        <span class=\"definitions\">"
+                              "value": "</span> <span class=\"definitions\">"
                             },
                             {
                               "chunk": "dynamic",
@@ -275,14 +275,14 @@
                             },
                             {
                               "chunk": "static",
-                              "value": "</span>\n                                    </li>\n                                "
+                              "value": "</span> </li> "
                             }
                           ]
                         }
                       },
                       {
                         "chunk": "static",
-                        "value": "\n                            </ul>\n                        </section>\n                    "
+                        "value": " </ul> </section> "
                       }
                     ],
                     "otherwise": []
@@ -290,7 +290,7 @@
                 },
                 {
                   "chunk": "static",
-                  "value": "\n                    "
+                  "value": " "
                 },
                 {
                   "chunk": "dynamic",
@@ -305,7 +305,7 @@
                         "body": [
                           {
                             "chunk": "static",
-                            "value": "\n                            <section aria-label=\"Character\">\n                                <h2>Character</h2>\n                                <dl id=\"character\">\n                                    "
+                            "value": " <section aria-label=\"Character\"> <h2>Character</h2> <dl id=\"character\"> "
                           },
                           {
                             "chunk": "dynamic",
@@ -320,7 +320,7 @@
                                   "body": [
                                     {
                                       "chunk": "static",
-                                      "value": "\n                                            <dt>Strokes</dt>\n                                            <dd class=\"strokes\">"
+                                      "value": " <dt>Strokes</dt> <dd class=\"strokes\">"
                                     },
                                     {
                                       "chunk": "dynamic",
@@ -333,7 +333,7 @@
                                     },
                                     {
                                       "chunk": "static",
-                                      "value": "</dd>\n                                        "
+                                      "value": "</dd> "
                                     }
                                   ]
                                 },
@@ -342,7 +342,7 @@
                                   "body": [
                                     {
                                       "chunk": "static",
-                                      "value": "\n                                    "
+                                      "value": " "
                                     }
                                   ]
                                 }
@@ -351,7 +351,7 @@
                           },
                           {
                             "chunk": "static",
-                            "value": "\n                                    "
+                            "value": " "
                           },
                           {
                             "chunk": "dynamic",
@@ -366,7 +366,7 @@
                                   "body": [
                                     {
                                       "chunk": "static",
-                                      "value": "\n                                            <dt>School grade</dt>\n                                            <dd class=\"grade\">"
+                                      "value": " <dt>School grade</dt> <dd class=\"grade\">"
                                     },
                                     {
                                       "chunk": "dynamic",
@@ -379,7 +379,7 @@
                                     },
                                     {
                                       "chunk": "static",
-                                      "value": "</dd>\n                                        "
+                                      "value": "</dd> "
                                     }
                                   ]
                                 },
@@ -388,7 +388,7 @@
                                   "body": [
                                     {
                                       "chunk": "static",
-                                      "value": "\n                                    "
+                                      "value": " "
                                     }
                                   ]
                                 }
@@ -397,7 +397,7 @@
                           },
                           {
                             "chunk": "static",
-                            "value": "\n                                    "
+                            "value": " "
                           },
                           {
                             "chunk": "dynamic",
@@ -412,7 +412,7 @@
                                   "body": [
                                     {
                                       "chunk": "static",
-                                      "value": "\n                                            <dt>Former JLPT level</dt>\n                                            <dd class=\"jlpt\">"
+                                      "value": " <dt>Former JLPT level</dt> <dd class=\"jlpt\">"
                                     },
                                     {
                                       "chunk": "dynamic",
@@ -425,7 +425,7 @@
                                     },
                                     {
                                       "chunk": "static",
-                                      "value": "</dd>\n                                        "
+                                      "value": "</dd> "
                                     }
                                   ]
                                 },
@@ -434,7 +434,7 @@
                                   "body": [
                                     {
                                       "chunk": "static",
-                                      "value": "\n                                    "
+                                      "value": " "
                                     }
                                   ]
                                 }
@@ -443,7 +443,7 @@
                           },
                           {
                             "chunk": "static",
-                            "value": "\n                                    "
+                            "value": " "
                           },
                           {
                             "chunk": "dynamic",
@@ -458,7 +458,7 @@
                                   "body": [
                                     {
                                       "chunk": "static",
-                                      "value": "\n                                            <dt>Frequency rank</dt>\n                                            <dd class=\"frequency\">"
+                                      "value": " <dt>Frequency rank</dt> <dd class=\"frequency\">"
                                     },
                                     {
                                       "chunk": "dynamic",
@@ -471,7 +471,7 @@
                                     },
                                     {
                                       "chunk": "static",
-                                      "value": "</dd>\n                                        "
+                                      "value": "</dd> "
                                     }
                                   ]
                                 },
@@ -480,7 +480,7 @@
                                   "body": [
                                     {
                                       "chunk": "static",
-                                      "value": "\n                                    "
+                                      "value": " "
                                     }
                                   ]
                                 }
@@ -489,7 +489,7 @@
                           },
                           {
                             "chunk": "static",
-                            "value": "\n                                    "
+                            "value": " "
                           },
                           {
                             "chunk": "dynamic",
@@ -500,7 +500,7 @@
                               "then": [
                                 {
                                   "chunk": "static",
-                                  "value": "\n                                        <dt>Korean reading</dt>\n                                        <dd class=\"hangul\">"
+                                  "value": " <dt>Korean reading</dt> <dd class=\"hangul\">"
                                 },
                                 {
                                   "chunk": "dynamic",
@@ -513,7 +513,7 @@
                                 },
                                 {
                                   "chunk": "static",
-                                  "value": "</dd>\n                                    "
+                                  "value": "</dd> "
                                 }
                               ],
                               "otherwise": []
@@ -521,7 +521,7 @@
                           },
                           {
                             "chunk": "static",
-                            "value": "\n                                    "
+                            "value": " "
                           },
                           {
                             "chunk": "dynamic",
@@ -532,7 +532,7 @@
                               "then": [
                                 {
                                   "chunk": "static",
-                                  "value": "\n                                        <dt>Meaning in Korean</dt>\n                                        <dd class=\"meanings\">"
+                                  "value": " <dt>Meaning in Korean</dt> <dd class=\"meanings\">"
                                 },
                                 {
                                   "chunk": "dynamic",
@@ -545,7 +545,7 @@
                                 },
                                 {
                                   "chunk": "static",
-                                  "value": "</dd>\n                                    "
+                                  "value": "</dd> "
                                 }
                               ],
                               "otherwise": []
@@ -553,7 +553,7 @@
                           },
                           {
                             "chunk": "static",
-                            "value": "\n                                </dl>\n                            </section>\n                        "
+                            "value": " </dl> </section> "
                           }
                         ]
                       },
@@ -562,7 +562,7 @@
                         "body": [
                           {
                             "chunk": "static",
-                            "value": "\n                    "
+                            "value": " "
                           }
                         ]
                       }
@@ -571,7 +571,7 @@
                 },
                 {
                   "chunk": "static",
-                  "value": "\n                    "
+                  "value": " "
                 },
                 {
                   "chunk": "dynamic",
@@ -582,7 +582,7 @@
                     "then": [
                       {
                         "chunk": "static",
-                        "value": "\n                        <section aria-label=\"Japanese\">\n                            <h2>Japanese</h2>\n                            <ul id=\"japanese\">\n                                "
+                        "value": " <section aria-label=\"Japanese\"> <h2>Japanese</h2> <ul id=\"japanese\"> "
                       },
                       {
                         "chunk": "dynamic",
@@ -595,7 +595,7 @@
                           "body": [
                             {
                               "chunk": "static",
-                              "value": "\n                                    <li>\n                                        <span class=\"written\">"
+                              "value": " <li> <span class=\"written\">"
                             },
                             {
                               "chunk": "dynamic",
@@ -608,7 +608,7 @@
                             },
                             {
                               "chunk": "static",
-                              "value": "</span>\n                                        <span class=\"readings\">"
+                              "value": "</span> <span class=\"readings\">"
                             },
                             {
                               "chunk": "dynamic",
@@ -621,7 +621,7 @@
                             },
                             {
                               "chunk": "static",
-                              "value": "</span>\n                                        <ol>\n                                            "
+                              "value": "</span> <ol> "
                             },
                             {
                               "chunk": "dynamic",
@@ -634,7 +634,7 @@
                                 "body": [
                                   {
                                     "chunk": "static",
-                                    "value": "\n                                                <li>"
+                                    "value": " <li>"
                                   },
                                   {
                                     "chunk": "dynamic",
@@ -647,21 +647,21 @@
                                   },
                                   {
                                     "chunk": "static",
-                                    "value": "</li>\n                                            "
+                                    "value": "</li> "
                                   }
                                 ]
                               }
                             },
                             {
                               "chunk": "static",
-                              "value": "\n                                        </ol>\n                                    </li>\n                                "
+                              "value": " </ol> </li> "
                             }
                           ]
                         }
                       },
                       {
                         "chunk": "static",
-                        "value": "\n                            </ul>\n                        </section>\n                    "
+                        "value": " </ul> </section> "
                       }
                     ],
                     "otherwise": []
@@ -669,7 +669,7 @@
                 },
                 {
                   "chunk": "static",
-                  "value": "\n                    "
+                  "value": " "
                 },
                 {
                   "chunk": "dynamic",
@@ -680,7 +680,7 @@
                     "then": [
                       {
                         "chunk": "static",
-                        "value": "\n                        <section aria-label=\"Korean\">\n                            <h2>Korean</h2>\n                            <ul id=\"korean\">\n                                "
+                        "value": " <section aria-label=\"Korean\"> <h2>Korean</h2> <ul id=\"korean\"> "
                       },
                       {
                         "chunk": "dynamic",
@@ -693,7 +693,7 @@
                           "body": [
                             {
                               "chunk": "static",
-                              "value": "\n                                    <li>\n                                        <span class=\"hangul\">"
+                              "value": " <li> <span class=\"hangul\">"
                             },
                             {
                               "chunk": "dynamic",
@@ -706,7 +706,7 @@
                             },
                             {
                               "chunk": "static",
-                              "value": "</span>\n                                        <span class=\"hanja\">"
+                              "value": "</span> <span class=\"hanja\">"
                             },
                             {
                               "chunk": "dynamic",
@@ -719,7 +719,7 @@
                             },
                             {
                               "chunk": "static",
-                              "value": "</span>\n                                        <span class=\"pronunciation\">"
+                              "value": "</span> <span class=\"pronunciation\">"
                             },
                             {
                               "chunk": "dynamic",
@@ -732,7 +732,7 @@
                             },
                             {
                               "chunk": "static",
-                              "value": "</span>\n                                        <span class=\"definitions\">"
+                              "value": "</span> <span class=\"definitions\">"
                             },
                             {
                               "chunk": "dynamic",
@@ -745,14 +745,14 @@
                             },
                             {
                               "chunk": "static",
-                              "value": "</span>\n                                    </li>\n                                "
+                              "value": "</span> </li> "
                             }
                           ]
                         }
                       },
                       {
                         "chunk": "static",
-                        "value": "\n                            </ul>\n                        </section>\n                    "
+                        "value": " </ul> </section> "
                       }
                     ],
                     "otherwise": []
@@ -760,7 +760,7 @@
                 },
                 {
                   "chunk": "static",
-                  "value": "\n                    "
+                  "value": " "
                 },
                 {
                   "chunk": "dynamic",
@@ -771,7 +771,7 @@
                     "then": [
                       {
                         "chunk": "static",
-                        "value": "\n                        <section aria-label=\"Names\">\n                            <h2>Names</h2>\n                            <ul id=\"names\">\n                                "
+                        "value": " <section aria-label=\"Names\"> <h2>Names</h2> <ul id=\"names\"> "
                       },
                       {
                         "chunk": "dynamic",
@@ -784,7 +784,7 @@
                           "body": [
                             {
                               "chunk": "static",
-                              "value": "\n                                    <li>\n                                        <span class=\"written\">"
+                              "value": " <li> <span class=\"written\">"
                             },
                             {
                               "chunk": "dynamic",
@@ -797,7 +797,7 @@
                             },
                             {
                               "chunk": "static",
-                              "value": "</span>\n                                        <span class=\"readings\">"
+                              "value": "</span> <span class=\"readings\">"
                             },
                             {
                               "chunk": "dynamic",
@@ -810,7 +810,7 @@
                             },
                             {
                               "chunk": "static",
-                              "value": "</span>\n                                        <span class=\"kinds\">"
+                              "value": "</span> <span class=\"kinds\">"
                             },
                             {
                               "chunk": "dynamic",
@@ -823,7 +823,7 @@
                             },
                             {
                               "chunk": "static",
-                              "value": "</span>\n                                        <span class=\"translations\">"
+                              "value": "</span> <span class=\"translations\">"
                             },
                             {
                               "chunk": "dynamic",
@@ -836,14 +836,14 @@
                             },
                             {
                               "chunk": "static",
-                              "value": "</span>\n                                    </li>\n                                "
+                              "value": "</span> </li> "
                             }
                           ]
                         }
                       },
                       {
                         "chunk": "static",
-                        "value": "\n                            </ul>\n                        </section>\n                    "
+                        "value": " </ul> </section> "
                       }
                     ],
                     "otherwise": []
@@ -851,7 +851,7 @@
                 },
                 {
                   "chunk": "static",
-                  "value": "\n                "
+                  "value": " "
                 }
               ]
             },
@@ -860,7 +860,7 @@
               "body": [
                 {
                   "chunk": "static",
-                  "value": "\n                    <h1 id=\"headword\">"
+                  "value": " <h1 id=\"headword\">"
                 },
                 {
                   "chunk": "dynamic",
@@ -873,7 +873,7 @@
                 },
                 {
                   "chunk": "static",
-                  "value": "</h1>\n                    <p>There is no entry for it here.</p>\n            "
+                  "value": "</h1> <p>There is no entry for it here.</p> "
                 }
               ]
             }
@@ -882,7 +882,7 @@
       },
       {
         "chunk": "static",
-        "value": "\n        </main>"
+        "value": " </main>"
       }
     ]
   }

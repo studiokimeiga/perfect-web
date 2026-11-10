@@ -944,7 +944,7 @@ mod store;
 // TRACK SEAM (store-accounts): where a delivery goes, and whether a store
 // reaches it.
 mod places;
-// The prerender's ADR: a page no reader decides, as one document.
+// ADR-0409: a page no reader decides, as one document.
 mod prerender;
 // Track `store-pg`: the store's data in PostgreSQL.
 mod store_pg;
@@ -5913,9 +5913,9 @@ impl Server {
     }
 
     /// **A regeneration that failed, tried again within a held subscription**
-    /// (ADR-0176, ADR-0402), as often as a page that is not held
-    /// long would have asked. Until that hold was long, a page's next request
-    /// was at most two seconds away.
+    /// (ADR-0176, ADR-0402), about as often as a page that is not held long
+    /// would have asked: at the first look two seconds after the last, and a
+    /// subscription held long looks once a second.
     fn try_again_within(&self, session: &str, tried: &mut std::time::Instant) {
         if tried.elapsed() < self.retried_every {
             return;
@@ -7320,7 +7320,11 @@ impl Server {
                 .render_page_in(page, &BTreeMap::new(), Partition::Public, &[])
                 .map_err(|why| format!("`{page}` cannot be prerendered: {why}"))?;
             let document = if runs_on_device(plan) {
-                self.delivery.on_device(document)
+                let bundle = format!("/bundle/{page}.mjs");
+                self.delivery.on_device(
+                    document,
+                    self.bundles.contains(page).then_some(bundle.as_str()),
+                )
             } else {
                 document
             };
@@ -11982,6 +11986,7 @@ fn stream_held(
     // the hold where its page has gone.
     let opened = std::time::Instant::now();
     let until = opened + hold;
+    let look = looks_for(server, hold >= server.long_hold);
     let mut tried = opened;
     let mut pass = 0u64;
     loop {
@@ -12034,7 +12039,7 @@ fn stream_held(
                 if left.is_zero() {
                     break;
                 }
-                drop(server.pending.wait(queue, left.min(server.wake_at_least)));
+                drop(server.pending.wait(queue, left.min(look)));
                 continue;
             }
             batch
@@ -12081,6 +12086,21 @@ fn stream_held(
 /// answer's first byte (Heroku's) and the 60 s a proxy commonly allows a
 /// quiet connection.
 const HOLD: std::time::Duration = std::time::Duration::from_secs(25);
+
+/// **How often a subscription held long looks at its table when nothing wakes
+/// it**: often enough to keep its page live ([`LIVE`]) and to see its page gone
+/// soon, and four times less than one held briefly, which adds up across every
+/// idle page.
+const LONG_LOOK: std::time::Duration = std::time::Duration::from_secs(1);
+
+/// How long a pass of a held subscription waits for a wake.
+fn looks_for(server: &Server, long: bool) -> std::time::Duration {
+    if long {
+        server.wake_at_least.max(LONG_LOOK)
+    } else {
+        server.wake_at_least
+    }
+}
 
 /// **How many subscriptions a host holds long at once** (the longer-holds
 /// ADR). Each is a thread, and a request asks for it by what it says: past
@@ -12189,6 +12209,7 @@ fn stream_frames(server: &Server, stream: &mut Conn, session: &str, fresh: bool,
         } else {
             server.poll_hold
         };
+    let look = looks_for(server, long);
     let mut tried = opened;
     loop {
         if gone(stream) {
@@ -12224,7 +12245,7 @@ fn stream_frames(server: &Server, stream: &mut Conn, session: &str, fresh: bool,
                 if left.is_zero() {
                     break;
                 }
-                drop(server.pending.wait(queue, left.min(server.wake_at_least)));
+                drop(server.pending.wait(queue, left.min(look)));
                 continue;
             }
             batch
@@ -13658,22 +13679,23 @@ impl Delivery {
             .then(|| format!("import(\"{}\")", self.named("/pw-runtime-device.mjs")))
     }
 
-    /// `document`, delivered, starting the device's runtime.
-    fn on_device(&self, document: String) -> String {
+    /// `document`, delivered, starting the device's runtime, and fetching
+    /// the page's code (`bundle`, where it has one) beside it: what the device
+    /// holds is rendered as the page starts, and that takes the page's code.
+    fn on_device(&self, document: String, bundle: Option<&str>) -> String {
         let (Some(device), full) = (self.device_source(), self.runtime_source()) else {
             return document;
         };
-        document.replacen(&full, &device, 1).replacen(
-            &format!(
-                "<link rel=\"modulepreload\" href=\"{}\">",
-                self.named("/pw-runtime.mjs")
-            ),
-            &format!(
-                "<link rel=\"modulepreload\" href=\"{}\">",
-                self.named("/pw-runtime-device.mjs")
-            ),
-            1,
-        )
+        let preload =
+            |path: &str| format!("<link rel=\"modulepreload\" href=\"{}\">", self.named(path));
+        let mut head = preload("/pw-runtime-device.mjs");
+        if let Some(bundle) = bundle {
+            head.push('\n');
+            head.push_str(&preload(bundle));
+        }
+        document
+            .replacen(&full, &device, 1)
+            .replacen(&preload("/pw-runtime.mjs"), &head, 1)
     }
 
     /// The script that starts the runtime ([`RUNTIME`]).
@@ -18241,7 +18263,7 @@ public query Store(",
     mod session_commands_pg;
     // ADR-0401: a connection kept for its next request.
     mod keep_alive;
-    // The prerender's ADR: a page no reader decides is one document.
+    // ADR-0409: a page no reader decides is one document.
     mod prerender;
     // ADR-0389, amended 2026-11-02: overlapping admissions of one session.
     mod session_overlap;

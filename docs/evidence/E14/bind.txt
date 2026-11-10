@@ -1,8 +1,8 @@
 ADR-0142 - an input bound to a signal
 
 produced by: just e14-bind
-commit: c714d1c35cee98ec923946aac6c873624c971b7f
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39542637844 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the binding (compiler/pw-core/tests/bind.rs)
@@ -11,16 +11,16 @@ test a_binding_is_a_value_and_a_handler ... ok
 test a_non_signal_binding_reports_its_owner_without_capturing_its_target ... ok
 test a_binding_binds_a_signal_of_string_by_its_name ... ok
 test a_block_is_rendered_again_only_for_what_it_cannot_set_in_place ... ok
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.68s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.52s
 
 == what the browser sets in place (compiler/pw-core/tests/signals_render_again.rs)
 
 test a_list_a_signal_holds_is_rendered_again_only_inside_its_block ... ok
 test an_attribute_a_signal_decides_is_set_in_place_or_refused ... ok
-test a_block_a_signal_decides_reads_the_signals_and_its_own_names ... ok
 test a_signal_read_in_a_block_a_query_decides_is_refused ... ok
+test a_block_a_signal_decides_reads_the_signals_and_its_own_names ... ok
 test what_a_handler_captures_in_a_signal_s_block_is_the_block_s ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.10s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 24.15s
 
 == mutation controls (scripts/bind_mutations.py)
 
@@ -31,60 +31,60 @@ test a_non_signal_binding_reports_its_owner_without_capturing_its_target ... ok
 test a_binding_binds_a_signal_of_string_by_its_name ... ok
 test a_block_is_rendered_again_only_for_what_it_cannot_set_in_place ... ok
 
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.68s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.51s
 
 
 
 running 5 tests
 test a_list_a_signal_holds_is_rendered_again_only_inside_its_block ... ok
-test a_signal_read_in_a_block_a_query_decides_is_refused ... ok
-test an_attribute_a_signal_decides_is_set_in_place_or_refused ... ok
 test a_block_a_signal_decides_reads_the_signals_and_its_own_names ... ok
+test an_attribute_a_signal_decides_is_set_in_place_or_refused ... ok
+test a_signal_read_in_a_block_a_query_decides_is_refused ... ok
 test what_a_handler_captures_in_a_signal_s_block_is_the_block_s ... ok
 
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.13s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 23.61s
 
 
 baseline: 9 passed, 0 failed
 
 running 4 tests
-test a_binding_binds_a_signal_of_string_by_its_name ... FAILED
-test a_block_is_rendered_again_only_for_what_it_cannot_set_in_place ... FAILED
-test a_non_signal_binding_reports_its_owner_without_capturing_its_target ... FAILED
 test a_binding_is_a_value_and_a_handler ... FAILED
+test a_non_signal_binding_reports_its_owner_without_capturing_its_target ... FAILED
+test a_block_is_rendered_again_only_for_what_it_cannot_set_in_place ... FAILED
+test a_binding_binds_a_signal_of_string_by_its_name ... FAILED
 
 failures:
 
----- a_binding_binds_a_signal_of_string_by_its_name stdout ----
+---- a_binding_is_a_value_and_a_handler stdout ----
 
-thread 'a_binding_binds_a_signal_of_string_by_its_name' (4052) panicked at compiler/pw-core/tests/bind.rs:170:9:
-<input type="text" aria-label="N" bind:value={count} />: [
-    "PW5304 `bind:value` binds `value`, to a signal's name: `bind:value={s}`",
-]
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-
----- a_block_is_rendered_again_only_for_what_it_cannot_set_in_place stdout ----
-
-thread 'a_block_is_rendered_again_only_for_what_it_cannot_set_in_place' (4054) panicked at compiler/pw-core/tests/bind.rs:226:5:
+thread 'a_binding_is_a_value_and_a_handler' (37685) panicked at compiler/pw-core/tests/bind.rs:87:5:
 assertion `left == right` failed
   left: ["PW5304 `bind:value` binds `value`, to a signal's name: `bind:value={s}`"]
  right: []
 
 ---- a_non_signal_binding_reports_its_owner_without_capturing_its_target stdout ----
 
-thread 'a_non_signal_binding_reports_its_owner_without_capturing_its_target' (4055) panicked at compiler/pw-core/tests/bind.rs:193:5:
+thread 'a_non_signal_binding_reports_its_owner_without_capturing_its_target' (37687) panicked at compiler/pw-core/tests/bind.rs:193:5:
 assertion `left == right` failed: [
     "PW5304 `bind:value` binds `value`, to a signal's name: `bind:value={s}`",
 ]
   left: ["PW5304"]
  right: ["PW5304", "PW0609"]
 
----- a_binding_is_a_value_and_a_handler stdout ----
+---- a_block_is_rendered_again_only_for_what_it_cannot_set_in_place stdout ----
 
-thread 'a_binding_is_a_value_and_a_handler' (4053) panicked at compiler/pw-core/tests/bind.rs:87:5:
+thread 'a_block_is_rendered_again_only_for_what_it_cannot_set_in_place' (37686) panicked at compiler/pw-core/tests/bind.rs:226:5:
 assertion `left == right` failed
   left: ["PW5304 `bind:value` binds `value`, to a signal's name: `bind:value={s}`"]
  right: []
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- a_binding_binds_a_signal_of_string_by_its_name stdout ----
+
+thread 'a_binding_binds_a_signal_of_string_by_its_name' (37684) panicked at compiler/pw-core/tests/bind.rs:170:9:
+<input type="text" aria-label="N" bind:value={count} />: [
+    "PW5304 `bind:value` binds `value`, to a signal's name: `bind:value={s}`",
+]
 
 
 failures:
@@ -93,44 +93,44 @@ failures:
     a_block_is_rendered_again_only_for_what_it_cannot_set_in_place
     a_non_signal_binding_reports_its_owner_without_capturing_its_target
 
-test result: FAILED. 0 passed; 4 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.18s
+test result: FAILED. 0 passed; 4 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
 
 error: test failed, to rerun pass `-p pw-core --test bind`
 
 
 running 5 tests
-test a_block_a_signal_decides_reads_the_signals_and_its_own_names ... FAILED
 test a_signal_read_in_a_block_a_query_decides_is_refused ... FAILED
-test a_list_a_signal_holds_is_rendered_again_only_inside_its_block ... FAILED
 test an_attribute_a_signal_decides_is_set_in_place_or_refused ... FAILED
+test a_block_a_signal_decides_reads_the_signals_and_its_own_names ... FAILED
+test a_list_a_signal_holds_is_rendered_again_only_inside_its_block ... FAILED
 test what_a_handler_captures_in_a_signal_s_block_is_the_block_s ... FAILED
 
 failures:
 
----- a_block_a_signal_decides_reads_the_signals_and_its_own_names stdout ----
+---- a_signal_read_in_a_block_a_query_decides_is_refused stdout ----
 
-thread 'a_block_a_signal_decides_reads_the_signals_and_its_own_names' (4132) panicked at compiler/pw-core/tests/signals_render_again.rs:67:5:
+thread 'a_signal_read_in_a_block_a_query_decides_is_refused' (37766) panicked at compiler/pw-core/tests/signals_render_again.rs:67:5:
 the checked store fixture builds: Some("the program does not check, so nothing is compiled: /home/runner/work/perfect-web/perfect-web/compiler/pw-core/../../examples/store/app.pw: [PW5304] `bind:value` binds `value`, to a signal's name: `bind:value={s}`; /home/runner/work/perfect-web/perfect-web/compiler/pw-core/../../examples/store/app.pw: [PW5304] `bind:value` binds `value`, to a signal's name: `bind:value={s}`; /home/runner/work/perfect-web/perfect-web/compiler/pw-core/../../examples/store/app.pw: [PW5304] `bind:value` binds `value`, to a signal's name: `bind:value={s}`; /home/runner/work/perfect-web/perfect-web/compiler/pw-core/../../examples/store/rate.pw: [PW5304] `bind:value` binds `value`, to a signal's name: `bind:value={s}`")
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
----- a_signal_read_in_a_block_a_query_decides_is_refused stdout ----
+---- an_attribute_a_signal_decides_is_set_in_place_or_refused stdout ----
 
-thread 'a_signal_read_in_a_block_a_query_decides_is_refused' (4134) panicked at compiler/pw-core/tests/signals_render_again.rs:67:5:
+thread 'an_attribute_a_signal_decides_is_set_in_place_or_refused' (37767) panicked at compiler/pw-core/tests/signals_render_again.rs:67:5:
+the checked store fixture builds: Some("the program does not check, so nothing is compiled: /home/runner/work/perfect-web/perfect-web/compiler/pw-core/../../examples/store/app.pw: [PW5304] `bind:value` binds `value`, to a signal's name: `bind:value={s}`; /home/runner/work/perfect-web/perfect-web/compiler/pw-core/../../examples/store/app.pw: [PW5304] `bind:value` binds `value`, to a signal's name: `bind:value={s}`; /home/runner/work/perfect-web/perfect-web/compiler/pw-core/../../examples/store/app.pw: [PW5304] `bind:value` binds `value`, to a signal's name: `bind:value={s}`; /home/runner/work/perfect-web/perfect-web/compiler/pw-core/../../examples/store/rate.pw: [PW5304] `bind:value` binds `value`, to a signal's name: `bind:value={s}`")
+
+---- a_block_a_signal_decides_reads_the_signals_and_its_own_names stdout ----
+
+thread 'a_block_a_signal_decides_reads_the_signals_and_its_own_names' (37764) panicked at compiler/pw-core/tests/signals_render_again.rs:67:5:
 the checked store fixture builds: Some("the program does not check, so nothing is compiled: /home/runner/work/perfect-web/perfect-web/compiler/pw-core/../../examples/store/app.pw: [PW5304] `bind:value` binds `value`, to a signal's name: `bind:value={s}`; /home/runner/work/perfect-web/perfect-web/compiler/pw-core/../../examples/store/app.pw: [PW5304] `bind:value` binds `value`, to a signal's name: `bind:value={s}`; /home/runner/work/perfect-web/perfect-web/compiler/pw-core/../../examples/store/app.pw: [PW5304] `bind:value` binds `value`, to a signal's name: `bind:value={s}`; /home/runner/work/perfect-web/perfect-web/compiler/pw-core/../../examples/store/rate.pw: [PW5304] `bind:value` binds `value`, to a signal's name: `bind:value={s}`")
 
 ---- a_list_a_signal_holds_is_rendered_again_only_inside_its_block stdout ----
 
-thread 'a_list_a_signal_holds_is_rendered_again_only_inside_its_block' (4133) panicked at compiler/pw-core/tests/signals_render_again.rs:67:5:
-the checked store fixture builds: Some("the program does not check, so nothing is compiled: /home/runner/work/perfect-web/perfect-web/compiler/pw-core/../../examples/store/app.pw: [PW5304] `bind:value` binds `value`, to a signal's name: `bind:value={s}`; /home/runner/work/perfect-web/perfect-web/compiler/pw-core/../../examples/store/app.pw: [PW5304] `bind:value` binds `value`, to a signal's name: `bind:value={s}`; /home/runner/work/perfect-web/perfect-web/compiler/pw-core/../../examples/store/app.pw: [PW5304] `bind:value` binds `value`, to a signal's name: `bind:value={s}`; /home/runner/work/perfect-web/perfect-web/compiler/pw-core/../../examples/store/rate.pw: [PW5304] `bind:value` binds `value`, to a signal's name: `bind:value={s}`")
-
----- an_attribute_a_signal_decides_is_set_in_place_or_refused stdout ----
-
-thread 'an_attribute_a_signal_decides_is_set_in_place_or_refused' (4135) panicked at compiler/pw-core/tests/signals_render_again.rs:67:5:
+thread 'a_list_a_signal_holds_is_rendered_again_only_inside_its_block' (37765) panicked at compiler/pw-core/tests/signals_render_again.rs:67:5:
 the checked store fixture builds: Some("the program does not check, so nothing is compiled: /home/runner/work/perfect-web/perfect-web/compiler/pw-core/../../examples/store/app.pw: [PW5304] `bind:value` binds `value`, to a signal's name: `bind:value={s}`; /home/runner/work/perfect-web/perfect-web/compiler/pw-core/../../examples/store/app.pw: [PW5304] `bind:value` binds `value`, to a signal's name: `bind:value={s}`; /home/runner/work/perfect-web/perfect-web/compiler/pw-core/../../examples/store/app.pw: [PW5304] `bind:value` binds `value`, to a signal's name: `bind:value={s}`; /home/runner/work/perfect-web/perfect-web/compiler/pw-core/../../examples/store/rate.pw: [PW5304] `bind:value` binds `value`, to a signal's name: `bind:value={s}`")
 
 ---- what_a_handler_captures_in_a_signal_s_block_is_the_block_s stdout ----
 
-thread 'what_a_handler_captures_in_a_signal_s_block_is_the_block_s' (4138) panicked at compiler/pw-core/tests/signals_render_again.rs:67:5:
+thread 'what_a_handler_captures_in_a_signal_s_block_is_the_block_s' (37768) panicked at compiler/pw-core/tests/signals_render_again.rs:67:5:
 the checked store fixture builds: Some("the program does not check, so nothing is compiled: /home/runner/work/perfect-web/perfect-web/compiler/pw-core/../../examples/store/app.pw: [PW5304] `bind:value` binds `value`, to a signal's name: `bind:value={s}`; /home/runner/work/perfect-web/perfect-web/compiler/pw-core/../../examples/store/app.pw: [PW5304] `bind:value` binds `value`, to a signal's name: `bind:value={s}`; /home/runner/work/perfect-web/perfect-web/compiler/pw-core/../../examples/store/app.pw: [PW5304] `bind:value` binds `value`, to a signal's name: `bind:value={s}`; /home/runner/work/perfect-web/perfect-web/compiler/pw-core/../../examples/store/rate.pw: [PW5304] `bind:value` binds `value`, to a signal's name: `bind:value={s}`")
 
 
@@ -141,23 +141,31 @@ failures:
     an_attribute_a_signal_decides_is_set_in_place_or_refused
     what_a_handler_captures_in_a_signal_s_block_is_the_block_s
 
-test result: FAILED. 0 passed; 5 failed; 0 ignored; 0 measured; 0 filtered out; finished in 8.81s
+test result: FAILED. 0 passed; 5 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.22s
 
 error: test failed, to rerun pass `-p pw-core --test signals_render_again`
 
 bind:value is not lowered: KILLED (9 of 9 tests fail)
 
 running 4 tests
-test a_non_signal_binding_reports_its_owner_without_capturing_its_target ... FAILED
 test a_binding_binds_a_signal_of_string_by_its_name ... FAILED
+test a_non_signal_binding_reports_its_owner_without_capturing_its_target ... FAILED
 test a_binding_is_a_value_and_a_handler ... ok
 test a_block_is_rendered_again_only_for_what_it_cannot_set_in_place ... ok
 
 failures:
 
+---- a_binding_binds_a_signal_of_string_by_its_name stdout ----
+
+thread 'a_binding_binds_a_signal_of_string_by_its_name' (38127) panicked at compiler/pw-core/tests/bind.rs:170:9:
+<input type="text" aria-label="N" bind:value={count} />: [
+    "PW0607 `count` holds `Int` and is assigned `String`",
+]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
 ---- a_non_signal_binding_reports_its_owner_without_capturing_its_target stdout ----
 
-thread 'a_non_signal_binding_reports_its_owner_without_capturing_its_target' (4500) panicked at compiler/pw-core/tests/bind.rs:193:5:
+thread 'a_non_signal_binding_reports_its_owner_without_capturing_its_target' (38130) panicked at compiler/pw-core/tests/bind.rs:193:5:
 assertion `left == right` failed: [
     "PW0611 `fixed` is assigned, and it is not a `let mut` binding",
     "PW5008 handler captures `fixed: fn(String) -> String`, which is not serializable",
@@ -167,21 +175,13 @@ assertion `left == right` failed: [
 ]
   left: ["PW0611", "PW5008", "PW5302", "PW0607", "PW0609"]
  right: ["PW5304", "PW0609"]
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-
----- a_binding_binds_a_signal_of_string_by_its_name stdout ----
-
-thread 'a_binding_binds_a_signal_of_string_by_its_name' (4497) panicked at compiler/pw-core/tests/bind.rs:170:9:
-<input type="text" aria-label="N" bind:value={count} />: [
-    "PW0607 `count` holds `Int` and is assigned `String`",
-]
 
 
 failures:
     a_binding_binds_a_signal_of_string_by_its_name
     a_non_signal_binding_reports_its_owner_without_capturing_its_target
 
-test result: FAILED. 2 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.57s
+test result: FAILED. 2 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.43s
 
 error: test failed, to rerun pass `-p pw-core --test bind`
 
@@ -193,22 +193,22 @@ test a_signal_read_in_a_block_a_query_decides_is_refused ... ok
 test a_block_a_signal_decides_reads_the_signals_and_its_own_names ... ok
 test what_a_handler_captures_in_a_signal_s_block_is_the_block_s ... ok
 
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.58s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 23.82s
 
 
 the handler a binding wrote is not marked: KILLED (2 of 9 tests fail)
 
 running 4 tests
 test a_non_signal_binding_reports_its_owner_without_capturing_its_target ... FAILED
-test a_binding_is_a_value_and_a_handler ... ok
 test a_binding_binds_a_signal_of_string_by_its_name ... FAILED
+test a_binding_is_a_value_and_a_handler ... ok
 test a_block_is_rendered_again_only_for_what_it_cannot_set_in_place ... ok
 
 failures:
 
 ---- a_non_signal_binding_reports_its_owner_without_capturing_its_target stdout ----
 
-thread 'a_non_signal_binding_reports_its_owner_without_capturing_its_target' (4961) panicked at compiler/pw-core/tests/bind.rs:193:5:
+thread 'a_non_signal_binding_reports_its_owner_without_capturing_its_target' (38588) panicked at compiler/pw-core/tests/bind.rs:193:5:
 assertion `left == right` failed: [
     "PW0609 `value` is `fn(String) -> String`, which has no text form",
 ]
@@ -218,7 +218,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- a_binding_binds_a_signal_of_string_by_its_name stdout ----
 
-thread 'a_binding_binds_a_signal_of_string_by_its_name' (4958) panicked at compiler/pw-core/tests/bind.rs:169:9:
+thread 'a_binding_binds_a_signal_of_string_by_its_name' (38585) panicked at compiler/pw-core/tests/bind.rs:169:9:
 assertion `left == right` failed: <input type="text" aria-label="N" bind:value={fixed} />: []
   left: 0
  right: 1
@@ -228,7 +228,7 @@ failures:
     a_binding_binds_a_signal_of_string_by_its_name
     a_non_signal_binding_reports_its_owner_without_capturing_its_target
 
-test result: FAILED. 2 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.62s
+test result: FAILED. 2 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.46s
 
 error: test failed, to rerun pass `-p pw-core --test bind`
 
@@ -240,7 +240,7 @@ test a_block_a_signal_decides_reads_the_signals_and_its_own_names ... ok
 test a_signal_read_in_a_block_a_query_decides_is_refused ... ok
 test what_a_handler_captures_in_a_signal_s_block_is_the_block_s ... ok
 
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.25s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 23.61s
 
 
 a binding of a value that is not a signal is accepted: KILLED (2 of 9 tests fail)
@@ -255,7 +255,7 @@ failures:
 
 ---- a_binding_binds_a_signal_of_string_by_its_name stdout ----
 
-thread 'a_binding_binds_a_signal_of_string_by_its_name' (5413) panicked at compiler/pw-core/tests/bind.rs:169:9:
+thread 'a_binding_binds_a_signal_of_string_by_its_name' (39036) panicked at compiler/pw-core/tests/bind.rs:169:9:
 assertion `left == right` failed: <input type="text" aria-label="N" bind:value={count} />: []
   left: 0
  right: 1
@@ -265,34 +265,34 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_binding_binds_a_signal_of_string_by_its_name
 
-test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.57s
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.47s
 
 error: test failed, to rerun pass `-p pw-core --test bind`
 
 
 running 5 tests
 test a_list_a_signal_holds_is_rendered_again_only_inside_its_block ... ok
+test a_signal_read_in_a_block_a_query_decides_is_refused ... ok
 test an_attribute_a_signal_decides_is_set_in_place_or_refused ... ok
 test a_block_a_signal_decides_reads_the_signals_and_its_own_names ... ok
-test a_signal_read_in_a_block_a_query_decides_is_refused ... ok
 test what_a_handler_captures_in_a_signal_s_block_is_the_block_s ... ok
 
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.30s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 23.64s
 
 
 a signal of another type binds: KILLED (1 of 9 tests fail)
 
 running 4 tests
 test a_binding_is_a_value_and_a_handler ... ok
-test a_non_signal_binding_reports_its_owner_without_capturing_its_target ... ok
 test a_binding_binds_a_signal_of_string_by_its_name ... FAILED
+test a_non_signal_binding_reports_its_owner_without_capturing_its_target ... ok
 test a_block_is_rendered_again_only_for_what_it_cannot_set_in_place ... ok
 
 failures:
 
 ---- a_binding_binds_a_signal_of_string_by_its_name stdout ----
 
-thread 'a_binding_binds_a_signal_of_string_by_its_name' (5897) panicked at compiler/pw-core/tests/bind.rs:169:9:
+thread 'a_binding_binds_a_signal_of_string_by_its_name' (39489) panicked at compiler/pw-core/tests/bind.rs:169:9:
 assertion `left == right` failed: <p bind:value={name}>x</p>: []
   left: 0
  right: 1
@@ -302,34 +302,34 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_binding_binds_a_signal_of_string_by_its_name
 
-test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.70s
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.50s
 
 error: test failed, to rerun pass `-p pw-core --test bind`
 
 
 running 5 tests
 test a_list_a_signal_holds_is_rendered_again_only_inside_its_block ... ok
+test a_signal_read_in_a_block_a_query_decides_is_refused ... ok
 test a_block_a_signal_decides_reads_the_signals_and_its_own_names ... ok
 test an_attribute_a_signal_decides_is_set_in_place_or_refused ... ok
-test a_signal_read_in_a_block_a_query_decides_is_refused ... ok
 test what_a_handler_captures_in_a_signal_s_block_is_the_block_s ... ok
 
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.28s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 23.76s
 
 
 any element binds a value: KILLED (1 of 9 tests fail)
 
 running 4 tests
 test a_non_signal_binding_reports_its_owner_without_capturing_its_target ... FAILED
-test a_binding_is_a_value_and_a_handler ... ok
 test a_binding_binds_a_signal_of_string_by_its_name ... FAILED
+test a_binding_is_a_value_and_a_handler ... ok
 test a_block_is_rendered_again_only_for_what_it_cannot_set_in_place ... ok
 
 failures:
 
 ---- a_non_signal_binding_reports_its_owner_without_capturing_its_target stdout ----
 
-thread 'a_non_signal_binding_reports_its_owner_without_capturing_its_target' (6358) panicked at compiler/pw-core/tests/bind.rs:193:5:
+thread 'a_non_signal_binding_reports_its_owner_without_capturing_its_target' (39945) panicked at compiler/pw-core/tests/bind.rs:193:5:
 assertion `left == right` failed: [
     "PW5304 `bind:value` binds `fixed`, which is not a signal: what is typed would change nothing the browser holds",
     "PW5302 this handler changes `fixed`, a binding of the body it is written in",
@@ -341,7 +341,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- a_binding_binds_a_signal_of_string_by_its_name stdout ----
 
-thread 'a_binding_binds_a_signal_of_string_by_its_name' (6355) panicked at compiler/pw-core/tests/bind.rs:169:9:
+thread 'a_binding_binds_a_signal_of_string_by_its_name' (39942) panicked at compiler/pw-core/tests/bind.rs:169:9:
 assertion `left == right` failed: <input type="text" aria-label="N" bind:value={fixed} />: [
     "PW5304 `bind:value` binds `fixed`, which is not a signal: what is typed would change nothing the browser holds",
     "PW5302 this handler changes `fixed`, a binding of the body it is written in",
@@ -354,7 +354,7 @@ failures:
     a_binding_binds_a_signal_of_string_by_its_name
     a_non_signal_binding_reports_its_owner_without_capturing_its_target
 
-test result: FAILED. 2 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.62s
+test result: FAILED. 2 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.46s
 
 error: test failed, to rerun pass `-p pw-core --test bind`
 
@@ -366,22 +366,32 @@ test an_attribute_a_signal_decides_is_set_in_place_or_refused ... ok
 test a_signal_read_in_a_block_a_query_decides_is_refused ... ok
 test what_a_handler_captures_in_a_signal_s_block_is_the_block_s ... ok
 
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.29s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 23.63s
 
 
 PW5302 reads a binding's handler too: KILLED (2 of 9 tests fail)
 
 running 4 tests
-test a_non_signal_binding_reports_its_owner_without_capturing_its_target ... FAILED
 test a_binding_binds_a_signal_of_string_by_its_name ... FAILED
+test a_non_signal_binding_reports_its_owner_without_capturing_its_target ... FAILED
 test a_binding_is_a_value_and_a_handler ... ok
 test a_block_is_rendered_again_only_for_what_it_cannot_set_in_place ... ok
 
 failures:
 
+---- a_binding_binds_a_signal_of_string_by_its_name stdout ----
+
+thread 'a_binding_binds_a_signal_of_string_by_its_name' (40394) panicked at compiler/pw-core/tests/bind.rs:169:9:
+assertion `left == right` failed: <input type="text" aria-label="N" bind:value={count} />: [
+    "PW5304 `bind:value` binds `count`, a signal of `Int`: a signal of another type than `String` needs a codec, which is not built (ADR-0131)",
+    "PW0607 `count` holds `Int` and is assigned `String`",
+]
+  left: 2
+ right: 1
+
 ---- a_non_signal_binding_reports_its_owner_without_capturing_its_target stdout ----
 
-thread 'a_non_signal_binding_reports_its_owner_without_capturing_its_target' (6820) panicked at compiler/pw-core/tests/bind.rs:193:5:
+thread 'a_non_signal_binding_reports_its_owner_without_capturing_its_target' (40397) panicked at compiler/pw-core/tests/bind.rs:193:5:
 assertion `left == right` failed: [
     "PW5304 `bind:value` binds `fixed`, which is not a signal: what is typed would change nothing the browser holds",
     "PW0607 `fixed` holds `fn(String) -> String` and is assigned `String`",
@@ -391,22 +401,12 @@ assertion `left == right` failed: [
  right: ["PW5304", "PW0609"]
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
----- a_binding_binds_a_signal_of_string_by_its_name stdout ----
-
-thread 'a_binding_binds_a_signal_of_string_by_its_name' (6817) panicked at compiler/pw-core/tests/bind.rs:169:9:
-assertion `left == right` failed: <input type="text" aria-label="N" bind:value={count} />: [
-    "PW5304 `bind:value` binds `count`, a signal of `Int`: a signal of another type than `String` needs a codec, which is not built (ADR-0131)",
-    "PW0607 `count` holds `Int` and is assigned `String`",
-]
-  left: 2
- right: 1
-
 
 failures:
     a_binding_binds_a_signal_of_string_by_its_name
     a_non_signal_binding_reports_its_owner_without_capturing_its_target
 
-test result: FAILED. 2 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.56s
+test result: FAILED. 2 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.44s
 
 error: test failed, to rerun pass `-p pw-core --test bind`
 
@@ -418,22 +418,22 @@ test a_signal_read_in_a_block_a_query_decides_is_refused ... ok
 test a_block_a_signal_decides_reads_the_signals_and_its_own_names ... ok
 test what_a_handler_captures_in_a_signal_s_block_is_the_block_s ... ok
 
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.25s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 23.79s
 
 
 a binding's assignment is related as any other: KILLED (2 of 9 tests fail)
 
 running 4 tests
 test a_non_signal_binding_reports_its_owner_without_capturing_its_target ... FAILED
-test a_binding_is_a_value_and_a_handler ... ok
 test a_binding_binds_a_signal_of_string_by_its_name ... FAILED
+test a_binding_is_a_value_and_a_handler ... ok
 test a_block_is_rendered_again_only_for_what_it_cannot_set_in_place ... ok
 
 failures:
 
 ---- a_non_signal_binding_reports_its_owner_without_capturing_its_target stdout ----
 
-thread 'a_non_signal_binding_reports_its_owner_without_capturing_its_target' (7277) panicked at compiler/pw-core/tests/bind.rs:193:5:
+thread 'a_non_signal_binding_reports_its_owner_without_capturing_its_target' (40850) panicked at compiler/pw-core/tests/bind.rs:193:5:
 assertion `left == right` failed: [
     "PW0611 `fixed` is assigned, and it is not a `let mut` binding",
     "PW5304 `bind:value` binds `fixed`, which is not a signal: what is typed would change nothing the browser holds",
@@ -445,7 +445,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- a_binding_binds_a_signal_of_string_by_its_name stdout ----
 
-thread 'a_binding_binds_a_signal_of_string_by_its_name' (7274) panicked at compiler/pw-core/tests/bind.rs:169:9:
+thread 'a_binding_binds_a_signal_of_string_by_its_name' (40847) panicked at compiler/pw-core/tests/bind.rs:169:9:
 assertion `left == right` failed: <input type="text" aria-label="N" bind:value={fixed} />: [
     "PW0611 `fixed` is assigned, and it is not a `let mut` binding",
     "PW5304 `bind:value` binds `fixed`, which is not a signal: what is typed would change nothing the browser holds",
@@ -458,19 +458,19 @@ failures:
     a_binding_binds_a_signal_of_string_by_its_name
     a_non_signal_binding_reports_its_owner_without_capturing_its_target
 
-test result: FAILED. 2 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.64s
+test result: FAILED. 2 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.47s
 
 error: test failed, to rerun pass `-p pw-core --test bind`
 
 
 running 5 tests
 test a_list_a_signal_holds_is_rendered_again_only_inside_its_block ... ok
-test a_signal_read_in_a_block_a_query_decides_is_refused ... ok
 test a_block_a_signal_decides_reads_the_signals_and_its_own_names ... ok
+test a_signal_read_in_a_block_a_query_decides_is_refused ... ok
 test an_attribute_a_signal_decides_is_set_in_place_or_refused ... ok
 test what_a_handler_captures_in_a_signal_s_block_is_the_block_s ... ok
 
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.35s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 23.72s
 
 
 PW0611 reads a binding's assignment too: KILLED (2 of 9 tests fail)
@@ -485,7 +485,7 @@ failures:
 
 ---- a_non_signal_binding_reports_its_owner_without_capturing_its_target stdout ----
 
-thread 'a_non_signal_binding_reports_its_owner_without_capturing_its_target' (7749) panicked at compiler/pw-core/tests/bind.rs:193:5:
+thread 'a_non_signal_binding_reports_its_owner_without_capturing_its_target' (41304) panicked at compiler/pw-core/tests/bind.rs:193:5:
 assertion `left == right` failed: [
     "PW5008 handler captures `fixed: fn(String) -> String`, which is not serializable",
     "PW5304 `bind:value` binds `fixed`, which is not a signal: what is typed would change nothing the browser holds",
@@ -499,34 +499,34 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_non_signal_binding_reports_its_owner_without_capturing_its_target
 
-test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.62s
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.44s
 
 error: test failed, to rerun pass `-p pw-core --test bind`
 
 
 running 5 tests
 test a_list_a_signal_holds_is_rendered_again_only_inside_its_block ... ok
-test a_signal_read_in_a_block_a_query_decides_is_refused ... ok
 test a_block_a_signal_decides_reads_the_signals_and_its_own_names ... ok
+test a_signal_read_in_a_block_a_query_decides_is_refused ... ok
 test an_attribute_a_signal_decides_is_set_in_place_or_refused ... ok
 test what_a_handler_captures_in_a_signal_s_block_is_the_block_s ... ok
 
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.36s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 23.83s
 
 
 a binding's handler captures what it sets: KILLED (1 of 9 tests fail)
 
 running 4 tests
 test a_binding_is_a_value_and_a_handler ... ok
-test a_non_signal_binding_reports_its_owner_without_capturing_its_target ... ok
 test a_binding_binds_a_signal_of_string_by_its_name ... FAILED
+test a_non_signal_binding_reports_its_owner_without_capturing_its_target ... ok
 test a_block_is_rendered_again_only_for_what_it_cannot_set_in_place ... ok
 
 failures:
 
 ---- a_binding_binds_a_signal_of_string_by_its_name stdout ----
 
-thread 'a_binding_binds_a_signal_of_string_by_its_name' (8202) panicked at compiler/pw-core/tests/bind.rs:169:9:
+thread 'a_binding_binds_a_signal_of_string_by_its_name' (41755) panicked at compiler/pw-core/tests/bind.rs:169:9:
 assertion `left == right` failed: <p bind:value={name}>x</p>: [
     "PW5304 `<p>` has no value a person types: `bind:value` binds an `<input>` or a `<textarea>`",
     "PW5013 `<p>` with an `on:input` handler is not keyboard accessible",
@@ -539,19 +539,19 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_binding_binds_a_signal_of_string_by_its_name
 
-test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.70s
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.50s
 
 error: test failed, to rerun pass `-p pw-core --test bind`
 
 
 running 5 tests
 test a_list_a_signal_holds_is_rendered_again_only_inside_its_block ... ok
-test a_block_a_signal_decides_reads_the_signals_and_its_own_names ... ok
 test an_attribute_a_signal_decides_is_set_in_place_or_refused ... ok
 test a_signal_read_in_a_block_a_query_decides_is_refused ... ok
+test a_block_a_signal_decides_reads_the_signals_and_its_own_names ... ok
 test what_a_handler_captures_in_a_signal_s_block_is_the_block_s ... ok
 
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.10s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 24.04s
 
 
 the inert-handler rule reads a binding's handler: KILLED (1 of 9 tests fail)
@@ -574,7 +574,7 @@ failures:
 
 ---- a_binding_is_a_value_and_a_handler stdout ----
 
-thread 'a_binding_is_a_value_and_a_handler' (8659) panicked at compiler/pw-core/tests/bind.rs:115:5:
+thread 'a_binding_is_a_value_and_a_handler' (42208) panicked at compiler/pw-core/tests/bind.rs:115:5:
 assertion `left == right` failed
   left: []
  right: [("value", "name")]
@@ -584,7 +584,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_binding_is_a_value_and_a_handler
 
-test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.69s
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.50s
 
 error: test failed, to rerun pass `-p pw-core --test bind`
 
@@ -599,12 +599,12 @@ warning: function `live_attributes` is never used
 
 running 5 tests
 test a_list_a_signal_holds_is_rendered_again_only_inside_its_block ... ok
-test a_signal_read_in_a_block_a_query_decides_is_refused ... ok
 test an_attribute_a_signal_decides_is_set_in_place_or_refused ... ok
 test a_block_a_signal_decides_reads_the_signals_and_its_own_names ... ok
+test a_signal_read_in_a_block_a_query_decides_is_refused ... ok
 test what_a_handler_captures_in_a_signal_s_block_is_the_block_s ... ok
 
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.29s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 23.71s
 
 
 an attribute a signal decides is not set in place: KILLED (1 of 9 tests fail)
@@ -619,7 +619,7 @@ failures:
 
 ---- a_block_is_rendered_again_only_for_what_it_cannot_set_in_place stdout ----
 
-thread 'a_block_is_rendered_again_only_for_what_it_cannot_set_in_place' (9111) panicked at compiler/pw-core/tests/bind.rs:235:5:
+thread 'a_block_is_rendered_again_only_for_what_it_cannot_set_in_place' (42656) panicked at compiler/pw-core/tests/bind.rs:235:5:
 assertion `left == right` failed
   left: ["editing", "name"]
  right: ["editing"]
@@ -629,7 +629,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_block_is_rendered_again_only_for_what_it_cannot_set_in_place
 
-test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.62s
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.45s
 
 error: test failed, to rerun pass `-p pw-core --test bind`
 
@@ -641,7 +641,7 @@ test an_attribute_a_signal_decides_is_set_in_place_or_refused ... ok
 test a_signal_read_in_a_block_a_query_decides_is_refused ... ok
 test what_a_handler_captures_in_a_signal_s_block_is_the_block_s ... ok
 
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.15s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 24.08s
 
 
 a block is rendered again for every signal in it: KILLED (1 of 9 tests fail)
@@ -656,7 +656,7 @@ failures:
 
 ---- a_block_is_rendered_again_only_for_what_it_cannot_set_in_place stdout ----
 
-thread 'a_block_is_rendered_again_only_for_what_it_cannot_set_in_place' (9566) panicked at compiler/pw-core/tests/bind.rs:257:5:
+thread 'a_block_is_rendered_again_only_for_what_it_cannot_set_in_place' (43109) panicked at compiler/pw-core/tests/bind.rs:257:5:
 assertion `left == right` failed
   left: ["editing"]
  right: ["editing", "tags"]
@@ -666,7 +666,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_block_is_rendered_again_only_for_what_it_cannot_set_in_place
 
-test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.70s
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.49s
 
 error: test failed, to rerun pass `-p pw-core --test bind`
 
@@ -678,7 +678,7 @@ test an_attribute_a_signal_decides_is_set_in_place_or_refused ... ok
 test a_block_a_signal_decides_reads_the_signals_and_its_own_names ... ok
 test what_a_handler_captures_in_a_signal_s_block_is_the_block_s ... ok
 
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.08s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 23.78s
 
 
 a block reads its own signal alone: KILLED (1 of 9 tests fail)
@@ -697,7 +697,7 @@ test a_non_signal_binding_reports_its_owner_without_capturing_its_target ... ok
 test a_binding_binds_a_signal_of_string_by_its_name ... ok
 test a_block_is_rendered_again_only_for_what_it_cannot_set_in_place ... ok
 
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.68s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.51s
 
 
 warning: unused import: `Context`
@@ -712,15 +712,15 @@ warning: unused import: `Context`
 running 5 tests
 test an_attribute_a_signal_decides_is_set_in_place_or_refused ... FAILED
 test a_list_a_signal_holds_is_rendered_again_only_inside_its_block ... ok
-test a_block_a_signal_decides_reads_the_signals_and_its_own_names ... ok
 test a_signal_read_in_a_block_a_query_decides_is_refused ... ok
+test a_block_a_signal_decides_reads_the_signals_and_its_own_names ... ok
 test what_a_handler_captures_in_a_signal_s_block_is_the_block_s ... ok
 
 failures:
 
 ---- an_attribute_a_signal_decides_is_set_in_place_or_refused stdout ----
 
-thread 'an_attribute_a_signal_decides_is_set_in_place_or_refused' (10118) panicked at compiler/pw-core/tests/signals_render_again.rs:114:5:
+thread 'an_attribute_a_signal_decides_is_set_in_place_or_refused' (43653) panicked at compiler/pw-core/tests/signals_render_again.rs:114:5:
 <a href={title}>x</a>: []
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -728,7 +728,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     an_attribute_a_signal_decides_is_set_in_place_or_refused
 
-test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 28.88s
+test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 23.25s
 
 error: test failed, to rerun pass `-p pw-core --test signals_render_again`
 

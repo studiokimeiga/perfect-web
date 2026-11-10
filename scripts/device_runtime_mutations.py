@@ -15,7 +15,9 @@ Each mutant undoes one piece:
 A mutant of the decision must fail `decision-agreement.test.mjs`, of the packaging
 or a guard `optimize-assets.test.mjs` (or `host-plan.test.mjs`), of the host
 `tests::page_bundle::` or the production document's test, and of the page's use
-`e2e/device-runtime.spec.mjs` in Chromium against a production build.
+`e2e/device-runtime.spec.mjs` in Chromium against a production build, and of
+what a block keeps `e2e/nested-blocks.spec.mjs` against a production build of
+the demos.
 
 Run from the repository root; `just e14-device-runtime` records the output.
 The source is restored after every mutant, whatever happens.
@@ -144,6 +146,95 @@ MUTANTS = [
     ("a device page's decision is another page's", "browser", RUNTIME,
      "  decide = decider(lines, PAGE);\n",
      '  decide = decider(lines, "another");\n'),
+    # -- which rows changed
+    ("every render morphs the whole block", "browser", RUNTIME,
+     "    if (before && rowsMade(r, before, html, inserted)) return inserted;\n", ""),
+    ("what a block rendered outlives its anchor", "nested", RUNTIME,
+     "    const before = lastRendered.get(r.start);\n    lastRendered.set(r.start, html);\n",
+     "    const before = (globalThis.kept ??= new Map()).get(id);\n    globalThis.kept.set(id, html);\n"),
+    ("a block taken away this pass is rendered", "nested", RUNTIME,
+     "  if (!r?.start?.isConnected) return [];\n", "  if (!r?.start) return [];\n"),
+    ("a box in a row left alone is left", "browser", RUNTIME,
+     '    if (after && before && box.checked !== box.hasAttribute("checked")) box.checked = !box.checked;\n', ""),
+    ("a box the page ticked is not looked for", "browser", RUNTIME,
+     'querySelectorAll("input:checked:not(:default),input:not(:checked):default")', 'querySelectorAll("input:not(:checked):default")'),
+    ("a box the page unticked is not looked for", "browser", RUNTIME,
+     'querySelectorAll("input:checked:not(:default),input:not(:checked):default")', 'querySelectorAll("input:checked:not(:default)")'),
+    ("a box before the block is written", "browser", RUNTIME,
+     '    if (after && before && box.checked !== box.hasAttribute("checked")) box.checked = !box.checked;\n',
+     '    if (before && box.checked !== box.hasAttribute("checked")) box.checked = !box.checked;\n'),
+    ("a box after the block is written", "browser", RUNTIME,
+     '    if (after && before && box.checked !== box.hasAttribute("checked")) box.checked = !box.checked;\n',
+     '    if (after && box.checked !== box.hasAttribute("checked")) box.checked = !box.checked;\n'),
+    ("a block that can show a box is not looked over", "browser", RUNTIME,
+     "  if (!now.boxes) return true;\n", "  return true;\n"),
+    ("a block's boxes are read from nothing", "browser", RUNTIME,
+     "PW_VIEWS || /<input[\\s>/]/i.test(JSON.stringify(parts.blocks[id]))", "PW_VIEWS"),
+    ("a new row is taken for the first", "contract", RUNTIME,
+     "  return b.map((row) => at.get(row.key) ?? -1);\n", "  return b.map((row) => at.get(row.key) ?? 0);\n"),
+    ("a new row counts among those that stay", "contract", RUNTIME,
+     "    if (value < 0) return;\n", ""),
+    ("only the shortest run stays", "contract", RUNTIME,
+     "  for (let i = tails.length > 0 ? tails[tails.length - 1] : -1; i >= 0; i = before[i]) out.add(i);\n",
+     "  for (let i = tails.length > 0 ? tails[0] : -1; i >= 0; i = before[i]) out.add(i);\n"),
+    ("a row out of place is left there", "rows", RUNTIME,
+     "      if (!still.has(i)) moveNodes(parent, between(nodes[0], nodes[1]), anchor);\n", ""),
+    ("a row that went stays", "rows", RUNTIME,
+     "      rowGone(shown.get(row.key));\n", ""),
+    ("when no row stays they all do", "rows", RUNTIME,
+     "    rowsAllGone(range);\n", ""),
+    ("a row changed in place is left", "rows", RUNTIME,
+     "      if (a[i] !== b[i] && a[i].text !== b[i].text) changed.push([shown.get(b[i].key), b[i], a[i]]);\n", ""),
+    ("a row changed and moved is left", "rows", RUNTIME,
+     "    if (old && old !== row && old.text !== row.text) changed.push([shown.get(row.key), row, old]);\n", ""),
+    ("new rows go in at the end", "rows", RUNTIME,
+     "      parent.insertBefore(content, anchor);\n", "      parent.insertBefore(content, range.end);\n"),
+    ("a new row among others goes in at the end", "rows", RUNTIME,
+     "      rowPut(parent, nodes, anchor);\n", "      rowPut(parent, nodes, range.end);\n"),
+    ("a new row is parsed", "rows", RUNTIME,
+     "      : (PW_PLANS && plan && fresh.every((row) => row.holes) && rowsPlanned(fresh, plan, shown, inserted)) || rowsParsed(fresh, shown, inserted);\n",
+     "      : rowsParsed(fresh, shown, inserted);\n"),
+    ("a list the block did not hold is parsed with it", "rows", RUNTIME,
+     "    const later = !PW_PLANS ? [] : html.lists.filter((list) => list.rows.length > 0 && list.of && planOf(list.of) && !before?.lists.some((b) => b.part === list.part));\n",
+     "    const later = [];\n"),
+    ("a changed row is morphed", "rows", RUNTIME,
+     "    if (!plan || !nodes[2] || !row.holes || !old.holes) return true;\n", "    return true;\n"),
+    ("text holding an escape is read back as written", "rows", RUNTIME,
+     '  if (!/[&\\r\\0]/.test(text)) return text;\n', '  if (!/[\\r\\0]/.test(text)) return text;\n'),
+    ("text holding a return is read back as written", "rows", RUNTIME,
+     '  if (!/[&\\r\\0]/.test(text)) return text;\n', '  if (!/[&\\0]/.test(text)) return text;\n'),
+    ("text holding a NUL is read back as written", "rows", RUNTIME,
+     '  if (!/[&\\r\\0]/.test(text)) return text;\n', '  if (!/[&\\r]/.test(text)) return text;\n'),
+    ("a row's handlers' captures are set as the renderer escaped them", "rows", RUNTIME,
+     '    else node.setAttribute("data-pw-captures", raw);\n', '    else node.setAttribute("data-pw-captures", piece);\n'),
+    ("a row's handlers' captures are not set", "rows", RUNTIME,
+     '    else node.setAttribute("data-pw-captures", raw);\n', ""),
+    ("what a hole escaped is set escaped", "rows", RUNTIME,
+     "  return text.replace(/&(?:amp|lt|gt|quot|#39|#96);/g, (m) => ESCAPED[m])", "  return text"),
+    ("a hole's line break is set as written", "rows", RUNTIME,
+     '.replace(/\\r\\n?/g, "\\n").replaceAll("\\0", nul);\n', '.replaceAll("\\0", nul);\n'),
+    ("a hole's NUL is set", "rows", RUNTIME,
+     '.replace(/\\r\\n?/g, "\\n").replaceAll("\\0", nul);\n', '.replace(/\\r\\n?/g, "\\n");\n'),
+    ("a field's value does not follow its plan", "rows", RUNTIME,
+     '    node.value = now?.[0] === "value" ? now[1] : "";\n', ""),
+    ("a kept row's text is written again", "rows", RUNTIME,
+     "      const row = old && holdsStill(old, item, e) ? old : rowOf(p, e, others, item, key);\n",
+     "      const row = rowOf(p, e, others, item, key);\n"),
+    ("a row whose value changed is kept", "rows", RUNTIME,
+     "    if (!same(row.item, item)) return false;\n", ""),
+    ("a row that read the page is kept", "rows", RUNTIME,
+     "    for (const [name, value] of row.reads) if (e.page.get(name) !== value) return false;\n", ""),
+    ("what a row reads is not noted", "rows", RUNTIME,
+     "    if (!PW_SERVER && e.reads) e.reads.set(key, e.page.get(key));\n", ""),
+    ("a press on a row's element is not heard", "rows", RUNTIME,
+     "    if (owner === undefined) continue;\n    let stop = false;\n", "    if (owner === undefined || el.closest(\"tr\")) continue;\n    let stop = false;\n"),
+    ("a handler that stops does not", "rows", RUNTIME,
+     '      stop ||= modifiers.includes("stop");\n', ""),
+    ("an event that stays on its target rises", "rows", RUNTIME,
+     "  for (const el of STAYS_ON_TARGET.has(e.type) ? [e.target] : e.composedPath()) {\n",
+     "  for (const el of e.composedPath()) {\n"),
+    ("what a row holds is indexed", "rows", RUNTIME,
+     "        if (DELEGATED && !view) {\n", "        if (false && DELEGATED && !view) {\n"),
     # -- what keeps a server's code out
     ("the source's flag is off", "packaging", RUNTIME, "const PW_SERVER = true;", "const PW_SERVER = false;"),
     ("a read is asked for", "packaging", RUNTIME,
@@ -153,14 +244,14 @@ MUTANTS = [
     ("a stream is watched", "packaging", RUNTIME,
      "  if (PW_SERVER) watchStreams();\n", "  watchStreams();\n"),
     ("a command can be sent", "packaging", RUNTIME,
-     "          command: !PW_SERVER ? null : async (component, args, how = {}) => {\n",
-     "          command: async (component, args, how = {}) => {\n"),
+     "      command: !PW_SERVER ? null : async (component, args, how = {}) => {\n",
+     "      command: async (component, args, how = {}) => {\n"),
     ("a press speculates", "packaging", RUNTIME,
      "  if (PW_SERVER && parts.speculation && !speculationModule && !speculationLoaded) {\n",
      "  if (parts.speculation && !speculationModule && !speculationLoaded) {\n"),
-    ("a navigation keeps the layout", "packaging", RUNTIME,
-     "  if (PW_SERVER && parts.layout) return softNavigate(url, \"push\", mine);\n",
-     "  if (parts.layout) return softNavigate(url, \"push\", mine);\n"),
+    ("a handler can navigate", "packaging", RUNTIME,
+     "      navigate: !PW_SERVER ? null : (route, args) => navigate(route, args, done),\n",
+     "      navigate: (route, args) => navigate(route, args, done),\n"),
     ("a link is followed in place", "packaging", RUNTIME,
      "if (PW_SERVER) document.addEventListener(\n  \"click\",\n  (e) => {\n    const a = parts.layout ? linkOf(e) : null;\n",
      "document.addEventListener(\n  \"click\",\n  (e) => {\n    const a = parts.layout ? linkOf(e) : null;\n"),
@@ -172,6 +263,60 @@ MUTANTS = [
      "if (PW_SERVER) window.__pwTestApply = applyFrame;\n", "window.__pwTestApply = applyFrame;\n"),
     ("the batch hook holds the batches", "packaging", RUNTIME,
      "if (PW_SERVER) window.__pwTestBatch = applyBatch;\n", "window.__pwTestBatch = applyBatch;\n"),
+    # -- what a build's device pages use
+    ("a value in a URL is not looked for", "packaging", PACKAGING,
+     '    if (part.context === "url" || part.context === "style") out.PW_LINKS = true;\n', ""),
+    ("a match is not looked for", "packaging", PACKAGING,
+     '    if (part.part === "match") out.PW_MATCH = true;\n', ""),
+    ("a view is not looked for", "packaging", PACKAGING,
+     "      out.PW_VIEWS = true;\n", ""),
+    ("a dialog is not looked for", "packaging", PACKAGING,
+     '      if (/<dialog[\\s>]/i.test(chunk.value)) out.PW_DIALOGS = true;\n', ""),
+    ("a view's own template is not read", "packaging", PACKAGING,
+     "      if (view) walkParts(view.chunks, templates, visit, seen);\n", ""),
+    ("what is inside a part is not read", "packaging", PACKAGING,
+     "      if (inner) walkParts(inner, templates, visit, seen);\n", ""),
+    ("a match's arms are not read", "packaging", PACKAGING,
+     ", ...(part.arms ?? []).map((a) => a.body)]) {\n      if (inner) walkParts", "]) {\n      if (inner) walkParts"),
+    ("a page a reader decides is read", "packaging", PACKAGING,
+     "    if (plan.prerender !== true || (plan.layout !== undefined && plan.layout !== null)) continue;\n",
+     "    if (plan.layout !== undefined && plan.layout !== null) continue;\n"),
+    ("a page with a layout is read", "packaging", PACKAGING,
+     "    if (plan.prerender !== true || (plan.layout !== undefined && plan.layout !== null)) continue;\n",
+     "    if (plan.prerender !== true) continue;\n"),
+    ("a server's runtime keeps what only a device runs", "packaging", PACKAGING,
+     "    const result = await transform(serverRuntimeSource(body.toString(\"utf8\")), {\n",
+     "    const result = await transform(body.toString(\"utf8\"), {\n"),
+    ("a list a plan makes is not looked for", "packaging", PACKAGING,
+     '    if (part.part === "each" && part.key != null && part.body.every((c) => c.chunk === "static" || HOLES(c.value))) out.PW_PLANS = true;\n', ""),
+    ("a list whose rows change shape is planned", "packaging", PACKAGING,
+     '    if (part.part === "each" && part.key != null && part.body.every((c) => c.chunk === "static" || HOLES(c.value))) out.PW_PLANS = true;\n',
+     '    if (part.part === "each" && part.key != null) out.PW_PLANS = true;\n'),
+    ("an unkeyed list is planned", "packaging", PACKAGING,
+     '    if (part.part === "each" && part.key != null && part.body.every((c) => c.chunk === "static" || HOLES(c.value))) out.PW_PLANS = true;\n',
+     '    if (part.part === "each" && part.body.every((c) => c.chunk === "static" || HOLES(c.value))) out.PW_PLANS = true;\n'),
+    ("a value the device keeps is not looked for", "packaging", PACKAGING,
+     "    if ((plan.device ?? []).length > 0) out.PW_KEPT = true;\n", ""),
+    ("a fragment is not looked for", "packaging", PACKAGING,
+     "    if (plan.fragment) out.PW_FRAGMENT = true;\n", ""),
+    ("an autofocus written is not looked for", "packaging", PACKAGING,
+     '      if (/\\sautofocus[\\s=>/]/i.test(chunk.value)) out.PW_AUTOFOCUS = true;\n', ""),
+    ("an autofocus a value decides is not looked for", "packaging", PACKAGING,
+     '    if (part.name === "autofocus") out.PW_AUTOFOCUS = true;\n', ""),
+    ("what the device keeps is read on every page", "packaging", RUNTIME,
+     "  if (PW_KEPT) await readDevice();\n", "  await readDevice();\n"),
+    ("what the device keeps is written on every page", "packaging", RUNTIME,
+     "  if (PW_KEPT && kept && deviceHeld.has(name))", "  if (kept && deviceHeld.has(name))"),
+    ("a fragment is bound on every page", "packaging", RUNTIME,
+     "  if (PW_FRAGMENT && parts.fragment) bindFragment(parts.fragment);\n", "  if (parts.fragment) bindFragment(parts.fragment);\n"),
+    ("autofocus is followed on every page", "packaging", RUNTIME,
+     "  if (PW_AUTOFOCUS) followAutofocus();\n", "  followAutofocus();\n"),
+    ("a build that cannot be read keeps nothing", "packaging", PACKAGING,
+     "  if (text === null) return everything;\n",
+     '  if (text === null) return { PW_LINKS: false, PW_MATCH: false, PW_VIEWS: false, PW_DIALOGS: false, PW_KEPT: false, PW_FRAGMENT: false, PW_AUTOFOCUS: false, PW_PLANS: false };\n'),
+    ("every feature is always kept", "packaging", PACKAGING,
+     "  const uses = await deviceFeatures(directory);\n",
+     "  const uses = { PW_LINKS: true, PW_MATCH: true, PW_VIEWS: true, PW_DIALOGS: true, PW_KEPT: true, PW_FRAGMENT: true, PW_AUTOFOCUS: true, PW_PLANS: true };\n"),
     # -- the packaging
     ("the flag is not replaced", "packaging", PACKAGING,
      '.replaceAll("PW_SERVER", "false")', '.replaceAll("PW_SERVER", "true")'),
@@ -217,10 +362,18 @@ MUTANTS = [
      '            device: delivery_says(dist, "device") && dist.join("pw-runtime-device.mjs").is_file(),\n',
      '            device: delivery_says(dist, "device"),\n'),
     ("the document starts the whole runtime", "host", SERVER,
-     "        document.replacen(&full, &device, 1).replacen(\n", "        document.replacen(&full, &full, 1).replacen(\n"),
+     "            .replacen(&full, &device, 1)\n", "            .replacen(&full, &full, 1)\n"),
     ("the head preloads the whole runtime", "host", SERVER,
-     '                self.named("/pw-runtime-device.mjs")\n            ),\n            1,\n',
-     '                self.named("/pw-runtime.mjs")\n            ),\n            1,\n'),
+     '        let mut head = preload("/pw-runtime-device.mjs");\n',
+     '        let mut head = preload("/pw-runtime.mjs");\n'),
+    ("the head does not fetch the page's code", "host", SERVER,
+     "            head.push_str(&preload(bundle));\n", "            let _ = (&preload, bundle);\n"),
+    ("a page's code is named nowhere", "host", SERVER,
+     "                    self.bundles.contains(page).then_some(bundle.as_str()),\n",
+     "                    None::<&str>.or(Some(bundle.as_str()).filter(|_| false)),\n"),
+    ("a page with no module names one", "host", SERVER,
+     "                    self.bundles.contains(page).then_some(bundle.as_str()),\n",
+     "                    Some(bundle.as_str()),\n"),
     ("the policy allows the whole runtime alone", "host", SERVER,
      "        scripts.extend(device.as_deref());\n", ""),
     ("the policy allows the first of several", "host", CSP,
@@ -249,6 +402,10 @@ def node_tests(*files):
     passed = sum(int(n) for n in re.findall(r"(?m)^ℹ pass (\d+)$", out))
     failed = sum(int(n) for n in re.findall(r"(?m)^ℹ fail (\d+)$", out))
     return passed + failed > 0, passed, failed
+
+
+def contract():
+    return node_tests("spikes/own-renderer/renderer-contract.test.mjs")
 
 
 def decision():
@@ -287,7 +444,40 @@ def browser():
     return passed + failed > 0, passed, failed
 
 
-SUITES = {"decision": decision, "packaging": packaging, "host": host, "browser": browser}
+def nested():
+    """The nested blocks' page, on a production build of the demos."""
+    env = {**os.environ, "PW_PRODUCTION_ASSETS": "1", "BUILD_ONLY": "1"}
+    _, code = bounded(["bash", "spikes/own-renderer/run.sh"], cwd=ROOT, env=env)
+    if code != 0:
+        return False, 0, 0
+    env = {**os.environ, "PW_PRODUCTION_ASSETS": "1"}
+    out, code = bounded(["pnpm", "exec", "playwright", "test", "e2e/nested-blocks.spec.mjs", "--project=chromium", "--reporter=line"],
+                        cwd=ROOT / "spikes/own-renderer", env=env)
+    if code is None:
+        return True, 0, 1
+    out = re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", out)
+    passed = sum(int(n) for n in re.findall(r"(\d+) passed", out))
+    failed = sum(int(n) for n in re.findall(r"(\d+) failed", out))
+    return passed + failed > 0, passed, failed
+
+
+def rows():
+    """The large list, on a production build."""
+    env = {**os.environ, "PW_PRODUCTION_ASSETS": "1"}
+    _, code = bounded(["bash", "spikes/own-renderer/rows.sh"], cwd=ROOT, env=env)
+    if code != 0:
+        return False, 0, 0
+    out, code = bounded(["pnpm", "exec", "playwright", "test", "e2e/rows.spec.mjs", "--project=chromium", "--reporter=line"],
+                        cwd=ROOT / "spikes/own-renderer", env=env)
+    if code is None:
+        return True, 0, 1
+    out = re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", out)
+    passed = sum(int(n) for n in re.findall(r"(\d+) passed", out))
+    failed = sum(int(n) for n in re.findall(r"(\d+) failed", out))
+    return passed + failed > 0, passed, failed
+
+
+SUITES = {"decision": decision, "contract": contract, "packaging": packaging, "host": host, "browser": browser, "nested": nested, "rows": rows}
 
 
 def main():

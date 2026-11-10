@@ -1,27 +1,27 @@
 ADR-0074 - what a template writes has a text form
 
 produced by: just e10-template-text
-commit: f15117dede242fac2bc2d54aa973180e47cad1c6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39526960864 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == what a template writes (compiler/pw-core/tests/template_text.rs)
 
 test a_stream_and_a_mounted_resource_are_not_text ... ok
 test a_boolean_attribute_has_a_truth ... ok
-test a_loops_list_and_key_are_fields_it_has ... ok
 test a_value_that_may_be_absent_is_taken_apart ... ok
+test a_loops_list_and_key_are_fields_it_has ... ok
 test a_hole_renders_a_value_with_a_text_form ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.19s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.26s
 
 == what a template reads by path (compiler/pw-core/tests/template_values.rs)
 
 test a_key_is_the_path_from_the_element ... ok
 test the_ir_blocks_a_computed_list_and_a_foreign_key ... ok
-test a_loops_key_is_read_from_its_element ... ok
 test a_directive_other_than_on_does_not_build ... ok
+test a_loops_key_is_read_from_its_element ... ok
 test a_computed_hole_checks_and_does_not_build ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.40s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.81s
 
 == mutation controls (scripts/template_text_mutations.py)
 

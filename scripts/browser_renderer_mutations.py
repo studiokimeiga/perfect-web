@@ -67,7 +67,7 @@ MUTANTS = [
     ("a node no other holds is kept", RUNTIME, """    if (nodes.slice(1).some((n) => n !== NONE)) throw malformed("a node no other holds");\n""", ""),
     ("a $node outside a graph is a record", RUNTIME, """    if ("$node" in v && Object.keys(v).length === 1) throw malformed("a $node outside any $graph");\n""", ""),
     # --- writing --------------------------------------------------------------
-    ("a text part writes no anchors", RUNTIME, "        html.push(start, escaped(needText(e, p.value), p.context), end);\n", "        html.push(escaped(needText(e, p.value), p.context));\n"),
+    ("a text part writes no anchors", RUNTIME, "        else html.push(start, escaped(needText(e, p.value), p.context), end);\n", "        else html.push(escaped(needText(e, p.value), p.context));\n"),
     ("each handler writes its own attribute", RUNTIME, """          if (q?.chunk !== "dynamic" || q.value.part !== "event" || q.value.owner !== c.value.owner) break;\n""", "          break;\n"),
     ("an element's handlers run together with another's", RUNTIME, """q.value.part !== "event" || q.value.owner !== c.value.owner) break;""", """q.value.part !== "event") break;"""),
     ("an absent boolean attribute leaves its space", RUNTIME, "        else dropSpace(html);\n", "        else;\n"),
@@ -76,8 +76,14 @@ MUTANTS = [
     ("a region with no answer shows its placeholder", RUNTIME, "        if (!p.streamed) throw missing(`the answer of stream ${p.id}`);\n", ""),
     ("raw HTML is written", RUNTIME, """        throw new Blocked("UnauthorisedRawHtml", p.capability);\n""", """        html.push(needText(e, p.value));\n        return;\n"""),
     ("a blocked part writes nothing", RUNTIME, """      case "blocked":\n        throw unrepresented(p.reason);\n""", """      case "blocked":\n        return;\n"""),
-    ("a loop's missing key is rendered", RUNTIME, """      if (key === "") throw new Blocked("MissingLoopKey", p.key);\n      if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);\n      seen.add(key);\n      const token = tokenOf(e, p.id, key);\n""", """      if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);\n      seen.add(key);\n      const token = tokenOf(e, p.id, key);\n"""),
-    ("a loop's duplicate key is rendered", RUNTIME, """      if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);\n      seen.add(key);\n      const token = tokenOf(e, p.id, key);\n""", """      seen.add(key);\n      const token = tokenOf(e, p.id, key);\n"""),
+    ("a loop's missing key is rendered", RUNTIME, """    const key = keyOf(item, p.key);\n    if (key === "") throw new Blocked("MissingLoopKey", p.key);\n""", """    const key = keyOf(item, p.key);\n"""),
+    ("a loop's duplicate key is rendered", RUNTIME, """    if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);\n    seen.add(key);\n    return key;\n""", """    seen.add(key);\n    return key;\n"""),
+    ("a row is kept whatever a block around it bound", RUNTIME, """      if (!a || !b || a.name !== b.name || !same(a.value, b.value)) return false;\n""", """      if (!a || !b || a.name !== b.name) return false;\n"""),
+    # Not "a row is kept whichever names a block around it bound": the names
+    # around a list are its template's, the same at every render of it, so a
+    # mutant that drops their comparison changes nothing a page can show (run
+    # 42772395298 found it surviving). The comparison of what they hold is the
+    # one above.
     ("a loop that is no list renders nothing", RUNTIME, "    if (!isList(items)) throw missing(p.collection);\n", "    if (!isList(items)) return;\n"),
     ("a nested instance may pass what a browser nests", RUNTIME, "  const NESTED_ELEMENTS = 500;\n", "  const NESTED_ELEMENTS = 501;\n"),
     ("an instance counts no elements around it", RUNTIME, "    const root = e.elements + (p.elements ?? 0);\n", "    const root = e.elements;\n"),
@@ -89,7 +95,7 @@ MUTANTS = [
     ("what a host set on a row is captured", RUNTIME, """      return new Map(Object.keys(v).filter((k) => !k.includes(".")).map((k) => [k, captured(v[k])]));\n""", """      return new Map(Object.keys(v).map((k) => [k, captured(v[k])]));\n"""),
     ("a case is captured", RUNTIME, """    if (isVariant(v)) throw unrepresented(`${v.$case} cannot be captured by a handler`);\n""", ""),
     ("keys sort as JavaScript's strings do", RUNTIME, """    return `{${[...v.keys()].sort(byPoint).map(""", """    return `{${[...v.keys()].sort().map("""),
-    ("captures are not escaped", RUNTIME, "    return escAttribute(written(object));\n", "    return written(object);\n"),
+    ("captures are not escaped", RUNTIME, "  const escapedCaptures = (text) => (text === null ? null : escAttribute(text));\n", "  const escapedCaptures = (text) => text;\n"),
     ("one name from two places is not refused", RUNTIME, """        if (paths.has(path) && paths.get(path) !== at) {\n          throw unrepresented("two handlers on one element capture one name from two places");\n        }\n""", ""),
     ("a rename is not followed", RUNTIME, """        if (Object.hasOwn(renames, root)) at = dot < 0 ? renames[root] : `${renames[root]}${path.slice(dot)}`;\n""", ""),
     ("one path through another's value is taken", RUNTIME, """    if (at.has(leaf)) throw unrepresented("one capture path runs through another's value");\n""", ""),
@@ -103,13 +109,13 @@ MUTANTS = [
     ("a list's change is told as the row's, set in place", RUNTIME, "      return found && found.some(([, change]) => change.list) ? null : found;\n", "      return found;\n"),
     ("two values of another type are one", RUNTIME, """  const scalar = (v) => (typeof v === "boolean" ? "b" : isInt(v) ? "i" : "t") + shown(v);\n""", """  const scalar = (v) => shown(v);\n"""),
     # --- a list inside a row ---------------------------------------------------
-    ("a new list's missing key is taken", RUNTIME, """      if (key === "") throw new Blocked("MissingLoopKey", p.key);\n      if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);\n      seen.add(key);\n    }\n""", """      if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);\n      seen.add(key);\n    }\n"""),
-    ("a new list's repeated key is taken", RUNTIME, """      if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);\n      seen.add(key);\n    }\n""", """      seen.add(key);\n    }\n"""),
-    ("an item gone from a list is no change", RUNTIME, """      if (wanted.includes(t)) current.push([t, v]);\n      else changed = true;\n""", """      if (wanted.includes(t)) current.push([t, v]);\n"""),
-    ("an item new to a list is no change", RUNTIME, """        current.splice(i, 0, [wanted[i], item]);\n        changed = true;\n""", """        current.splice(i, 0, [wanted[i], item]);\n"""),
-    ("an item new to a list is not rendered", RUNTIME, """        eachInstance(p, item, e, others);\n        current.splice(i, 0, [wanted[i], item]);\n""", """        current.splice(i, 0, [wanted[i], item]);\n"""),
-    ("an item moved in a list is no change", RUNTIME, """        current.splice(i, 0, current.splice(found, 1)[0]);\n        changed = true;\n""", """        current.splice(i, 0, current.splice(found, 1)[0]);\n"""),
-    ("an item of a list that changed is no change", RUNTIME, """        current[i][1] = item;\n        changed = true;\n""", """        current[i][1] = item;\n"""),
+    ("a new list's missing key is taken", RUNTIME, """        if (key === "") throw new Blocked("MissingLoopKey", p.key);\n        if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);\n        seen.add(key);\n      }\n""", """        if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);\n        seen.add(key);\n      }\n"""),
+    ("a new list's repeated key is taken", RUNTIME, """        if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);\n        seen.add(key);\n      }\n""", """        seen.add(key);\n      }\n"""),
+    ("an item gone from a list is no change", RUNTIME, """        if (wanted.includes(t)) current.push([t, v]);\n        else changed = true;\n""", """        if (wanted.includes(t)) current.push([t, v]);\n"""),
+    ("an item new to a list is no change", RUNTIME, """          current.splice(i, 0, [wanted[i], item]);\n          changed = true;\n""", """          current.splice(i, 0, [wanted[i], item]);\n"""),
+    ("an item new to a list is not rendered", RUNTIME, """          eachInstance(p, item, e, others);\n          current.splice(i, 0, [wanted[i], item]);\n""", """          current.splice(i, 0, [wanted[i], item]);\n"""),
+    ("an item moved in a list is no change", RUNTIME, """          current.splice(i, 0, current.splice(found, 1)[0]);\n          changed = true;\n""", """          current.splice(i, 0, current.splice(found, 1)[0]);\n"""),
+    ("an item of a list that changed is no change", RUNTIME, """          current[i][1] = item;\n          changed = true;\n""", """          current[i][1] = item;\n"""),
     ("an item of a list rendered again is not rendered", RUNTIME, """        if (rowChanges(p, opened(current[i][1]), item, e, others) === null) eachInstance(p, item, e, others);\n""", """        rowChanges(p, opened(current[i][1]), item, e, others);\n"""),
     # --- and the server's own, so a drift there is as loud ---------------------
     ("the server's text does not escape >", ESCAPE, """            '<' => out.push_str("&lt;"),\n            '>' => out.push_str("&gt;"),\n            _ => out.push(c),\n        }\n    }\n    out\n}\n\n/// **A form control's value""", """            '<' => out.push_str("&lt;"),\n            _ => out.push(c),\n        }\n    }\n    out\n}\n\n/// **A form control's value"""),

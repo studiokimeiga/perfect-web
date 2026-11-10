@@ -1219,8 +1219,7 @@ is held by its header alone, and what a page does when the back-forward cache
 brings it back is held by the event it is given (`pageshow`, `persisted`), not
 by a page that was really frozen.
 
-**A device-only app still needs this host to be served** (the prerender's
-ADR). Its document is one file's worth of bytes, but a plain static host has
+**A device-only app still needs this host to be served** (ADR-0409). Its document is one file's worth of bytes, but a plain static host has
 no route for `/pw-handlers` and `/handler/<id>.mjs`, would keep none of the
 files named `?b=` without being told, and sends no policy. That is its own
 decision.

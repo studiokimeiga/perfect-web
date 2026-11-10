@@ -195,7 +195,7 @@ MUTANTS = [
         "a page that binds nothing follows the fragment",
         "browser",
         RUNTIME,
-        "  if (parts.fragment) bindFragment(parts.fragment);\n",
+        "  if (PW_FRAGMENT && parts.fragment) bindFragment(parts.fragment);\n",
         '  bindFragment(parts.fragment ?? { signal: "name", forms: [{ form: "/specs", value: "Grace" }] });\n',
     ),
 ]

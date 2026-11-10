@@ -1,0 +1,57 @@
+ADR0389 - browser command, receipt and acknowledgement authority
+produced by: just e14-session-command-authority
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+campaign: docs/evidence/E14/session-commands.mH1h7e/campaign/report.json
+test_campaign_cancellation_restores_owned_source_and_keeps_invalid_report (scripts.tests.test_session_command_mutations.SessionCommandProducer.test_campaign_cancellation_restores_owned_source_and_keeps_invalid_report) ... suite=memory, scope=FULL, controls=0/1, valid=False, restored=True
+ok
+test_cancellation_keeps_raw_log_and_is_not_converted_to_success (scripts.tests.test_session_command_mutations.SessionCommandProducer.test_cancellation_keeps_raw_log_and_is_not_converted_to_success) ... ok
+test_cleanup_discards_child_stderr_before_retaining_logs (scripts.tests.test_session_command_mutations.SessionCommandProducer.test_cleanup_discards_child_stderr_before_retaining_logs) ... ok
+test_cleanup_error_marker_invalidates_an_otherwise_green_native_run (scripts.tests.test_session_command_mutations.SessionCommandProducer.test_cleanup_error_marker_invalidates_an_otherwise_green_native_run) ... ok
+test_cleanup_observes_both_databases_and_never_drops_a_schema (scripts.tests.test_session_command_mutations.SessionCommandProducer.test_cleanup_observes_both_databases_and_never_drops_a_schema) ... ok
+test_cleanup_refuses_a_leftover_and_still_checks_partial_receipts (scripts.tests.test_session_command_mutations.SessionCommandProducer.test_cleanup_refuses_a_leftover_and_still_checks_partial_receipts) ... ok
+test_cleanup_retains_stdout_and_native_exit_for_owned_name_queries (scripts.tests.test_session_command_mutations.SessionCommandProducer.test_cleanup_retains_stdout_and_native_exit_for_owned_name_queries) ... ok
+test_exact_head_requires_tracked_and_untracked_source_and_recipes_to_be_committed (scripts.tests.test_session_command_mutations.SessionCommandProducer.test_exact_head_requires_tracked_and_untracked_source_and_recipes_to_be_committed) ... ok
+test_final_restoration_failure_cannot_return_success (scripts.tests.test_session_command_mutations.SessionCommandProducer.test_final_restoration_failure_cannot_return_success) ... suite=memory, scope=BASELINE_ONLY, controls=0/1, valid=False, restored=False
+ok
+test_freezing_crosschecks_the_binary_list_against_source_declarations (scripts.tests.test_session_command_mutations.SessionCommandProducer.test_freezing_crosschecks_the_binary_list_against_source_declarations) ... ok
+test_generic_ci_catalogue_exports_every_canonical_control_and_edit (scripts.tests.test_session_command_mutations.SessionCommandProducer.test_generic_ci_catalogue_exports_every_canonical_control_and_edit) ... ok
+test_macro_inventory_is_explicit_and_fails_unknown_forms (scripts.tests.test_session_command_mutations.SessionCommandProducer.test_macro_inventory_is_explicit_and_fails_unknown_forms) ... ok
+test_mixed_resource_source_only_credits_the_unique_eof_test_module (scripts.tests.test_session_command_mutations.SessionCommandProducer.test_mixed_resource_source_only_credits_the_unique_eof_test_module) ... ok
+test_native_inventory_refuses_duplicates_missing_and_foreign_names (scripts.tests.test_session_command_mutations.SessionCommandProducer.test_native_inventory_refuses_duplicates_missing_and_foreign_names) ... ok
+test_ordinary_native_process_still_retains_stderr_diagnostics (scripts.tests.test_session_command_mutations.SessionCommandProducer.test_ordinary_native_process_still_retains_stderr_diagnostics) ... ok
+test_partial_or_invalid_native_controls_do_not_count_as_kills (scripts.tests.test_session_command_mutations.SessionCommandProducer.test_partial_or_invalid_native_controls_do_not_count_as_kills) ... ok
+test_schema_receipts_reject_missing_duplicate_and_unowned_names (scripts.tests.test_session_command_mutations.SessionCommandProducer.test_schema_receipts_reject_missing_duplicate_and_unowned_names) ... ok
+
+----------------------------------------------------------------------
+Ran 17 tests in 0.119s
+
+OK
+render-actor-cache: KILLED
+memory-held-authority: KILLED
+memory-current-actor: KILLED
+memory-final-expiry: KILLED
+receipt-generation: KILLED
+document-generation: KILLED
+receipt-owner-composite: KILLED
+response-current-authority: KILLED
+unknown-cache-rollback: KILLED
+unknown-cache-eviction: KILLED
+feed-transaction-locks: KILLED
+feed-late-expiry: KILLED
+feed-source-binding: KILLED
+store-transaction-locks: KILLED
+store-late-expiry: KILLED
+store-source-binding: KILLED
+postgres-frozen-clock: KILLED
+postgres-unlock-proof: KILLED
+page-admission-reader: KILLED
+applied-reader-selection: KILLED
+applied-generation-composite: KILLED
+basis-generation-filter: KILLED
+host-unknown-rollback: KILLED
+store-unknown-warm-entry: KILLED
+private-trace-payload: KILLED
+private-trace-error: KILLED
+suite=all, scope=FULL, controls=26/26, valid=True, restored=True

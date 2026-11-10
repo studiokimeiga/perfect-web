@@ -1,0 +1,77 @@
+// @corpus: fixture
+// @id: ROWS-events
+// @category: UI state — a press heard at the document, and a row that reads the page
+// @charter: §9.1
+// @milestone: E14
+//
+// What the device's runtime has to get right where a press is heard at the
+// document and a row's text is kept: a handler that stops its event, one on an
+// element inside another, an event that stays on its target, and a row whose
+// text reads a signal of the page.
+
+module rows.events
+
+import List
+
+type Item = Item { id: Int, name: String }
+
+fn renamed(items: List<Item>, id: Int) -> List<Item> !{} {
+    List.map(items, (i) => if i.id == id {
+        Item { id: i.id, name: "renamed" }
+    } else {
+        i
+    })
+}
+
+fn named(items: List<Item>, id: Int, name: String) -> List<Item> !{} {
+    List.map(items, (i) => if i.id == id {
+        Item { id: i.id, name: name }
+    } else {
+        i
+    })
+}
+
+page Events() {
+    route     "/events"
+    placement origin
+
+    signal outer: Int = 0
+    signal inner: Int = 0
+    signal left: Int = 0
+    signal typed: Int = 0
+    signal wrapped: Int = 0
+    signal note: String = "first"
+    signal items: List<Item> = [Item { id: 1, name: "one" }, Item { id: 2, name: "two" }]
+    signal typed_name: String = ""
+    signal picked: String = ""
+
+    view {
+        <title>Events</title>
+        <main>
+            <div id="outer" role="button" tabindex="0" on:press={() => outer = outer + 1} on:keydown={() => outer = outer + 1}>
+                <button id="bubbles" type="button" on:press={() => inner = inner + 1}>Bubbles</button>
+                <button id="stops" type="button" on:press|stop={() => inner = inner + 1}>Stops</button>
+            </div>
+            <input id="field" aria-label="Field" on:blur={() => left = left + 1} on:keydown={() => typed = typed + 1} />
+            <button id="note" type="button" on:press={() => note = "second"}>Note</button>
+            <button id="rename" type="button" on:press={() => items = renamed(items, 2)}>Rename</button>
+            <input id="name" aria-label="Name" bind:value={typed_name} />
+            <button id="rename-to" type="button" on:press={() => items = named(items, 2, typed_name)}>Rename to</button>
+            <button id="rename-cr" type="button" on:press={() => items = named(items, 2, "x\r\ny\rz")}>Rename with returns</button>
+            <button id="reverse-rename" type="button" on:press={() => items = List.reverse(renamed(items, 1))}>Reverse and rename</button>
+            <button id="prepend" type="button" on:press={() => items = List.concat([Item { id: 10, name: "ten" }, Item { id: 11, name: "eleven" }], items)}>Prepend</button>
+            <button id="both-ends" type="button" on:press={() => items = List.concat([Item { id: 20, name: "twenty" }], List.concat(items, [Item { id: 21, name: "twenty-one" }]))}>Both ends</button>
+            <div id="wrap" role="button" tabindex="0" on:blur={() => wrapped = wrapped + 1} on:keydown={() => wrapped = wrapped + 0}><input id="inside" aria-label="Inside" /></div>
+            <p id="counts">{outer} {inner} {left} {typed}</p>
+            <p id="wrapped">{wrapped}</p>
+            <p id="picked">{picked}</p>
+            <ul id="items">
+                {#if List.length(items) > 0}
+                    {#each items as item (item.id)}
+                        <li><span class="name">{item.name}</span> <span class="note">{note}</span> <input class="field" aria-label="Field" value={item.name} /> <button class="pick" type="button" on:press={resumable(captures = { item }) => picked = item.name}>Pick</button></li>
+                    {/each}
+                {/if}
+            </ul>
+        </main>
+    }
+}

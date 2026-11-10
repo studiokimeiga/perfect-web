@@ -1,8 +1,8 @@
 Track reviews - a store rated through a delivered order, once; its reviews without their reviewer
 
 produced by: just e14-reviews
-commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 postgres: 18.6 (Debian 18.6-1.pgdg13+2)
 
@@ -14,15 +14,15 @@ test tests::reviews::a_comment_is_at_most_five_hundred_characters ... ok
 test tests::reviews::a_delivered_orders_store_is_rated_once_and_shown ... ok
 test tests::reviews::a_store_not_of_the_order_is_not_rated ... ok
 test tests::reviews::an_order_not_yet_delivered_is_not_rated ... ok
-test tests::reviews::each_store_of_an_order_is_rated_once ... ok
 test tests::reviews::a_stores_mean_is_said_from_ten_ratings ... ok
+test tests::reviews::each_store_of_an_order_is_rated_once ... ok
 test tests::reviews::only_the_orders_owner_rates_it ... ok
 test tests::reviews::reviews_show_without_their_reviewer ... ok
-test tests::reviews::the_latest_order_alone_is_rated ... ok
 test tests::reviews::the_checker_keeps_the_reader_out_of_a_stores_shared_ratings ... ok
+test tests::reviews::the_latest_order_alone_is_rated ... ok
 test tests::reviews::the_layer_holds_its_rules_without_the_predicate ... ok
 test tests::reviews::the_ratings_of_a_list_of_stores_are_read_at_once ... ok
-test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 1016 filtered out; finished in 27.73s
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 1020 filtered out; finished in 29.01s
 
 == the ratings served, the store on PostgreSQL (PW_STORE_TEST_LAYER=postgres)
 
@@ -40,7 +40,7 @@ test tests::reviews::the_checker_keeps_the_reader_out_of_a_stores_shared_ratings
 test tests::reviews::the_latest_order_alone_is_rated ... ok
 test tests::reviews::the_layer_holds_its_rules_without_the_predicate ... ok
 test tests::reviews::the_ratings_of_a_list_of_stores_are_read_at_once ... ok
-test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 1016 filtered out; finished in 30.20s
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 1020 filtered out; finished in 32.92s
 
 == each operation, page and command counted, the ratings' among them (tests/bounded_statements.rs)
 
@@ -54,11 +54,11 @@ test tests::bounded_statements::a_commands_commit_is_counted_with_it ... ok
 test tests::bounded_statements::sweep_cleanup_and_payment_commit_share_the_same_write_guard ... ok
 test tests::bounded_statements::placing_and_settling_where_payments_are_taken_is_bounded ... ok
 test tests::bounded_statements::each_page_and_command_is_a_bounded_number_of_statements ... ok
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 1020 filtered out; finished in 20.93s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 1024 filtered out; finished in 23.20s
 
 == the store rated in three engines (e2e/reviews.spec.mjs)
 
-  6 passed (43.7s)
+  6 passed (47.1s)
 
 == mutation controls (scripts/reviews_mutations.py)
 
