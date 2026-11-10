@@ -1,10 +1,11 @@
-# ADR-XXXX: a device's runtime holds what its build's pages use
+# ADR-0419: a device's runtime holds what its build's pages use
 
-Status: proposed 2026-11-09, on branch `perf/after-train-20261109`, under the
-owner's delegation of 2026-10-02 and order of 2026-10-25 ("deciding by best
-judgement without asking"), and the order of 2026-11-09 to work the measured
-gaps with Svelte largest first. Milestone: E14. Amends ADR-0413,
-which ruled out a runtime made from what an app's pages use.
+Status: accepted 2026-11-10, landed with train-17. Proposed 2026-11-09, on
+branch `perf/after-train-20261109`, under the owner's delegation of 2026-10-02
+and order of 2026-10-25 ("deciding by best judgement without asking"), and the
+order of 2026-11-09 to work the measured gaps with Svelte largest first.
+Milestone: E14. Amends ADR-0413, which ruled out a runtime made from what an
+app's pages use.
 
 ## Context
 
@@ -14,7 +15,7 @@ against Svelte's 16,992, of which 16,506 is script. The device's runtime is
 links with values in their addresses, `{#match}` arms, views, dialogs. TodoMVC
 uses none of them, and the compiler knows it.
 
-The device runtime's ADR refused "a runtime per app, from what its pages use"
+ADR-0413 refused "a runtime per app, from what its pages use"
 because a build would have as many runtimes as it has combinations. That was
 wrong: a build has one set of pages, so one union of what they use, and so one
 device runtime. Its reason holds against a runtime per page, not per build.
@@ -40,6 +41,10 @@ device runtime. Its reason holds against a runtime per page, not per build.
    `/bundle/<page>.mjs` with `modulepreload`, as it names the runtime, so the
    module's request starts with the document's parsing, not after the runtime
    has run.
+7. **A server's runtime leaves the device's code**, as the device's leaves a
+   server's: it is packed with `PW_SERVER` folded in (`serverRuntimeSource`),
+   and a row's plan and the presses heard at the document fall away. Until
+   then a server's page was sent both.
 
 ## Why not the other ways
 
@@ -56,8 +61,13 @@ device runtime. Its reason holds against a runtime per page, not per build.
 The device's runtime is 12,366 bytes as sent for TodoMVC, from 14.5 KB. The tests
 in `optimize-assets.test.mjs` hold each flag against a real build of each shape
 and each word a feature leaves. `e2e/device-runtime.spec.mjs` holds the preload.
-`scripts/device_runtime_mutations.py` removes each piece. The head-to-head's
-figures go here when it has run at this branch's commit.
+`scripts/device_runtime_mutations.py` removes each piece.
+
+The head-to-head at `2d2b57ea`: the store's first load, where a server's
+runtime is sent, is 28,109 bytes as sent, from 30,721 at `6a112c3d`; 75,005
+decoded, from 83,848; 24,424 at Brotli 11, from 27,040 (SvelteKit's 35,024
+as sent, Next.js's 140,214). TodoMVC's first load is 22,452 bytes as sent
+(Svelte's 20,821, React's 70,085).
 
 ## Consequences
 

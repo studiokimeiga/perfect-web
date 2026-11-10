@@ -596,7 +596,7 @@ e10-build:
      } > docs/evidence/E10/build.txt
     @cat docs/evidence/E10/build.txt
     @# A build that differs from what is recorded fails here, rather than
-    @# leaving its line out (the rows train's template layout left the store's
+    @# leaving its line out (ADR-0417's template layout left the store's
     @# recorded templates behind, and the record only lost a line).
     @! grep -q '^  DIFFERS: ' docs/evidence/E10/build.txt
 
@@ -5771,7 +5771,7 @@ e14-query-params:
      } > docs/evidence/E14/query-params.txt
     @grep -E "^test result|passed|failed|mutants killed|Error:|panicked at" docs/evidence/E14/query-params.txt
 
-# The soft navigation's ADR: a navigation keeps the layout, and shows the next
+# ADR-0306: a navigation keeps the layout, and shows the next
 # page in it. The browser's tests in three engines, ADR-0280's navigation as
 # it is now, and the mutation controls.
 e14-soft-navigation:

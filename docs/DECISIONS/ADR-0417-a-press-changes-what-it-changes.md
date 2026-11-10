@@ -1,10 +1,10 @@
-# ADR-XXXX: a press changes what it changes
+# ADR-0417: a press changes what it changes
 
-Status: proposed 2026-11-09, on branch `perf/rows-20261109`, under the owner's
-delegation of 2026-10-02 and order of 2026-10-25 ("deciding by best judgement
-without asking"), and the order of 2026-11-09 to work the gaps with Svelte
-largest first. Milestone: E14. Builds on ADR-0411 and the device
-runtime's.
+Status: accepted 2026-11-10, landed with train-17. Proposed 2026-11-09, on
+branch `perf/rows-20261109`, under the owner's delegation of 2026-10-02 and
+order of 2026-10-25 ("deciding by best judgement without asking"), and the order
+of 2026-11-09 to work the gaps with Svelte largest first. Milestone: E14. Builds
+on ADR-0411 and ADR-0413.
 
 ## Context
 
@@ -101,8 +101,19 @@ after warmups, in ms (Svelte's in brackets): select a row 2.5 (0.7), swap two
 rows 8.2 (5.0), remove a row 9.7 (8.4), update every tenth 15.1 (10.4), create a
 thousand 38.6 (33.1), clear ten thousand 46.8 (29.9). In WebKit, clearing ten
 thousand rows ties (97 and 84). The heap with a thousand rows, after a
-collection, is 3.2 MB (Svelte's 3.6). The head-to-head's figures go here when it
-has run at this branch's commit.
+collection, is 3.2 MB (Svelte's 3.6).
+
+The head-to-head at `2d2b57ea`, the medians of seven runs to the frame in ms,
+Svelte's in brackets. In Chromium, cold: create a thousand rows 65 (39),
+append a thousand 50 (36), replace them all 65 (39); updating every tenth,
+selecting, swapping, removing and clearing land on the next frame in every
+stack, 15 to 16. In Firefox, warm: update every tenth 11 (8), select 5 (3),
+swap 7 (5; React's 37), remove 7 (5), clear 11 (8). In WebKit, warm: create
+74 (59), append 72 (59), replace 79 (68). The page is 19,342 bytes as sent
+in four requests (Svelte's 13,242 in two). Of the 79 rows Pleris trailed at
+`6a112c3d`, 71 remain: 52 of them this app's, 10 TodoMVC's and 9 the
+store's. Making rows is what is left, and the planned row's ADR takes it
+next.
 
 
 ## The pull request's analyzers

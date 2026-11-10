@@ -12,11 +12,11 @@ ADR-0400) as to where a page's decision runs.
 
 Every page that attaches a handler fetched `pw-resume.wasm`: 16 KB, 6.6 KB as
 Brotli sends it, a request of its own and a compile before its first press, and
-its policy allows `'wasm-unsafe-eval'` for no other reason. The renderer's ADR
+its policy allows `'wasm-unsafe-eval'` for no other reason. ADR-0411
 took 77 KB of WebAssembly out of a page by holding a page of JavaScript to the
 Rust renderer on every run of the suite.
 
-The device runtime's ADR did the same for the decision, for pages that talk to
+ADR-0413 did the same for the decision, for pages that talk to
 no server, and found the decision is few lines: what the module hashes is what
 the table holds as text. It was held to the real module over every single and
 pairwise change to a manifest's nine fields and twelve tables, including the

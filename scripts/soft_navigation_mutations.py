@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Mutation controls for the soft navigation's ADR: a navigation keeps the
+"""Mutation controls for ADR-0306: a navigation keeps the
 layout and shows the next page in it.
 
 Each mutant undoes one piece of the runtime's navigation:

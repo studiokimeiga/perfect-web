@@ -291,8 +291,8 @@ fn a_production_build_of_the_page_fetches_its_code_beside_its_runtime() {
     );
 }
 
-/// **A page whose build wrote no module for it names none** (the device's
-/// runtime's ADR, decision 6): it runs on the device's runtime and preloads
+/// **A page whose build wrote no module for it names none** (ADR-0419,
+/// decision 6): it runs on the device's runtime and preloads
 /// that alone. Named, its module would be a request no host answers, made
 /// beside the runtime's on every first load (run 42783891441's control).
 #[test]

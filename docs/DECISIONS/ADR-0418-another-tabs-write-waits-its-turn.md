@@ -1,10 +1,10 @@
-# ADR-XXXX: another tab's write waits its turn
+# ADR-0418: another tab's write waits its turn
 
-Status: proposed 2026-11-09, on branch `perf/after-train-20261109`, under the
-owner's delegation of 2026-10-02 and order of 2026-10-25 ("deciding by best
-judgement without asking"), and the order of 2026-11-09 to work the measured
-gaps with Svelte largest first. Milestone: E14. Builds on the device store's
-decision to show what another tab writes.
+Status: accepted 2026-11-10, landed with train-17. Proposed 2026-11-09, on
+branch `perf/after-train-20261109`, under the owner's delegation of 2026-10-02
+and order of 2026-10-25 ("deciding by best judgement without asking"), and the
+order of 2026-11-09 to work the measured gaps with Svelte largest first.
+Milestone: E14. Builds on ADR-0366's decision to show what another tab writes.
 
 ## Context
 
@@ -44,8 +44,11 @@ A `clear()`, whose event has no key, waits the same way and reads each value.
 
 Locally with 20 tabs, the press in the front tab takes 17.6 ms where it took
 28.7. `e2e/device-store.spec.mjs` holds the burst and the later value, and
-`scripts/device_store_mutations.py` removes each piece. The head-to-head's
-figures go here when it has run at this branch's commit.
+`scripts/device_store_mutations.py` removes each piece.
+
+The head-to-head at `2d2b57ea`, a press in the last of twenty tabs of one
+browser, the median of five runs in ms: TodoMVC's 29 (Svelte's 27, React's
+27); the store's 21 (SvelteKit's 37, Next.js's 41).
 
 ## Consequences
 

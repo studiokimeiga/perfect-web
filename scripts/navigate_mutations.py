@@ -126,7 +126,7 @@ MUTANTS = [
         "a second navigation is taken",
         BROWSER,
         RUNTIME,
-        # Re-anchored by the soft navigation's ADR: one rule for both ways a
+        # Re-anchored by ADR-0306: one rule for both ways a
         # page leaves, which the store's pages, shown in a layout, reach softly.
         "  if (navigating && !(chosen && pending)) {\n"
         "    log.push(`navigation to ${url} not taken: the page is already leaving`);\n",
