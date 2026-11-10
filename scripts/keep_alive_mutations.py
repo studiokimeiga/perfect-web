@@ -20,7 +20,7 @@ Each control undoes one rule of `framed_length`, `answer_connection`,
   so a browser sends the command again by itself and the page never sees
   the drop;
 - a drop one session arms reaching another session's connections, or a
-  connection listed or answered for no session (the drop's session's ADR).
+  connection listed or answered for no session (ADR-0423).
 
 The tests: `tests::keep_alive::`, and the upload's own
 (`tests::uploads::an_uploads_connection_is_closed_after_its_answer`), in one

@@ -3373,3 +3373,21 @@ Another tab's write waits its turn: a burst of writes from another tab is read o
 
 [ADR-0419](DECISIONS/ADR-0419-a-devices-runtime-holds-what-its-builds-pages-use.md):
 A device's runtime holds what its build's pages use: kept values, fragments, autofocus, matches, links' escaping, views, dialogs and row plans only where a build's templates use them; a page's head fetches its module beside its runtime.
+
+[ADR-0420](DECISIONS/ADR-0420-a-planned-row-is-written-when-it-is-read.md):
+A planned row is written when it is read: emitted straight into its holes, its text joined only for a morph or a parse; whether it changed is read from its holes, each holding its value as it was before it was escaped. A server's page is unchanged.
+
+[ADR-0421](DECISIONS/ADR-0421-a-list-a-signal-holds-is-a-block-of-its-own.md):
+A list a signal holds is a block of its own: an `{#each}` at the top of a page over a signal's list, or one the browser computes from the signals, is rendered again when what it reads changes, its rows made by their keys; no `{#if}` around it.
+
+[ADR-0422](DECISIONS/ADR-0422-the-numbers-from-one-to-another-are-a-list.md):
+The numbers from one to another are a list: `List.range(start, end)`, the whole numbers from `start` up to and not including `end`; a range of more than 2^28 - 1 numbers traps as a value too long for memory, in both backends.
+
+[ADR-0423](DECISIONS/ADR-0423-a-dropped-command-is-its-sessions.md):
+A dropped command is its session's: a drop is armed for one session, and only that session's kept connections close.
+
+[ADR-0424](DECISIONS/ADR-0424-a-row-computes-what-it-shows.md):
+A row computes what it shows: a value a row of a list the browser renders computes from its item and the signals is the row's, computed for each row by the page's module, first by the host; a row is kept where each value, computed again, is what it showed.
+
+[ADR-0425](DECISIONS/ADR-0425-a-lists-two-places-exchanged.md):
+A list's two places exchanged: `List.swap(items, i, j)`, the list as it is where either is no place in it; nothing traps.

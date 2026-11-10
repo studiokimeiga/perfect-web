@@ -8,7 +8,7 @@ and what the feed's rows and likes found: a field of a value charged a
 same-named function's effects, and an opaque value that did not compare. The
 feed's like shown before the server answers must fail too.
 
-And a row of a list the browser renders (the row's computed holes' ADR):
+And a row of a list the browser renders (ADR-0424):
 the plan's entry, its inputs, its list's reads, the module's function, the
 refusals it keeps, and the host's first render, module and manifest.
 
@@ -39,7 +39,7 @@ SERVER = ROOT / "spikes/own-renderer/server/src/main.rs"
 
 # (what is undone, suite, file, anchor, replacement)
 MUTANTS = [
-    # --- a row of a list the browser renders (the row's computed holes' ADR)
+    # --- a row of a list the browser renders (ADR-0424)
     (
         "a row of a list the browser renders is refused, as before",
         "cargo",

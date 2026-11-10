@@ -692,7 +692,7 @@ fn every_generic_function_of_the_standard_packages_passes_its_element_types_thro
         }
     }
     // 29 of the 40 hand an element on, and each probe of those was refused
-    // for reading it (`List.swap` the 40th, the swap's ADR). Nine answer a count, a truth or nothing (`length`,
+    // for reading it (`List.swap` the 40th, ADR-0425). Nine answer a count, a truth or nothing (`length`,
     // `any`, `all`, the maps' and sets' `size` and `contains`, `log`'s two),
     // and the two that make one from nothing are typed as nothing.
     assert_eq!(refused, 29, "the probes that read an element");

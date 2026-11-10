@@ -164,7 +164,7 @@ MUTANTS = [
         "the model does not filter",
         PROGRAM,
         APP,
-        # Re-anchored by the row's computed holes' ADR: the list iterates the
+        # Re-anchored by ADR-0424: the list iterates the
         # todos the filter shows.
         "    List.filter(todos, (t) => shown(t, filter))\n",
         "    todos\n",
@@ -180,7 +180,7 @@ MUTANTS = [
         "no row is the one being edited",
         PROGRAM,
         APP,
-        # Re-anchored by the row's computed holes' ADR: each row computes
+        # Re-anchored by ADR-0424: each row computes
         # whether it is edited, its field and its class apart.
         "                            {#if row.id == editing}\n",
         # Zero is no todo's id, `editing`'s own for none: a program the

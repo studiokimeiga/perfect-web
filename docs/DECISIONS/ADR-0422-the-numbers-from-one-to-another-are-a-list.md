@@ -1,8 +1,9 @@
-# ADR-XXXX: the numbers from one to another are a list
+# ADR-0422: the numbers from one to another are a list
 
-Status: proposed 2026-11-10, on branch `perf/train-18-20261110`, under the
-owner's delegation of 2026-10-02 and order of 2026-10-25 ("deciding by best
-judgement without asking"). Milestone: E14. Extends ADR-0055's lists.
+Status: accepted 2026-11-10, landed with trains 18 and 19. Proposed 2026-11-10,
+on branch `perf/train-18-20261110`, under the owner's delegation of 2026-10-02
+and order of 2026-10-25 ("deciding by best judgement without asking").
+Milestone: E14. Extends ADR-0055's lists.
 
 ## Context
 

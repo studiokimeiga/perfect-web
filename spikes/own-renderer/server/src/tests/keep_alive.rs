@@ -406,8 +406,8 @@ fn arming_a_drop_closes_the_kept_connections_waiting() {
     assert!(ended, "the kept connection closed when the drop was armed");
 }
 
-/// **A drop one session arms leaves another's connections kept** (the drop's
-/// session's ADR): each fault is its session's, and the suite shares its
+/// **A drop one session arms leaves another's connections kept** (ADR-0423):
+/// each fault is its session's, and the suite shares its
 /// host. Until then arming one closed every session's kept connections, under
 /// browsers reusing them, and no answer to any session kept its connection
 /// until the drop was taken. Asked again, the other session's connection

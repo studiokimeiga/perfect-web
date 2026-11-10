@@ -108,8 +108,7 @@ pub(crate) fn compile_prepared(
 
 /// **A function a page's module holds**: a part's, by its number, as the
 /// browser computes it from the signals (ADR-0227); or a row's, by the name its
-/// item holds the value under, as the browser computes it for each row (the
-/// row's computed holes' ADR).
+/// item holds the value under, as the browser computes it for each row (ADR-0424).
 pub(crate) struct Entry<'a> {
     part: u32,
     derived: &'a str,
@@ -260,7 +259,7 @@ fn emit(
         source.push_str(&format!("const f{n} = {js};\n\n"));
     }
     // Each part's by its number, then each row's by the name its item holds
-    // the value under (the row's computed holes' ADR).
+    // the value under (ADR-0424).
     let mut parts = String::from("export const parts = {\n");
     let mut rows = String::from("export const rows = {\n");
     for (n, entry) in computed.iter().enumerate() {

@@ -1,10 +1,11 @@
-# ADR-XXXX: a row computes what it shows
+# ADR-0424: a row computes what it shows
 
-Status: proposed 2026-11-10, on branch `perf/train-19-20261110`, under the
-owner's delegation of 2026-10-02 and order of 2026-10-25 ("deciding by best
-judgement without asking"), and the order of 2026-11-09 that every row of the
-head-to-head Svelte wins is a defect until it is fixed or recorded.
-Milestone: E14. Extends ruling 0073-a, ADR-0228 and the planned row's ADR.
+Status: accepted 2026-11-10, landed with trains 18 and 19. Proposed 2026-11-10,
+on branch `perf/train-19-20261110`, under the owner's delegation of 2026-10-02
+and order of 2026-10-25 ("deciding by best judgement without asking"), and the
+order of 2026-11-09 that every row of the head-to-head Svelte wins is a defect
+until it is fixed or recorded. Milestone: E14. Extends ruling 0073-a, ADR-0228
+and ADR-0420.
 
 ## Context
 
@@ -60,7 +61,7 @@ one there by name, and one from two values anywhere. So the app made a type,
   change of the selection would then change every item, and every row would
   compare unequal and be written again.
 - **Fine-grained updates compiled per binding**, as Svelte does: the larger
-  change the press's ADR deferred. A row's computed values, checked against
+  change ADR-0417 deferred. A row's computed values, checked against
   what they were, do what Svelte's per-row effect does here, without a
   second way for a page to change.
 
@@ -86,7 +87,7 @@ one there by name, and one from two values anywhere. So the app made a type,
 ## Result
 
 The large list counts 77 lines (Svelte's 81, React's 99), from 116, with
-`List.swap` (the swap's ADR). TodoMVC counts 179, from 188, its `Row` and
+`List.swap` (ADR-0425). TodoMVC counts 179, from 188, its `Row` and
 `rows()` gone. The head-to-head's figures go here when it has run at this
 branch's commit.
 

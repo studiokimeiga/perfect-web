@@ -1,5 +1,5 @@
-//! **A row of a list the browser renders computes what it shows** (the row's
-//! computed holes' ADR), the host's part: the first render computes each
+//! **A row of a list the browser renders computes what it shows** (ADR-0424),
+//! the host's part: the first render computes each
 //! row's value from its item and the signals' first values, as the browser
 //! computes it after, and the page's signal is its own value. The plan is
 //! the compiler's (`compiler/pw-core/tests/computed_rows.rs`).

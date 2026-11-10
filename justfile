@@ -3974,11 +3974,11 @@ e10-case:
     @grep -E "^test result|^javascript:|mutants killed|^---- |panicked at" docs/evidence/E10/case.txt
 
 # ADR-0055: slicing, and the standard library's placeholders computed; and
-# `List.range` (the ranges' ADR). The operations against Vec and str, the
+# `List.range` (ADR-0422). The operations against Vec and str, the
 # component against the JavaScript module, and the mutation controls.
 e10-slices:
     @{ echo "ADR-0055 - slicing, and the standard library's placeholders computed"; \
-       echo "the ranges' ADR - the numbers from one to another are a list"; echo; \
+       echo "ADR-0422 - the numbers from one to another are a list"; echo; \
        echo "produced by: just e10-slices"; \
        echo "commit: $(git rev-parse HEAD)$(git diff --quiet HEAD -- . ':(exclude)docs/evidence' || echo ' + uncommitted changes')"; \
        echo "rust: $(rustc --version)"; echo "node: $(node --version)"; echo; \

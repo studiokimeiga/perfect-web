@@ -508,8 +508,8 @@ fn the_trusted_platform_contract_is_hashed() {
     // holds its session: what a program that declares its data needs of its
     // reader, which the guestbook read through the feed's layer.
     // 2026-11-10 (trains 18 and 19): `list` declares `range`, the whole
-    // numbers from one to another (the ranges' ADR), and `swap`, a list's
-    // two places exchanged (the swap's ADR): the large list built its ids by
+    // numbers from one to another (ADR-0422), and `swap`, a list's
+    // two places exchanged (ADR-0425): the large list built its ids by
     // a halving of its own and swapped by sixteen lines.
     const EXPECTED: u64 = 0x2d9081500b5d89a5;
     eprintln!(

@@ -95,7 +95,7 @@ MUTANTS = [
         "cargo",
         MODULE,
         # Re-anchored by track `device-store`: a part's function given each
-        # value it reads; and by the row's computed holes' ADR, a part's key
+        # value it reads; and by ADR-0424, a part's key
         # beside a row's.
         '            None => format!("\\"{}\\"", entry.part),\n',
         '            None => format!("\\"{}\\"", n),\n',

@@ -28,8 +28,8 @@ const parts = JSON.parse(document.getElementById("pw-parts")?.textContent ?? "{}
  * that keeps the layout. */
 const PW_SERVER = true;
 
-/** **What a build's pages that talk to no server use** (the device runtime's
- * ADR), which the packaging reads from their templates, and what none of them
+/** **What a build's pages that talk to no server use** (ADR-0413),
+ * which the packaging reads from their templates, and what none of them
  * uses falls away with these: a value in a URL or a style, a `{#match}`, a view
  * used inside another, a `<dialog>`, a value the device keeps, a signal bound to
  * the address's fragment, an `autofocus`, a list whose rows a plan can make. */
@@ -1125,8 +1125,8 @@ const renderer = (() => {
   /** What a lookup finds where there is nothing, which `null` is not. */
   const NONE = {};
 
-  /** **Each value a row computes**, by the name its item holds it under (the
-   * row's computed holes' ADR): given by `rowsComputed` once the page's
+  /** **Each value a row computes**, by the name its item holds it under (ADR-0424):
+   * given by `rowsComputed` once the page's
    * computed module is loaded. */
   const rowComputes = new Map();
 
@@ -1245,7 +1245,7 @@ const renderer = (() => {
         const whole = segments.slice(rest).join(".");
         const all = field(value, whole);
         if (all !== NONE) return all;
-        // **A value its row computes** (the row's computed holes' ADR), by
+        // **A value its row computes** (ADR-0424), by
         // the name its item holds it under, which a host's first render set:
         // the browser computes each after, in the row's scope, so what it
         // reads of the page is the row's own.
@@ -1654,8 +1654,8 @@ const renderer = (() => {
     return computedHold(row, item, e, p);
   }
 
-  /** **Whether what a row computes still comes out as it did** (the row's
-   * computed holes' ADR): where nothing it read of the page moved, so; else
+  /** **Whether what a row computes still comes out as it did** (ADR-0424):
+   * where nothing it read of the page moved, so; else
    * each is computed again, for the row's item, and the row is kept where
    * each is what it showed, what they read noted as it is now. The large
    * list's class reads the selection in every row, and only the rows whose
@@ -1685,8 +1685,8 @@ const renderer = (() => {
     const reads = new Map();
     const token = tokenOf(e, p.id, key);
     const at = `${p.id}@${token}`;
-    // What its computed values read, and what they came to (the row's
-    // computed holes' ADR), where the page's rows compute any.
+    // What its computed values read, and what they came to (ADR-0424),
+    // where the page's rows compute any.
     const computing = rowComputes.size ? { computedReads: new Map(), computedValues: [] } : null;
     if (PW_PLANS && planned(p)) return plannedRowOf(p, e, others, item, at, token, reads, computing);
     const text = rendered(others, (out) => {
@@ -1944,8 +1944,8 @@ const renderer = (() => {
 
   const asked = {
     env,
-    /** **What each row of a list the browser renders computes** (the row's
-     * computed holes' ADR): `functions`, the page's computed module's `rows`;
+    /** **What each row of a list the browser renders computes** (ADR-0424):
+     * `functions`, the page's computed module's `rows`;
      * `entries`, the manifest's, each the name its item holds the value under
      * and what its function reads, in order, by its path in the row. */
     rowsComputed: (functions, entries) => {
@@ -3516,8 +3516,8 @@ function computedValues() {
   computedModule = pageCode("computed", url, computedAttempts).then(
     (module) => {
       log.push(`loaded ${parts.computed}`);
-      // What each row of a list the browser renders computes (the row's
-      // computed holes' ADR), given to the renderer as the module arrives.
+      // What each row of a list the browser renders computes (ADR-0424),
+      // given to the renderer as the module arrives.
       if (parts.rowsComputed) renderer.rowsComputed(module.rows ?? {}, parts.rowsComputed);
       return module;
     },
@@ -4291,8 +4291,8 @@ let navigating = false;
 // **A page shown again from the back-forward cache** takes presses again,
 // and listens again: its subscription ended when it was hidden (`leaving`),
 // and until 2026-10-09 it was never asked again, so the page was told
-// nothing until reloaded (found mapping the runtime for the soft
-// navigation's ADR). A server that has forgotten the document answers with
+// nothing until reloaded (found mapping the runtime for ADR-0306).
+// A server that has forgotten the document answers with
 // a reload, as it does any document it does not know.
 addEventListener(
   "pageshow",
@@ -4336,8 +4336,8 @@ async function navigate(route, args, mine) {
 /**
  * **Whether a navigation to `url` is taken** (ADR-0280): not while the page
  * leaves, the first navigation deciding, unless it is a reader's own choice
- * (a link, back or forward) replacing a soft navigation in flight (the soft
- * navigation's ADR). One rule for both ways a page leaves, so a test of
+ * (a link, back or forward) replacing a soft navigation in flight (ADR-0306).
+ * One rule for both ways a page leaves, so a test of
  * either holds it.
  */
 function taken(url, chosen = false) {
@@ -4537,8 +4537,8 @@ const bindEvents = DELEGATED
 /**
  * **The decision for one handler part**, asked once and kept, by the name
  * its template gives it: whether its handler may attach (and so be fetched),
- * and, refused, why. One function for binding and for warming (the first
- * press's ADR), so the two cannot disagree about what is authorised.
+ * and, refused, why. One function for binding and for warming (ADR-0399),
+ * so the two cannot disagree about what is authorised.
  */
 function verdictOf(named, part) {
   if (!verdicts.has(named)) verdicts.set(named, decided(named, part));

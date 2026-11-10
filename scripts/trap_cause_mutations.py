@@ -97,7 +97,7 @@ MUTANTS = [
     (
         "a join too long for memory calls another cause's function",
         WASM,
-        # Its own bound's, not `List.range`'s (the ranges' ADR).
+        # Its own bound's, not `List.range`'s (ADR-0422).
         "                I::I64Const(i32::MAX as i64),\n"
         "                I::I64GtU,\n"
         "                I::If(Empty),\n"

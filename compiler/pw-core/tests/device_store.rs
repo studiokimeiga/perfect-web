@@ -587,7 +587,7 @@ fn the_browser_computes_from_several_values_and_a_list_in_its_block() {
 }
 
 /// **A value computed in a row of a list the device keeps is each row's**
-/// (the row's computed holes' ADR): computed by the browser for each row it
+/// (ADR-0424): computed by the browser for each row it
 /// renders, from the row's item. Until then it was refused by name (ruling
 /// 0073-a).
 #[test]

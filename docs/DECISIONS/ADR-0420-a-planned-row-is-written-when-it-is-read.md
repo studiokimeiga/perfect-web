@@ -1,14 +1,14 @@
-# ADR-XXXX: a planned row is written when it is read
+# ADR-0420: a planned row is written when it is read
 
-Status: proposed 2026-11-10, on branch `perf/train-18-20261110`, under the
-owner's delegation of 2026-10-02 and order of 2026-10-25 ("deciding by best
-judgement without asking"), and the order of 2026-11-09 that every row of the
-head-to-head Svelte wins is a defect until it is fixed or recorded. Milestone:
-E14. Builds on the press's ADR and the plans' (the rows train's).
+Status: accepted 2026-11-10, landed with trains 18 and 19. Proposed 2026-11-10,
+on branch `perf/train-18-20261110`, under the owner's delegation of 2026-10-02
+and order of 2026-10-25 ("deciding by best judgement without asking"), and the
+order of 2026-11-09 that every row of the head-to-head Svelte wins is a defect
+until it is fixed or recorded. Milestone: E14. Builds on ADR-0417.
 
 ## Context
 
-The rows train made a list's new rows from a plan (`planOf`): the row's
+ADR-0417 made a list's new rows from a plan (`planOf`): the row's
 template, cloned, with each hole set, where before every new row was parsed.
 Updates became faster than Svelte's or close to them. Creation did not: the
 head-to-head at `6a112c3d` measured create a thousand rows, append a thousand
@@ -51,8 +51,8 @@ a view in it has no plan. Its holes say all that differs from its template.
 
 - **Keep the text and drop only the compare.** The join was the larger part of
   the cost for a thousand rows, and a row the plan makes never needs it.
-- **Compile each row's creation to code**, as Svelte does: the larger change the
-  press's ADR deferred. A plan is data, the same for every page; generated code
+- **Compile each row's creation to code**, as Svelte does: the larger change ADR-0417
+  deferred. A plan is data, the same for every page; generated code
   for each list is a second way to make a row, which the head-to-head may yet
   ask for.
 

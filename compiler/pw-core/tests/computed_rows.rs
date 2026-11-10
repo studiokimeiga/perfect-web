@@ -229,7 +229,7 @@ fn from_a_field_of_the_item_in_a_block_and_in_a_loop_in_the_row() {
 }
 
 /// **A row of a list a signal holds computes from its item and the signals**
-/// (the row's computed holes' ADR): the large list's class, `if row.id ==
+/// (ADR-0424): the large list's class, `if row.id ==
 /// selected`, and a text from the item alone. Each is the item's, by the
 /// path the compiler names from it, computed by the browser for each row it
 /// renders, from the values the plan names in the function's order; and by
@@ -276,7 +276,7 @@ fn a_row_of_a_signals_list_computes_from_its_item_and_the_signals() {
         plan.rows
     );
     // The list is its own block, read again when what its rows read changes:
-    // the signal the class reads among it (the block of a list's ADR).
+    // the signal the class reads among it (ADR-0421).
     let each: Vec<_> = plan.live.iter().filter(|l| l.kind == "each").collect();
     assert_eq!(each.len(), 1, "{:#?}", plan.live);
     assert!(
@@ -304,7 +304,7 @@ fn a_row_of_a_signals_list_computes_from_its_item_and_the_signals() {
 fn what_a_row_does_not_compute_yet_is_refused_by_name() {
     for (files, why) in [
         // A row of a list inside a row a signal holds: the browser computes
-        // none yet (the row's computed holes' ADR).
+        // none yet (ADR-0424).
         (
             signal_page(
                 "<ul>{#each rows as row (row.id)}<li><ul>{#each row.tags as t (t)}\

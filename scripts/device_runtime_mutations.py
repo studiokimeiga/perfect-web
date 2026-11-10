@@ -227,7 +227,7 @@ MUTANTS = [
      "  for (let h = 0; h < row.holes.length; h++) if (old.holes[h] !== row.holes[h]) return true;\n", ""),
     ("a field's value does not follow its plan", "rows", RUNTIME,
      '    node.value = now?.[0] === "value" ? now[1] : "";\n', ""),
-    # A row's computed values (the row's computed holes' ADR).
+    # A row's computed values (ADR-0424).
     ("a row's computed value is not computed", "rows", RUNTIME,
      "        const computes = rowComputes.get(whole);\n        if (computes) return computes(e);\n", ""),
     ("the module's rows are not given to the renderer", "rows", RUNTIME,

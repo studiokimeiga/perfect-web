@@ -1067,8 +1067,8 @@ struct Server {
     /// contracts: this server links no compiler. Compiled once, with the
     /// artifact's imports read once — both are properties of the bytes.
     components: BTreeMap<String, Loaded>,
-    /// **Whether this build warms what its pages' presses need** (the first
-    /// press's ADR), as its packaging says ([`warms`]): told to the browser
+    /// **Whether this build warms what its pages' presses need** (ADR-0399),
+    /// as its packaging says ([`warms`]): told to the browser
     /// on the handler table's `#warm` line.
     warm: bool,
     /// **The pages whose code is one module** (ADR-0412), as
@@ -1343,8 +1343,8 @@ struct Server {
     /// Set once, as the server starts; a page that states its canonical
     /// address cannot be served without it.
     origin: std::sync::OnceLock<String>,
-    /// **Each page no reader decides, as one document** (the prerender's
-    /// ADR), by its template path: filled once, before the host listens.
+    /// **Each page no reader decides, as one document** (ADR-0409),
+    /// by its template path: filled once, before the host listens.
     prerendered: std::sync::OnceLock<BTreeMap<String, prerender::Prerendered>>,
     /// NEXT 6c: **the deployment's payments**, as its configuration states
     /// them (`PW_PAYMENTS`), set once as the server starts; none where it
@@ -3941,8 +3941,8 @@ impl Server {
     /// session keeps its connection, so one busy when it was armed (a held
     /// subscription) is not reused either: the command goes on a connection
     /// the browser never used. Another session's connections are its own, as
-    /// each fault is its session's, and the suite shares its host: until the
-    /// drop's session's ADR every session's kept connection was closed, under
+    /// each fault is its session's, and the suite shares its host: until ADR-0423
+    /// every session's kept connection was closed, under
     /// browsers reusing them. Only a test arms one (`/bench/drop`).
     fn dropping_a_command_for(&self, session: &str) -> bool {
         self.connection_faults
@@ -7276,8 +7276,8 @@ impl Server {
         }
         // What it computes from its signals, at their first values (ADR-0227).
         let env = self.with_computed_signals(env, plan, template)?;
-        // And what each row of a list the browser renders computes (the
-        // row's computed holes' ADR), from the signals just set.
+        // And what each row of a list the browser renders computes (ADR-0424),
+        // from the signals just set.
         let env = self.with_browser_rows(with_signals(env, plan), plan, template)?;
         let env = env.in_domain(
             IdentityDomain::document(path, partition, BUILD).keyed("own-renderer-spike-key"),
@@ -7527,7 +7527,7 @@ impl Server {
     }
 
     /// **What each row of a list the browser renders computes, for the first
-    /// render** (the row's computed holes' ADR): each row of the list's first
+    /// render** (ADR-0424): each row of the list's first
     /// value given the member the template reads, computed by its component
     /// from the row's item and the signals' first values, as a host gives a
     /// query's row what it reads through a member (ADR-0170). The browser
@@ -7590,8 +7590,8 @@ impl Server {
         Ok(env)
     }
 
-    /// **A list's first value, as the page holds it** (the row's computed
-    /// holes' ADR): a signal's, by its fields, or one the browser computes
+    /// **A list's first value, as the page holds it** (ADR-0424):
+    /// a signal's, by its fields, or one the browser computes
     /// from the signals, as its component computes it from their first values.
     fn first_list(
         &self,
@@ -8335,8 +8335,7 @@ impl Server {
             .with_computed_signals(env, plan, self.template_of(page))
             .unwrap_or_else(|e| panic!("`{page}`'s computed values: {e}"));
         // Its signals, at their first values (ADR-0140), and what each row of
-        // a list the browser renders computes from them (the row's computed
-        // holes' ADR).
+        // a list the browser renders computes from them (ADR-0424).
         self.with_browser_rows(with_signals(env, plan), plan, self.template_of(page))
             .unwrap_or_else(|e| panic!("`{page}`'s rows' computed values: {e}"))
             // A page, not a materialization: its domain is the route identity
@@ -9981,7 +9980,7 @@ struct Keeping {
     /// The request is a HEAD: its answer is written without its body.
     head_only: std::sync::atomic::AtomicBool,
     /// The session the request is answered for, its cookie's or the one made
-    /// for it (the drop's session's ADR).
+    /// for it (ADR-0423).
     session: Mutex<String>,
 }
 
@@ -11431,8 +11430,7 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
             // connections waiting for its next request is closed, after the
             // fault is armed: one listed since finds it armed (`handle`). The
             // browser opens another, as it does for one a host closed while
-            // idle. Another session's are left as they are (the drop's
-            // session's ADR).
+            // idle. Another session's are left as they are (ADR-0423).
             let mine: Vec<TcpStream> = {
                 let mut idle = server.idle.lock().expect("idle");
                 let at: Vec<std::net::SocketAddr> = idle
@@ -12963,8 +12961,8 @@ fn delivery_says(dist: &std::path::Path, key: &str) -> bool {
 }
 
 fn serve_file(server: &Server, stream: &mut Conn, path: &str, request_headers: &str) {
-    // The request's query names the delivery it asks at, if any (the first
-    // press's ADR); the file is the route's.
+    // The request's query names the delivery it asks at, if any (ADR-0399);
+    // the file is the route's.
     let (route, query) = path.split_once('?').unwrap_or((path, ""));
     let name = route.trim_start_matches('/');
     // No traversal: a request names a file in dist and nothing above it.
@@ -13050,8 +13048,8 @@ fn respond_representation(
     write_response(stream, 200, mime, &response_headers, &bytes);
 }
 
-/// **A page no reader decides, as this request accepts it** (the prerender's
-/// ADR): the same for everyone, so any cache may keep it and asks before each
+/// **A page no reader decides, as this request accepts it** (ADR-0409):
+/// the same for everyone, so any cache may keep it and asks before each
 /// use. It names no session.
 fn respond_prerendered(
     stream: &mut Conn,
@@ -13251,8 +13249,8 @@ fn first_value(plan: &serde_json::Value, signal: &str) -> serde_json::Value {
         .unwrap_or(serde_json::Value::Null)
 }
 
-/// **What each row of a list the browser renders computes** (the row's
-/// computed holes' ADR), as the runtime reads it: the name the item holds the
+/// **What each row of a list the browser renders computes** (ADR-0424),
+/// as the runtime reads it: the name the item holds the
 /// value under, and what its function reads, in order, each by its path in
 /// the row. None where no row computes.
 fn rows_computed(manifest: &mut serde_json::Value, plan: &serde_json::Value) {
@@ -13278,8 +13276,7 @@ fn computed_module(plan: &serde_json::Value) -> Option<String> {
         .into_iter()
         .flatten()
         .any(|l| l["derived"].is_string())
-        // Or a row of a list the browser renders (the row's computed holes'
-        // ADR).
+        // Or a row of a list the browser renders (ADR-0424).
         || plan["browser_rows"].as_array().is_some_and(|r| !r.is_empty())
         // TRACK SEAM (device-store): or the steps of a value the device
         // keeps from an earlier version to its own.
@@ -13327,7 +13324,7 @@ fn signal_document(
     // TRACK SEAM (device-store): what the device keeps that it holds.
     device::with_device(&mut manifest, plan);
     // What it computes from its signals (ADR-0227), and each row of a list
-    // it renders (the row's computed holes' ADR).
+    // it renders (ADR-0424).
     if let Some(module) = computed_module(plan) {
         manifest["computed"] = serde_json::Value::String(module);
     }
@@ -13516,7 +13513,7 @@ fn document(
     // TRACK SEAM (device-store): what the device keeps that it holds.
     device::with_device(&mut manifest, plan);
     // What it computes from them (ADR-0227), and each row of a list it
-    // renders (the row's computed holes' ADR).
+    // renders (ADR-0424).
     if let Some(module) = computed_module(plan) {
         manifest["computed"] = serde_json::Value::String(module);
     }
@@ -13640,8 +13637,8 @@ const RUNTIME: &str = "<script>import(\"/pw-runtime.mjs\")</script>";
 const BOOT: &str = "<link rel=\"modulepreload\" href=\"/pw-runtime.mjs\">\n\
      <link rel=\"preload\" href=\"/pw-handlers\" as=\"fetch\" crossorigin>\n";
 
-/// **How a production build's files are named on the wire** (the first
-/// press's ADR, ADR-0392's "Next" 2: names a cache may keep). Every file a
+/// **How a production build's files are named on the wire** (ADR-0399,
+/// ADR-0392's "Next" 2: names a cache may keep). Every file a
 /// document names, and every one its runtime asks for, is asked for at one
 /// version, so that a browser keeps each until the build changes and asks
 /// for none of them again on a visit after its first. Until 2026-11-06 a
@@ -17313,8 +17310,8 @@ public query Store(",
         );
     }
 
-    /// **A frame pushed for a held subscription wakes it** (the first
-    /// press's ADR): written as it is pushed, not at the subscription's next
+    /// **A frame pushed for a held subscription wakes it** (ADR-0399):
+    /// written as it is pushed, not at the subscription's next
     /// look. Its slice is lengthened past its hold, so only the push's wake
     /// can deliver the frame before the hold ends; the push is made once the
     /// subscription waits, as the table counts it.
@@ -18419,8 +18416,7 @@ public query Store(",
     // TRACK SEAM (device-store): a page that holds a value the device keeps,
     // served (ADR-0366).
     mod device_store;
-    // A row of a list the browser renders computes what it shows (the row's
-    // computed holes' ADR).
+    // A row of a list the browser renders computes what it shows (ADR-0424).
     mod browser_rows;
     mod inline_styles;
     mod page_bundle;
@@ -19078,8 +19074,8 @@ public query Store(",
         assert_eq!(lazy.lines().count() + 1, warm.lines().count());
     }
 
-    /// **A development build names its files as they are** (the first
-    /// press's ADR): no delivery id, so every document is written as it was,
+    /// **A development build names its files as they are** (ADR-0399):
+    /// no delivery id, so every document is written as it was,
     /// byte for byte, and every file is asked again before each use.
     #[test]
     fn a_development_build_names_its_files_as_they_are() {
@@ -19320,8 +19316,8 @@ public query Store(",
         })
     }
 
-    /// **A compiled module is sent as its packaging wrote it** (the first
-    /// press's ADR): a handler's and a page's computed values', each in the
+    /// **A compiled module is sent as its packaging wrote it** (ADR-0399):
+    /// a handler's and a page's computed values', each in the
     /// representation the request accepts of those its production packaging
     /// wrote beside it, else as it is, which is all a development build
     /// has; each with a validator for that representation, a 304 for a

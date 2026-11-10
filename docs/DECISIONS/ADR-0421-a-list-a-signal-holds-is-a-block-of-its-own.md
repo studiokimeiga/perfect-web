@@ -1,10 +1,11 @@
-# ADR-XXXX: a list a signal holds is a block of its own
+# ADR-0421: a list a signal holds is a block of its own
 
-Status: proposed 2026-11-10, on branch `perf/train-18-20261110`, under the
-owner's delegation of 2026-10-02 and order of 2026-10-25 ("deciding by best
-judgement without asking"), and the order of 2026-11-09 that every row of the
-head-to-head Svelte wins is a defect until it is fixed or recorded. Milestone:
-E14. Amends ADR-0137; builds on the press's ADR (the rows train's).
+Status: accepted 2026-11-10, landed with trains 18 and 19. Proposed 2026-11-10,
+on branch `perf/train-18-20261110`, under the owner's delegation of 2026-10-02
+and order of 2026-10-25 ("deciding by best judgement without asking"), and the
+order of 2026-11-09 that every row of the head-to-head Svelte wins is a defect
+until it is fixed or recorded. Milestone: E14. Amends ADR-0137; builds on
+ADR-0417.
 
 ## Context
 
@@ -19,13 +20,13 @@ signal decides, and both apps with a long list wrote one for no other reason:
 {/if}
 ```
 
-The condition says nothing a reader needs. Svelte asks for none, and the
-press's ADR listed it as a limit of its own. It also costs what the list does
+The condition says nothing a reader needs. Svelte asks for none, and ADR-0417
+listed it as a limit of its own. It also costs what the list does
 not change: each time the list goes from no rows to some, or back, the block
 around it is rendered whole, a second pair of anchors stands in the document
 for it, and its arm is morphed before its rows are put in.
 
-Since the press's ADR, a list inside a block is already rendered again by its
+Since ADR-0417, a list inside a block is already rendered again by its
 rows (`listMade`): by their keys, parsing only those that are new or changed
 and moving only those out of place. What the browser lacked was a way to
 render a list again that is not inside a block.
@@ -59,8 +60,8 @@ render a list again that is not inside a block.
   second pair of anchors in the document and a block in the plan the source
   does not have; a block is what the loop already is.
 - **Set each row's parts in place by their signals**, as Svelte compiles: the
-  larger change the press's ADR deferred. A row here is rendered again whole,
-  by its plan's holes (the planned row's ADR).
+  larger change ADR-0417 deferred. A row here is rendered again whole,
+  by its plan's holes (ADR-0420).
 
 ## Acceptance
 
@@ -81,7 +82,7 @@ The head-to-head's figures go here when it has run at this branch's commit.
 
 ## Consequences
 
-- The press's ADR's last limit is gone: a list a signal holds is written as it
+- ADR-0417's last limit is gone: a list a signal holds is written as it
   is shown.
 - A list at the top of a page is one more block of the plan's: a feature that
   walks the plan's blocks meets lists among them.

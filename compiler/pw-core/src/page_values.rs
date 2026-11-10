@@ -490,8 +490,7 @@ fn rendered_again(
                         }
                         // A list a signal holds, or one the browser computes
                         // from them, at the top of the page: rendered again by
-                        // its rows, as its own block (ADR-0137, amended by the
-                        // ADR of a list a signal holds).
+                        // its rows, as its own block (ADR-0137, amended by ADR-0421).
                         (Part::Each { .. }, Reach::Top) => {}
                         // A value computed from the signals, inside a block a
                         // host renders, which the browser does not render
@@ -844,8 +843,8 @@ pub struct PageValues {
     /// field the renderer reads from the item itself, and is not here.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub rows: Vec<RowRead>,
-    /// **What a row of a list the browser renders computes** (the row's
-    /// computed holes' ADR): by the browser for each row, and by a host for
+    /// **What a row of a list the browser renders computes** (ADR-0424):
+    /// by the browser for each row, and by a host for
     /// the first render.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub browser_rows: Vec<BrowserRow>,
@@ -950,8 +949,8 @@ pub struct RowRead {
     pub steps: Vec<Step>,
 }
 
-/// **A value a row of a list the browser renders computes** (the row's
-/// computed holes' ADR): `class={if row.id == selected { "danger" } else
+/// **A value a row of a list the browser renders computes** (ADR-0424):
+/// `class={if row.id == selected { "danger" } else
 /// { "" }}` inside `{#each rows as row (row.id)}`, where a signal holds
 /// `rows`. The item's, by the path the compiler names from it, as a row's
 /// computed value of a query's list is (ADR-0228), and computed by the
@@ -1925,7 +1924,7 @@ fn plan(
     // `device-store`, decision 7), by its path: the signals it reads, which
     // a block holding it is rendered again for. One in a loop's row is the
     // row's, by its item's path, with the signals among what it reads, which
-    // its list is rendered again for (the row's computed holes' ADR).
+    // its list is rendered again for (ADR-0424).
     let computed_inputs: BTreeMap<String, Vec<String>> = holes
         .iter()
         .map(|h| (&h.path, &h.inputs))
@@ -2636,8 +2635,7 @@ enum Computes {
     /// renders from a speculated value (ADR-0172).
     Row(RowRead),
     /// The browser, for each row of a list it renders, from the row's item
-    /// and the signals; and a host for the first render (the row's computed
-    /// holes' ADR).
+    /// and the signals; and a host for the first render (ADR-0424).
     BrowserRow(BrowserRow),
 }
 
@@ -2763,8 +2761,8 @@ fn computed_part(
             },
         ));
     }
-    // **In a row of a list the browser renders** (the row's computed holes'
-    // ADR): a signal's list, or one the browser computes from the signals.
+    // **In a row of a list the browser renders** (ADR-0424):
+    // a signal's list, or one the browser computes from the signals.
     // From the row's item and the signals beside it, computed by the browser
     // for each row it renders and by a host for the first render; the item's,
     // by the path the compiler named from it.
@@ -2781,7 +2779,7 @@ fn computed_part(
         {
             return refuse(
                 "in a row of a list inside another row, which the browser computes none of yet \
-                 (the row's computed holes' ADR)"
+                 (ADR-0424)"
                     .to_string(),
             );
         }
@@ -2792,7 +2790,7 @@ fn computed_part(
             {
                 return refuse(format!(
                     "from `{name}` in a row of `{collection}`, and the browser computes a row's \
-                     value from its item and the signals (the row's computed holes' ADR)"
+                     value from its item and the signals (ADR-0424)"
                 ));
             }
             let typed = typed_inputs()?;
@@ -2803,7 +2801,7 @@ fn computed_part(
             {
                 return refuse(format!(
                     "in a row of `{binding}`, which is no record: a value a row computes is held \
-                     in its item (the row's computed holes' ADR)"
+                     in its item (ADR-0424)"
                 ));
             }
             let component_id = format!("{page}.derived_{part}");
