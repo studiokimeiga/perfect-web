@@ -1,8 +1,8 @@
 a page no reader decides is one document
 
 produced by: just e14-prerender
-commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: bd1aaeeb8ba8d969afb7228305df754828267487
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -12,45 +12,45 @@ playwright: Version 1.58.0
 test a_layout_that_binds_a_query_keeps_a_page_unmarked ... ok
 test a_layout_is_read_for_its_handlers ... ok
 test a_layout_with_a_stream_keeps_a_page_unmarked ... ok
-test a_handler_that_stays_in_the_browser_leaves_a_page_marked ... ok
-test a_page_its_address_gives_a_value_is_not_marked ... ok
 test a_page_marked_is_said_so_in_its_plan ... ok
-test a_page_that_binds_a_query_is_not_marked ... ok
+test a_page_its_address_gives_a_value_is_not_marked ... ok
+test a_handler_that_stays_in_the_browser_leaves_a_page_marked ... ok
 test a_page_of_signals_at_an_address_is_marked ... ok
+test a_page_that_binds_a_query_is_not_marked ... ok
 test a_handler_that_sends_a_command_keeps_a_page_unmarked ... ok
-test a_page_with_no_address_is_not_marked ... ok
 test a_page_with_a_stream_is_not_marked ... ok
-test a_value_the_device_keeps_leaves_a_page_marked ... ok
+test a_page_with_no_address_is_not_marked ... ok
 test a_page_that_is_someones_is_not_marked ... ok
+test a_value_the_device_keeps_leaves_a_page_marked ... ok
 test a_predicate_asked_by_a_layout_or_a_view_keeps_a_page_unmarked ... ok
 test a_view_that_contains_itself_is_read_for_its_handlers ... ok
-test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.22s
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.63s
 
 == what the host sends for one (tests::prerender::, TodoMVC's)
 
 test tests::prerender::a_gzip_trailers_checksum_is_crc_32 ... ok
 test tests::prerender::a_head_is_answered_as_its_get_is ... ok
-test tests::prerender::a_page_someone_decides_is_as_it_was ... ok
 test tests::prerender::a_host_route_keeps_its_place ... ok
 test tests::prerender::a_browser_that_holds_a_representation_is_told_so ... ok
-test tests::prerender::a_page_that_does_not_render_stops_the_host ... ok
-test tests::prerender::a_versioned_build_says_its_delivery_and_names_its_files_at_it ... ok
+test tests::prerender::a_page_someone_decides_is_as_it_was ... ok
 test tests::prerender::a_page_with_no_rows_is_the_same_bytes_as_a_request_would_have_been ... ok
+test tests::prerender::a_page_that_does_not_render_stops_the_host ... ok
 test tests::prerender::a_request_with_a_session_is_admitted_as_every_request_is ... ok
+test tests::prerender::a_versioned_build_says_its_delivery_and_names_its_files_at_it ... ok
 test tests::prerender::each_representation_holds_the_document ... ok
 test tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing ... ok
 test tests::prerender::it_is_rendered_in_the_public_partition ... ok
 test tests::prerender::it_is_the_document_a_request_would_have_been_rendered ... ok
 test tests::prerender::nothing_is_one_document_until_it_is_rendered ... ok
 test tests::prerender::what_it_says_of_itself_is_part_of_its_validator ... ok
-test tests::prerender::it_says_what_a_document_says_of_itself ... ok
 test tests::prerender::the_address_that_still_renders_is_as_it_was ... ok
+test tests::prerender::it_says_what_a_document_says_of_itself ... ok
 test tests::prerender::todomvc_is_one_document ... ok
-test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 1016 filtered out; finished in 1.21s
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 1019 filtered out; finished in 1.57s
 
 == TodoMVC through it in three engines (e2e/todomvc.spec.mjs)
 
-  162 passed (1.4m)
+  162 passed (1.8m)
 
 == mutation controls (scripts/prerender_mutations.py)
 
@@ -72,7 +72,7 @@ test a_predicate_asked_by_a_layout_or_a_view_keeps_a_page_unmarked ... ok
 test a_value_the_device_keeps_leaves_a_page_marked ... ok
 test a_view_that_contains_itself_is_read_for_its_handlers ... ok
 
-test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.95s
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.91s
 
 
 
@@ -97,7 +97,7 @@ test tests::prerender::the_address_that_still_renders_is_as_it_was ... ok
 test tests::prerender::todomvc_is_one_document ... ok
 test tests::prerender::what_it_says_of_itself_is_part_of_its_validator ... ok
 
-test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 1015 filtered out; finished in 4.12s
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 1018 filtered out; finished in 5.35s
 
 
 
@@ -122,7 +122,7 @@ failures:
 
 ---- a_page_with_no_address_is_not_marked stdout ----
 
-thread 'a_page_with_no_address_is_not_marked' (194297) panicked at compiler/pw-core/tests/prerender.rs:140:5:
+thread 'a_page_with_no_address_is_not_marked' (201856) panicked at compiler/pw-core/tests/prerender.rs:140:5:
 module t
 
 opaque type InteractionId = String
@@ -155,7 +155,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_page_with_no_address_is_not_marked
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.90s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.89s
 
 error: test failed, to rerun pass `-p pw-core --test prerender`
 
@@ -182,7 +182,7 @@ failures:
 
 ---- a_page_its_address_gives_a_value_is_not_marked stdout ----
 
-thread 'a_page_its_address_gives_a_value_is_not_marked' (194666) panicked at compiler/pw-core/tests/prerender.rs:151:9:
+thread 'a_page_its_address_gives_a_value_is_not_marked' (202226) panicked at compiler/pw-core/tests/prerender.rs:151:9:
 module t
 
 opaque type InteractionId = String
@@ -216,7 +216,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_page_its_address_gives_a_value_is_not_marked
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.87s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.74s
 
 error: test failed, to rerun pass `-p pw-core --test prerender`
 
@@ -243,7 +243,7 @@ failures:
 
 ---- a_layout_that_binds_a_query_keeps_a_page_unmarked stdout ----
 
-thread 'a_layout_that_binds_a_query_keeps_a_page_unmarked' (195040) panicked at compiler/pw-core/tests/prerender.rs:254:5:
+thread 'a_layout_that_binds_a_query_keeps_a_page_unmarked' (202599) panicked at compiler/pw-core/tests/prerender.rs:254:5:
 module t
 
 opaque type InteractionId = String
@@ -285,7 +285,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- a_page_that_binds_a_query_is_not_marked stdout ----
 
-thread 'a_page_that_binds_a_query_is_not_marked' (195045) panicked at compiler/pw-core/tests/prerender.rs:164:5:
+thread 'a_page_that_binds_a_query_is_not_marked' (202604) panicked at compiler/pw-core/tests/prerender.rs:164:5:
 module t
 
 opaque type InteractionId = String
@@ -321,7 +321,7 @@ failures:
     a_layout_that_binds_a_query_keeps_a_page_unmarked
     a_page_that_binds_a_query_is_not_marked
 
-test result: FAILED. 13 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.92s
+test result: FAILED. 13 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.88s
 
 error: test failed, to rerun pass `-p pw-core --test prerender`
 
@@ -348,7 +348,7 @@ failures:
 
 ---- a_layout_with_a_stream_keeps_a_page_unmarked stdout ----
 
-thread 'a_layout_with_a_stream_keeps_a_page_unmarked' (195417) panicked at compiler/pw-core/tests/prerender.rs:267:5:
+thread 'a_layout_with_a_stream_keeps_a_page_unmarked' (202976) panicked at compiler/pw-core/tests/prerender.rs:267:5:
 module t
 
 opaque type InteractionId = String
@@ -399,7 +399,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- a_page_with_a_stream_is_not_marked stdout ----
 
-thread 'a_page_with_a_stream_is_not_marked' (195423) panicked at compiler/pw-core/tests/prerender.rs:179:5:
+thread 'a_page_with_a_stream_is_not_marked' (202982) panicked at compiler/pw-core/tests/prerender.rs:179:5:
 module t
 
 opaque type InteractionId = String
@@ -444,7 +444,7 @@ failures:
     a_layout_with_a_stream_keeps_a_page_unmarked
     a_page_with_a_stream_is_not_marked
 
-test result: FAILED. 13 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.95s
+test result: FAILED. 13 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.86s
 
 error: test failed, to rerun pass `-p pw-core --test prerender`
 
@@ -471,7 +471,7 @@ failures:
 
 ---- a_predicate_asked_by_a_layout_or_a_view_keeps_a_page_unmarked stdout ----
 
-thread 'a_predicate_asked_by_a_layout_or_a_view_keeps_a_page_unmarked' (195800) panicked at compiler/pw-core/tests/prerender.rs:283:5:
+thread 'a_predicate_asked_by_a_layout_or_a_view_keeps_a_page_unmarked' (203359) panicked at compiler/pw-core/tests/prerender.rs:283:5:
 module t
 
 opaque type InteractionId = String
@@ -516,7 +516,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_predicate_asked_by_a_layout_or_a_view_keeps_a_page_unmarked
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.69s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.63s
 
 error: test failed, to rerun pass `-p pw-core --test prerender`
 
@@ -543,7 +543,7 @@ failures:
 
 ---- a_predicate_asked_by_a_layout_or_a_view_keeps_a_page_unmarked stdout ----
 
-thread 'a_predicate_asked_by_a_layout_or_a_view_keeps_a_page_unmarked' (196175) panicked at compiler/pw-core/tests/prerender.rs:287:5:
+thread 'a_predicate_asked_by_a_layout_or_a_view_keeps_a_page_unmarked' (203734) panicked at compiler/pw-core/tests/prerender.rs:287:5:
 module t
 
 opaque type InteractionId = String
@@ -584,7 +584,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_predicate_asked_by_a_layout_or_a_view_keeps_a_page_unmarked
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.85s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.79s
 
 error: test failed, to rerun pass `-p pw-core --test prerender`
 
@@ -611,7 +611,7 @@ failures:
 
 ---- a_page_that_is_someones_is_not_marked stdout ----
 
-thread 'a_page_that_is_someones_is_not_marked' (196547) panicked at compiler/pw-core/tests/prerender.rs:189:9:
+thread 'a_page_that_is_someones_is_not_marked' (204107) panicked at compiler/pw-core/tests/prerender.rs:189:9:
 module t
 
 opaque type InteractionId = String
@@ -646,7 +646,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_page_that_is_someones_is_not_marked
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.77s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.66s
 
 error: test failed, to rerun pass `-p pw-core --test prerender`
 
@@ -673,7 +673,7 @@ failures:
 
 ---- a_handler_that_sends_a_command_keeps_a_page_unmarked stdout ----
 
-thread 'a_handler_that_sends_a_command_keeps_a_page_unmarked' (196917) panicked at compiler/pw-core/tests/prerender.rs:206:9:
+thread 'a_handler_that_sends_a_command_keeps_a_page_unmarked' (204474) panicked at compiler/pw-core/tests/prerender.rs:206:9:
 module t
 
 opaque type InteractionId = String
@@ -709,7 +709,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- a_layout_is_read_for_its_handlers stdout ----
 
-thread 'a_layout_is_read_for_its_handlers' (196919) panicked at compiler/pw-core/tests/prerender.rs:244:5:
+thread 'a_layout_is_read_for_its_handlers' (204476) panicked at compiler/pw-core/tests/prerender.rs:244:5:
 module t
 
 opaque type InteractionId = String
@@ -748,14 +748,14 @@ page P() {
 
 ---- a_page_marked_is_said_so_in_its_plan stdout ----
 
-thread 'a_page_marked_is_said_so_in_its_plan' (196923) panicked at compiler/pw-core/tests/prerender.rs:310:5:
+thread 'a_page_marked_is_said_so_in_its_plan' (204480) panicked at compiler/pw-core/tests/prerender.rs:310:5:
 assertion `left == right` failed
   left: Some(Bool(true))
  right: None
 
 ---- a_view_that_contains_itself_is_read_for_its_handlers stdout ----
 
-thread 'a_view_that_contains_itself_is_read_for_its_handlers' (196931) panicked at compiler/pw-core/tests/prerender.rs:228:5:
+thread 'a_view_that_contains_itself_is_read_for_its_handlers' (204488) panicked at compiler/pw-core/tests/prerender.rs:228:5:
 module t
 
 opaque type InteractionId = String
@@ -802,7 +802,7 @@ failures:
     a_page_marked_is_said_so_in_its_plan
     a_view_that_contains_itself_is_read_for_its_handlers
 
-test result: FAILED. 11 passed; 4 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.48s
+test result: FAILED. 11 passed; 4 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.36s
 
 error: test failed, to rerun pass `-p pw-core --test prerender`
 
@@ -829,7 +829,7 @@ failures:
 
 ---- a_handler_that_sends_a_command_keeps_a_page_unmarked stdout ----
 
-thread 'a_handler_that_sends_a_command_keeps_a_page_unmarked' (197294) panicked at compiler/pw-core/tests/prerender.rs:206:9:
+thread 'a_handler_that_sends_a_command_keeps_a_page_unmarked' (204849) panicked at compiler/pw-core/tests/prerender.rs:206:9:
 module t
 
 opaque type InteractionId = String
@@ -867,7 +867,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_handler_that_sends_a_command_keeps_a_page_unmarked
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.62s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.50s
 
 error: test failed, to rerun pass `-p pw-core --test prerender`
 
@@ -916,7 +916,7 @@ failures:
 
 ---- a_view_that_contains_itself_is_read_for_its_handlers stdout ----
 
-thread 'a_view_that_contains_itself_is_read_for_its_handlers' (197683) panicked at compiler/pw-core/tests/prerender.rs:228:5:
+thread 'a_view_that_contains_itself_is_read_for_its_handlers' (205246) panicked at compiler/pw-core/tests/prerender.rs:228:5:
 module t
 
 opaque type InteractionId = String
@@ -961,7 +961,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_view_that_contains_itself_is_read_for_its_handlers
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.89s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.92s
 
 error: test failed, to rerun pass `-p pw-core --test prerender`
 
@@ -1034,7 +1034,7 @@ failures:
 
 ---- a_handler_that_stays_in_the_browser_leaves_a_page_marked stdout ----
 
-thread 'a_handler_that_stays_in_the_browser_leaves_a_page_marked' (198046) panicked at compiler/pw-core/tests/prerender.rs:120:9:
+thread 'a_handler_that_stays_in_the_browser_leaves_a_page_marked' (205609) panicked at compiler/pw-core/tests/prerender.rs:120:9:
 module t
 
 opaque type InteractionId = String
@@ -1070,7 +1070,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- a_layout_is_read_for_its_handlers stdout ----
 
-thread 'a_layout_is_read_for_its_handlers' (198047) panicked at compiler/pw-core/tests/prerender.rs:242:5:
+thread 'a_layout_is_read_for_its_handlers' (205610) panicked at compiler/pw-core/tests/prerender.rs:242:5:
 module t
 
 opaque type InteractionId = String
@@ -1109,19 +1109,19 @@ page P() {
 
 ---- a_page_marked_is_said_so_in_its_plan stdout ----
 
-thread 'a_page_marked_is_said_so_in_its_plan' (198051) panicked at compiler/pw-core/tests/prerender.rs:308:5:
+thread 'a_page_marked_is_said_so_in_its_plan' (205614) panicked at compiler/pw-core/tests/prerender.rs:308:5:
 assertion `left == right` failed
   left: Null
  right: Bool(true)
 
 ---- a_page_of_signals_at_an_address_is_marked stdout ----
 
-thread 'a_page_of_signals_at_an_address_is_marked' (198052) panicked at compiler/pw-core/tests/prerender.rs:105:5:
+thread 'a_page_of_signals_at_an_address_is_marked' (205615) panicked at compiler/pw-core/tests/prerender.rs:105:5:
 assertion failed: marked(&plain())
 
 ---- a_value_the_device_keeps_leaves_a_page_marked stdout ----
 
-thread 'a_value_the_device_keeps_leaves_a_page_marked' (198058) panicked at compiler/pw-core/tests/prerender.rs:134:5:
+thread 'a_value_the_device_keeps_leaves_a_page_marked' (205621) panicked at compiler/pw-core/tests/prerender.rs:134:5:
 module t
 
 opaque type InteractionId = String
@@ -1157,7 +1157,7 @@ page P() {
 
 ---- a_view_that_contains_itself_is_read_for_its_handlers stdout ----
 
-thread 'a_view_that_contains_itself_is_read_for_its_handlers' (198059) panicked at compiler/pw-core/tests/prerender.rs:226:5:
+thread 'a_view_that_contains_itself_is_read_for_its_handlers' (205622) panicked at compiler/pw-core/tests/prerender.rs:226:5:
 module t
 
 opaque type InteractionId = String
@@ -1206,7 +1206,7 @@ failures:
     a_value_the_device_keeps_leaves_a_page_marked
     a_view_that_contains_itself_is_read_for_its_handlers
 
-test result: FAILED. 9 passed; 6 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.37s
+test result: FAILED. 9 passed; 6 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.10s
 
 error: test failed, to rerun pass `-p pw-core --test prerender`
 
@@ -1233,7 +1233,7 @@ failures:
 
 ---- a_page_marked_is_said_so_in_its_plan stdout ----
 
-thread 'a_page_marked_is_said_so_in_its_plan' (198427) panicked at compiler/pw-core/tests/prerender.rs:310:5:
+thread 'a_page_marked_is_said_so_in_its_plan' (205989) panicked at compiler/pw-core/tests/prerender.rs:310:5:
 assertion `left == right` failed
   left: Some(Bool(false))
  right: None
@@ -1243,7 +1243,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_page_marked_is_said_so_in_its_plan
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.90s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.91s
 
 error: test failed, to rerun pass `-p pw-core --test prerender`
 
@@ -1274,73 +1274,73 @@ failures:
 
 ---- tests::prerender::a_browser_that_holds_a_representation_is_told_so stdout ----
 
-thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (199115) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
+thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (206679) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
 Err("`t.Bound~ui` cannot be prerendered: `t.Bound~ui` binds a query; this route renders a page's signals and streams")
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::prerender::a_head_is_answered_as_its_get_is stdout ----
 
-thread 'tests::prerender::a_head_is_answered_as_its_get_is' (199117) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
+thread 'tests::prerender::a_head_is_answered_as_its_get_is' (206681) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
 Err("`t.Bound~ui` cannot be prerendered: `t.Bound~ui` binds a query; this route renders a page's signals and streams")
 
 ---- tests::prerender::a_host_route_keeps_its_place stdout ----
 
-thread 'tests::prerender::a_host_route_keeps_its_place' (199118) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
+thread 'tests::prerender::a_host_route_keeps_its_place' (206682) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
 Err("`t.Bound~ui` cannot be prerendered: `t.Bound~ui` binds a query; this route renders a page's signals and streams")
 
 ---- tests::prerender::a_page_someone_decides_is_as_it_was stdout ----
 
-thread 'tests::prerender::a_page_someone_decides_is_as_it_was' (199119) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
+thread 'tests::prerender::a_page_someone_decides_is_as_it_was' (206683) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
 Err("`t.Bound~ui` cannot be prerendered: `t.Bound~ui` binds a query; this route renders a page's signals and streams")
 
 ---- tests::prerender::a_page_that_does_not_render_stops_the_host stdout ----
 
-thread 'tests::prerender::a_page_that_does_not_render_stops_the_host' (199120) panicked at spikes/own-renderer/server/src/tests/prerender.rs:448:5:
+thread 'tests::prerender::a_page_that_does_not_render_stops_the_host' (206684) panicked at spikes/own-renderer/server/src/tests/prerender.rs:448:5:
 assertion failed: done.unwrap_err().contains(HOME)
 
 ---- tests::prerender::a_page_with_no_rows_is_the_same_bytes_as_a_request_would_have_been stdout ----
 
-thread 'tests::prerender::a_page_with_no_rows_is_the_same_bytes_as_a_request_would_have_been' (199121) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
+thread 'tests::prerender::a_page_with_no_rows_is_the_same_bytes_as_a_request_would_have_been' (206685) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
 Err("`t.Bound~ui` cannot be prerendered: `t.Bound~ui` binds a query; this route renders a page's signals and streams")
 
 ---- tests::prerender::a_request_with_a_session_is_admitted_as_every_request_is stdout ----
 
-thread 'tests::prerender::a_request_with_a_session_is_admitted_as_every_request_is' (199122) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
+thread 'tests::prerender::a_request_with_a_session_is_admitted_as_every_request_is' (206686) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
 Err("`t.Bound~ui` cannot be prerendered: `t.Bound~ui` binds a query; this route renders a page's signals and streams")
 
 ---- tests::prerender::a_versioned_build_says_its_delivery_and_names_its_files_at_it stdout ----
 
-thread 'tests::prerender::a_versioned_build_says_its_delivery_and_names_its_files_at_it' (199123) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
+thread 'tests::prerender::a_versioned_build_says_its_delivery_and_names_its_files_at_it' (206687) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
 Err("`t.Bound~ui` cannot be prerendered: `t.Bound~ui` binds a query; this route renders a page's signals and streams")
 
 ---- tests::prerender::each_representation_holds_the_document stdout ----
 
-thread 'tests::prerender::each_representation_holds_the_document' (199124) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
+thread 'tests::prerender::each_representation_holds_the_document' (206688) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
 Err("`t.Bound~ui` cannot be prerendered: `t.Bound~ui` binds a query; this route renders a page's signals and streams")
 
 ---- tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing stdout ----
 
-thread 'tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing' (199125) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
+thread 'tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing' (206689) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
 Err("`t.Bound~ui` cannot be prerendered: `t.Bound~ui` binds a query; this route renders a page's signals and streams")
 
 ---- tests::prerender::it_is_rendered_in_the_public_partition stdout ----
 
-thread 'tests::prerender::it_is_rendered_in_the_public_partition' (199126) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
+thread 'tests::prerender::it_is_rendered_in_the_public_partition' (206690) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
 Err("`t.Bound~ui` cannot be prerendered: `t.Bound~ui` binds a query; this route renders a page's signals and streams")
 
 ---- tests::prerender::it_is_the_document_a_request_would_have_been_rendered stdout ----
 
-thread 'tests::prerender::it_is_the_document_a_request_would_have_been_rendered' (199127) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
+thread 'tests::prerender::it_is_the_document_a_request_would_have_been_rendered' (206691) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
 Err("`t.Bound~ui` cannot be prerendered: `t.Bound~ui` binds a query; this route renders a page's signals and streams")
 
 ---- tests::prerender::it_says_what_a_document_says_of_itself stdout ----
 
-thread 'tests::prerender::it_says_what_a_document_says_of_itself' (199128) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
+thread 'tests::prerender::it_says_what_a_document_says_of_itself' (206692) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
 Err("`t.Bound~ui` cannot be prerendered: `t.Bound~ui` binds a query; this route renders a page's signals and streams")
 
 ---- tests::prerender::the_address_that_still_renders_is_as_it_was stdout ----
 
-thread 'tests::prerender::the_address_that_still_renders_is_as_it_was' (199131) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
+thread 'tests::prerender::the_address_that_still_renders_is_as_it_was' (206695) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
 Err("`t.Bound~ui` cannot be prerendered: `t.Bound~ui` binds a query; this route renders a page's signals and streams")
 
 
@@ -1360,7 +1360,7 @@ failures:
     tests::prerender::it_says_what_a_document_says_of_itself
     tests::prerender::the_address_that_still_renders_is_as_it_was
 
-test result: FAILED. 5 passed; 14 failed; 0 ignored; 0 measured; 1015 filtered out; finished in 3.83s
+test result: FAILED. 5 passed; 14 failed; 0 ignored; 0 measured; 1018 filtered out; finished in 5.26s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1391,7 +1391,7 @@ failures:
 
 ---- tests::prerender::it_is_rendered_in_the_public_partition stdout ----
 
-thread 'tests::prerender::it_is_rendered_in_the_public_partition' (199473) panicked at spikes/own-renderer/server/src/tests/prerender.rs:311:5:
+thread 'tests::prerender::it_is_rendered_in_the_public_partition' (207034) panicked at spikes/own-renderer/server/src/tests/prerender.rs:311:5:
 assertion `left == right` failed
   left: "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Home</title>\n<link rel=\"modulepreload\" href=\"/pw-runtime.mjs\">\n<link rel=\"preload\" href=\"/pw-handlers\" as=\"fetch\" crossorigin>\n</head>\n<body>\n<button data-pw=\"0\" type=\"button\"><!--pw:s1-->0<!--pw:e1--></button><!--pw:s2--><!--pw:s3--><!--pw:s3@lfMoWFBJYTSqT3wg--><p><!--pw:s4-->1<!--pw:e4--></p><!--pw:e3@lfMoWFBJYTSqT3wg--><!--pw:s3@OOOGy8BBSPTHArFB--><p><!--pw:s4-->2<!--pw:e4--></p><!--pw:e3@OOOGy8BBSPTHArFB--><!--pw:e3--><!--pw:e2-->\n<div role=\"status\" class=\"pw-announcer\"></div>\n<script type=\"application/json\" id=\"pw-parts\">{\"blocks\":{\"2\":{\"id\":2,\"otherwise\":[],\"part\":\"conditional\",\"then\":[{\"chunk\":\"dynamic\",\"value\":{\"binding\":\"n\",\"body\":[{\"chunk\":\"static\",\"value\":\"\\u003cp>\"},{\"chunk\":\"dynamic\",\"value\":{\"context\":\"text\",\"id\":4,\"part\":\"text\",\"value\":\"n\"}},{\"chunk\":\"static\",\"value\":\"\\u003c/p>\"}],\"collection\":\"rows\",\"id\":3,\"key\":\"\",\"part\":\"each\"}}],\"value\":\"#t.Home~ui~2\"}},\"computed\":\"/computed/t.Home~ui.mjs\",\"cursor\":0,\"listens\":false,\"live\":[{\"kind\":\"text\",\"part\":1,\"path\":\"count\",\"signal\":\"count\"},{\"derived\":\"t.Home~ui.derived_2\",\"kind\":\"conditional\",\"part\":2,\"path\":\"count\",\"reads\":[\"count\",\"rows\"],\"signal\":\"count\"}],\"parts\":[{\"anchor\":\"element\",\"event\":\"press\",\"id\":0,\"kind\":\"event\",\"owner\":0,\"value\":\"10311fd4e84fb087\"},{\"anchor\":\"range\",\"id\":1,\"kind\":\"text\",\"value\":\"count\"},{\"anchor\":\"range\",\"id\":2,\"kind\":\"conditional\",\"value\":\"#t.Home~ui~2\"},{\"anchor\":\"range\",\"id\":3,\"kind\":\"each\",\"value\":\"rows\"},{\"anchor\":\"range\",\"id\":4,\"kind\":\"text\",\"value\":\"n\"},{\"anchor\":\"document\",\"id\":5,\"kind\":\"title\",\"value\":\"\"}],\"resume\":{\"abi\":\"1\",\"build\":\"bf5964968394239b6\",\"capture\":\"\",\"captures\":\"\",\"construct\":\"region\",\"document\":\"278996881c5bbff5\",\"handler\":\"\",\"handlers\":{\"0fe8c81850fe72a6\":{\"capture\":\"\",\"captures\":\"\",\"handler\":\"0fe8c81850fe72a6\"},\"10311fd4e84fb087\":{\"capture\":\"\",\"captures\":\"\",\"handler\":\"10311fd4e84fb087\"}},\"scheme\":\"2\",\"scope\":\"public\"},\"schema\":\"278996881c5bbff5\",\"signals\":{\"count\":0,\"rows\":[1,2]},\"template\":\"t.Home~ui\"}</script>\n<script>import(\"/pw-runtime.mjs\")</script>\n</body>\n</html>\n"
  right: "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Home</title>\n<link rel=\"modulepreload\" href=\"/pw-runtime.mjs\">\n<link rel=\"preload\" href=\"/pw-handlers\" as=\"fetch\" crossorigin>\n</head>\n<body>\n<button data-pw=\"0\" type=\"button\"><!--pw:s1-->0<!--pw:e1--></button><!--pw:s2--><!--pw:s3--><!--pw:s3@AasAyp8FNh53xZUa--><p><!--pw:s4-->1<!--pw:e4--></p><!--pw:e3@AasAyp8FNh53xZUa--><!--pw:s3@cTbd5ZgaAhNfryAK--><p><!--pw:s4-->2<!--pw:e4--></p><!--pw:e3@cTbd5ZgaAhNfryAK--><!--pw:e3--><!--pw:e2-->\n<div role=\"status\" class=\"pw-announcer\"></div>\n<script type=\"application/json\" id=\"pw-parts\">{\"blocks\":{\"2\":{\"id\":2,\"otherwise\":[],\"part\":\"conditional\",\"then\":[{\"chunk\":\"dynamic\",\"value\":{\"binding\":\"n\",\"body\":[{\"chunk\":\"static\",\"value\":\"\\u003cp>\"},{\"chunk\":\"dynamic\",\"value\":{\"context\":\"text\",\"id\":4,\"part\":\"text\",\"value\":\"n\"}},{\"chunk\":\"static\",\"value\":\"\\u003c/p>\"}],\"collection\":\"rows\",\"id\":3,\"key\":\"\",\"part\":\"each\"}}],\"value\":\"#t.Home~ui~2\"}},\"computed\":\"/computed/t.Home~ui.mjs\",\"cursor\":0,\"listens\":false,\"live\":[{\"kind\":\"text\",\"part\":1,\"path\":\"count\",\"signal\":\"count\"},{\"derived\":\"t.Home~ui.derived_2\",\"kind\":\"conditional\",\"part\":2,\"path\":\"count\",\"reads\":[\"count\",\"rows\"],\"signal\":\"count\"}],\"parts\":[{\"anchor\":\"element\",\"event\":\"press\",\"id\":0,\"kind\":\"event\",\"owner\":0,\"value\":\"10311fd4e84fb087\"},{\"anchor\":\"range\",\"id\":1,\"kind\":\"text\",\"value\":\"count\"},{\"anchor\":\"range\",\"id\":2,\"kind\":\"conditional\",\"value\":\"#t.Home~ui~2\"},{\"anchor\":\"range\",\"id\":3,\"kind\":\"each\",\"value\":\"rows\"},{\"anchor\":\"range\",\"id\":4,\"kind\":\"text\",\"value\":\"n\"},{\"anchor\":\"document\",\"id\":5,\"kind\":\"title\",\"value\":\"\"}],\"resume\":{\"abi\":\"1\",\"build\":\"bf5964968394239b6\",\"capture\":\"\",\"captures\":\"\",\"construct\":\"region\",\"document\":\"278996881c5bbff5\",\"handler\":\"\",\"handlers\":{\"0fe8c81850fe72a6\":{\"capture\":\"\",\"captures\":\"\",\"handler\":\"0fe8c81850fe72a6\"},\"10311fd4e84fb087\":{\"capture\":\"\",\"captures\":\"\",\"handler\":\"10311fd4e84fb087\"}},\"scheme\":\"2\",\"scope\":\"public\"},\"schema\":\"278996881c5bbff5\",\"signals\":{\"count\":0,\"rows\":[1,2]},\"template\":\"t.Home~ui\"}</script>\n<script>import(\"/pw-runtime.mjs\")</script>\n</body>\n</html>\n"
@@ -1401,7 +1401,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::it_is_rendered_in_the_public_partition
 
-test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1015 filtered out; finished in 4.02s
+test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1018 filtered out; finished in 5.47s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1432,7 +1432,7 @@ failures:
 
 ---- tests::prerender::a_page_that_does_not_render_stops_the_host stdout ----
 
-thread 'tests::prerender::a_page_that_does_not_render_stops_the_host' (199806) panicked at spikes/own-renderer/server/src/tests/prerender.rs:447:5:
+thread 'tests::prerender::a_page_that_does_not_render_stops_the_host' (207365) panicked at spikes/own-renderer/server/src/tests/prerender.rs:447:5:
 Ok(())
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -1440,7 +1440,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::a_page_that_does_not_render_stops_the_host
 
-test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1015 filtered out; finished in 4.07s
+test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1018 filtered out; finished in 5.43s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1471,13 +1471,13 @@ failures:
 
 ---- tests::prerender::a_browser_that_holds_a_representation_is_told_so stdout ----
 
-thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (200135) panicked at spikes/own-renderer/server/src/tests/prerender.rs:226:9:
+thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (207694) panicked at spikes/own-renderer/server/src/tests/prerender.rs:226:9:
 a validator: HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 2161
 x-content-type-options: nosniff
 cache-control: private, no-store
-set-cookie: pw-session=s-7c0da5a3f2bac6093fb4056102c7c21b; Path=/; HttpOnly; SameSite=Lax
+set-cookie: pw-session=s-3e74dd96138da9d484735de827d059c8; Path=/; HttpOnly; SameSite=Lax
 pw-build: bf5964968394239b6
 content-security-policy: default-src 'none'; script-src 'self' 'sha256-v8jCs+poUKnEHV7piaB+l4LlDvig0qQ2jqYEal4D2VY='; style-src 'self' 'sha256-PsoNDNr2FXKmBWScmALXJCtS6SI8vayZA8mDCwXDMYE='; img-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'
 connection: close
@@ -1487,13 +1487,13 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 ---- tests::prerender::a_request_with_a_session_is_admitted_as_every_request_is stdout ----
 pw dev server: session admission refused: session authority source is unavailable
 
-thread 'tests::prerender::a_request_with_a_session_is_admitted_as_every_request_is' (200150) panicked at spikes/own-renderer/server/src/tests/prerender.rs:436:5:
+thread 'tests::prerender::a_request_with_a_session_is_admitted_as_every_request_is' (207709) panicked at spikes/own-renderer/server/src/tests/prerender.rs:436:5:
 assertion `left == right` failed: HTTP/1.1 503 Service Unavailable
 content-type: text/plain; charset=utf-8
 content-length: 38
 x-content-type-options: nosniff
 cache-control: private, no-store
-set-cookie: pw-session=s-05760659c560747c3558043b210c4fa7; Path=/; HttpOnly; SameSite=Lax
+set-cookie: pw-session=s-4614cfec6b2393761387c2508341318e; Path=/; HttpOnly; SameSite=Lax
 connection: close
 
   left: "503"
@@ -1501,13 +1501,13 @@ connection: close
 
 ---- tests::prerender::each_representation_holds_the_document stdout ----
 
-thread 'tests::prerender::each_representation_holds_the_document' (200155) panicked at spikes/own-renderer/server/src/tests/prerender.rs:190:5:
+thread 'tests::prerender::each_representation_holds_the_document' (207714) panicked at spikes/own-renderer/server/src/tests/prerender.rs:190:5:
 assertion `left == right` failed: HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 2161
 x-content-type-options: nosniff
 cache-control: private, no-store
-set-cookie: pw-session=s-48944f924795f29f28c1e1f1dcd9dc08; Path=/; HttpOnly; SameSite=Lax
+set-cookie: pw-session=s-77535edf81958301619196d6c0c5caa7; Path=/; HttpOnly; SameSite=Lax
 pw-build: bf5964968394239b6
 content-security-policy: default-src 'none'; script-src 'self' 'sha256-v8jCs+poUKnEHV7piaB+l4LlDvig0qQ2jqYEal4D2VY='; style-src 'self' 'sha256-PsoNDNr2FXKmBWScmALXJCtS6SI8vayZA8mDCwXDMYE='; img-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'
 connection: close
@@ -1517,28 +1517,28 @@ connection: close
 
 ---- tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing stdout ----
 
-thread 'tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing' (200158) panicked at spikes/own-renderer/server/src/tests/prerender.rs:93:5:
+thread 'tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing' (207717) panicked at spikes/own-renderer/server/src/tests/prerender.rs:93:5:
 assertion `left == right` failed
-  left: [60, 33, 100, 111, 99, 116, 121, 112, 101, 32, 104, 116, 109, 108, 62, 10, 60, 104, 116, 109, 108, 32, 108, 97, 110, 103, 61, 34, 101, 110, 34, 62, 10, 60, 104, 101, 97, 100, 62, 10, 60, 109, 101, 116, 97, 32, 99, 104, 97, 114, 115, 101, 116, 61, 34, 117, 116, 102, 45, 56, 34, 62, 10, 60, 109, 101, 116, 97, 32, 110, 97, 109, 101, 61, 34, 118, 105, 101, 119, 112, 111, 114, 116, 34, 32, 99, 111, 110, 116, 101, 110, 116, 61, 34, 119, 105, 100, 116, 104, 61, 100, 101, 118, 105, 99, 101, 45, 119, 105, 100, 116, 104, 44, 32, 105, 110, 105, 116, 105, 97, 108, 45, 115, 99, 97, 108, 101, 61, 49, 34, 62, 10, 60, 116, 105, 116, 108, 101, 62, 72, 111, 109, 101, 60, 47, 116, 105, 116, 108, 101, 62, 10, 60, 108, 105, 110, 107, 32, 114, 101, 108, 61, 34, 109, 111, 100, 117, 108, 101, 112, 114, 101, 108, 111, 97, 100, 34, 32, 104, 114, 101, 102, 61, 34, 47, 112, 119, 45, 114, 117, 110, 116, 105, 109, 101, 46, 109, 106, 115, 34, 62, 10, 60, 108, 105, 110, 107, 32, 114, 101, 108, 61, 34, 112, 114, 101, 108, 111, 97, 100, 34, 32, 104, 114, 101, 102, 61, 34, 47, 112, 119, 45, 104, 97, 110, 100, 108, 101, 114, 115, 34, 32, 97, 115, 61, 34, 102, 101, 116, 99, 104, 34, 32, 99, 114, 111, 115, 115, 111, 114, 105, 103, 105, 110, 62, 10, 60, 47, 104, 101, 97, 100, 62, 10, 60, 98, 111, 100, 121, 62, 10, 60, 98, 117, 116, 116, 111, 110, 32, 100, 97, 116, 97, 45, 112, 119, 61, 34, 48, 34, 32, 116, 121, 112, 101, 61, 34, 98, 117, 116, 116, 111, 110, 34, 62, 60, 33, 45, 45, 112, 119, 58, 115, 49, 45, 45, 62, 48, 60, 33, 45, 45, 112, 119, 58, 101, 49, 45, 45, 62, 60, 47, 98, 117, 116, 116, 111, 110, 62, 60, 33, 45, 45, 112, 119, 58, 115, 50, 45, 45, 62, 60, 33, 45, 45, 112, 119, 58, 115, 51, 45, 45, 62, 60, 33, 45, 45, 112, 119, 58, 115, 51, 64, 120, 114, 54, 84, 105, 78, 115, 82, 112, 100, 99, 51, 111, 56, 99, 100, 45, 45, 62, 60, 112, 62, 60, 33, 45, 45, 112, 119, 58, 115, 52, 45, 45, 62, 49, 60, 33, 45, 45, 112, 119, 58, 101, 52, 45, 45, 62, 60, 47, 112, 62, 60, 33, 45, 45, 112, 119, 58, 101, 51, 64, 120, 114, 54, 84, 105, 78, 115, 82, 112, 100, 99, 51, 111, 56, 99, 100, 45, 45, 62, 60, 33, 45, 45, 112, 119, 58, 115, 51, 64, 101, 73, 97, 54, 114, 78, 84, 114, 109, 72, 50, 71, 108, 100, 88, 76, 45, 45, 62, 60, 112, 62, 60, 33, 45, 45, 112, 119, 58, 115, 52, 45, 45, 62, 50, 60, 33, 45, 45, 112, 119, 58, 101, 52, 45, 45, 62, 60, 47, 112, 62, 60, 33, 45, 45, 112, 119, 58, 101, 51, 64, 101, 73, 97, 54, 114, 78, 84, 114, 109, 72, 50, 71, 108, 100, 88, 76, 45, 45, 62, 60, 33, 45, 45, 112, 119, 58, 101, 51, 45, 45, 62, 60, 33, 45, 45, 112, 119, 58, 101, 50, 45, 45, 62, 10, 60, 100, 105, 118, 32, 114, 111, 108, 101, 61, 34, 115, 116, 97, 116, 117, 115, 34, 32, 99, 108, 97, 115, 115, 61, 34, 112, 119, 45, 97, 110, 110, 111, 117, 110, 99, 101, 114, 34, 62, 60, 47, 100, 105, 118, 62, 10, 60, 115, 99, 114, 105, 112, 116, 32, 116, 121, 112, 101, 61, 34, 97, 112, 112, 108, 105, 99, 97, 116, 105, 111, 110, 47, 106, 115, 111, 110, 34, 32, 105, 100, 61, 34, 112, 119, 45, 112, 97, 114, 116, 115, 34, 62, 123, 34, 98, 108, 111, 99, 107, 115, 34, 58, 123, 34, 50, 34, 58, 123, 34, 105, 100, 34, 58, 50, 44, 34, 111, 116, 104, 101, 114, 119, 105, 115, 101, 34, 58, 91, 93, 44, 34, 112, 97, 114, 116, 34, 58, 34, 99, 111, 110, 100, 105, 116, 105, 111, 110, 97, 108, 34, 44, 34, 116, 104, 101, 110, 34, 58, 91, 123, 34, 99, 104, 117, 110, 107, 34, 58, 34, 100, 121, 110, 97, 109, 105, 99, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 123, 34, 98, 105, 110, 100, 105, 110, 103, 34, 58, 34, 110, 34, 44, 34, 98, 111, 100, 121, 34, 58, 91, 123, 34, 99, 104, 117, 110, 107, 34, 58, 34, 115, 116, 97, 116, 105, 99, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 92, 117, 48, 48, 51, 99, 112, 62, 34, 125, 44, 123, 34, 99, 104, 117, 110, 107, 34, 58, 34, 100, 121, 110, 97, 109, 105, 99, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 123, 34, 99, 111, 110, 116, 101, 120, 116, 34, 58, 34, 116, 101, 120, 116, 34, 44, 34, 105, 100, 34, 58, 52, 44, 34, 112, 97, 114, 116, 34, 58, 34, 116, 101, 120, 116, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 110, 34, 125, 125, 44, 123, 34, 99, 104, 117, 110, 107, 34, 58, 34, 115, 116, 97, 116, 105, 99, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 92, 117, 48, 48, 51, 99, 47, 112, 62, 34, 125, 93, 44, 34, 99, 111, 108, 108, 101, 99, 116, 105, 111, 110, 34, 58, 34, 114, 111, 119, 115, 34, 44, 34, 105, 100, 34, 58, 51, 44, 34, 107, 101, 121, 34, 58, 34, 34, 44, 34, 112, 97, 114, 116, 34, 58, 34, 101, 97, 99, 104, 34, 125, 125, 93, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 35, 116, 46, 72, 111, 109, 101, 126, 117, 105, 126, 50, 34, 125, 125, 44, 34, 99, 111, 109, 112, 117, 116, 101, 100, 34, 58, 34, 47, 99, 111, 109, 112, 117, 116, 101, 100, 47, 116, 46, 72, 111, 109, 101, 126, 117, 105, 46, 109, 106, 115, 34, 44, 34, 99, 117, 114, 115, 111, 114, 34, 58, 48, 44, 34, 108, 105, 115, 116, 101, 110, 115, 34, 58, 102, 97, 108, 115, 101, 44, 34, 108, 105, 118, 101, 34, 58, 91, 123, 34, 107, 105, 110, 100, 34, 58, 34, 116, 101, 120, 116, 34, 44, 34, 112, 97, 114, 116, 34, 58, 49, 44, 34, 112, 97, 116, 104, 34, 58, 34, 99, 111, 117, 110, 116, 34, 44, 34, 115, 105, 103, 110, 97, 108, 34, 58, 34, 99, 111, 117, 110, 116, 34, 125, 44, 123, 34, 100, 101, 114, 105, 118, 101, 100, 34, 58, 34, 116, 46, 72, 111, 109, 101, 126, 117, 105, 46, 100, 101, 114, 105, 118, 101, 100, 95, 50, 34, 44, 34, 107, 105, 110, 100, 34, 58, 34, 99, 111, 110, 100, 105, 116, 105, 111, 110, 97, 108, 34, 44, 34, 112, 97, 114, 116, 34, 58, 50, 44, 34, 112, 97, 116, 104, 34, 58, 34, 99, 111, 117, 110, 116, 34, 44, 34, 114, 101, 97, 100, 115, 34, 58, 91, 34, 99, 111, 117, 110, 116, 34, 44, 34, 114, 111, 119, 115, 34, 93, 44, 34, 115, 105, 103, 110, 97, 108, 34, 58, 34, 99, 111, 117, 110, 116, 34, 125, 93, 44, 34, 112, 97, 114, 116, 115, 34, 58, 91, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 101, 108, 101, 109, 101, 110, 116, 34, 44, 34, 101, 118, 101, 110, 116, 34, 58, 34, 112, 114, 101, 115, 115, 34, 44, 34, 105, 100, 34, 58, 48, 44, 34, 107, 105, 110, 100, 34, 58, 34, 101, 118, 101, 110, 116, 34, 44, 34, 111, 119, 110, 101, 114, 34, 58, 48, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 49, 48, 51, 49, 49, 102, 100, 52, 101, 56, 52, 102, 98, 48, 56, 55, 34, 125, 44, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 114, 97, 110, 103, 101, 34, 44, 34, 105, 100, 34, 58, 49, 44, 34, 107, 105, 110, 100, 34, 58, 34, 116, 101, 120, 116, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 99, 111, 117, 110, 116, 34, 125, 44, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 114, 97, 110, 103, 101, 34, 44, 34, 105, 100, 34, 58, 50, 44, 34, 107, 105, 110, 100, 34, 58, 34, 99, 111, 110, 100, 105, 116, 105, 111, 110, 97, 108, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 35, 116, 46, 72, 111, 109, 101, 126, 117, 105, 126, 50, 34, 125, 44, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 114, 97, 110, 103, 101, 34, 44, 34, 105, 100, 34, 58, 51, 44, 34, 107, 105, 110, 100, 34, 58, 34, 101, 97, 99, 104, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 114, 111, 119, 115, 34, 125, 44, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 114, 97, 110, 103, 101, 34, 44, 34, 105, 100, 34, 58, 52, 44, 34, 107, 105, 110, 100, 34, 58, 34, 116, 101, 120, 116, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 110, 34, 125, 44, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 100, 111, 99, 117, 109, 101, 110, 116, 34, 44, 34, 105, 100, 34, 58, 53, 44, 34, 107, 105, 110, 100, 34, 58, 34, 116, 105, 116, 108, 101, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 34, 125, 93, 44, 34, 114, 101, 115, 117, 109, 101, 34, 58, 123, 34, 97, 98, 105, 34, 58, 34, 49, 34, 44, 34, 98, 117, 105, 108, 100, 34, 58, 34, 98, 102, 53, 57, 54, 52, 57, 54, 56, 51, 57, 52, 50, 51, 57, 98, 54, 34, 44, 34, 99, 97, 112, 116, 117, 114, 101, 34, 58, 34, 34, 44, 34, 99, 97, 112, 116, 117, 114, 101, 115, 34, 58, 34, 34, 44, 34, 99, 111, 110, 115, 116, 114, 117, 99, 116, 34, 58, 34, 114, 101, 103, 105, 111, 110, 34, 44, 34, 100, 111, 99, 117, 109, 101, 110, 116, 34, 58, 34, 50, 55, 56, 57, 57, 54, 56, 56, 49, 99, 53, 98, 98, 102, 102, 53, 34, 44, 34, 104, 97, 110, 100, 108, 101, 114, 34, 58, 34, 34, 44, 34, 104, 97, 110, 100, 108, 101, 114, 115, 34, 58, 123, 34, 48, 102, 101, 56, 99, 56, 49, 56, 53, 48, 102, 101, 55, 50, 97, 54, 34, 58, 123, 34, 99, 97, 112, 116, 117, 114, 101, 34, 58, 34, 34, 44, 34, 99, 97, 112, 116, 117, 114, 101, 115, 34, 58, 34, 34, 44, 34, 104, 97, 110, 100, 108, 101, 114, 34, 58, 34, 48, 102, 101, 56, 99, 56, 49, 56, 53, 48, 102, 101, 55, 50, 97, 54, 34, 125, 44, 34, 49, 48, 51, 49, 49, 102, 100, 52, 101, 56, 52, 102, 98, 48, 56, 55, 34, 58, 123, 34, 99, 97, 112, 116, 117, 114, 101, 34, 58, 34, 34, 44, 34, 99, 97, 112, 116, 117, 114, 101, 115, 34, 58, 34, 34, 44, 34, 104, 97, 110, 100, 108, 101, 114, 34, 58, 34, 49, 48, 51, 49, 49, 102, 100, 52, 101, 56, 52, 102, 98, 48, 56, 55, 34, 125, 125, 44, 34, 115, 99, 104, 101, 109, 101, 34, 58, 34, 50, 34, 44, 34, 115, 99, 111, 112, 101, 34, 58, 34, 112, 117, 98, 108, 105, 99, 34, 125, 44, 34, 115, 99, 104, 101, 109, 97, 34, 58, 34, 50, 55, 56, 57, 57, 54, 56, 56, 49, 99, 53, 98, 98, 102, 102, 53, 34, 44, 34, 115, 105, 103, 110, 97, 108, 115, 34, 58, 123, 34, 99, 111, 117, 110, 116, 34, 58, 48, 44, 34, 114, 111, 119, 115, 34, 58, 91, 49, 44, 50, 93, 125, 44, 34, 116, 101, 109, 112, 108, 97, 116, 101, 34, 58, 34, 116, 46, 72, 111, 109, 101, 126, 117, 105, 34, 125, 60, 47, 115, 99, 114, 105, 112, 116, 62, 10, 60, 115, 99, 114, 105, 112, 116, 62, 105, 109, 112, 111, 114, 116, 40, 34, 47, 112, 119, 45, 114, 117, 110, 116, 105, 109, 101, 46, 109, 106, 115, 34, 41, 60, 47, 115, 99, 114, 105, 112, 116, 62, 10, 60, 47, 98, 111, 100, 121, 62, 10, 60, 47, 104, 116, 109, 108, 62, 10]
+  left: [60, 33, 100, 111, 99, 116, 121, 112, 101, 32, 104, 116, 109, 108, 62, 10, 60, 104, 116, 109, 108, 32, 108, 97, 110, 103, 61, 34, 101, 110, 34, 62, 10, 60, 104, 101, 97, 100, 62, 10, 60, 109, 101, 116, 97, 32, 99, 104, 97, 114, 115, 101, 116, 61, 34, 117, 116, 102, 45, 56, 34, 62, 10, 60, 109, 101, 116, 97, 32, 110, 97, 109, 101, 61, 34, 118, 105, 101, 119, 112, 111, 114, 116, 34, 32, 99, 111, 110, 116, 101, 110, 116, 61, 34, 119, 105, 100, 116, 104, 61, 100, 101, 118, 105, 99, 101, 45, 119, 105, 100, 116, 104, 44, 32, 105, 110, 105, 116, 105, 97, 108, 45, 115, 99, 97, 108, 101, 61, 49, 34, 62, 10, 60, 116, 105, 116, 108, 101, 62, 72, 111, 109, 101, 60, 47, 116, 105, 116, 108, 101, 62, 10, 60, 108, 105, 110, 107, 32, 114, 101, 108, 61, 34, 109, 111, 100, 117, 108, 101, 112, 114, 101, 108, 111, 97, 100, 34, 32, 104, 114, 101, 102, 61, 34, 47, 112, 119, 45, 114, 117, 110, 116, 105, 109, 101, 46, 109, 106, 115, 34, 62, 10, 60, 108, 105, 110, 107, 32, 114, 101, 108, 61, 34, 112, 114, 101, 108, 111, 97, 100, 34, 32, 104, 114, 101, 102, 61, 34, 47, 112, 119, 45, 104, 97, 110, 100, 108, 101, 114, 115, 34, 32, 97, 115, 61, 34, 102, 101, 116, 99, 104, 34, 32, 99, 114, 111, 115, 115, 111, 114, 105, 103, 105, 110, 62, 10, 60, 47, 104, 101, 97, 100, 62, 10, 60, 98, 111, 100, 121, 62, 10, 60, 98, 117, 116, 116, 111, 110, 32, 100, 97, 116, 97, 45, 112, 119, 61, 34, 48, 34, 32, 116, 121, 112, 101, 61, 34, 98, 117, 116, 116, 111, 110, 34, 62, 60, 33, 45, 45, 112, 119, 58, 115, 49, 45, 45, 62, 48, 60, 33, 45, 45, 112, 119, 58, 101, 49, 45, 45, 62, 60, 47, 98, 117, 116, 116, 111, 110, 62, 60, 33, 45, 45, 112, 119, 58, 115, 50, 45, 45, 62, 60, 33, 45, 45, 112, 119, 58, 115, 51, 45, 45, 62, 60, 33, 45, 45, 112, 119, 58, 115, 51, 64, 69, 53, 88, 81, 76, 79, 54, 108, 105, 118, 104, 77, 104, 76, 83, 105, 45, 45, 62, 60, 112, 62, 60, 33, 45, 45, 112, 119, 58, 115, 52, 45, 45, 62, 49, 60, 33, 45, 45, 112, 119, 58, 101, 52, 45, 45, 62, 60, 47, 112, 62, 60, 33, 45, 45, 112, 119, 58, 101, 51, 64, 69, 53, 88, 81, 76, 79, 54, 108, 105, 118, 104, 77, 104, 76, 83, 105, 45, 45, 62, 60, 33, 45, 45, 112, 119, 58, 115, 51, 64, 57, 67, 119, 101, 73, 56, 72, 109, 70, 89, 75, 86, 103, 75, 101, 120, 45, 45, 62, 60, 112, 62, 60, 33, 45, 45, 112, 119, 58, 115, 52, 45, 45, 62, 50, 60, 33, 45, 45, 112, 119, 58, 101, 52, 45, 45, 62, 60, 47, 112, 62, 60, 33, 45, 45, 112, 119, 58, 101, 51, 64, 57, 67, 119, 101, 73, 56, 72, 109, 70, 89, 75, 86, 103, 75, 101, 120, 45, 45, 62, 60, 33, 45, 45, 112, 119, 58, 101, 51, 45, 45, 62, 60, 33, 45, 45, 112, 119, 58, 101, 50, 45, 45, 62, 10, 60, 100, 105, 118, 32, 114, 111, 108, 101, 61, 34, 115, 116, 97, 116, 117, 115, 34, 32, 99, 108, 97, 115, 115, 61, 34, 112, 119, 45, 97, 110, 110, 111, 117, 110, 99, 101, 114, 34, 62, 60, 47, 100, 105, 118, 62, 10, 60, 115, 99, 114, 105, 112, 116, 32, 116, 121, 112, 101, 61, 34, 97, 112, 112, 108, 105, 99, 97, 116, 105, 111, 110, 47, 106, 115, 111, 110, 34, 32, 105, 100, 61, 34, 112, 119, 45, 112, 97, 114, 116, 115, 34, 62, 123, 34, 98, 108, 111, 99, 107, 115, 34, 58, 123, 34, 50, 34, 58, 123, 34, 105, 100, 34, 58, 50, 44, 34, 111, 116, 104, 101, 114, 119, 105, 115, 101, 34, 58, 91, 93, 44, 34, 112, 97, 114, 116, 34, 58, 34, 99, 111, 110, 100, 105, 116, 105, 111, 110, 97, 108, 34, 44, 34, 116, 104, 101, 110, 34, 58, 91, 123, 34, 99, 104, 117, 110, 107, 34, 58, 34, 100, 121, 110, 97, 109, 105, 99, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 123, 34, 98, 105, 110, 100, 105, 110, 103, 34, 58, 34, 110, 34, 44, 34, 98, 111, 100, 121, 34, 58, 91, 123, 34, 99, 104, 117, 110, 107, 34, 58, 34, 115, 116, 97, 116, 105, 99, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 92, 117, 48, 48, 51, 99, 112, 62, 34, 125, 44, 123, 34, 99, 104, 117, 110, 107, 34, 58, 34, 100, 121, 110, 97, 109, 105, 99, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 123, 34, 99, 111, 110, 116, 101, 120, 116, 34, 58, 34, 116, 101, 120, 116, 34, 44, 34, 105, 100, 34, 58, 52, 44, 34, 112, 97, 114, 116, 34, 58, 34, 116, 101, 120, 116, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 110, 34, 125, 125, 44, 123, 34, 99, 104, 117, 110, 107, 34, 58, 34, 115, 116, 97, 116, 105, 99, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 92, 117, 48, 48, 51, 99, 47, 112, 62, 34, 125, 93, 44, 34, 99, 111, 108, 108, 101, 99, 116, 105, 111, 110, 34, 58, 34, 114, 111, 119, 115, 34, 44, 34, 105, 100, 34, 58, 51, 44, 34, 107, 101, 121, 34, 58, 34, 34, 44, 34, 112, 97, 114, 116, 34, 58, 34, 101, 97, 99, 104, 34, 125, 125, 93, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 35, 116, 46, 72, 111, 109, 101, 126, 117, 105, 126, 50, 34, 125, 125, 44, 34, 99, 111, 109, 112, 117, 116, 101, 100, 34, 58, 34, 47, 99, 111, 109, 112, 117, 116, 101, 100, 47, 116, 46, 72, 111, 109, 101, 126, 117, 105, 46, 109, 106, 115, 34, 44, 34, 99, 117, 114, 115, 111, 114, 34, 58, 48, 44, 34, 108, 105, 115, 116, 101, 110, 115, 34, 58, 102, 97, 108, 115, 101, 44, 34, 108, 105, 118, 101, 34, 58, 91, 123, 34, 107, 105, 110, 100, 34, 58, 34, 116, 101, 120, 116, 34, 44, 34, 112, 97, 114, 116, 34, 58, 49, 44, 34, 112, 97, 116, 104, 34, 58, 34, 99, 111, 117, 110, 116, 34, 44, 34, 115, 105, 103, 110, 97, 108, 34, 58, 34, 99, 111, 117, 110, 116, 34, 125, 44, 123, 34, 100, 101, 114, 105, 118, 101, 100, 34, 58, 34, 116, 46, 72, 111, 109, 101, 126, 117, 105, 46, 100, 101, 114, 105, 118, 101, 100, 95, 50, 34, 44, 34, 107, 105, 110, 100, 34, 58, 34, 99, 111, 110, 100, 105, 116, 105, 111, 110, 97, 108, 34, 44, 34, 112, 97, 114, 116, 34, 58, 50, 44, 34, 112, 97, 116, 104, 34, 58, 34, 99, 111, 117, 110, 116, 34, 44, 34, 114, 101, 97, 100, 115, 34, 58, 91, 34, 99, 111, 117, 110, 116, 34, 44, 34, 114, 111, 119, 115, 34, 93, 44, 34, 115, 105, 103, 110, 97, 108, 34, 58, 34, 99, 111, 117, 110, 116, 34, 125, 93, 44, 34, 112, 97, 114, 116, 115, 34, 58, 91, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 101, 108, 101, 109, 101, 110, 116, 34, 44, 34, 101, 118, 101, 110, 116, 34, 58, 34, 112, 114, 101, 115, 115, 34, 44, 34, 105, 100, 34, 58, 48, 44, 34, 107, 105, 110, 100, 34, 58, 34, 101, 118, 101, 110, 116, 34, 44, 34, 111, 119, 110, 101, 114, 34, 58, 48, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 49, 48, 51, 49, 49, 102, 100, 52, 101, 56, 52, 102, 98, 48, 56, 55, 34, 125, 44, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 114, 97, 110, 103, 101, 34, 44, 34, 105, 100, 34, 58, 49, 44, 34, 107, 105, 110, 100, 34, 58, 34, 116, 101, 120, 116, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 99, 111, 117, 110, 116, 34, 125, 44, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 114, 97, 110, 103, 101, 34, 44, 34, 105, 100, 34, 58, 50, 44, 34, 107, 105, 110, 100, 34, 58, 34, 99, 111, 110, 100, 105, 116, 105, 111, 110, 97, 108, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 35, 116, 46, 72, 111, 109, 101, 126, 117, 105, 126, 50, 34, 125, 44, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 114, 97, 110, 103, 101, 34, 44, 34, 105, 100, 34, 58, 51, 44, 34, 107, 105, 110, 100, 34, 58, 34, 101, 97, 99, 104, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 114, 111, 119, 115, 34, 125, 44, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 114, 97, 110, 103, 101, 34, 44, 34, 105, 100, 34, 58, 52, 44, 34, 107, 105, 110, 100, 34, 58, 34, 116, 101, 120, 116, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 110, 34, 125, 44, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 100, 111, 99, 117, 109, 101, 110, 116, 34, 44, 34, 105, 100, 34, 58, 53, 44, 34, 107, 105, 110, 100, 34, 58, 34, 116, 105, 116, 108, 101, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 34, 125, 93, 44, 34, 114, 101, 115, 117, 109, 101, 34, 58, 123, 34, 97, 98, 105, 34, 58, 34, 49, 34, 44, 34, 98, 117, 105, 108, 100, 34, 58, 34, 98, 102, 53, 57, 54, 52, 57, 54, 56, 51, 57, 52, 50, 51, 57, 98, 54, 34, 44, 34, 99, 97, 112, 116, 117, 114, 101, 34, 58, 34, 34, 44, 34, 99, 97, 112, 116, 117, 114, 101, 115, 34, 58, 34, 34, 44, 34, 99, 111, 110, 115, 116, 114, 117, 99, 116, 34, 58, 34, 114, 101, 103, 105, 111, 110, 34, 44, 34, 100, 111, 99, 117, 109, 101, 110, 116, 34, 58, 34, 50, 55, 56, 57, 57, 54, 56, 56, 49, 99, 53, 98, 98, 102, 102, 53, 34, 44, 34, 104, 97, 110, 100, 108, 101, 114, 34, 58, 34, 34, 44, 34, 104, 97, 110, 100, 108, 101, 114, 115, 34, 58, 123, 34, 48, 102, 101, 56, 99, 56, 49, 56, 53, 48, 102, 101, 55, 50, 97, 54, 34, 58, 123, 34, 99, 97, 112, 116, 117, 114, 101, 34, 58, 34, 34, 44, 34, 99, 97, 112, 116, 117, 114, 101, 115, 34, 58, 34, 34, 44, 34, 104, 97, 110, 100, 108, 101, 114, 34, 58, 34, 48, 102, 101, 56, 99, 56, 49, 56, 53, 48, 102, 101, 55, 50, 97, 54, 34, 125, 44, 34, 49, 48, 51, 49, 49, 102, 100, 52, 101, 56, 52, 102, 98, 48, 56, 55, 34, 58, 123, 34, 99, 97, 112, 116, 117, 114, 101, 34, 58, 34, 34, 44, 34, 99, 97, 112, 116, 117, 114, 101, 115, 34, 58, 34, 34, 44, 34, 104, 97, 110, 100, 108, 101, 114, 34, 58, 34, 49, 48, 51, 49, 49, 102, 100, 52, 101, 56, 52, 102, 98, 48, 56, 55, 34, 125, 125, 44, 34, 115, 99, 104, 101, 109, 101, 34, 58, 34, 50, 34, 44, 34, 115, 99, 111, 112, 101, 34, 58, 34, 112, 117, 98, 108, 105, 99, 34, 125, 44, 34, 115, 99, 104, 101, 109, 97, 34, 58, 34, 50, 55, 56, 57, 57, 54, 56, 56, 49, 99, 53, 98, 98, 102, 102, 53, 34, 44, 34, 115, 105, 103, 110, 97, 108, 115, 34, 58, 123, 34, 99, 111, 117, 110, 116, 34, 58, 48, 44, 34, 114, 111, 119, 115, 34, 58, 91, 49, 44, 50, 93, 125, 44, 34, 116, 101, 109, 112, 108, 97, 116, 101, 34, 58, 34, 116, 46, 72, 111, 109, 101, 126, 117, 105, 34, 125, 60, 47, 115, 99, 114, 105, 112, 116, 62, 10, 60, 115, 99, 114, 105, 112, 116, 62, 105, 109, 112, 111, 114, 116, 40, 34, 47, 112, 119, 45, 114, 117, 110, 116, 105, 109, 101, 46, 109, 106, 115, 34, 41, 60, 47, 115, 99, 114, 105, 112, 116, 62, 10, 60, 47, 98, 111, 100, 121, 62, 10, 60, 47, 104, 116, 109, 108, 62, 10]
  right: [60, 33, 100, 111, 99, 116, 121, 112, 101, 32, 104, 116, 109, 108, 62, 10, 60, 104, 116, 109, 108, 32, 108, 97, 110, 103, 61, 34, 101, 110, 34, 62, 10, 60, 104, 101, 97, 100, 62, 10, 60, 109, 101, 116, 97, 32, 99, 104, 97, 114, 115, 101, 116, 61, 34, 117, 116, 102, 45, 56, 34, 62, 10, 60, 109, 101, 116, 97, 32, 110, 97, 109, 101, 61, 34, 118, 105, 101, 119, 112, 111, 114, 116, 34, 32, 99, 111, 110, 116, 101, 110, 116, 61, 34, 119, 105, 100, 116, 104, 61, 100, 101, 118, 105, 99, 101, 45, 119, 105, 100, 116, 104, 44, 32, 105, 110, 105, 116, 105, 97, 108, 45, 115, 99, 97, 108, 101, 61, 49, 34, 62, 10, 60, 116, 105, 116, 108, 101, 62, 72, 111, 109, 101, 60, 47, 116, 105, 116, 108, 101, 62, 10, 60, 108, 105, 110, 107, 32, 114, 101, 108, 61, 34, 109, 111, 100, 117, 108, 101, 112, 114, 101, 108, 111, 97, 100, 34, 32, 104, 114, 101, 102, 61, 34, 47, 112, 119, 45, 114, 117, 110, 116, 105, 109, 101, 46, 109, 106, 115, 34, 62, 10, 60, 108, 105, 110, 107, 32, 114, 101, 108, 61, 34, 112, 114, 101, 108, 111, 97, 100, 34, 32, 104, 114, 101, 102, 61, 34, 47, 112, 119, 45, 104, 97, 110, 100, 108, 101, 114, 115, 34, 32, 97, 115, 61, 34, 102, 101, 116, 99, 104, 34, 32, 99, 114, 111, 115, 115, 111, 114, 105, 103, 105, 110, 62, 10, 60, 47, 104, 101, 97, 100, 62, 10, 60, 98, 111, 100, 121, 62, 10, 60, 98, 117, 116, 116, 111, 110, 32, 100, 97, 116, 97, 45, 112, 119, 61, 34, 48, 34, 32, 116, 121, 112, 101, 61, 34, 98, 117, 116, 116, 111, 110, 34, 62, 60, 33, 45, 45, 112, 119, 58, 115, 49, 45, 45, 62, 48, 60, 33, 45, 45, 112, 119, 58, 101, 49, 45, 45, 62, 60, 47, 98, 117, 116, 116, 111, 110, 62, 60, 33, 45, 45, 112, 119, 58, 115, 50, 45, 45, 62, 60, 33, 45, 45, 112, 119, 58, 115, 51, 45, 45, 62, 60, 33, 45, 45, 112, 119, 58, 115, 51, 64, 98, 86, 99, 45, 75, 54, 75, 72, 52, 55, 87, 49, 99, 78, 102, 81, 45, 45, 62, 60, 112, 62, 60, 33, 45, 45, 112, 119, 58, 115, 52, 45, 45, 62, 49, 60, 33, 45, 45, 112, 119, 58, 101, 52, 45, 45, 62, 60, 47, 112, 62, 60, 33, 45, 45, 112, 119, 58, 101, 51, 64, 98, 86, 99, 45, 75, 54, 75, 72, 52, 55, 87, 49, 99, 78, 102, 81, 45, 45, 62, 60, 33, 45, 45, 112, 119, 58, 115, 51, 64, 56, 102, 106, 120, 65, 75, 100, 121, 88, 98, 84, 113, 49, 107, 102, 121, 45, 45, 62, 60, 112, 62, 60, 33, 45, 45, 112, 119, 58, 115, 52, 45, 45, 62, 50, 60, 33, 45, 45, 112, 119, 58, 101, 52, 45, 45, 62, 60, 47, 112, 62, 60, 33, 45, 45, 112, 119, 58, 101, 51, 64, 56, 102, 106, 120, 65, 75, 100, 121, 88, 98, 84, 113, 49, 107, 102, 121, 45, 45, 62, 60, 33, 45, 45, 112, 119, 58, 101, 51, 45, 45, 62, 60, 33, 45, 45, 112, 119, 58, 101, 50, 45, 45, 62, 10, 60, 100, 105, 118, 32, 114, 111, 108, 101, 61, 34, 115, 116, 97, 116, 117, 115, 34, 32, 99, 108, 97, 115, 115, 61, 34, 112, 119, 45, 97, 110, 110, 111, 117, 110, 99, 101, 114, 34, 62, 60, 47, 100, 105, 118, 62, 10, 60, 115, 99, 114, 105, 112, 116, 32, 116, 121, 112, 101, 61, 34, 97, 112, 112, 108, 105, 99, 97, 116, 105, 111, 110, 47, 106, 115, 111, 110, 34, 32, 105, 100, 61, 34, 112, 119, 45, 112, 97, 114, 116, 115, 34, 62, 123, 34, 98, 108, 111, 99, 107, 115, 34, 58, 123, 34, 50, 34, 58, 123, 34, 105, 100, 34, 58, 50, 44, 34, 111, 116, 104, 101, 114, 119, 105, 115, 101, 34, 58, 91, 93, 44, 34, 112, 97, 114, 116, 34, 58, 34, 99, 111, 110, 100, 105, 116, 105, 111, 110, 97, 108, 34, 44, 34, 116, 104, 101, 110, 34, 58, 91, 123, 34, 99, 104, 117, 110, 107, 34, 58, 34, 100, 121, 110, 97, 109, 105, 99, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 123, 34, 98, 105, 110, 100, 105, 110, 103, 34, 58, 34, 110, 34, 44, 34, 98, 111, 100, 121, 34, 58, 91, 123, 34, 99, 104, 117, 110, 107, 34, 58, 34, 115, 116, 97, 116, 105, 99, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 92, 117, 48, 48, 51, 99, 112, 62, 34, 125, 44, 123, 34, 99, 104, 117, 110, 107, 34, 58, 34, 100, 121, 110, 97, 109, 105, 99, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 123, 34, 99, 111, 110, 116, 101, 120, 116, 34, 58, 34, 116, 101, 120, 116, 34, 44, 34, 105, 100, 34, 58, 52, 44, 34, 112, 97, 114, 116, 34, 58, 34, 116, 101, 120, 116, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 110, 34, 125, 125, 44, 123, 34, 99, 104, 117, 110, 107, 34, 58, 34, 115, 116, 97, 116, 105, 99, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 92, 117, 48, 48, 51, 99, 47, 112, 62, 34, 125, 93, 44, 34, 99, 111, 108, 108, 101, 99, 116, 105, 111, 110, 34, 58, 34, 114, 111, 119, 115, 34, 44, 34, 105, 100, 34, 58, 51, 44, 34, 107, 101, 121, 34, 58, 34, 34, 44, 34, 112, 97, 114, 116, 34, 58, 34, 101, 97, 99, 104, 34, 125, 125, 93, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 35, 116, 46, 72, 111, 109, 101, 126, 117, 105, 126, 50, 34, 125, 125, 44, 34, 99, 111, 109, 112, 117, 116, 101, 100, 34, 58, 34, 47, 99, 111, 109, 112, 117, 116, 101, 100, 47, 116, 46, 72, 111, 109, 101, 126, 117, 105, 46, 109, 106, 115, 34, 44, 34, 99, 117, 114, 115, 111, 114, 34, 58, 48, 44, 34, 108, 105, 115, 116, 101, 110, 115, 34, 58, 102, 97, 108, 115, 101, 44, 34, 108, 105, 118, 101, 34, 58, 91, 123, 34, 107, 105, 110, 100, 34, 58, 34, 116, 101, 120, 116, 34, 44, 34, 112, 97, 114, 116, 34, 58, 49, 44, 34, 112, 97, 116, 104, 34, 58, 34, 99, 111, 117, 110, 116, 34, 44, 34, 115, 105, 103, 110, 97, 108, 34, 58, 34, 99, 111, 117, 110, 116, 34, 125, 44, 123, 34, 100, 101, 114, 105, 118, 101, 100, 34, 58, 34, 116, 46, 72, 111, 109, 101, 126, 117, 105, 46, 100, 101, 114, 105, 118, 101, 100, 95, 50, 34, 44, 34, 107, 105, 110, 100, 34, 58, 34, 99, 111, 110, 100, 105, 116, 105, 111, 110, 97, 108, 34, 44, 34, 112, 97, 114, 116, 34, 58, 50, 44, 34, 112, 97, 116, 104, 34, 58, 34, 99, 111, 117, 110, 116, 34, 44, 34, 114, 101, 97, 100, 115, 34, 58, 91, 34, 99, 111, 117, 110, 116, 34, 44, 34, 114, 111, 119, 115, 34, 93, 44, 34, 115, 105, 103, 110, 97, 108, 34, 58, 34, 99, 111, 117, 110, 116, 34, 125, 93, 44, 34, 112, 97, 114, 116, 115, 34, 58, 91, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 101, 108, 101, 109, 101, 110, 116, 34, 44, 34, 101, 118, 101, 110, 116, 34, 58, 34, 112, 114, 101, 115, 115, 34, 44, 34, 105, 100, 34, 58, 48, 44, 34, 107, 105, 110, 100, 34, 58, 34, 101, 118, 101, 110, 116, 34, 44, 34, 111, 119, 110, 101, 114, 34, 58, 48, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 49, 48, 51, 49, 49, 102, 100, 52, 101, 56, 52, 102, 98, 48, 56, 55, 34, 125, 44, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 114, 97, 110, 103, 101, 34, 44, 34, 105, 100, 34, 58, 49, 44, 34, 107, 105, 110, 100, 34, 58, 34, 116, 101, 120, 116, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 99, 111, 117, 110, 116, 34, 125, 44, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 114, 97, 110, 103, 101, 34, 44, 34, 105, 100, 34, 58, 50, 44, 34, 107, 105, 110, 100, 34, 58, 34, 99, 111, 110, 100, 105, 116, 105, 111, 110, 97, 108, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 35, 116, 46, 72, 111, 109, 101, 126, 117, 105, 126, 50, 34, 125, 44, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 114, 97, 110, 103, 101, 34, 44, 34, 105, 100, 34, 58, 51, 44, 34, 107, 105, 110, 100, 34, 58, 34, 101, 97, 99, 104, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 114, 111, 119, 115, 34, 125, 44, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 114, 97, 110, 103, 101, 34, 44, 34, 105, 100, 34, 58, 52, 44, 34, 107, 105, 110, 100, 34, 58, 34, 116, 101, 120, 116, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 110, 34, 125, 44, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 100, 111, 99, 117, 109, 101, 110, 116, 34, 44, 34, 105, 100, 34, 58, 53, 44, 34, 107, 105, 110, 100, 34, 58, 34, 116, 105, 116, 108, 101, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 34, 125, 93, 44, 34, 114, 101, 115, 117, 109, 101, 34, 58, 123, 34, 97, 98, 105, 34, 58, 34, 49, 34, 44, 34, 98, 117, 105, 108, 100, 34, 58, 34, 98, 102, 53, 57, 54, 52, 57, 54, 56, 51, 57, 52, 50, 51, 57, 98, 54, 34, 44, 34, 99, 97, 112, 116, 117, 114, 101, 34, 58, 34, 34, 44, 34, 99, 97, 112, 116, 117, 114, 101, 115, 34, 58, 34, 34, 44, 34, 99, 111, 110, 115, 116, 114, 117, 99, 116, 34, 58, 34, 114, 101, 103, 105, 111, 110, 34, 44, 34, 100, 111, 99, 117, 109, 101, 110, 116, 34, 58, 34, 50, 55, 56, 57, 57, 54, 56, 56, 49, 99, 53, 98, 98, 102, 102, 53, 34, 44, 34, 104, 97, 110, 100, 108, 101, 114, 34, 58, 34, 34, 44, 34, 104, 97, 110, 100, 108, 101, 114, 115, 34, 58, 123, 34, 48, 102, 101, 56, 99, 56, 49, 56, 53, 48, 102, 101, 55, 50, 97, 54, 34, 58, 123, 34, 99, 97, 112, 116, 117, 114, 101, 34, 58, 34, 34, 44, 34, 99, 97, 112, 116, 117, 114, 101, 115, 34, 58, 34, 34, 44, 34, 104, 97, 110, 100, 108, 101, 114, 34, 58, 34, 48, 102, 101, 56, 99, 56, 49, 56, 53, 48, 102, 101, 55, 50, 97, 54, 34, 125, 44, 34, 49, 48, 51, 49, 49, 102, 100, 52, 101, 56, 52, 102, 98, 48, 56, 55, 34, 58, 123, 34, 99, 97, 112, 116, 117, 114, 101, 34, 58, 34, 34, 44, 34, 99, 97, 112, 116, 117, 114, 101, 115, 34, 58, 34, 34, 44, 34, 104, 97, 110, 100, 108, 101, 114, 34, 58, 34, 49, 48, 51, 49, 49, 102, 100, 52, 101, 56, 52, 102, 98, 48, 56, 55, 34, 125, 125, 44, 34, 115, 99, 104, 101, 109, 101, 34, 58, 34, 50, 34, 44, 34, 115, 99, 111, 112, 101, 34, 58, 34, 112, 117, 98, 108, 105, 99, 34, 125, 44, 34, 115, 99, 104, 101, 109, 97, 34, 58, 34, 50, 55, 56, 57, 57, 54, 56, 56, 49, 99, 53, 98, 98, 102, 102, 53, 34, 44, 34, 115, 105, 103, 110, 97, 108, 115, 34, 58, 123, 34, 99, 111, 117, 110, 116, 34, 58, 48, 44, 34, 114, 111, 119, 115, 34, 58, 91, 49, 44, 50, 93, 125, 44, 34, 116, 101, 109, 112, 108, 97, 116, 101, 34, 58, 34, 116, 46, 72, 111, 109, 101, 126, 117, 105, 34, 125, 60, 47, 115, 99, 114, 105, 112, 116, 62, 10, 60, 115, 99, 114, 105, 112, 116, 62, 105, 109, 112, 111, 114, 116, 40, 34, 47, 112, 119, 45, 114, 117, 110, 116, 105, 109, 101, 46, 109, 106, 115, 34, 41, 60, 47, 115, 99, 114, 105, 112, 116, 62, 10, 60, 47, 98, 111, 100, 121, 62, 10, 60, 47, 104, 116, 109, 108, 62, 10]
 
 ---- tests::prerender::it_is_rendered_in_the_public_partition stdout ----
 
-thread 'tests::prerender::it_is_rendered_in_the_public_partition' (200161) panicked at spikes/own-renderer/server/src/tests/prerender.rs:311:5:
+thread 'tests::prerender::it_is_rendered_in_the_public_partition' (207720) panicked at spikes/own-renderer/server/src/tests/prerender.rs:311:5:
 assertion `left == right` failed
-  left: "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Home</title>\n<link rel=\"modulepreload\" href=\"/pw-runtime.mjs\">\n<link rel=\"preload\" href=\"/pw-handlers\" as=\"fetch\" crossorigin>\n</head>\n<body>\n<button data-pw=\"0\" type=\"button\"><!--pw:s1-->0<!--pw:e1--></button><!--pw:s2--><!--pw:s3--><!--pw:s3@ed2thSkGfYXUgGGh--><p><!--pw:s4-->1<!--pw:e4--></p><!--pw:e3@ed2thSkGfYXUgGGh--><!--pw:s3@0A1CYSK3mCzakdBu--><p><!--pw:s4-->2<!--pw:e4--></p><!--pw:e3@0A1CYSK3mCzakdBu--><!--pw:e3--><!--pw:e2-->\n<div role=\"status\" class=\"pw-announcer\"></div>\n<script type=\"application/json\" id=\"pw-parts\">{\"blocks\":{\"2\":{\"id\":2,\"otherwise\":[],\"part\":\"conditional\",\"then\":[{\"chunk\":\"dynamic\",\"value\":{\"binding\":\"n\",\"body\":[{\"chunk\":\"static\",\"value\":\"\\u003cp>\"},{\"chunk\":\"dynamic\",\"value\":{\"context\":\"text\",\"id\":4,\"part\":\"text\",\"value\":\"n\"}},{\"chunk\":\"static\",\"value\":\"\\u003c/p>\"}],\"collection\":\"rows\",\"id\":3,\"key\":\"\",\"part\":\"each\"}}],\"value\":\"#t.Home~ui~2\"}},\"computed\":\"/computed/t.Home~ui.mjs\",\"cursor\":0,\"listens\":false,\"live\":[{\"kind\":\"text\",\"part\":1,\"path\":\"count\",\"signal\":\"count\"},{\"derived\":\"t.Home~ui.derived_2\",\"kind\":\"conditional\",\"part\":2,\"path\":\"count\",\"reads\":[\"count\",\"rows\"],\"signal\":\"count\"}],\"parts\":[{\"anchor\":\"element\",\"event\":\"press\",\"id\":0,\"kind\":\"event\",\"owner\":0,\"value\":\"10311fd4e84fb087\"},{\"anchor\":\"range\",\"id\":1,\"kind\":\"text\",\"value\":\"count\"},{\"anchor\":\"range\",\"id\":2,\"kind\":\"conditional\",\"value\":\"#t.Home~ui~2\"},{\"anchor\":\"range\",\"id\":3,\"kind\":\"each\",\"value\":\"rows\"},{\"anchor\":\"range\",\"id\":4,\"kind\":\"text\",\"value\":\"n\"},{\"anchor\":\"document\",\"id\":5,\"kind\":\"title\",\"value\":\"\"}],\"resume\":{\"abi\":\"1\",\"build\":\"bf5964968394239b6\",\"capture\":\"\",\"captures\":\"\",\"construct\":\"region\",\"document\":\"278996881c5bbff5\",\"handler\":\"\",\"handlers\":{\"0fe8c81850fe72a6\":{\"capture\":\"\",\"captures\":\"\",\"handler\":\"0fe8c81850fe72a6\"},\"10311fd4e84fb087\":{\"capture\":\"\",\"captures\":\"\",\"handler\":\"10311fd4e84fb087\"}},\"scheme\":\"2\",\"scope\":\"public\"},\"schema\":\"278996881c5bbff5\",\"signals\":{\"count\":0,\"rows\":[1,2]},\"template\":\"t.Home~ui\"}</script>\n<script>import(\"/pw-runtime.mjs\")</script>\n</body>\n</html>\n"
+  left: "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Home</title>\n<link rel=\"modulepreload\" href=\"/pw-runtime.mjs\">\n<link rel=\"preload\" href=\"/pw-handlers\" as=\"fetch\" crossorigin>\n</head>\n<body>\n<button data-pw=\"0\" type=\"button\"><!--pw:s1-->0<!--pw:e1--></button><!--pw:s2--><!--pw:s3--><!--pw:s3@cWYSfVBE2s-Oylu6--><p><!--pw:s4-->1<!--pw:e4--></p><!--pw:e3@cWYSfVBE2s-Oylu6--><!--pw:s3@knKubyaX9M-H9fYx--><p><!--pw:s4-->2<!--pw:e4--></p><!--pw:e3@knKubyaX9M-H9fYx--><!--pw:e3--><!--pw:e2-->\n<div role=\"status\" class=\"pw-announcer\"></div>\n<script type=\"application/json\" id=\"pw-parts\">{\"blocks\":{\"2\":{\"id\":2,\"otherwise\":[],\"part\":\"conditional\",\"then\":[{\"chunk\":\"dynamic\",\"value\":{\"binding\":\"n\",\"body\":[{\"chunk\":\"static\",\"value\":\"\\u003cp>\"},{\"chunk\":\"dynamic\",\"value\":{\"context\":\"text\",\"id\":4,\"part\":\"text\",\"value\":\"n\"}},{\"chunk\":\"static\",\"value\":\"\\u003c/p>\"}],\"collection\":\"rows\",\"id\":3,\"key\":\"\",\"part\":\"each\"}}],\"value\":\"#t.Home~ui~2\"}},\"computed\":\"/computed/t.Home~ui.mjs\",\"cursor\":0,\"listens\":false,\"live\":[{\"kind\":\"text\",\"part\":1,\"path\":\"count\",\"signal\":\"count\"},{\"derived\":\"t.Home~ui.derived_2\",\"kind\":\"conditional\",\"part\":2,\"path\":\"count\",\"reads\":[\"count\",\"rows\"],\"signal\":\"count\"}],\"parts\":[{\"anchor\":\"element\",\"event\":\"press\",\"id\":0,\"kind\":\"event\",\"owner\":0,\"value\":\"10311fd4e84fb087\"},{\"anchor\":\"range\",\"id\":1,\"kind\":\"text\",\"value\":\"count\"},{\"anchor\":\"range\",\"id\":2,\"kind\":\"conditional\",\"value\":\"#t.Home~ui~2\"},{\"anchor\":\"range\",\"id\":3,\"kind\":\"each\",\"value\":\"rows\"},{\"anchor\":\"range\",\"id\":4,\"kind\":\"text\",\"value\":\"n\"},{\"anchor\":\"document\",\"id\":5,\"kind\":\"title\",\"value\":\"\"}],\"resume\":{\"abi\":\"1\",\"build\":\"bf5964968394239b6\",\"capture\":\"\",\"captures\":\"\",\"construct\":\"region\",\"document\":\"278996881c5bbff5\",\"handler\":\"\",\"handlers\":{\"0fe8c81850fe72a6\":{\"capture\":\"\",\"captures\":\"\",\"handler\":\"0fe8c81850fe72a6\"},\"10311fd4e84fb087\":{\"capture\":\"\",\"captures\":\"\",\"handler\":\"10311fd4e84fb087\"}},\"scheme\":\"2\",\"scope\":\"public\"},\"schema\":\"278996881c5bbff5\",\"signals\":{\"count\":0,\"rows\":[1,2]},\"template\":\"t.Home~ui\"}</script>\n<script>import(\"/pw-runtime.mjs\")</script>\n</body>\n</html>\n"
  right: "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Home</title>\n<link rel=\"modulepreload\" href=\"/pw-runtime.mjs\">\n<link rel=\"preload\" href=\"/pw-handlers\" as=\"fetch\" crossorigin>\n</head>\n<body>\n<button data-pw=\"0\" type=\"button\"><!--pw:s1-->0<!--pw:e1--></button><!--pw:s2--><!--pw:s3--><!--pw:s3@AasAyp8FNh53xZUa--><p><!--pw:s4-->1<!--pw:e4--></p><!--pw:e3@AasAyp8FNh53xZUa--><!--pw:s3@cTbd5ZgaAhNfryAK--><p><!--pw:s4-->2<!--pw:e4--></p><!--pw:e3@cTbd5ZgaAhNfryAK--><!--pw:e3--><!--pw:e2-->\n<div role=\"status\" class=\"pw-announcer\"></div>\n<script type=\"application/json\" id=\"pw-parts\">{\"blocks\":{\"2\":{\"id\":2,\"otherwise\":[],\"part\":\"conditional\",\"then\":[{\"chunk\":\"dynamic\",\"value\":{\"binding\":\"n\",\"body\":[{\"chunk\":\"static\",\"value\":\"\\u003cp>\"},{\"chunk\":\"dynamic\",\"value\":{\"context\":\"text\",\"id\":4,\"part\":\"text\",\"value\":\"n\"}},{\"chunk\":\"static\",\"value\":\"\\u003c/p>\"}],\"collection\":\"rows\",\"id\":3,\"key\":\"\",\"part\":\"each\"}}],\"value\":\"#t.Home~ui~2\"}},\"computed\":\"/computed/t.Home~ui.mjs\",\"cursor\":0,\"listens\":false,\"live\":[{\"kind\":\"text\",\"part\":1,\"path\":\"count\",\"signal\":\"count\"},{\"derived\":\"t.Home~ui.derived_2\",\"kind\":\"conditional\",\"part\":2,\"path\":\"count\",\"reads\":[\"count\",\"rows\"],\"signal\":\"count\"}],\"parts\":[{\"anchor\":\"element\",\"event\":\"press\",\"id\":0,\"kind\":\"event\",\"owner\":0,\"value\":\"10311fd4e84fb087\"},{\"anchor\":\"range\",\"id\":1,\"kind\":\"text\",\"value\":\"count\"},{\"anchor\":\"range\",\"id\":2,\"kind\":\"conditional\",\"value\":\"#t.Home~ui~2\"},{\"anchor\":\"range\",\"id\":3,\"kind\":\"each\",\"value\":\"rows\"},{\"anchor\":\"range\",\"id\":4,\"kind\":\"text\",\"value\":\"n\"},{\"anchor\":\"document\",\"id\":5,\"kind\":\"title\",\"value\":\"\"}],\"resume\":{\"abi\":\"1\",\"build\":\"bf5964968394239b6\",\"capture\":\"\",\"captures\":\"\",\"construct\":\"region\",\"document\":\"278996881c5bbff5\",\"handler\":\"\",\"handlers\":{\"0fe8c81850fe72a6\":{\"capture\":\"\",\"captures\":\"\",\"handler\":\"0fe8c81850fe72a6\"},\"10311fd4e84fb087\":{\"capture\":\"\",\"captures\":\"\",\"handler\":\"10311fd4e84fb087\"}},\"scheme\":\"2\",\"scope\":\"public\"},\"schema\":\"278996881c5bbff5\",\"signals\":{\"count\":0,\"rows\":[1,2]},\"template\":\"t.Home~ui\"}</script>\n<script>import(\"/pw-runtime.mjs\")</script>\n</body>\n</html>\n"
 
 ---- tests::prerender::todomvc_is_one_document stdout ----
 
-thread 'tests::prerender::todomvc_is_one_document' (200173) panicked at spikes/own-renderer/server/src/tests/prerender.rs:475:5:
+thread 'tests::prerender::todomvc_is_one_document' (207732) panicked at spikes/own-renderer/server/src/tests/prerender.rs:475:5:
 HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
-content-length: 9939
+content-length: 9815
 x-content-type-options: nosniff
 cache-control: private, no-store
-set-cookie: pw-session=s-8971dfc7f0147bff3c5281273ab3dfb8; Path=/; HttpOnly; SameSite=Lax
-pw-build: b58bd38756fbab4d1
+set-cookie: pw-session=s-25ff9f94c163bda7ada798b5cf32dd10; Path=/; HttpOnly; SameSite=Lax
+pw-build: bf462b4b31d94ca26
 content-security-policy: default-src 'none'; script-src 'self' 'sha256-v8jCs+poUKnEHV7piaB+l4LlDvig0qQ2jqYEal4D2VY='; style-src 'self' 'sha256-PsoNDNr2FXKmBWScmALXJCtS6SI8vayZA8mDCwXDMYE=' 'sha256-hJ66mWLqVtq8EKxzKNPujjAVwmVE+PKsDyFNUOusFD4=' 'sha256-lOjBrcnONAXa9IkfySWUyxuaJ58G+9Ma0I9EQI0GJuk='; img-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'
 connection: keep-alive
 keep-alive: timeout=75
@@ -1555,9 +1555,9 @@ keep-alive: timeout=75
 <link rel="preload" href="/pw-handlers" as="fetch" crossorigin>
 </head>
 <body>
-<link rel="stylesheet" href="/todomvc-base.css"><link rel="stylesheet" href="/todomvc-app.css"><section class="todoapp"> <header class="header"> <h1>todos</h1> <input data-pw="0" class="new-todo" placeholder="What needs to be done?" aria-label="New todo" autofocus value=""> </header> <section data-pw="1" data-pw-device class="main" hidden> <input data-pw="2" data-pw-device id="toggle-all" class="toggle-all" type="checkbox"> <label for="toggle-all">Mark all as complete</label> <ul data-pw-device class="todo-list"> <!--pw:s6--><!--pw:e6--> </ul> </section> <footer data-pw="8" data-pw-device class="footer" hidden> <span data-pw-device class="todo-count"><strong data-pw-device><!--pw:s20-->0<!--pw:e20--></strong> <!--pw:s21-->items left<!--pw:e21--></span> <ul class="filters"> <li><a data-pw="9" class="selected" href="#/">All</a></li> <li><a data-pw="10" class="" href="#/active">Active</a></li> <li><a data-pw="11" class="" href="#/completed">Completed</a></li> </ul> <button data-pw="12" data-pw-device class="clear-completed" type="button" hidden>Clear completed</button> </footer> </section><footer class="info"> <p>Double-click to edit a todo</p> <p>Created with Pleris</p> <p>Part of <a href="https://todomvc.com">TodoMVC</a></p> <p>Styled by <a href="https://github.com/tastejs/todomvc-app-css">todomvc-app-css</a>, Sindre Sorhus, CC BY 4.0</p> </footer>
+<link rel="stylesheet" href="/todomvc-base.css"><link rel="stylesheet" href="/todomvc-app.css"><section class="todoapp"> <header class="header"> <h1>todos</h1> <input data-pw="0" class="new-todo" placeholder="What needs to be done?" aria-label="New todo" autofocus value=""> </header> <section data-pw="1" data-pw-device class="main" hidden> <input data-pw="2" data-pw-device id="toggle-all" class="toggle-all" type="checkbox"> <label for="toggle-all">Mark all as complete</label> <ul data-pw-device class="todo-list"> <!--pw:s6--><!--pw:e6--> </ul> </section> <footer data-pw="8" data-pw-device class="footer" hidden> <span data-pw-device class="todo-count"><strong data-pw-device><!--pw:s19-->0<!--pw:e19--></strong> <!--pw:s20-->items left<!--pw:e20--></span> <ul class="filters"> <li><a data-pw="9" class="selected" href="#/">All</a></li> <li><a data-pw="10" class="" href="#/active">Active</a></li> <li><a data-pw="11" class="" href="#/completed">Completed</a></li> </ul> <button data-pw="12" data-pw-device class="clear-completed" type="button" hidden>Clear completed</button> </footer> </section><footer class="info"> <p>Double-click to edit a todo</p> <p>Created with Pleris</p> <p>Part of <a href="https://todomvc.com">TodoMVC</a></p> <p>Styled by <a href="https://github.com/tastejs/todomvc-app-css">todomvc-app-css</a>, Sindre Sorhus, CC BY 4.0</p> </footer>
 <div role="status" class="pw-announcer"></div>
-<script type="application/json" id="pw-parts">{"blocks":{"6":{"id":6,"otherwise":[],"part":"conditional","then":[{"chunk":"static","value":" "},{"chunk":"dynamic","value":{"binding":"row","body":[{"chunk":"static","value":" \u003cli data-pw=\"3\" "},{"chunk":"dynamic","value":{"context":"attribute","id":8,"name":"class","owner":3,"part":"attribute","value":"row.class"}},{"chunk":"static","value":"> \u003cdiv class=\"view\"> \u003cinput data-pw=\"4\" class=\"toggle\" type=\"checkbox\" aria-label=\"Completed\" "},{"chunk":"dynamic","value":{"id":9,"name":"checked","owner":4,"part":"boolean_attribute","value":"row.completed"}},{"chunk":"dynamic","value":{"captures":["row.id"],"event":"press","handler":"8412388d5acb6c91","id":10,"name":"","owner":4,"part":"event"}},{"chunk":"static","value":"> \u003clabel data-pw=\"5\""},{"chunk":"dynamic","value":{"captures":["row.id","row.title"],"event":"dblclick","handler":"f2e32fa2b1f78a9e","id":11,"name":"","owner":5,"part":"event"}},{"chunk":"static","value":">"},{"chunk":"dynamic","value":{"context":"text","id":12,"part":"text","value":"row.title"}},{"chunk":"static","value":"\u003c/label> \u003cbutton data-pw=\"6\" class=\"destroy\" type=\"button\" aria-label=\"Delete\""},{"chunk":"dynamic","value":{"captures":["row.id"],"event":"press","handler":"193d816ea0363990","id":13,"name":"","owner":6,"part":"event"}},{"chunk":"static","value":">\u003c/button> \u003c/div> "},{"chunk":"dynamic","value":{"id":14,"otherwise":[],"part":"conditional","then":[{"chunk":"static","value":" \u003cinput data-pw=\"7\" class=\"edit\" aria-label=\"Edit\" autofocus "},{"chunk":"dynamic","value":{"context":"attribute","id":15,"name":"value","owner":7,"part":"attribute","value":"row.title"}},{"chunk":"dynamic","value":{"captures":[],"event":"input","handler":"d95d929b5da50861","id":16,"name":"","owner":7,"part":"event"}},{"chunk":"dynamic","value":{"captures":[],"event":"keydown","handler":"7bed2c9f49c8c146","id":17,"name":"","owner":7,"part":"event"}},{"chunk":"dynamic","value":{"captures":[],"event":"blur","handler":"8002f6408eb906fa","id":18,"name":"","owner":7,"part":"event"}},{"chunk":"static","value":"> "}],"value":"row.editing"}},{"chunk":"static","value":" \u003c/li> "}],"collection":"#todomvc.app.Todos~ui~7","id":7,"key":"id","part":"each"}},{"chunk":"static","value":" "}],"value":"#todomvc.app.Todos~ui~6"}},"computed":"/computed/todomvc.app.Todos~ui.mjs","cursor":0,"device":[{"conflict":"last_write_wins","name":"todos-pleris","schemas":[{"of":{"fields":[["id",{"t":"int"}],["title",{"t":"string"}],["completed",{"t":"bool"}]],"t":"record"},"t":"list"}],"signal":"todos","version":1}],"fragment":{"forms":[{"form":"/","value":"all"},{"form":"/active","value":"active"},{"form":"/completed","value":"completed"}],"signal":"filter"},"listens":false,"live":[{"attribute":"value","kind":"attribute","part":0,"path":"draft","signal":"draft"},{"attribute":"hidden","derived":"todomvc.app.Todos~ui.derived_3","kind":"boolean_attribute","part":3,"path":"todos","signal":"todos"},{"attribute":"checked","derived":"todomvc.app.Todos~ui.derived_4","kind":"boolean_attribute","part":4,"path":"todos","signal":"todos"},{"derived":"todomvc.app.Todos~ui.derived_6","kind":"conditional","part":6,"path":"todos","reads":["editing","filter","todos"],"signal":"todos"},{"derived":"todomvc.app.Todos~ui.derived_7","kind":"value","part":7,"path":"todos","paths":["todos","filter","editing"],"reads":["todos","filter","editing"],"signal":"todos"},{"attribute":"hidden","derived":"todomvc.app.Todos~ui.derived_19","kind":"boolean_attribute","part":19,"path":"todos","signal":"todos"},{"derived":"todomvc.app.Todos~ui.derived_20","kind":"text","part":20,"path":"todos","signal":"todos"},{"derived":"todomvc.app.Todos~ui.derived_21","kind":"text","part":21,"path":"todos","signal":"todos"},{"attribute":"class","derived":"todomvc.app.Todos~ui.derived_22","kind":"attribute","part":22,"path":"filter","signal":"filter"},{"attribute":"class","derived":"todomvc.app.Todos~ui.derived_23","kind":"attribute","part":23,"path":"filter","signal":"filter"},{"attribute":"class","derived":"todomvc.app.Todos~ui.derived_24","kind":"attribute","part":24,"path":"filter","signal":"filter"},{"attribute":"hidden","derived":"todomvc.app.Todos~ui.derived_25","kind":"boolean_attribute","part":25,"path":"todos","signal":"todos"}],"parts":[{"anchor":"element","id":0,"kind":"attribute","owner":0,"value":"draft"},{"anchor":"element","event":"input","id":1,"kind":"event","owner":0,"value":"2070bd5321ef2f86"},{"anchor":"element","event":"keydown","id":2,"kind":"event","owner":0,"value":"f80d574d379ee9e9"},{"anchor":"element","id":3,"kind":"boolean_attribute","owner":1,"value":"#todomvc.app.Todos~ui~3"},{"anchor":"element","id":4,"kind":"boolean_attribute","owner":2,"value":"#todomvc.app.Todos~ui~4"},{"anchor":"element","event":"press","id":5,"kind":"event","owner":2,"value":"d5f9bbe064dac9b8"},{"anchor":"range","id":6,"kind":"conditional","value":"#todomvc.app.Todos~ui~6"},{"anchor":"range","id":7,"kind":"each","value":"#todomvc.app.Todos~ui~7"},{"anchor":"element","id":8,"kind":"attribute","owner":3,"value":"row.class"},{"anchor":"element","id":9,"kind":"boolean_attribute","owner":4,"value":"row.completed"},{"anchor":"element","event":"press","id":10,"kind":"event","owner":4,"value":"8412388d5acb6c91"},{"anchor":"element","event":"dblclick","id":11,"kind":"event","owner":5,"value":"f2e32fa2b1f78a9e"},{"anchor":"range","id":12,"kind":"text","value":"row.title"},{"anchor":"element","event":"press","id":13,"kind":"event","owner":6,"value":"193d816ea0363990"},{"anchor":"range","id":14,"kind":"conditional","value":"row.editing"},{"anchor":"element","id":15,"kind":"attribute","owner":7,"value":"row.title"},{"anchor":"element","event":"input","id":16,"kind":"event","owner":7,"value":"d95d929b5da50861"},{"anchor":"element","event":"keydown","id":17,"kind":"event","owner":7,"value":"7bed2c9f49c8c146"},{"anchor":"element","event":"blur","id":18,"kind":"event","owner":7,"value":"8002f6408eb906fa"},{"anchor":"element","id":19,"kind":"boolean_attribute","owner":8,"value":"#todomvc.app.Todos~ui~19"},{"anchor":"range","id":20,"kind":"text","value":"#todomvc.app.Todos~ui~20"},{"anchor":"range","id":21,"kind":"text","value":"#todomvc.app.Todos~ui~21"},{"anchor":"element","id":22,"kind":"attribute","owner":9,"value":"#todomvc.app.Todos~ui~22"},{"anchor":"element","id":23,"kind":"attribute","owner":10,"value":"#todomvc.app.Todos~ui~23"},{"anchor":"element","id":24,"kind":"attribute","owner":11,"value":"#todomvc.app.Todos~ui~24"},{"anchor":"element","id":25,"kind":"boolean_attribute","owner":12,"value":"#todomvc.app.Todos~ui~25"},{"anchor":"element","event":"press","id":26,"kind":"event","owner":12,"value":"debad9c9dcefd01e"},{"anchor":"document","id":27,"kind":"title","value":""}],"resume":{"abi":"1","build":"b58bd38756fbab4d1","capture":"","captures":"","construct":"region","document":"efcaa4323032c792","handler":"","handlers":{"193d816ea0363990":{"capture":"row.id","captures":"x","handler":"193d816ea0363990"},"2070bd5321ef2f86":{"capture":"","captures":"","handler":"2070bd5321ef2f86"},"7bed2c9f49c8c146":{"capture":"","captures":"","handler":"7bed2c9f49c8c146"},"8002f6408eb906fa":{"capture":"","captures":"","handler":"8002f6408eb906fa"},"8412388d5acb6c91":{"capture":"row.id","captures":"x","handler":"8412388d5acb6c91"},"d5f9bbe064dac9b8":{"capture":"","captures":"","handler":"d5f9bbe064dac9b8"},"d95d929b5da50861":{"capture":"","captures":"","handler":"d95d929b5da50861"},"debad9c9dcefd01e":{"capture":"","captures":"","handler":"debad9c9dcefd01e"},"f2e32fa2b1f78a9e":{"capture":"row.id,row.title","captures":"x","handler":"f2e32fa2b1f78a9e"},"f80d574d379ee9e9":{"capture":"","captures":"","handler":"f80d574d379ee9e9"}},"scheme":"2","scope":"public"},"schema":"efcaa4323032c792","signals":{"draft":"","edit_text":"","editing":0,"filter":"all","todos":[]},"template":"todomvc.app.Todos~ui"}</script>
+<script type="application/json" id="pw-parts">{"blocks":{"6":{"binding":"row","body":[{"chunk":"static","value":" \u003cli data-pw=\"3\" "},{"chunk":"dynamic","value":{"context":"attribute","id":7,"name":"class","owner":3,"part":"attribute","value":"row.#todomvc.app.Todos~ui~7"}},{"chunk":"static","value":"> \u003cdiv class=\"view\"> \u003cinput data-pw=\"4\" class=\"toggle\" type=\"checkbox\" aria-label=\"Completed\" "},{"chunk":"dynamic","value":{"id":8,"name":"checked","owner":4,"part":"boolean_attribute","value":"row.completed"}},{"chunk":"dynamic","value":{"captures":["row.id"],"event":"press","handler":"6bab131d6be1002f","id":9,"name":"","owner":4,"part":"event"}},{"chunk":"static","value":"> \u003clabel data-pw=\"5\""},{"chunk":"dynamic","value":{"captures":["row.id","row.title"],"event":"dblclick","handler":"eac70f01a4f1f8a8","id":10,"name":"","owner":5,"part":"event"}},{"chunk":"static","value":">"},{"chunk":"dynamic","value":{"context":"text","id":11,"part":"text","value":"row.title"}},{"chunk":"static","value":"\u003c/label> \u003cbutton data-pw=\"6\" class=\"destroy\" type=\"button\" aria-label=\"Delete\""},{"chunk":"dynamic","value":{"captures":["row.id"],"event":"press","handler":"91a2beb447a1360a","id":12,"name":"","owner":6,"part":"event"}},{"chunk":"static","value":">\u003c/button> \u003c/div> "},{"chunk":"dynamic","value":{"id":13,"otherwise":[],"part":"conditional","then":[{"chunk":"static","value":" \u003cinput data-pw=\"7\" class=\"edit\" aria-label=\"Edit\" autofocus "},{"chunk":"dynamic","value":{"context":"attribute","id":14,"name":"value","owner":7,"part":"attribute","value":"row.title"}},{"chunk":"dynamic","value":{"captures":[],"event":"input","handler":"d95d929b5da50861","id":15,"name":"","owner":7,"part":"event"}},{"chunk":"dynamic","value":{"captures":[],"event":"keydown","handler":"7bed2c9f49c8c146","id":16,"name":"","owner":7,"part":"event"}},{"chunk":"dynamic","value":{"captures":[],"event":"blur","handler":"8002f6408eb906fa","id":17,"name":"","owner":7,"part":"event"}},{"chunk":"static","value":"> "}],"value":"row.#todomvc.app.Todos~ui~13"}},{"chunk":"static","value":" \u003c/li> "}],"collection":"#todomvc.app.Todos~ui~6","id":6,"key":"id","part":"each"}},"computed":"/computed/todomvc.app.Todos~ui.mjs","cursor":0,"device":[{"conflict":"last_write_wins","name":"todos-pleris","schemas":[{"of":{"fields":[["id",{"t":"int"}],["title",{"t":"string"}],["completed",{"t":"bool"}]],"t":"record"},"t":"list"}],"signal":"todos","version":1}],"fragment":{"forms":[{"form":"/","value":"all"},{"form":"/active","value":"active"},{"form":"/completed","value":"completed"}],"signal":"filter"},"listens":false,"live":[{"attribute":"value","kind":"attribute","part":0,"path":"draft","signal":"draft"},{"attribute":"hidden","derived":"todomvc.app.Todos~ui.derived_3","kind":"boolean_attribute","part":3,"path":"todos","signal":"todos"},{"attribute":"checked","derived":"todomvc.app.Todos~ui.derived_4","kind":"boolean_attribute","part":4,"path":"todos","signal":"todos"},{"kind":"each","part":6,"path":"","reads":["todos","filter","editing"],"signal":"todos"},{"derived":"todomvc.app.Todos~ui.derived_6","kind":"value","part":6,"path":"todos","paths":["todos","filter"],"reads":["todos","filter"],"signal":"todos"},{"attribute":"hidden","derived":"todomvc.app.Todos~ui.derived_18","kind":"boolean_attribute","part":18,"path":"todos","signal":"todos"},{"derived":"todomvc.app.Todos~ui.derived_19","kind":"text","part":19,"path":"todos","signal":"todos"},{"derived":"todomvc.app.Todos~ui.derived_20","kind":"text","part":20,"path":"todos","signal":"todos"},{"attribute":"class","derived":"todomvc.app.Todos~ui.derived_21","kind":"attribute","part":21,"path":"filter","signal":"filter"},{"attribute":"class","derived":"todomvc.app.Todos~ui.derived_22","kind":"attribute","part":22,"path":"filter","signal":"filter"},{"attribute":"class","derived":"todomvc.app.Todos~ui.derived_23","kind":"attribute","part":23,"path":"filter","signal":"filter"},{"attribute":"hidden","derived":"todomvc.app.Todos~ui.derived_24","kind":"boolean_attribute","part":24,"path":"todos","signal":"todos"}],"parts":[{"anchor":"element","id":0,"kind":"attribute","owner":0,"value":"draft"},{"anchor":"element","event":"input","id":1,"kind":"event","owner":0,"value":"2070bd5321ef2f86"},{"anchor":"element","event":"keydown","id":2,"kind":"event","owner":0,"value":"f80d574d379ee9e9"},{"anchor":"element","id":3,"kind":"boolean_attribute","owner":1,"value":"#todomvc.app.Todos~ui~3"},{"anchor":"element","id":4,"kind":"boolean_attribute","owner":2,"value":"#todomvc.app.Todos~ui~4"},{"anchor":"element","event":"press","id":5,"kind":"event","owner":2,"value":"d5f9bbe064dac9b8"},{"anchor":"range","id":6,"kind":"each","value":"#todomvc.app.Todos~ui~6"},{"anchor":"element","id":7,"kind":"attribute","owner":3,"value":"row.#todomvc.app.Todos~ui~7"},{"anchor":"element","id":8,"kind":"boolean_attribute","owner":4,"value":"row.completed"},{"anchor":"element","event":"press","id":9,"kind":"event","owner":4,"value":"6bab131d6be1002f"},{"anchor":"element","event":"dblclick","id":10,"kind":"event","owner":5,"value":"eac70f01a4f1f8a8"},{"anchor":"range","id":11,"kind":"text","value":"row.title"},{"anchor":"element","event":"press","id":12,"kind":"event","owner":6,"value":"91a2beb447a1360a"},{"anchor":"range","id":13,"kind":"conditional","value":"row.#todomvc.app.Todos~ui~13"},{"anchor":"element","id":14,"kind":"attribute","owner":7,"value":"row.title"},{"anchor":"element","event":"input","id":15,"kind":"event","owner":7,"value":"d95d929b5da50861"},{"anchor":"element","event":"keydown","id":16,"kind":"event","owner":7,"value":"7bed2c9f49c8c146"},{"anchor":"element","event":"blur","id":17,"kind":"event","owner":7,"value":"8002f6408eb906fa"},{"anchor":"element","id":18,"kind":"boolean_attribute","owner":8,"value":"#todomvc.app.Todos~ui~18"},{"anchor":"range","id":19,"kind":"text","value":"#todomvc.app.Todos~ui~19"},{"anchor":"range","id":20,"kind":"text","value":"#todomvc.app.Todos~ui~20"},{"anchor":"element","id":21,"kind":"attribute","owner":9,"value":"#todomvc.app.Todos~ui~21"},{"anchor":"element","id":22,"kind":"attribute","owner":10,"value":"#todomvc.app.Todos~ui~22"},{"anchor":"element","id":23,"kind":"attribute","owner":11,"value":"#todomvc.app.Todos~ui~23"},{"anchor":"element","id":24,"kind":"boolean_attribute","owner":12,"value":"#todomvc.app.Todos~ui~24"},{"anchor":"element","event":"press","id":25,"kind":"event","owner":12,"value":"debad9c9dcefd01e"},{"anchor":"document","id":26,"kind":"title","value":""}],"resume":{"abi":"1","build":"bf462b4b31d94ca26","capture":"","captures":"","construct":"region","document":"73475a0983c459d8","handler":"","handlers":{"2070bd5321ef2f86":{"capture":"","captures":"","handler":"2070bd5321ef2f86"},"6bab131d6be1002f":{"capture":"row.id","captures":"x","handler":"6bab131d6be1002f"},"7bed2c9f49c8c146":{"capture":"","captures":"","handler":"7bed2c9f49c8c146"},"8002f6408eb906fa":{"capture":"","captures":"","handler":"8002f6408eb906fa"},"91a2beb447a1360a":{"capture":"row.id","captures":"x","handler":"91a2beb447a1360a"},"d5f9bbe064dac9b8":{"capture":"","captures":"","handler":"d5f9bbe064dac9b8"},"d95d929b5da50861":{"capture":"","captures":"","handler":"d95d929b5da50861"},"debad9c9dcefd01e":{"capture":"","captures":"","handler":"debad9c9dcefd01e"},"eac70f01a4f1f8a8":{"capture":"row.id,row.title","captures":"x","handler":"eac70f01a4f1f8a8"},"f80d574d379ee9e9":{"capture":"","captures":"","handler":"f80d574d379ee9e9"}},"scheme":"2","scope":"public"},"rowsComputed":[{"inputs":["row","editing"],"name":"#todomvc.app.Todos~ui~7"},{"inputs":["row","editing"],"name":"#todomvc.app.Todos~ui~13"}],"schema":"73475a0983c459d8","signals":{"draft":"","edit_text":"","editing":0,"filter":"all","todos":[]},"template":"todomvc.app.Todos~ui"}</script>
 <script>import("/pw-runtime.mjs")</script>
 </body>
 </html>
@@ -1572,7 +1572,7 @@ failures:
     tests::prerender::it_is_rendered_in_the_public_partition
     tests::prerender::todomvc_is_one_document
 
-test result: FAILED. 13 passed; 6 failed; 0 ignored; 0 measured; 1015 filtered out; finished in 4.01s
+test result: FAILED. 13 passed; 6 failed; 0 ignored; 0 measured; 1018 filtered out; finished in 5.40s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1603,7 +1603,7 @@ failures:
 
 ---- tests::prerender::a_host_route_keeps_its_place stdout ----
 
-thread 'tests::prerender::a_host_route_keeps_its_place' (200488) panicked at spikes/own-renderer/server/src/tests/prerender.rs:413:5:
+thread 'tests::prerender::a_host_route_keeps_its_place' (208047) panicked at spikes/own-renderer/server/src/tests/prerender.rs:413:5:
 <!doctype html>
 <html lang="en">
 <head>
@@ -1627,7 +1627,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::a_host_route_keeps_its_place
 
-test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1015 filtered out; finished in 4.11s
+test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1018 filtered out; finished in 5.35s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1658,7 +1658,7 @@ failures:
 
 ---- tests::prerender::a_request_with_a_session_is_admitted_as_every_request_is stdout ----
 
-thread 'tests::prerender::a_request_with_a_session_is_admitted_as_every_request_is' (200845) panicked at spikes/own-renderer/server/src/tests/prerender.rs:433:5:
+thread 'tests::prerender::a_request_with_a_session_is_admitted_as_every_request_is' (208406) panicked at spikes/own-renderer/server/src/tests/prerender.rs:433:5:
 assertion `left == right` failed: HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 2161
@@ -1678,7 +1678,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::a_request_with_a_session_is_admitted_as_every_request_is
 
-test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1015 filtered out; finished in 4.01s
+test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1018 filtered out; finished in 5.43s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1709,7 +1709,7 @@ failures:
 
 ---- tests::prerender::a_browser_that_holds_a_representation_is_told_so stdout ----
 
-thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (201169) panicked at spikes/own-renderer/server/src/tests/prerender.rs:246:5:
+thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (208732) panicked at spikes/own-renderer/server/src/tests/prerender.rs:246:5:
 assertion `left == right` failed: HTTP/1.1 304 Not Modified
 cache-control: private, no-store
 etag: "9f515e6bc11f630757b9b59ba88ad226eab2354610968642ec9192653183d930"
@@ -1723,7 +1723,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing stdout ----
 
-thread 'tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing' (201197) panicked at spikes/own-renderer/server/src/tests/prerender.rs:98:9:
+thread 'tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing' (208760) panicked at spikes/own-renderer/server/src/tests/prerender.rs:98:9:
 assertion `left == right` failed: HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 2161
@@ -1740,15 +1740,15 @@ connection: close
 
 ---- tests::prerender::todomvc_is_one_document stdout ----
 
-thread 'tests::prerender::todomvc_is_one_document' (201212) panicked at spikes/own-renderer/server/src/tests/prerender.rs:475:5:
+thread 'tests::prerender::todomvc_is_one_document' (208775) panicked at spikes/own-renderer/server/src/tests/prerender.rs:475:5:
 HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
-content-length: 9939
+content-length: 9815
 x-content-type-options: nosniff
 cache-control: private, no-store
-etag: "6b3b541f6252e2f8c570c63956f12532a97457a553bad8716463dbcf68cbf247"
+etag: "083cc3ddc37bac83bba033d35a88e3f6f04d3e6aea08e919f84173640d7a37e5"
 vary: accept-encoding
-pw-build: b58bd38756fbab4d1
+pw-build: bf462b4b31d94ca26
 content-security-policy: default-src 'none'; script-src 'self' 'sha256-v8jCs+poUKnEHV7piaB+l4LlDvig0qQ2jqYEal4D2VY='; style-src 'self' 'sha256-PsoNDNr2FXKmBWScmALXJCtS6SI8vayZA8mDCwXDMYE=' 'sha256-hJ66mWLqVtq8EKxzKNPujjAVwmVE+PKsDyFNUOusFD4=' 'sha256-lOjBrcnONAXa9IkfySWUyxuaJ58G+9Ma0I9EQI0GJuk='; img-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'
 connection: keep-alive
 keep-alive: timeout=75
@@ -1765,9 +1765,9 @@ keep-alive: timeout=75
 <link rel="preload" href="/pw-handlers" as="fetch" crossorigin>
 </head>
 <body>
-<link rel="stylesheet" href="/todomvc-base.css"><link rel="stylesheet" href="/todomvc-app.css"><section class="todoapp"> <header class="header"> <h1>todos</h1> <input data-pw="0" class="new-todo" placeholder="What needs to be done?" aria-label="New todo" autofocus value=""> </header> <section data-pw="1" data-pw-device class="main" hidden> <input data-pw="2" data-pw-device id="toggle-all" class="toggle-all" type="checkbox"> <label for="toggle-all">Mark all as complete</label> <ul data-pw-device class="todo-list"> <!--pw:s6--><!--pw:e6--> </ul> </section> <footer data-pw="8" data-pw-device class="footer" hidden> <span data-pw-device class="todo-count"><strong data-pw-device><!--pw:s20-->0<!--pw:e20--></strong> <!--pw:s21-->items left<!--pw:e21--></span> <ul class="filters"> <li><a data-pw="9" class="selected" href="#/">All</a></li> <li><a data-pw="10" class="" href="#/active">Active</a></li> <li><a data-pw="11" class="" href="#/completed">Completed</a></li> </ul> <button data-pw="12" data-pw-device class="clear-completed" type="button" hidden>Clear completed</button> </footer> </section><footer class="info"> <p>Double-click to edit a todo</p> <p>Created with Pleris</p> <p>Part of <a href="https://todomvc.com">TodoMVC</a></p> <p>Styled by <a href="https://github.com/tastejs/todomvc-app-css">todomvc-app-css</a>, Sindre Sorhus, CC BY 4.0</p> </footer>
+<link rel="stylesheet" href="/todomvc-base.css"><link rel="stylesheet" href="/todomvc-app.css"><section class="todoapp"> <header class="header"> <h1>todos</h1> <input data-pw="0" class="new-todo" placeholder="What needs to be done?" aria-label="New todo" autofocus value=""> </header> <section data-pw="1" data-pw-device class="main" hidden> <input data-pw="2" data-pw-device id="toggle-all" class="toggle-all" type="checkbox"> <label for="toggle-all">Mark all as complete</label> <ul data-pw-device class="todo-list"> <!--pw:s6--><!--pw:e6--> </ul> </section> <footer data-pw="8" data-pw-device class="footer" hidden> <span data-pw-device class="todo-count"><strong data-pw-device><!--pw:s19-->0<!--pw:e19--></strong> <!--pw:s20-->items left<!--pw:e20--></span> <ul class="filters"> <li><a data-pw="9" class="selected" href="#/">All</a></li> <li><a data-pw="10" class="" href="#/active">Active</a></li> <li><a data-pw="11" class="" href="#/completed">Completed</a></li> </ul> <button data-pw="12" data-pw-device class="clear-completed" type="button" hidden>Clear completed</button> </footer> </section><footer class="info"> <p>Double-click to edit a todo</p> <p>Created with Pleris</p> <p>Part of <a href="https://todomvc.com">TodoMVC</a></p> <p>Styled by <a href="https://github.com/tastejs/todomvc-app-css">todomvc-app-css</a>, Sindre Sorhus, CC BY 4.0</p> </footer>
 <div role="status" class="pw-announcer"></div>
-<script type="application/json" id="pw-parts">{"blocks":{"6":{"id":6,"otherwise":[],"part":"conditional","then":[{"chunk":"static","value":" "},{"chunk":"dynamic","value":{"binding":"row","body":[{"chunk":"static","value":" \u003cli data-pw=\"3\" "},{"chunk":"dynamic","value":{"context":"attribute","id":8,"name":"class","owner":3,"part":"attribute","value":"row.class"}},{"chunk":"static","value":"> \u003cdiv class=\"view\"> \u003cinput data-pw=\"4\" class=\"toggle\" type=\"checkbox\" aria-label=\"Completed\" "},{"chunk":"dynamic","value":{"id":9,"name":"checked","owner":4,"part":"boolean_attribute","value":"row.completed"}},{"chunk":"dynamic","value":{"captures":["row.id"],"event":"press","handler":"8412388d5acb6c91","id":10,"name":"","owner":4,"part":"event"}},{"chunk":"static","value":"> \u003clabel data-pw=\"5\""},{"chunk":"dynamic","value":{"captures":["row.id","row.title"],"event":"dblclick","handler":"f2e32fa2b1f78a9e","id":11,"name":"","owner":5,"part":"event"}},{"chunk":"static","value":">"},{"chunk":"dynamic","value":{"context":"text","id":12,"part":"text","value":"row.title"}},{"chunk":"static","value":"\u003c/label> \u003cbutton data-pw=\"6\" class=\"destroy\" type=\"button\" aria-label=\"Delete\""},{"chunk":"dynamic","value":{"captures":["row.id"],"event":"press","handler":"193d816ea0363990","id":13,"name":"","owner":6,"part":"event"}},{"chunk":"static","value":">\u003c/button> \u003c/div> "},{"chunk":"dynamic","value":{"id":14,"otherwise":[],"part":"conditional","then":[{"chunk":"static","value":" \u003cinput data-pw=\"7\" class=\"edit\" aria-label=\"Edit\" autofocus "},{"chunk":"dynamic","value":{"context":"attribute","id":15,"name":"value","owner":7,"part":"attribute","value":"row.title"}},{"chunk":"dynamic","value":{"captures":[],"event":"input","handler":"d95d929b5da50861","id":16,"name":"","owner":7,"part":"event"}},{"chunk":"dynamic","value":{"captures":[],"event":"keydown","handler":"7bed2c9f49c8c146","id":17,"name":"","owner":7,"part":"event"}},{"chunk":"dynamic","value":{"captures":[],"event":"blur","handler":"8002f6408eb906fa","id":18,"name":"","owner":7,"part":"event"}},{"chunk":"static","value":"> "}],"value":"row.editing"}},{"chunk":"static","value":" \u003c/li> "}],"collection":"#todomvc.app.Todos~ui~7","id":7,"key":"id","part":"each"}},{"chunk":"static","value":" "}],"value":"#todomvc.app.Todos~ui~6"}},"computed":"/computed/todomvc.app.Todos~ui.mjs","cursor":0,"device":[{"conflict":"last_write_wins","name":"todos-pleris","schemas":[{"of":{"fields":[["id",{"t":"int"}],["title",{"t":"string"}],["completed",{"t":"bool"}]],"t":"record"},"t":"list"}],"signal":"todos","version":1}],"fragment":{"forms":[{"form":"/","value":"all"},{"form":"/active","value":"active"},{"form":"/completed","value":"completed"}],"signal":"filter"},"listens":false,"live":[{"attribute":"value","kind":"attribute","part":0,"path":"draft","signal":"draft"},{"attribute":"hidden","derived":"todomvc.app.Todos~ui.derived_3","kind":"boolean_attribute","part":3,"path":"todos","signal":"todos"},{"attribute":"checked","derived":"todomvc.app.Todos~ui.derived_4","kind":"boolean_attribute","part":4,"path":"todos","signal":"todos"},{"derived":"todomvc.app.Todos~ui.derived_6","kind":"conditional","part":6,"path":"todos","reads":["editing","filter","todos"],"signal":"todos"},{"derived":"todomvc.app.Todos~ui.derived_7","kind":"value","part":7,"path":"todos","paths":["todos","filter","editing"],"reads":["todos","filter","editing"],"signal":"todos"},{"attribute":"hidden","derived":"todomvc.app.Todos~ui.derived_19","kind":"boolean_attribute","part":19,"path":"todos","signal":"todos"},{"derived":"todomvc.app.Todos~ui.derived_20","kind":"text","part":20,"path":"todos","signal":"todos"},{"derived":"todomvc.app.Todos~ui.derived_21","kind":"text","part":21,"path":"todos","signal":"todos"},{"attribute":"class","derived":"todomvc.app.Todos~ui.derived_22","kind":"attribute","part":22,"path":"filter","signal":"filter"},{"attribute":"class","derived":"todomvc.app.Todos~ui.derived_23","kind":"attribute","part":23,"path":"filter","signal":"filter"},{"attribute":"class","derived":"todomvc.app.Todos~ui.derived_24","kind":"attribute","part":24,"path":"filter","signal":"filter"},{"attribute":"hidden","derived":"todomvc.app.Todos~ui.derived_25","kind":"boolean_attribute","part":25,"path":"todos","signal":"todos"}],"parts":[{"anchor":"element","id":0,"kind":"attribute","owner":0,"value":"draft"},{"anchor":"element","event":"input","id":1,"kind":"event","owner":0,"value":"2070bd5321ef2f86"},{"anchor":"element","event":"keydown","id":2,"kind":"event","owner":0,"value":"f80d574d379ee9e9"},{"anchor":"element","id":3,"kind":"boolean_attribute","owner":1,"value":"#todomvc.app.Todos~ui~3"},{"anchor":"element","id":4,"kind":"boolean_attribute","owner":2,"value":"#todomvc.app.Todos~ui~4"},{"anchor":"element","event":"press","id":5,"kind":"event","owner":2,"value":"d5f9bbe064dac9b8"},{"anchor":"range","id":6,"kind":"conditional","value":"#todomvc.app.Todos~ui~6"},{"anchor":"range","id":7,"kind":"each","value":"#todomvc.app.Todos~ui~7"},{"anchor":"element","id":8,"kind":"attribute","owner":3,"value":"row.class"},{"anchor":"element","id":9,"kind":"boolean_attribute","owner":4,"value":"row.completed"},{"anchor":"element","event":"press","id":10,"kind":"event","owner":4,"value":"8412388d5acb6c91"},{"anchor":"element","event":"dblclick","id":11,"kind":"event","owner":5,"value":"f2e32fa2b1f78a9e"},{"anchor":"range","id":12,"kind":"text","value":"row.title"},{"anchor":"element","event":"press","id":13,"kind":"event","owner":6,"value":"193d816ea0363990"},{"anchor":"range","id":14,"kind":"conditional","value":"row.editing"},{"anchor":"element","id":15,"kind":"attribute","owner":7,"value":"row.title"},{"anchor":"element","event":"input","id":16,"kind":"event","owner":7,"value":"d95d929b5da50861"},{"anchor":"element","event":"keydown","id":17,"kind":"event","owner":7,"value":"7bed2c9f49c8c146"},{"anchor":"element","event":"blur","id":18,"kind":"event","owner":7,"value":"8002f6408eb906fa"},{"anchor":"element","id":19,"kind":"boolean_attribute","owner":8,"value":"#todomvc.app.Todos~ui~19"},{"anchor":"range","id":20,"kind":"text","value":"#todomvc.app.Todos~ui~20"},{"anchor":"range","id":21,"kind":"text","value":"#todomvc.app.Todos~ui~21"},{"anchor":"element","id":22,"kind":"attribute","owner":9,"value":"#todomvc.app.Todos~ui~22"},{"anchor":"element","id":23,"kind":"attribute","owner":10,"value":"#todomvc.app.Todos~ui~23"},{"anchor":"element","id":24,"kind":"attribute","owner":11,"value":"#todomvc.app.Todos~ui~24"},{"anchor":"element","id":25,"kind":"boolean_attribute","owner":12,"value":"#todomvc.app.Todos~ui~25"},{"anchor":"element","event":"press","id":26,"kind":"event","owner":12,"value":"debad9c9dcefd01e"},{"anchor":"document","id":27,"kind":"title","value":""}],"resume":{"abi":"1","build":"b58bd38756fbab4d1","capture":"","captures":"","construct":"region","document":"efcaa4323032c792","handler":"","handlers":{"193d816ea0363990":{"capture":"row.id","captures":"x","handler":"193d816ea0363990"},"2070bd5321ef2f86":{"capture":"","captures":"","handler":"2070bd5321ef2f86"},"7bed2c9f49c8c146":{"capture":"","captures":"","handler":"7bed2c9f49c8c146"},"8002f6408eb906fa":{"capture":"","captures":"","handler":"8002f6408eb906fa"},"8412388d5acb6c91":{"capture":"row.id","captures":"x","handler":"8412388d5acb6c91"},"d5f9bbe064dac9b8":{"capture":"","captures":"","handler":"d5f9bbe064dac9b8"},"d95d929b5da50861":{"capture":"","captures":"","handler":"d95d929b5da50861"},"debad9c9dcefd01e":{"capture":"","captures":"","handler":"debad9c9dcefd01e"},"f2e32fa2b1f78a9e":{"capture":"row.id,row.title","captures":"x","handler":"f2e32fa2b1f78a9e"},"f80d574d379ee9e9":{"capture":"","captures":"","handler":"f80d574d379ee9e9"}},"scheme":"2","scope":"public"},"schema":"efcaa4323032c792","signals":{"draft":"","edit_text":"","editing":0,"filter":"all","todos":[]},"template":"todomvc.app.Todos~ui"}</script>
+<script type="application/json" id="pw-parts">{"blocks":{"6":{"binding":"row","body":[{"chunk":"static","value":" \u003cli data-pw=\"3\" "},{"chunk":"dynamic","value":{"context":"attribute","id":7,"name":"class","owner":3,"part":"attribute","value":"row.#todomvc.app.Todos~ui~7"}},{"chunk":"static","value":"> \u003cdiv class=\"view\"> \u003cinput data-pw=\"4\" class=\"toggle\" type=\"checkbox\" aria-label=\"Completed\" "},{"chunk":"dynamic","value":{"id":8,"name":"checked","owner":4,"part":"boolean_attribute","value":"row.completed"}},{"chunk":"dynamic","value":{"captures":["row.id"],"event":"press","handler":"6bab131d6be1002f","id":9,"name":"","owner":4,"part":"event"}},{"chunk":"static","value":"> \u003clabel data-pw=\"5\""},{"chunk":"dynamic","value":{"captures":["row.id","row.title"],"event":"dblclick","handler":"eac70f01a4f1f8a8","id":10,"name":"","owner":5,"part":"event"}},{"chunk":"static","value":">"},{"chunk":"dynamic","value":{"context":"text","id":11,"part":"text","value":"row.title"}},{"chunk":"static","value":"\u003c/label> \u003cbutton data-pw=\"6\" class=\"destroy\" type=\"button\" aria-label=\"Delete\""},{"chunk":"dynamic","value":{"captures":["row.id"],"event":"press","handler":"91a2beb447a1360a","id":12,"name":"","owner":6,"part":"event"}},{"chunk":"static","value":">\u003c/button> \u003c/div> "},{"chunk":"dynamic","value":{"id":13,"otherwise":[],"part":"conditional","then":[{"chunk":"static","value":" \u003cinput data-pw=\"7\" class=\"edit\" aria-label=\"Edit\" autofocus "},{"chunk":"dynamic","value":{"context":"attribute","id":14,"name":"value","owner":7,"part":"attribute","value":"row.title"}},{"chunk":"dynamic","value":{"captures":[],"event":"input","handler":"d95d929b5da50861","id":15,"name":"","owner":7,"part":"event"}},{"chunk":"dynamic","value":{"captures":[],"event":"keydown","handler":"7bed2c9f49c8c146","id":16,"name":"","owner":7,"part":"event"}},{"chunk":"dynamic","value":{"captures":[],"event":"blur","handler":"8002f6408eb906fa","id":17,"name":"","owner":7,"part":"event"}},{"chunk":"static","value":"> "}],"value":"row.#todomvc.app.Todos~ui~13"}},{"chunk":"static","value":" \u003c/li> "}],"collection":"#todomvc.app.Todos~ui~6","id":6,"key":"id","part":"each"}},"computed":"/computed/todomvc.app.Todos~ui.mjs","cursor":0,"device":[{"conflict":"last_write_wins","name":"todos-pleris","schemas":[{"of":{"fields":[["id",{"t":"int"}],["title",{"t":"string"}],["completed",{"t":"bool"}]],"t":"record"},"t":"list"}],"signal":"todos","version":1}],"fragment":{"forms":[{"form":"/","value":"all"},{"form":"/active","value":"active"},{"form":"/completed","value":"completed"}],"signal":"filter"},"listens":false,"live":[{"attribute":"value","kind":"attribute","part":0,"path":"draft","signal":"draft"},{"attribute":"hidden","derived":"todomvc.app.Todos~ui.derived_3","kind":"boolean_attribute","part":3,"path":"todos","signal":"todos"},{"attribute":"checked","derived":"todomvc.app.Todos~ui.derived_4","kind":"boolean_attribute","part":4,"path":"todos","signal":"todos"},{"kind":"each","part":6,"path":"","reads":["todos","filter","editing"],"signal":"todos"},{"derived":"todomvc.app.Todos~ui.derived_6","kind":"value","part":6,"path":"todos","paths":["todos","filter"],"reads":["todos","filter"],"signal":"todos"},{"attribute":"hidden","derived":"todomvc.app.Todos~ui.derived_18","kind":"boolean_attribute","part":18,"path":"todos","signal":"todos"},{"derived":"todomvc.app.Todos~ui.derived_19","kind":"text","part":19,"path":"todos","signal":"todos"},{"derived":"todomvc.app.Todos~ui.derived_20","kind":"text","part":20,"path":"todos","signal":"todos"},{"attribute":"class","derived":"todomvc.app.Todos~ui.derived_21","kind":"attribute","part":21,"path":"filter","signal":"filter"},{"attribute":"class","derived":"todomvc.app.Todos~ui.derived_22","kind":"attribute","part":22,"path":"filter","signal":"filter"},{"attribute":"class","derived":"todomvc.app.Todos~ui.derived_23","kind":"attribute","part":23,"path":"filter","signal":"filter"},{"attribute":"hidden","derived":"todomvc.app.Todos~ui.derived_24","kind":"boolean_attribute","part":24,"path":"todos","signal":"todos"}],"parts":[{"anchor":"element","id":0,"kind":"attribute","owner":0,"value":"draft"},{"anchor":"element","event":"input","id":1,"kind":"event","owner":0,"value":"2070bd5321ef2f86"},{"anchor":"element","event":"keydown","id":2,"kind":"event","owner":0,"value":"f80d574d379ee9e9"},{"anchor":"element","id":3,"kind":"boolean_attribute","owner":1,"value":"#todomvc.app.Todos~ui~3"},{"anchor":"element","id":4,"kind":"boolean_attribute","owner":2,"value":"#todomvc.app.Todos~ui~4"},{"anchor":"element","event":"press","id":5,"kind":"event","owner":2,"value":"d5f9bbe064dac9b8"},{"anchor":"range","id":6,"kind":"each","value":"#todomvc.app.Todos~ui~6"},{"anchor":"element","id":7,"kind":"attribute","owner":3,"value":"row.#todomvc.app.Todos~ui~7"},{"anchor":"element","id":8,"kind":"boolean_attribute","owner":4,"value":"row.completed"},{"anchor":"element","event":"press","id":9,"kind":"event","owner":4,"value":"6bab131d6be1002f"},{"anchor":"element","event":"dblclick","id":10,"kind":"event","owner":5,"value":"eac70f01a4f1f8a8"},{"anchor":"range","id":11,"kind":"text","value":"row.title"},{"anchor":"element","event":"press","id":12,"kind":"event","owner":6,"value":"91a2beb447a1360a"},{"anchor":"range","id":13,"kind":"conditional","value":"row.#todomvc.app.Todos~ui~13"},{"anchor":"element","id":14,"kind":"attribute","owner":7,"value":"row.title"},{"anchor":"element","event":"input","id":15,"kind":"event","owner":7,"value":"d95d929b5da50861"},{"anchor":"element","event":"keydown","id":16,"kind":"event","owner":7,"value":"7bed2c9f49c8c146"},{"anchor":"element","event":"blur","id":17,"kind":"event","owner":7,"value":"8002f6408eb906fa"},{"anchor":"element","id":18,"kind":"boolean_attribute","owner":8,"value":"#todomvc.app.Todos~ui~18"},{"anchor":"range","id":19,"kind":"text","value":"#todomvc.app.Todos~ui~19"},{"anchor":"range","id":20,"kind":"text","value":"#todomvc.app.Todos~ui~20"},{"anchor":"element","id":21,"kind":"attribute","owner":9,"value":"#todomvc.app.Todos~ui~21"},{"anchor":"element","id":22,"kind":"attribute","owner":10,"value":"#todomvc.app.Todos~ui~22"},{"anchor":"element","id":23,"kind":"attribute","owner":11,"value":"#todomvc.app.Todos~ui~23"},{"anchor":"element","id":24,"kind":"boolean_attribute","owner":12,"value":"#todomvc.app.Todos~ui~24"},{"anchor":"element","event":"press","id":25,"kind":"event","owner":12,"value":"debad9c9dcefd01e"},{"anchor":"document","id":26,"kind":"title","value":""}],"resume":{"abi":"1","build":"bf462b4b31d94ca26","capture":"","captures":"","construct":"region","document":"73475a0983c459d8","handler":"","handlers":{"2070bd5321ef2f86":{"capture":"","captures":"","handler":"2070bd5321ef2f86"},"6bab131d6be1002f":{"capture":"row.id","captures":"x","handler":"6bab131d6be1002f"},"7bed2c9f49c8c146":{"capture":"","captures":"","handler":"7bed2c9f49c8c146"},"8002f6408eb906fa":{"capture":"","captures":"","handler":"8002f6408eb906fa"},"91a2beb447a1360a":{"capture":"row.id","captures":"x","handler":"91a2beb447a1360a"},"d5f9bbe064dac9b8":{"capture":"","captures":"","handler":"d5f9bbe064dac9b8"},"d95d929b5da50861":{"capture":"","captures":"","handler":"d95d929b5da50861"},"debad9c9dcefd01e":{"capture":"","captures":"","handler":"debad9c9dcefd01e"},"eac70f01a4f1f8a8":{"capture":"row.id,row.title","captures":"x","handler":"eac70f01a4f1f8a8"},"f80d574d379ee9e9":{"capture":"","captures":"","handler":"f80d574d379ee9e9"}},"scheme":"2","scope":"public"},"rowsComputed":[{"inputs":["row","editing"],"name":"#todomvc.app.Todos~ui~7"},{"inputs":["row","editing"],"name":"#todomvc.app.Todos~ui~13"}],"schema":"73475a0983c459d8","signals":{"draft":"","edit_text":"","editing":0,"filter":"all","todos":[]},"template":"todomvc.app.Todos~ui"}</script>
 <script>import("/pw-runtime.mjs")</script>
 </body>
 </html>
@@ -1779,7 +1779,7 @@ failures:
     tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing
     tests::prerender::todomvc_is_one_document
 
-test result: FAILED. 16 passed; 3 failed; 0 ignored; 0 measured; 1015 filtered out; finished in 4.06s
+test result: FAILED. 16 passed; 3 failed; 0 ignored; 0 measured; 1018 filtered out; finished in 5.35s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1810,7 +1810,7 @@ failures:
 
 ---- tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing stdout ----
 
-thread 'tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing' (201547) panicked at spikes/own-renderer/server/src/tests/prerender.rs:97:9:
+thread 'tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing' (209109) panicked at spikes/own-renderer/server/src/tests/prerender.rs:97:9:
 assertion `left == right` failed: HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 2161
@@ -1829,16 +1829,16 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::prerender::todomvc_is_one_document stdout ----
 
-thread 'tests::prerender::todomvc_is_one_document' (201562) panicked at spikes/own-renderer/server/src/tests/prerender.rs:479:5:
+thread 'tests::prerender::todomvc_is_one_document' (209124) panicked at spikes/own-renderer/server/src/tests/prerender.rs:479:5:
 HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
-content-length: 9939
+content-length: 9815
 x-content-type-options: nosniff
 set-cookie: pw-session=x
 cache-control: public, no-cache
-etag: "6b3b541f6252e2f8c570c63956f12532a97457a553bad8716463dbcf68cbf247"
+etag: "083cc3ddc37bac83bba033d35a88e3f6f04d3e6aea08e919f84173640d7a37e5"
 vary: accept-encoding
-pw-build: b58bd38756fbab4d1
+pw-build: bf462b4b31d94ca26
 content-security-policy: default-src 'none'; script-src 'self' 'sha256-v8jCs+poUKnEHV7piaB+l4LlDvig0qQ2jqYEal4D2VY='; style-src 'self' 'sha256-PsoNDNr2FXKmBWScmALXJCtS6SI8vayZA8mDCwXDMYE=' 'sha256-hJ66mWLqVtq8EKxzKNPujjAVwmVE+PKsDyFNUOusFD4=' 'sha256-lOjBrcnONAXa9IkfySWUyxuaJ58G+9Ma0I9EQI0GJuk='; img-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'
 connection: keep-alive
 keep-alive: timeout=75
@@ -1855,9 +1855,9 @@ keep-alive: timeout=75
 <link rel="preload" href="/pw-handlers" as="fetch" crossorigin>
 </head>
 <body>
-<link rel="stylesheet" href="/todomvc-base.css"><link rel="stylesheet" href="/todomvc-app.css"><section class="todoapp"> <header class="header"> <h1>todos</h1> <input data-pw="0" class="new-todo" placeholder="What needs to be done?" aria-label="New todo" autofocus value=""> </header> <section data-pw="1" data-pw-device class="main" hidden> <input data-pw="2" data-pw-device id="toggle-all" class="toggle-all" type="checkbox"> <label for="toggle-all">Mark all as complete</label> <ul data-pw-device class="todo-list"> <!--pw:s6--><!--pw:e6--> </ul> </section> <footer data-pw="8" data-pw-device class="footer" hidden> <span data-pw-device class="todo-count"><strong data-pw-device><!--pw:s20-->0<!--pw:e20--></strong> <!--pw:s21-->items left<!--pw:e21--></span> <ul class="filters"> <li><a data-pw="9" class="selected" href="#/">All</a></li> <li><a data-pw="10" class="" href="#/active">Active</a></li> <li><a data-pw="11" class="" href="#/completed">Completed</a></li> </ul> <button data-pw="12" data-pw-device class="clear-completed" type="button" hidden>Clear completed</button> </footer> </section><footer class="info"> <p>Double-click to edit a todo</p> <p>Created with Pleris</p> <p>Part of <a href="https://todomvc.com">TodoMVC</a></p> <p>Styled by <a href="https://github.com/tastejs/todomvc-app-css">todomvc-app-css</a>, Sindre Sorhus, CC BY 4.0</p> </footer>
+<link rel="stylesheet" href="/todomvc-base.css"><link rel="stylesheet" href="/todomvc-app.css"><section class="todoapp"> <header class="header"> <h1>todos</h1> <input data-pw="0" class="new-todo" placeholder="What needs to be done?" aria-label="New todo" autofocus value=""> </header> <section data-pw="1" data-pw-device class="main" hidden> <input data-pw="2" data-pw-device id="toggle-all" class="toggle-all" type="checkbox"> <label for="toggle-all">Mark all as complete</label> <ul data-pw-device class="todo-list"> <!--pw:s6--><!--pw:e6--> </ul> </section> <footer data-pw="8" data-pw-device class="footer" hidden> <span data-pw-device class="todo-count"><strong data-pw-device><!--pw:s19-->0<!--pw:e19--></strong> <!--pw:s20-->items left<!--pw:e20--></span> <ul class="filters"> <li><a data-pw="9" class="selected" href="#/">All</a></li> <li><a data-pw="10" class="" href="#/active">Active</a></li> <li><a data-pw="11" class="" href="#/completed">Completed</a></li> </ul> <button data-pw="12" data-pw-device class="clear-completed" type="button" hidden>Clear completed</button> </footer> </section><footer class="info"> <p>Double-click to edit a todo</p> <p>Created with Pleris</p> <p>Part of <a href="https://todomvc.com">TodoMVC</a></p> <p>Styled by <a href="https://github.com/tastejs/todomvc-app-css">todomvc-app-css</a>, Sindre Sorhus, CC BY 4.0</p> </footer>
 <div role="status" class="pw-announcer"></div>
-<script type="application/json" id="pw-parts">{"blocks":{"6":{"id":6,"otherwise":[],"part":"conditional","then":[{"chunk":"static","value":" "},{"chunk":"dynamic","value":{"binding":"row","body":[{"chunk":"static","value":" \u003cli data-pw=\"3\" "},{"chunk":"dynamic","value":{"context":"attribute","id":8,"name":"class","owner":3,"part":"attribute","value":"row.class"}},{"chunk":"static","value":"> \u003cdiv class=\"view\"> \u003cinput data-pw=\"4\" class=\"toggle\" type=\"checkbox\" aria-label=\"Completed\" "},{"chunk":"dynamic","value":{"id":9,"name":"checked","owner":4,"part":"boolean_attribute","value":"row.completed"}},{"chunk":"dynamic","value":{"captures":["row.id"],"event":"press","handler":"8412388d5acb6c91","id":10,"name":"","owner":4,"part":"event"}},{"chunk":"static","value":"> \u003clabel data-pw=\"5\""},{"chunk":"dynamic","value":{"captures":["row.id","row.title"],"event":"dblclick","handler":"f2e32fa2b1f78a9e","id":11,"name":"","owner":5,"part":"event"}},{"chunk":"static","value":">"},{"chunk":"dynamic","value":{"context":"text","id":12,"part":"text","value":"row.title"}},{"chunk":"static","value":"\u003c/label> \u003cbutton data-pw=\"6\" class=\"destroy\" type=\"button\" aria-label=\"Delete\""},{"chunk":"dynamic","value":{"captures":["row.id"],"event":"press","handler":"193d816ea0363990","id":13,"name":"","owner":6,"part":"event"}},{"chunk":"static","value":">\u003c/button> \u003c/div> "},{"chunk":"dynamic","value":{"id":14,"otherwise":[],"part":"conditional","then":[{"chunk":"static","value":" \u003cinput data-pw=\"7\" class=\"edit\" aria-label=\"Edit\" autofocus "},{"chunk":"dynamic","value":{"context":"attribute","id":15,"name":"value","owner":7,"part":"attribute","value":"row.title"}},{"chunk":"dynamic","value":{"captures":[],"event":"input","handler":"d95d929b5da50861","id":16,"name":"","owner":7,"part":"event"}},{"chunk":"dynamic","value":{"captures":[],"event":"keydown","handler":"7bed2c9f49c8c146","id":17,"name":"","owner":7,"part":"event"}},{"chunk":"dynamic","value":{"captures":[],"event":"blur","handler":"8002f6408eb906fa","id":18,"name":"","owner":7,"part":"event"}},{"chunk":"static","value":"> "}],"value":"row.editing"}},{"chunk":"static","value":" \u003c/li> "}],"collection":"#todomvc.app.Todos~ui~7","id":7,"key":"id","part":"each"}},{"chunk":"static","value":" "}],"value":"#todomvc.app.Todos~ui~6"}},"computed":"/computed/todomvc.app.Todos~ui.mjs","cursor":0,"device":[{"conflict":"last_write_wins","name":"todos-pleris","schemas":[{"of":{"fields":[["id",{"t":"int"}],["title",{"t":"string"}],["completed",{"t":"bool"}]],"t":"record"},"t":"list"}],"signal":"todos","version":1}],"fragment":{"forms":[{"form":"/","value":"all"},{"form":"/active","value":"active"},{"form":"/completed","value":"completed"}],"signal":"filter"},"listens":false,"live":[{"attribute":"value","kind":"attribute","part":0,"path":"draft","signal":"draft"},{"attribute":"hidden","derived":"todomvc.app.Todos~ui.derived_3","kind":"boolean_attribute","part":3,"path":"todos","signal":"todos"},{"attribute":"checked","derived":"todomvc.app.Todos~ui.derived_4","kind":"boolean_attribute","part":4,"path":"todos","signal":"todos"},{"derived":"todomvc.app.Todos~ui.derived_6","kind":"conditional","part":6,"path":"todos","reads":["editing","filter","todos"],"signal":"todos"},{"derived":"todomvc.app.Todos~ui.derived_7","kind":"value","part":7,"path":"todos","paths":["todos","filter","editing"],"reads":["todos","filter","editing"],"signal":"todos"},{"attribute":"hidden","derived":"todomvc.app.Todos~ui.derived_19","kind":"boolean_attribute","part":19,"path":"todos","signal":"todos"},{"derived":"todomvc.app.Todos~ui.derived_20","kind":"text","part":20,"path":"todos","signal":"todos"},{"derived":"todomvc.app.Todos~ui.derived_21","kind":"text","part":21,"path":"todos","signal":"todos"},{"attribute":"class","derived":"todomvc.app.Todos~ui.derived_22","kind":"attribute","part":22,"path":"filter","signal":"filter"},{"attribute":"class","derived":"todomvc.app.Todos~ui.derived_23","kind":"attribute","part":23,"path":"filter","signal":"filter"},{"attribute":"class","derived":"todomvc.app.Todos~ui.derived_24","kind":"attribute","part":24,"path":"filter","signal":"filter"},{"attribute":"hidden","derived":"todomvc.app.Todos~ui.derived_25","kind":"boolean_attribute","part":25,"path":"todos","signal":"todos"}],"parts":[{"anchor":"element","id":0,"kind":"attribute","owner":0,"value":"draft"},{"anchor":"element","event":"input","id":1,"kind":"event","owner":0,"value":"2070bd5321ef2f86"},{"anchor":"element","event":"keydown","id":2,"kind":"event","owner":0,"value":"f80d574d379ee9e9"},{"anchor":"element","id":3,"kind":"boolean_attribute","owner":1,"value":"#todomvc.app.Todos~ui~3"},{"anchor":"element","id":4,"kind":"boolean_attribute","owner":2,"value":"#todomvc.app.Todos~ui~4"},{"anchor":"element","event":"press","id":5,"kind":"event","owner":2,"value":"d5f9bbe064dac9b8"},{"anchor":"range","id":6,"kind":"conditional","value":"#todomvc.app.Todos~ui~6"},{"anchor":"range","id":7,"kind":"each","value":"#todomvc.app.Todos~ui~7"},{"anchor":"element","id":8,"kind":"attribute","owner":3,"value":"row.class"},{"anchor":"element","id":9,"kind":"boolean_attribute","owner":4,"value":"row.completed"},{"anchor":"element","event":"press","id":10,"kind":"event","owner":4,"value":"8412388d5acb6c91"},{"anchor":"element","event":"dblclick","id":11,"kind":"event","owner":5,"value":"f2e32fa2b1f78a9e"},{"anchor":"range","id":12,"kind":"text","value":"row.title"},{"anchor":"element","event":"press","id":13,"kind":"event","owner":6,"value":"193d816ea0363990"},{"anchor":"range","id":14,"kind":"conditional","value":"row.editing"},{"anchor":"element","id":15,"kind":"attribute","owner":7,"value":"row.title"},{"anchor":"element","event":"input","id":16,"kind":"event","owner":7,"value":"d95d929b5da50861"},{"anchor":"element","event":"keydown","id":17,"kind":"event","owner":7,"value":"7bed2c9f49c8c146"},{"anchor":"element","event":"blur","id":18,"kind":"event","owner":7,"value":"8002f6408eb906fa"},{"anchor":"element","id":19,"kind":"boolean_attribute","owner":8,"value":"#todomvc.app.Todos~ui~19"},{"anchor":"range","id":20,"kind":"text","value":"#todomvc.app.Todos~ui~20"},{"anchor":"range","id":21,"kind":"text","value":"#todomvc.app.Todos~ui~21"},{"anchor":"element","id":22,"kind":"attribute","owner":9,"value":"#todomvc.app.Todos~ui~22"},{"anchor":"element","id":23,"kind":"attribute","owner":10,"value":"#todomvc.app.Todos~ui~23"},{"anchor":"element","id":24,"kind":"attribute","owner":11,"value":"#todomvc.app.Todos~ui~24"},{"anchor":"element","id":25,"kind":"boolean_attribute","owner":12,"value":"#todomvc.app.Todos~ui~25"},{"anchor":"element","event":"press","id":26,"kind":"event","owner":12,"value":"debad9c9dcefd01e"},{"anchor":"document","id":27,"kind":"title","value":""}],"resume":{"abi":"1","build":"b58bd38756fbab4d1","capture":"","captures":"","construct":"region","document":"efcaa4323032c792","handler":"","handlers":{"193d816ea0363990":{"capture":"row.id","captures":"x","handler":"193d816ea0363990"},"2070bd5321ef2f86":{"capture":"","captures":"","handler":"2070bd5321ef2f86"},"7bed2c9f49c8c146":{"capture":"","captures":"","handler":"7bed2c9f49c8c146"},"8002f6408eb906fa":{"capture":"","captures":"","handler":"8002f6408eb906fa"},"8412388d5acb6c91":{"capture":"row.id","captures":"x","handler":"8412388d5acb6c91"},"d5f9bbe064dac9b8":{"capture":"","captures":"","handler":"d5f9bbe064dac9b8"},"d95d929b5da50861":{"capture":"","captures":"","handler":"d95d929b5da50861"},"debad9c9dcefd01e":{"capture":"","captures":"","handler":"debad9c9dcefd01e"},"f2e32fa2b1f78a9e":{"capture":"row.id,row.title","captures":"x","handler":"f2e32fa2b1f78a9e"},"f80d574d379ee9e9":{"capture":"","captures":"","handler":"f80d574d379ee9e9"}},"scheme":"2","scope":"public"},"schema":"efcaa4323032c792","signals":{"draft":"","edit_text":"","editing":0,"filter":"all","todos":[]},"template":"todomvc.app.Todos~ui"}</script>
+<script type="application/json" id="pw-parts">{"blocks":{"6":{"binding":"row","body":[{"chunk":"static","value":" \u003cli data-pw=\"3\" "},{"chunk":"dynamic","value":{"context":"attribute","id":7,"name":"class","owner":3,"part":"attribute","value":"row.#todomvc.app.Todos~ui~7"}},{"chunk":"static","value":"> \u003cdiv class=\"view\"> \u003cinput data-pw=\"4\" class=\"toggle\" type=\"checkbox\" aria-label=\"Completed\" "},{"chunk":"dynamic","value":{"id":8,"name":"checked","owner":4,"part":"boolean_attribute","value":"row.completed"}},{"chunk":"dynamic","value":{"captures":["row.id"],"event":"press","handler":"6bab131d6be1002f","id":9,"name":"","owner":4,"part":"event"}},{"chunk":"static","value":"> \u003clabel data-pw=\"5\""},{"chunk":"dynamic","value":{"captures":["row.id","row.title"],"event":"dblclick","handler":"eac70f01a4f1f8a8","id":10,"name":"","owner":5,"part":"event"}},{"chunk":"static","value":">"},{"chunk":"dynamic","value":{"context":"text","id":11,"part":"text","value":"row.title"}},{"chunk":"static","value":"\u003c/label> \u003cbutton data-pw=\"6\" class=\"destroy\" type=\"button\" aria-label=\"Delete\""},{"chunk":"dynamic","value":{"captures":["row.id"],"event":"press","handler":"91a2beb447a1360a","id":12,"name":"","owner":6,"part":"event"}},{"chunk":"static","value":">\u003c/button> \u003c/div> "},{"chunk":"dynamic","value":{"id":13,"otherwise":[],"part":"conditional","then":[{"chunk":"static","value":" \u003cinput data-pw=\"7\" class=\"edit\" aria-label=\"Edit\" autofocus "},{"chunk":"dynamic","value":{"context":"attribute","id":14,"name":"value","owner":7,"part":"attribute","value":"row.title"}},{"chunk":"dynamic","value":{"captures":[],"event":"input","handler":"d95d929b5da50861","id":15,"name":"","owner":7,"part":"event"}},{"chunk":"dynamic","value":{"captures":[],"event":"keydown","handler":"7bed2c9f49c8c146","id":16,"name":"","owner":7,"part":"event"}},{"chunk":"dynamic","value":{"captures":[],"event":"blur","handler":"8002f6408eb906fa","id":17,"name":"","owner":7,"part":"event"}},{"chunk":"static","value":"> "}],"value":"row.#todomvc.app.Todos~ui~13"}},{"chunk":"static","value":" \u003c/li> "}],"collection":"#todomvc.app.Todos~ui~6","id":6,"key":"id","part":"each"}},"computed":"/computed/todomvc.app.Todos~ui.mjs","cursor":0,"device":[{"conflict":"last_write_wins","name":"todos-pleris","schemas":[{"of":{"fields":[["id",{"t":"int"}],["title",{"t":"string"}],["completed",{"t":"bool"}]],"t":"record"},"t":"list"}],"signal":"todos","version":1}],"fragment":{"forms":[{"form":"/","value":"all"},{"form":"/active","value":"active"},{"form":"/completed","value":"completed"}],"signal":"filter"},"listens":false,"live":[{"attribute":"value","kind":"attribute","part":0,"path":"draft","signal":"draft"},{"attribute":"hidden","derived":"todomvc.app.Todos~ui.derived_3","kind":"boolean_attribute","part":3,"path":"todos","signal":"todos"},{"attribute":"checked","derived":"todomvc.app.Todos~ui.derived_4","kind":"boolean_attribute","part":4,"path":"todos","signal":"todos"},{"kind":"each","part":6,"path":"","reads":["todos","filter","editing"],"signal":"todos"},{"derived":"todomvc.app.Todos~ui.derived_6","kind":"value","part":6,"path":"todos","paths":["todos","filter"],"reads":["todos","filter"],"signal":"todos"},{"attribute":"hidden","derived":"todomvc.app.Todos~ui.derived_18","kind":"boolean_attribute","part":18,"path":"todos","signal":"todos"},{"derived":"todomvc.app.Todos~ui.derived_19","kind":"text","part":19,"path":"todos","signal":"todos"},{"derived":"todomvc.app.Todos~ui.derived_20","kind":"text","part":20,"path":"todos","signal":"todos"},{"attribute":"class","derived":"todomvc.app.Todos~ui.derived_21","kind":"attribute","part":21,"path":"filter","signal":"filter"},{"attribute":"class","derived":"todomvc.app.Todos~ui.derived_22","kind":"attribute","part":22,"path":"filter","signal":"filter"},{"attribute":"class","derived":"todomvc.app.Todos~ui.derived_23","kind":"attribute","part":23,"path":"filter","signal":"filter"},{"attribute":"hidden","derived":"todomvc.app.Todos~ui.derived_24","kind":"boolean_attribute","part":24,"path":"todos","signal":"todos"}],"parts":[{"anchor":"element","id":0,"kind":"attribute","owner":0,"value":"draft"},{"anchor":"element","event":"input","id":1,"kind":"event","owner":0,"value":"2070bd5321ef2f86"},{"anchor":"element","event":"keydown","id":2,"kind":"event","owner":0,"value":"f80d574d379ee9e9"},{"anchor":"element","id":3,"kind":"boolean_attribute","owner":1,"value":"#todomvc.app.Todos~ui~3"},{"anchor":"element","id":4,"kind":"boolean_attribute","owner":2,"value":"#todomvc.app.Todos~ui~4"},{"anchor":"element","event":"press","id":5,"kind":"event","owner":2,"value":"d5f9bbe064dac9b8"},{"anchor":"range","id":6,"kind":"each","value":"#todomvc.app.Todos~ui~6"},{"anchor":"element","id":7,"kind":"attribute","owner":3,"value":"row.#todomvc.app.Todos~ui~7"},{"anchor":"element","id":8,"kind":"boolean_attribute","owner":4,"value":"row.completed"},{"anchor":"element","event":"press","id":9,"kind":"event","owner":4,"value":"6bab131d6be1002f"},{"anchor":"element","event":"dblclick","id":10,"kind":"event","owner":5,"value":"eac70f01a4f1f8a8"},{"anchor":"range","id":11,"kind":"text","value":"row.title"},{"anchor":"element","event":"press","id":12,"kind":"event","owner":6,"value":"91a2beb447a1360a"},{"anchor":"range","id":13,"kind":"conditional","value":"row.#todomvc.app.Todos~ui~13"},{"anchor":"element","id":14,"kind":"attribute","owner":7,"value":"row.title"},{"anchor":"element","event":"input","id":15,"kind":"event","owner":7,"value":"d95d929b5da50861"},{"anchor":"element","event":"keydown","id":16,"kind":"event","owner":7,"value":"7bed2c9f49c8c146"},{"anchor":"element","event":"blur","id":17,"kind":"event","owner":7,"value":"8002f6408eb906fa"},{"anchor":"element","id":18,"kind":"boolean_attribute","owner":8,"value":"#todomvc.app.Todos~ui~18"},{"anchor":"range","id":19,"kind":"text","value":"#todomvc.app.Todos~ui~19"},{"anchor":"range","id":20,"kind":"text","value":"#todomvc.app.Todos~ui~20"},{"anchor":"element","id":21,"kind":"attribute","owner":9,"value":"#todomvc.app.Todos~ui~21"},{"anchor":"element","id":22,"kind":"attribute","owner":10,"value":"#todomvc.app.Todos~ui~22"},{"anchor":"element","id":23,"kind":"attribute","owner":11,"value":"#todomvc.app.Todos~ui~23"},{"anchor":"element","id":24,"kind":"boolean_attribute","owner":12,"value":"#todomvc.app.Todos~ui~24"},{"anchor":"element","event":"press","id":25,"kind":"event","owner":12,"value":"debad9c9dcefd01e"},{"anchor":"document","id":26,"kind":"title","value":""}],"resume":{"abi":"1","build":"bf462b4b31d94ca26","capture":"","captures":"","construct":"region","document":"73475a0983c459d8","handler":"","handlers":{"2070bd5321ef2f86":{"capture":"","captures":"","handler":"2070bd5321ef2f86"},"6bab131d6be1002f":{"capture":"row.id","captures":"x","handler":"6bab131d6be1002f"},"7bed2c9f49c8c146":{"capture":"","captures":"","handler":"7bed2c9f49c8c146"},"8002f6408eb906fa":{"capture":"","captures":"","handler":"8002f6408eb906fa"},"91a2beb447a1360a":{"capture":"row.id","captures":"x","handler":"91a2beb447a1360a"},"d5f9bbe064dac9b8":{"capture":"","captures":"","handler":"d5f9bbe064dac9b8"},"d95d929b5da50861":{"capture":"","captures":"","handler":"d95d929b5da50861"},"debad9c9dcefd01e":{"capture":"","captures":"","handler":"debad9c9dcefd01e"},"eac70f01a4f1f8a8":{"capture":"row.id,row.title","captures":"x","handler":"eac70f01a4f1f8a8"},"f80d574d379ee9e9":{"capture":"","captures":"","handler":"f80d574d379ee9e9"}},"scheme":"2","scope":"public"},"rowsComputed":[{"inputs":["row","editing"],"name":"#todomvc.app.Todos~ui~7"},{"inputs":["row","editing"],"name":"#todomvc.app.Todos~ui~13"}],"schema":"73475a0983c459d8","signals":{"draft":"","edit_text":"","editing":0,"filter":"all","todos":[]},"template":"todomvc.app.Todos~ui"}</script>
 <script>import("/pw-runtime.mjs")</script>
 </body>
 </html>
@@ -1868,7 +1868,7 @@ failures:
     tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing
     tests::prerender::todomvc_is_one_document
 
-test result: FAILED. 17 passed; 2 failed; 0 ignored; 0 measured; 1015 filtered out; finished in 4.03s
+test result: FAILED. 17 passed; 2 failed; 0 ignored; 0 measured; 1018 filtered out; finished in 5.40s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1899,7 +1899,7 @@ failures:
 
 ---- tests::prerender::each_representation_holds_the_document stdout ----
 
-thread 'tests::prerender::each_representation_holds_the_document' (201890) panicked at spikes/own-renderer/server/src/tests/prerender.rs:190:5:
+thread 'tests::prerender::each_representation_holds_the_document' (209455) panicked at spikes/own-renderer/server/src/tests/prerender.rs:190:5:
 assertion `left == right` failed: HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 720
@@ -1919,7 +1919,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::each_representation_holds_the_document
 
-test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1015 filtered out; finished in 4.05s
+test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1018 filtered out; finished in 5.46s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1961,7 +1961,7 @@ failures:
 
 ---- tests::prerender::a_versioned_build_says_its_delivery_and_names_its_files_at_it stdout ----
 
-thread 'tests::prerender::a_versioned_build_says_its_delivery_and_names_its_files_at_it' (202234) panicked at spikes/own-renderer/server/src/tests/prerender.rs:357:5:
+thread 'tests::prerender::a_versioned_build_says_its_delivery_and_names_its_files_at_it' (209800) panicked at spikes/own-renderer/server/src/tests/prerender.rs:357:5:
 assertion `left == right` failed: HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 2218
@@ -1977,7 +1977,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::prerender::it_says_what_a_document_says_of_itself stdout ----
 
-thread 'tests::prerender::it_says_what_a_document_says_of_itself' (202249) panicked at spikes/own-renderer/server/src/tests/prerender.rs:323:5:
+thread 'tests::prerender::it_says_what_a_document_says_of_itself' (209815) panicked at spikes/own-renderer/server/src/tests/prerender.rs:323:5:
 HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 2161
@@ -1993,7 +1993,7 @@ failures:
     tests::prerender::a_versioned_build_says_its_delivery_and_names_its_files_at_it
     tests::prerender::it_says_what_a_document_says_of_itself
 
-test result: FAILED. 17 passed; 2 failed; 0 ignored; 0 measured; 1015 filtered out; finished in 4.10s
+test result: FAILED. 17 passed; 2 failed; 0 ignored; 0 measured; 1018 filtered out; finished in 5.40s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -2024,7 +2024,7 @@ failures:
 
 ---- tests::prerender::a_browser_that_holds_a_representation_is_told_so stdout ----
 
-thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (202556) panicked at spikes/own-renderer/server/src/tests/prerender.rs:243:5:
+thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (210122) panicked at spikes/own-renderer/server/src/tests/prerender.rs:243:5:
 assertion `left == right` failed: HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 720
@@ -2045,7 +2045,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::a_browser_that_holds_a_representation_is_told_so
 
-test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1015 filtered out; finished in 4.07s
+test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1018 filtered out; finished in 5.38s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -2076,7 +2076,7 @@ failures:
 
 ---- tests::prerender::a_browser_that_holds_a_representation_is_told_so stdout ----
 
-thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (202900) panicked at spikes/own-renderer/server/src/tests/prerender.rs:272:9:
+thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (210465) panicked at spikes/own-renderer/server/src/tests/prerender.rs:272:9:
 assertion `left == right` failed: W/"9f515e6bc11f630757b9b59ba88ad226eab2354610968642ec9192653183d930": HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 720
@@ -2097,7 +2097,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::a_browser_that_holds_a_representation_is_told_so
 
-test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1015 filtered out; finished in 4.07s
+test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1018 filtered out; finished in 5.37s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -2128,7 +2128,7 @@ failures:
 
 ---- tests::prerender::a_browser_that_holds_a_representation_is_told_so stdout ----
 
-thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (203246) panicked at spikes/own-renderer/server/src/tests/prerender.rs:272:9:
+thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (210812) panicked at spikes/own-renderer/server/src/tests/prerender.rs:272:9:
 assertion `left == right` failed: *: HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 720
@@ -2149,7 +2149,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::a_browser_that_holds_a_representation_is_told_so
 
-test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1015 filtered out; finished in 4.09s
+test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1018 filtered out; finished in 5.29s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -2180,7 +2180,7 @@ failures:
 
 ---- tests::prerender::a_browser_that_holds_a_representation_is_told_so stdout ----
 
-thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (203593) panicked at spikes/own-renderer/server/src/tests/prerender.rs:262:5:
+thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (211160) panicked at spikes/own-renderer/server/src/tests/prerender.rs:262:5:
 assertion `left == right` failed: HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 720
@@ -2201,7 +2201,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::a_browser_that_holds_a_representation_is_told_so
 
-test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1015 filtered out; finished in 4.09s
+test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1018 filtered out; finished in 5.32s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -2232,7 +2232,7 @@ failures:
 
 ---- tests::prerender::a_browser_that_holds_a_representation_is_told_so stdout ----
 
-thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (203937) panicked at spikes/own-renderer/server/src/tests/prerender.rs:253:5:
+thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (211505) panicked at spikes/own-renderer/server/src/tests/prerender.rs:253:5:
 assertion `left == right` failed: HTTP/1.1 304 Not Modified
 content-length: 0
 cache-control: public, no-cache
@@ -2249,7 +2249,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::a_browser_that_holds_a_representation_is_told_so
 
-test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1015 filtered out; finished in 4.14s
+test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1018 filtered out; finished in 5.24s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -2280,7 +2280,7 @@ failures:
 
 ---- tests::prerender::a_browser_that_holds_a_representation_is_told_so stdout ----
 
-thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (204280) panicked at spikes/own-renderer/server/src/tests/prerender.rs:251:5:
+thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (211848) panicked at spikes/own-renderer/server/src/tests/prerender.rs:251:5:
 assertion `left == right` failed: HTTP/1.1 304 Not Modified
 cache-control: public, no-cache
 etag: "9f515e6bc11f630757b9b59ba88ad226eab2354610968642ec9192653183d930"
@@ -2295,7 +2295,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::a_browser_that_holds_a_representation_is_told_so
 
-test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1015 filtered out; finished in 4.08s
+test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1018 filtered out; finished in 5.26s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -2326,7 +2326,7 @@ failures:
 
 ---- tests::a_compiled_module_is_sent_as_its_packaging_wrote_it stdout ----
 
-thread 'tests::a_compiled_module_is_sent_as_its_packaging_wrote_it' (204605) panicked at spikes/own-renderer/server/src/main.rs:19192:13:
+thread 'tests::a_compiled_module_is_sent_as_its_packaging_wrote_it' (212235) panicked at spikes/own-renderer/server/src/main.rs:19378:13:
 HTTP/1.1 200 OK
 content-type: text/javascript; charset=utf-8
 content-length: 339
@@ -2342,15 +2342,15 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::a_compiled_module_is_sent_as_its_packaging_wrote_it
 
-test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1015 filtered out; finished in 4.11s
+test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1018 filtered out; finished in 5.33s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
 a request that holds a build's file is sent it again: KILLED (1 of 19 tests fail)
 warning: unused variable: `build`
-    --> spikes/own-renderer/server/src/main.rs:7332:18
+    --> spikes/own-renderer/server/src/main.rs:7339:18
      |
-7332 |             let (build, delivery, _) = self.document_says();
+7339 |             let (build, delivery, _) = self.document_says();
      |                  ^^^^^ help: if this is intentional, prefix it with an underscore: `_build`
      |
      = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
@@ -2381,7 +2381,7 @@ failures:
 
 ---- tests::prerender::it_says_what_a_document_says_of_itself stdout ----
 
-thread 'tests::prerender::it_says_what_a_document_says_of_itself' (205006) panicked at spikes/own-renderer/server/src/tests/prerender.rs:331:5:
+thread 'tests::prerender::it_says_what_a_document_says_of_itself' (212635) panicked at spikes/own-renderer/server/src/tests/prerender.rs:331:5:
 assertion `left == right` failed: HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 2161
@@ -2400,15 +2400,15 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::it_says_what_a_document_says_of_itself
 
-test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1015 filtered out; finished in 4.07s
+test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1018 filtered out; finished in 5.19s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
 it does not say its build: KILLED (1 of 19 tests fail)
 warning: unused variable: `delivery`
-    --> spikes/own-renderer/server/src/main.rs:7332:25
+    --> spikes/own-renderer/server/src/main.rs:7339:25
      |
-7332 |             let (build, delivery, _) = self.document_says();
+7339 |             let (build, delivery, _) = self.document_says();
      |                         ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_delivery`
      |
      = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
@@ -2439,7 +2439,7 @@ failures:
 
 ---- tests::prerender::a_versioned_build_says_its_delivery_and_names_its_files_at_it stdout ----
 
-thread 'tests::prerender::a_versioned_build_says_its_delivery_and_names_its_files_at_it' (205339) panicked at spikes/own-renderer/server/src/tests/prerender.rs:357:5:
+thread 'tests::prerender::a_versioned_build_says_its_delivery_and_names_its_files_at_it' (212969) panicked at spikes/own-renderer/server/src/tests/prerender.rs:357:5:
 assertion `left == right` failed: HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 2218
@@ -2459,7 +2459,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::a_versioned_build_says_its_delivery_and_names_its_files_at_it
 
-test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1015 filtered out; finished in 4.08s
+test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1018 filtered out; finished in 5.22s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -2490,7 +2490,7 @@ failures:
 
 ---- tests::prerender::a_browser_that_holds_a_representation_is_told_so stdout ----
 
-thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (205661) panicked at spikes/own-renderer/server/src/tests/prerender.rs:234:5:
+thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (213291) panicked at spikes/own-renderer/server/src/tests/prerender.rs:234:5:
 assertion `left != right` failed
   left: "\"7631b4543aefc05d43ed0a5135c6b489fa729778887263d2de0784fe96729c56\""
  right: "\"7631b4543aefc05d43ed0a5135c6b489fa729778887263d2de0784fe96729c56\""
@@ -2500,7 +2500,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::a_browser_that_holds_a_representation_is_told_so
 
-test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1015 filtered out; finished in 4.10s
+test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1018 filtered out; finished in 5.18s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -2539,7 +2539,7 @@ failures:
 
 ---- tests::prerender::what_it_says_of_itself_is_part_of_its_validator stdout ----
 
-thread 'tests::prerender::what_it_says_of_itself_is_part_of_its_validator' (206055) panicked at spikes/own-renderer/server/src/tests/prerender.rs:301:5:
+thread 'tests::prerender::what_it_says_of_itself_is_part_of_its_validator' (213684) panicked at spikes/own-renderer/server/src/tests/prerender.rs:301:5:
 assertion `left != right` failed
   left: "\"4c7742c80d9b421a3a535b6fb6e5f2a66a5d42fb18e5e2617e9228afb2d2f075\""
  right: "\"4c7742c80d9b421a3a535b6fb6e5f2a66a5d42fb18e5e2617e9228afb2d2f075\""
@@ -2549,7 +2549,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::what_it_says_of_itself_is_part_of_its_validator
 
-test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1015 filtered out; finished in 4.11s
+test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1018 filtered out; finished in 5.19s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -2580,7 +2580,7 @@ failures:
 
 ---- tests::prerender::a_browser_that_holds_a_representation_is_told_so stdout ----
 
-thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (206353) panicked at spikes/own-renderer/server/src/tests/prerender.rs:234:5:
+thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (213988) panicked at spikes/own-renderer/server/src/tests/prerender.rs:234:5:
 assertion `left != right` failed
   left: "\"341f6e5d8a8a8da3c39d5a98e315a3efcfd2b58d959a94cbd4455e15b3f3811d\""
  right: "\"341f6e5d8a8a8da3c39d5a98e315a3efcfd2b58d959a94cbd4455e15b3f3811d\""
@@ -2588,7 +2588,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::prerender::each_representation_holds_the_document stdout ----
 
-thread 'tests::prerender::each_representation_holds_the_document' (206375) panicked at spikes/own-renderer/server/src/tests/prerender.rs:190:5:
+thread 'tests::prerender::each_representation_holds_the_document' (214010) panicked at spikes/own-renderer/server/src/tests/prerender.rs:190:5:
 assertion `left == right` failed: HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 934
@@ -2609,7 +2609,7 @@ failures:
     tests::prerender::a_browser_that_holds_a_representation_is_told_so
     tests::prerender::each_representation_holds_the_document
 
-test result: FAILED. 17 passed; 2 failed; 0 ignored; 0 measured; 1015 filtered out; finished in 4.10s
+test result: FAILED. 17 passed; 2 failed; 0 ignored; 0 measured; 1018 filtered out; finished in 5.21s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -2640,7 +2640,7 @@ failures:
 
 ---- tests::prerender::a_browser_that_holds_a_representation_is_told_so stdout ----
 
-thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (206694) panicked at spikes/own-renderer/server/src/tests/prerender.rs:235:5:
+thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (214330) panicked at spikes/own-renderer/server/src/tests/prerender.rs:235:5:
 assertion `left != right` failed
   left: "\"341f6e5d8a8a8da3c39d5a98e315a3efcfd2b58d959a94cbd4455e15b3f3811d\""
  right: "\"341f6e5d8a8a8da3c39d5a98e315a3efcfd2b58d959a94cbd4455e15b3f3811d\""
@@ -2648,7 +2648,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::prerender::each_representation_holds_the_document stdout ----
 
-thread 'tests::prerender::each_representation_holds_the_document' (206716) panicked at spikes/own-renderer/server/src/tests/prerender.rs:198:5:
+thread 'tests::prerender::each_representation_holds_the_document' (214352) panicked at spikes/own-renderer/server/src/tests/prerender.rs:198:5:
 assertion `left == right` failed: HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 2161
@@ -2668,7 +2668,7 @@ failures:
     tests::prerender::a_browser_that_holds_a_representation_is_told_so
     tests::prerender::each_representation_holds_the_document
 
-test result: FAILED. 17 passed; 2 failed; 0 ignored; 0 measured; 1015 filtered out; finished in 4.30s
+test result: FAILED. 17 passed; 2 failed; 0 ignored; 0 measured; 1018 filtered out; finished in 5.17s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -2699,7 +2699,7 @@ failures:
 
 ---- tests::prerender::a_gzip_trailers_checksum_is_crc_32 stdout ----
 
-thread 'tests::prerender::a_gzip_trailers_checksum_is_crc_32' (207046) panicked at spikes/own-renderer/server/src/tests/prerender.rs:216:5:
+thread 'tests::prerender::a_gzip_trailers_checksum_is_crc_32' (214682) panicked at spikes/own-renderer/server/src/tests/prerender.rs:216:5:
 assertion `left == right` failed
   left: 3485321504
  right: 3421780262
@@ -2709,7 +2709,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::a_gzip_trailers_checksum_is_crc_32
 
-test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1015 filtered out; finished in 4.10s
+test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1018 filtered out; finished in 5.24s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -2740,7 +2740,7 @@ failures:
 
 ---- tests::prerender::each_representation_holds_the_document stdout ----
 
-thread 'tests::prerender::each_representation_holds_the_document' (207413) panicked at spikes/own-renderer/server/src/tests/prerender.rs:206:5:
+thread 'tests::prerender::each_representation_holds_the_document' (215048) panicked at spikes/own-renderer/server/src/tests/prerender.rs:206:5:
 assertion `left == right` failed
   left: [0, 0, 8, 113]
  right: [113, 8, 0, 0]
@@ -2750,7 +2750,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::each_representation_holds_the_document
 
-test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1015 filtered out; finished in 4.09s
+test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 1018 filtered out; finished in 5.25s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 

@@ -1,8 +1,8 @@
 The longer-holds ADR - a subscription held until something happens
 
 produced by: just e14-longer-holds
-commit: 02a304ecf96dfa2d824efe6ca1f989d61cc96fc3
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42811089983 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: bd1aaeeb8ba8d969afb7228305df754828267487
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == held, live and ended by its page (tests::longer_holds::, and the idle subscription's)
@@ -19,16 +19,16 @@ test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hel
 test tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills ... ok
 test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold ... ok
 test tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long ... ok
-test tests::longer_holds::a_held_poll_keeps_its_page_live ... ok
 test tests::longer_holds::a_held_stream_keeps_its_page_live ... ok
+test tests::longer_holds::a_held_poll_keeps_its_page_live ... ok
 test tests::longer_holds::a_streams_page_gone_ends_its_hold ... ok
 test tests::longer_holds::a_stream_that_asks_is_held_long ... ok
 test tests::longer_holds::an_idle_poll_is_held_its_whole_hold ... ok
-test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 1018 filtered out; finished in 7.62s
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 1020 filtered out; finished in 7.51s
 
 == which pages ask, in three engines (e2e/longer-holds.spec.mjs)
 
-  18 passed (45.3s)
+  18 passed (41.7s)
 
 == mutation controls (scripts/longer_holds_mutations.py)
 
@@ -51,7 +51,7 @@ test tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long ... ok
 test tests::longer_holds::a_streams_page_gone_ends_its_hold ... ok
 test tests::longer_holds::an_idle_poll_is_held_its_whole_hold ... ok
 
-test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 1019 filtered out; finished in 23.89s
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 1021 filtered out; finished in 23.73s
 
 
 
@@ -77,15 +77,15 @@ failures:
 
 ---- tests::longer_holds::a_streams_page_gone_ends_its_hold stdout ----
 
-thread 'tests::longer_holds::a_streams_page_gone_ends_its_hold' (10245) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:415:5:
-ended once its page went: 25.000679699s
+thread 'tests::longer_holds::a_streams_page_gone_ends_its_hold' (48090) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:415:5:
+ended once its page went: 25.000443357s
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 
 failures:
     tests::longer_holds::a_streams_page_gone_ends_its_hold
 
-test result: FAILED. 15 passed; 1 failed; 0 ignored; 0 measured; 1019 filtered out; finished in 47.94s
+test result: FAILED. 15 passed; 1 failed; 0 ignored; 0 measured; 1021 filtered out; finished in 47.76s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -113,15 +113,15 @@ failures:
 
 ---- tests::longer_holds::a_polls_page_gone_ends_its_hold stdout ----
 
-thread 'tests::longer_holds::a_polls_page_gone_ends_its_hold' (10550) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:397:5:
-ended once its page went: 25.000478404s
+thread 'tests::longer_holds::a_polls_page_gone_ends_its_hold' (48391) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:397:5:
+ended once its page went: 25.000444821s
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 
 failures:
     tests::longer_holds::a_polls_page_gone_ends_its_hold
 
-test result: FAILED. 15 passed; 1 failed; 0 ignored; 0 measured; 1019 filtered out; finished in 47.97s
+test result: FAILED. 15 passed; 1 failed; 0 ignored; 0 measured; 1021 filtered out; finished in 47.77s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -149,43 +149,43 @@ failures:
 
 ---- tests::an_idle_subscription_waits_on_the_table_rather_than_asking_it stdout ----
 
-thread 'tests::an_idle_subscription_waits_on_the_table_rather_than_asking_it' (10851) panicked at spikes/own-renderer/server/src/main.rs:17116:9:
-held its whole hold: 56.225µs
+thread 'tests::an_idle_subscription_waits_on_the_table_rather_than_asking_it' (48696) panicked at spikes/own-renderer/server/src/main.rs:17300:9:
+held its whole hold: 46.29µs
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::longer_holds::a_held_poll_keeps_its_page_live stdout ----
 
-thread 'tests::longer_holds::a_held_poll_keeps_its_page_live' (10856) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:350:5:
+thread 'tests::longer_holds::a_held_poll_keeps_its_page_live' (48701) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:350:5:
 live past LIVE while its poll is held
 
 ---- tests::longer_holds::a_held_stream_keeps_its_page_live stdout ----
 
-thread 'tests::longer_holds::a_held_stream_keeps_its_page_live' (10877) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:368:5:
+thread 'tests::longer_holds::a_held_stream_keeps_its_page_live' (48703) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:368:5:
 live past LIVE while its stream is held
 
 ---- tests::longer_holds::a_long_hold_left_alone_looks_once_a_second stdout ----
 
-thread 'tests::longer_holds::a_long_hold_left_alone_looks_once_a_second' (10882) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:459:5:
-None passes: 8117 ms subscribed at 1
-8132 ms stream opened since 1
-8132 ms stream's page gone at pass 0
+thread 'tests::longer_holds::a_long_hold_left_alone_looks_once_a_second' (48707) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:459:5:
+None passes: 8098 ms subscribed at 1
+8111 ms stream opened since 1
+8111 ms stream's page gone at pass 0
 
 ---- tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream stdout ----
 
-thread 'tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream' (10888) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:285:5:
+thread 'tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream' (48712) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:285:5:
 assertion `left == right` failed: the value the failure held back
   left: 0
  right: 1
 
 ---- tests::longer_holds::a_stream_that_asks_is_held_long stdout ----
 
-thread 'tests::longer_holds::a_stream_that_asks_is_held_long' (10898) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:149:5:
-held its whole hold: 225.991µs
+thread 'tests::longer_holds::a_stream_that_asks_is_held_long' (48722) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:149:5:
+held its whole hold: 93.53µs
 
 ---- tests::longer_holds::an_idle_poll_is_held_its_whole_hold stdout ----
 
-thread 'tests::longer_holds::an_idle_poll_is_held_its_whole_hold' (10902) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:51:5:
-held its whole hold: 188.605µs
+thread 'tests::longer_holds::an_idle_poll_is_held_its_whole_hold' (48726) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:51:5:
+held its whole hold: 97.026µs
 
 
 failures:
@@ -197,7 +197,7 @@ failures:
     tests::longer_holds::a_stream_that_asks_is_held_long
     tests::longer_holds::an_idle_poll_is_held_its_whole_hold
 
-test result: FAILED. 9 passed; 7 failed; 0 ignored; 0 measured; 1019 filtered out; finished in 10.18s
+test result: FAILED. 9 passed; 7 failed; 0 ignored; 0 measured; 1021 filtered out; finished in 9.95s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -225,7 +225,7 @@ failures:
 
 ---- tests::longer_holds::a_held_poll_keeps_its_page_live stdout ----
 
-thread 'tests::longer_holds::a_held_poll_keeps_its_page_live' (11188) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:350:5:
+thread 'tests::longer_holds::a_held_poll_keeps_its_page_live' (49013) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:350:5:
 live past LIVE while its poll is held
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -233,7 +233,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::longer_holds::a_held_poll_keeps_its_page_live
 
-test result: FAILED. 15 passed; 1 failed; 0 ignored; 0 measured; 1019 filtered out; finished in 23.95s
+test result: FAILED. 15 passed; 1 failed; 0 ignored; 0 measured; 1021 filtered out; finished in 23.78s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -261,7 +261,7 @@ failures:
 
 ---- tests::longer_holds::a_held_stream_keeps_its_page_live stdout ----
 
-thread 'tests::longer_holds::a_held_stream_keeps_its_page_live' (11506) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:368:5:
+thread 'tests::longer_holds::a_held_stream_keeps_its_page_live' (49332) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:368:5:
 live past LIVE while its stream is held
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -269,7 +269,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::longer_holds::a_held_stream_keeps_its_page_live
 
-test result: FAILED. 15 passed; 1 failed; 0 ignored; 0 measured; 1019 filtered out; finished in 23.91s
+test result: FAILED. 15 passed; 1 failed; 0 ignored; 0 measured; 1021 filtered out; finished in 23.72s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -297,7 +297,7 @@ failures:
 
 ---- tests::longer_holds::a_host_holds_a_subscription_twenty_five_seconds stdout ----
 
-thread 'tests::longer_holds::a_host_holds_a_subscription_twenty_five_seconds' (11829) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:426:5:
+thread 'tests::longer_holds::a_host_holds_a_subscription_twenty_five_seconds' (49646) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:426:5:
 assertion `left == right` failed
   left: 2s
  right: 25s
@@ -307,7 +307,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::longer_holds::a_host_holds_a_subscription_twenty_five_seconds
 
-test result: FAILED. 15 passed; 1 failed; 0 ignored; 0 measured; 1019 filtered out; finished in 23.95s
+test result: FAILED. 15 passed; 1 failed; 0 ignored; 0 measured; 1021 filtered out; finished in 23.72s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -335,13 +335,13 @@ failures:
 
 ---- tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is stdout ----
 
-thread 'tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is' (12148) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:111:5:
+thread 'tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is' (49962) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:111:5:
 assertion failed: begun.elapsed() < Duration::from_secs(5)
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::longer_holds::a_poll_that_does_not_ask_is_not_held_long stdout ----
 
-thread 'tests::longer_holds::a_poll_that_does_not_ask_is_not_held_long' (12152) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:70:5:
+thread 'tests::longer_holds::a_poll_that_does_not_ask_is_not_held_long' (49966) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:70:5:
 assertion failed: begun.elapsed() < Duration::from_secs(5)
 
 
@@ -349,7 +349,7 @@ failures:
     tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is
     tests::longer_holds::a_poll_that_does_not_ask_is_not_held_long
 
-test result: FAILED. 14 passed; 2 failed; 0 ignored; 0 measured; 1019 filtered out; finished in 63.75s
+test result: FAILED. 14 passed; 2 failed; 0 ignored; 0 measured; 1021 filtered out; finished in 63.62s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -377,15 +377,15 @@ failures:
 
 ---- tests::longer_holds::an_idle_poll_is_held_its_whole_hold stdout ----
 
-thread 'tests::longer_holds::an_idle_poll_is_held_its_whole_hold' (12491) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:51:5:
-held its whole hold: 1.000312284s
+thread 'tests::longer_holds::an_idle_poll_is_held_its_whole_hold' (50296) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:51:5:
+held its whole hold: 1.000241635s
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 
 failures:
     tests::longer_holds::an_idle_poll_is_held_its_whole_hold
 
-test result: FAILED. 15 passed; 1 failed; 0 ignored; 0 measured; 1019 filtered out; finished in 23.36s
+test result: FAILED. 15 passed; 1 failed; 0 ignored; 0 measured; 1021 filtered out; finished in 23.18s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -413,7 +413,7 @@ failures:
 
 ---- tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long stdout ----
 
-thread 'tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long' (12803) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:88:5:
+thread 'tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long' (50605) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:88:5:
 assertion failed: begun.elapsed() < Duration::from_secs(5)
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -421,7 +421,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long
 
-test result: FAILED. 15 passed; 1 failed; 0 ignored; 0 measured; 1019 filtered out; finished in 43.83s
+test result: FAILED. 15 passed; 1 failed; 0 ignored; 0 measured; 1021 filtered out; finished in 43.76s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -449,31 +449,31 @@ failures:
 
 ---- tests::longer_holds::a_long_hold_left_alone_looks_once_a_second stdout ----
 
-thread 'tests::longer_holds::a_long_hold_left_alone_looks_once_a_second' (13102) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:459:5:
-Some(9) passes: 11174 ms subscribed at 1
-11190 ms stream opened since 1
-13190 ms stream ended after its passes (9), 2000 ms
+thread 'tests::longer_holds::a_long_hold_left_alone_looks_once_a_second' (50903) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:459:5:
+Some(9) passes: 11148 ms subscribed at 1
+11162 ms stream opened since 1
+13163 ms stream ended after its passes (9), 2000 ms
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::longer_holds::a_stream_that_asks_is_held_long stdout ----
 
-thread 'tests::longer_holds::a_stream_that_asks_is_held_long' (13117) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:149:5:
-held its whole hold: 100.264011ms
+thread 'tests::longer_holds::a_stream_that_asks_is_held_long' (50919) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:149:5:
+held its whole hold: 100.277367ms
 
 
 failures:
     tests::longer_holds::a_long_hold_left_alone_looks_once_a_second
     tests::longer_holds::a_stream_that_asks_is_held_long
 
-test result: FAILED. 14 passed; 2 failed; 0 ignored; 0 measured; 1019 filtered out; finished in 21.06s
+test result: FAILED. 14 passed; 2 failed; 0 ignored; 0 measured; 1021 filtered out; finished in 20.84s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
 a stream is never held long: KILLED (2 of 16 tests fail)
 warning: variable does not need to be mutable
-     --> spikes/own-renderer/server/src/main.rs:12213:9
+     --> spikes/own-renderer/server/src/main.rs:12372:9
       |
-12213 |     let mut tried = opened;
+12372 |     let mut tried = opened;
       |         ----^^^^^
       |         |
       |         help: remove this `mut`
@@ -481,9 +481,9 @@ warning: variable does not need to be mutable
       = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
 
 warning: unused variable: `tried`
-     --> spikes/own-renderer/server/src/main.rs:12213:9
+     --> spikes/own-renderer/server/src/main.rs:12372:9
       |
-12213 |     let mut tried = opened;
+12372 |     let mut tried = opened;
       |         ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_tried`
       |
       = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
@@ -511,23 +511,23 @@ failures:
 
 ---- tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold stdout ----
 
-thread 'tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold' (13424) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:235:5:
-answered within the hold: 20.000270169s
+thread 'tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold' (51227) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:235:5:
+answered within the hold: 20.000273031s
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 
 failures:
     tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold
 
-test result: FAILED. 15 passed; 1 failed; 0 ignored; 0 measured; 1019 filtered out; finished in 42.82s
+test result: FAILED. 15 passed; 1 failed; 0 ignored; 0 measured; 1021 filtered out; finished in 42.80s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
 a held long poll does not try again: KILLED (1 of 16 tests fail)
 warning: variable does not need to be mutable
-     --> spikes/own-renderer/server/src/main.rs:11990:9
+     --> spikes/own-renderer/server/src/main.rs:12149:9
       |
-11990 |     let mut tried = opened;
+12149 |     let mut tried = opened;
       |         ----^^^^^
       |         |
       |         help: remove this `mut`
@@ -535,9 +535,9 @@ warning: variable does not need to be mutable
       = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
 
 warning: unused variable: `tried`
-     --> spikes/own-renderer/server/src/main.rs:11990:9
+     --> spikes/own-renderer/server/src/main.rs:12149:9
       |
-11990 |     let mut tried = opened;
+12149 |     let mut tried = opened;
       |         ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_tried`
       |
       = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
@@ -565,7 +565,7 @@ failures:
 
 ---- tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream stdout ----
 
-thread 'tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream' (13738) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:285:5:
+thread 'tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream' (51540) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:285:5:
 assertion `left == right` failed: the value the failure held back
   left: 0
  right: 1
@@ -575,7 +575,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream
 
-test result: FAILED. 15 passed; 1 failed; 0 ignored; 0 measured; 1019 filtered out; finished in 23.86s
+test result: FAILED. 15 passed; 1 failed; 0 ignored; 0 measured; 1021 filtered out; finished in 23.84s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -603,7 +603,7 @@ failures:
 
 ---- tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream stdout ----
 
-thread 'tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream' (14054) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:285:5:
+thread 'tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream' (51857) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:285:5:
 assertion `left == right` failed: the value the failure held back
   left: 0
  right: 1
@@ -611,15 +611,15 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold stdout ----
 
-thread 'tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold' (14058) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:235:5:
-answered within the hold: 20.000226467s
+thread 'tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold' (51861) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:235:5:
+answered within the hold: 20.000209584s
 
 
 failures:
     tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream
     tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold
 
-test result: FAILED. 14 passed; 2 failed; 0 ignored; 0 measured; 1019 filtered out; finished in 42.85s
+test result: FAILED. 14 passed; 2 failed; 0 ignored; 0 measured; 1021 filtered out; finished in 42.76s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -647,7 +647,7 @@ failures:
 
 ---- tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream stdout ----
 
-thread 'tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream' (14373) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:285:5:
+thread 'tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream' (52169) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:285:5:
 assertion `left == right` failed: the value the failure held back
   left: 0
  right: 1
@@ -655,15 +655,15 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold stdout ----
 
-thread 'tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold' (14377) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:235:5:
-answered within the hold: 20.000353698s
+thread 'tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold' (52173) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:235:5:
+answered within the hold: 20.000334732s
 
 
 failures:
     tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream
     tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold
 
-test result: FAILED. 14 passed; 2 failed; 0 ignored; 0 measured; 1019 filtered out; finished in 42.83s
+test result: FAILED. 14 passed; 2 failed; 0 ignored; 0 measured; 1021 filtered out; finished in 42.73s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -691,7 +691,7 @@ failures:
 
 ---- tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is stdout ----
 
-thread 'tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is' (14684) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:101:5:
+thread 'tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is' (52478) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:101:5:
 no second place
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -699,7 +699,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is
 
-test result: FAILED. 15 passed; 1 failed; 0 ignored; 0 measured; 1019 filtered out; finished in 23.74s
+test result: FAILED. 15 passed; 1 failed; 0 ignored; 0 measured; 1021 filtered out; finished in 23.60s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -727,13 +727,13 @@ failures:
 
 ---- tests::longer_holds::a_long_hold_gives_its_place_back stdout ----
 
-thread 'tests::longer_holds::a_long_hold_gives_its_place_back' (14995) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:130:5:
+thread 'tests::longer_holds::a_long_hold_gives_its_place_back' (52787) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:130:5:
 its place is free
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is stdout ----
 
-thread 'tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is' (14997) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:100:5:
+thread 'tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is' (52789) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:100:5:
 the first place
 
 
@@ -741,7 +741,7 @@ failures:
     tests::longer_holds::a_long_hold_gives_its_place_back
     tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is
 
-test result: FAILED. 14 passed; 2 failed; 0 ignored; 0 measured; 1019 filtered out; finished in 24.67s
+test result: FAILED. 14 passed; 2 failed; 0 ignored; 0 measured; 1021 filtered out; finished in 24.57s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -769,7 +769,7 @@ failures:
 
 ---- tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is stdout ----
 
-thread 'tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is' (15312) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:113:5:
+thread 'tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is' (53102) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:113:5:
 given back, its place is free
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -777,7 +777,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is
 
-test result: FAILED. 15 passed; 1 failed; 0 ignored; 0 measured; 1019 filtered out; finished in 23.84s
+test result: FAILED. 15 passed; 1 failed; 0 ignored; 0 measured; 1021 filtered out; finished in 23.72s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -805,13 +805,13 @@ failures:
 
 ---- tests::longer_holds::a_long_hold_gives_its_place_back stdout ----
 
-thread 'tests::longer_holds::a_long_hold_gives_its_place_back' (15622) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:130:5:
+thread 'tests::longer_holds::a_long_hold_gives_its_place_back' (53413) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:130:5:
 its place is free
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is stdout ----
 
-thread 'tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is' (15624) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:113:5:
+thread 'tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is' (53415) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:113:5:
 given back, its place is free
 
 
@@ -819,15 +819,15 @@ failures:
     tests::longer_holds::a_long_hold_gives_its_place_back
     tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is
 
-test result: FAILED. 14 passed; 2 failed; 0 ignored; 0 measured; 1019 filtered out; finished in 23.77s
+test result: FAILED. 14 passed; 2 failed; 0 ignored; 0 measured; 1021 filtered out; finished in 23.72s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
 a place held is never given back: KILLED (2 of 16 tests fail)
 warning: constant `LONG_LOOK` is never used
-     --> spikes/own-renderer/server/src/main.rs:12094:7
+     --> spikes/own-renderer/server/src/main.rs:12253:7
       |
-12094 | const LONG_LOOK: std::time::Duration = std::time::Duration::from_secs(1);
+12253 | const LONG_LOOK: std::time::Duration = std::time::Duration::from_secs(1);
       |       ^^^^^^^^^
       |
       = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
@@ -855,25 +855,25 @@ failures:
 
 ---- tests::longer_holds::a_long_hold_left_alone_looks_once_a_second stdout ----
 
-thread 'tests::longer_holds::a_long_hold_left_alone_looks_once_a_second' (15997) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:459:5:
-Some(11) passes: 12156 ms subscribed at 1
-12172 ms stream opened since 1
-14672 ms stream ended after its passes (11), 2500 ms
+thread 'tests::longer_holds::a_long_hold_left_alone_looks_once_a_second' (53726) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:459:5:
+Some(11) passes: 12146 ms subscribed at 1
+12160 ms stream opened since 1
+14660 ms stream ended after its passes (11), 2500 ms
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 
 failures:
     tests::longer_holds::a_long_hold_left_alone_looks_once_a_second
 
-test result: FAILED. 15 passed; 1 failed; 0 ignored; 0 measured; 1019 filtered out; finished in 22.08s
+test result: FAILED. 15 passed; 1 failed; 0 ignored; 0 measured; 1021 filtered out; finished in 21.98s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
 a hold left alone looks as often as a brief one: KILLED (1 of 16 tests fail)
 warning: unused variable: `filling`
-     --> spikes/own-renderer/server/src/main.rs:12048:46
+     --> spikes/own-renderer/server/src/main.rs:12207:46
       |
-12048 |         if let Some((reader, cursor, frames, filling)) = batch {
+12207 |         if let Some((reader, cursor, frames, filling)) = batch {
       |                                              ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_filling`
       |
       = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
@@ -901,15 +901,15 @@ failures:
 
 ---- tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills stdout ----
 
-thread 'tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills' (16323) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:324:5:
-8.000598469s
+thread 'tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills' (54055) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:324:5:
+8.000362525s
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 
 failures:
     tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills
 
-test result: FAILED. 15 passed; 1 failed; 0 ignored; 0 measured; 1019 filtered out; finished in 31.77s
+test result: FAILED. 15 passed; 1 failed; 0 ignored; 0 measured; 1021 filtered out; finished in 31.62s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -937,15 +937,15 @@ failures:
 
 ---- tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills stdout ----
 
-thread 'tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills' (16639) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:324:5:
-8.000557249s
+thread 'tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills' (54371) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:324:5:
+8.000344218s
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 
 failures:
     tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills
 
-test result: FAILED. 15 passed; 1 failed; 0 ignored; 0 measured; 1019 filtered out; finished in 31.75s
+test result: FAILED. 15 passed; 1 failed; 0 ignored; 0 measured; 1021 filtered out; finished in 31.62s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 

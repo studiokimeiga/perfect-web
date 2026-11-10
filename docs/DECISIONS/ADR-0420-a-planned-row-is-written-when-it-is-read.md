@@ -80,7 +80,27 @@ a view in it has no plan. Its holes say all that differs from its template.
 
 ## Result
 
-The head-to-head's figures go here when it has run at this branch's commit.
+An A/B on this PC, the head-to-head's own driver run on the large list at
+this commit and at train-17's record (`2d2b57ea`'s build), each twice and in
+turn (`node benchmarks/headtohead/head-to-head.mjs --apps rows --engines
+chromium,firefox --conditions cold,warm --runs 11 --stacks pleris,svelte
+--no-shaped --no-load`), so the two builds ran in one state of the machine, medians of eleven runs to the frame in ms, this commit's two
+rounds against `2d2b57ea`'s (Svelte's in brackets): creating a thousand rows
+in Chromium, cold, 69 and 73 from 72 and 76 (42 to 48); warm, 58 and 59
+from 64 and 62 (39 and 40); appending a thousand, warm, 55 and 55 from 60
+and 57 (43 to 47); replacing them all, unchanged, 74 from 72 and 78 cold
+(44 to 47). In Firefox none of the three moved: creating, cold, 68 from 71
+and 69 (49 to 51). A row written straight into its holes saved a few
+percent of making it, in one engine. Making a thousand rows takes about one
+and a half times Svelte's still, and what takes it is not the joining of a
+row's text: that is the large list's first gap, and NEXT's first item is a
+profile of it.
+
+The head-to-head at `7ac4f20c` measured every stack slower than at
+`2d2b57ea` (Svelte's thousand rows in Chromium, cold, 45 ms from 39, React's
+60 from 50), so its own figures are read against the other stacks of the
+same run: creating a thousand rows 72 (45), appending 60 (42), replacing 75
+(48).
 
 ## Consequences
 

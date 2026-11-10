@@ -2,6 +2,22 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**Trains 18 and 19, 2026-11-10:** on train-17. A planned row is written
+when it is read (ADR-0420); a list a signal holds is a block of its own
+(ADR-0421); a row of such a list computes what it shows from its item and
+the signals (ADR-0424); `List.range` (ADR-0422) and `List.swap` (ADR-0425);
+and a dropped command is its session's (ADR-0423). The large list counts 77
+lines (Svelte's 81, React's 99), from 116, and TodoMVC 179, from 188.
+Measured by an A/B beside the record: making a thousand rows is a few
+percent faster in Chromium and unchanged in Firefox, about one and a half
+times Svelte's still; in Firefox a selection costs a millisecond more and
+an update of every tenth row two. The head-to-head at `7ac4f20c`: of 264
+rows, Pleris is ahead in 77 and behind in 70, from 73 and 71. Numbered
+before their run (ADR-0281, amended). WebKit's cut-off test passed in both
+of this train's full verify runs (42825062947 and 42869095436), after
+failing in two of train-17's four; it stays in NEXT until master's
+nightlies pass it too.
+
 **Train-17, 2026-11-10:** on train-16, the rows train. A press changes only
 what it changed (ADR-0417): on a page that talks to no server a block's keyed
 rows are made by key, a row whose value and reads are unchanged is kept with

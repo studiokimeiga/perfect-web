@@ -1,8 +1,8 @@
 ADR-0263 - a handle is the platform's to make
 
 produced by: just e14-handles
-commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: bd1aaeeb8ba8d969afb7228305df754828267487
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the checker (compiler/pw-core/tests/handles.rs)
@@ -13,7 +13,7 @@ test a_program_constructs_no_handle ... ok
 test nothing_the_browser_supplies_holds_a_handle ... ok
 test the_readers_account_is_the_readers ... ok
 test a_tables_row_holds_no_handle ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.25s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.24s
 
 == mutation controls (scripts/handle_mutations.py)
 

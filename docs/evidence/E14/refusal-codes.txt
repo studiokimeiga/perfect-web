@@ -1,8 +1,8 @@
 ADR-0400 - a refusal has a code and a page, and the browser's decision carries no words
 
 produced by: just e14-refusal-codes
-commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: bd1aaeeb8ba8d969afb7228305df754828267487
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -11,7 +11,7 @@ playwright: Version 1.58.0
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 test result: ok. 38 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
 test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 
@@ -19,7 +19,7 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 test result: ok. 38 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
 test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
@@ -27,10 +27,10 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 == the decision as a page downloads it, and a refusal as a developer reads it (Chromium)
 
 EVIDENCE static-route-script-bytes=0 wasm-bytes=0
-EVIDENCE interactive-script-bytes=228184 brotli=59127
+EVIDENCE interactive-script-bytes=235696 brotli=60867
 EVIDENCE interactive-wasm-bytes=0 brotli=0
-EVIDENCE  script 228184 gzip=70688 brotli=59127 http://127.0.0.1:3148/pw-runtime.mjs
-  17 passed (17.5s)
+EVIDENCE  script 235696 gzip=72736 brotli=60867 http://127.0.0.1:3148/pw-runtime.mjs
+  17 passed (26.7s)
 
 == mutation controls (scripts/refusal_codes_mutations.py)
 

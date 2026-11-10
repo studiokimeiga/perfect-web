@@ -1,8 +1,8 @@
 a build's stylesheets draw with their own images
 
 produced by: just e14-style-images
-commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: bd1aaeeb8ba8d969afb7228305df754828267487
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -19,11 +19,11 @@ test tests::page_policy::the_runtime_is_started_by_the_text_its_policy_hashes ..
 test tests::page_policy::every_answers_type_is_its_type ... ok
 test tests::page_policy::every_other_html_answer_runs_nothing ... ok
 test tests::page_policy::the_host_writes_no_style_attribute ... ok
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 1024 filtered out; finished in 19.34s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 1027 filtered out; finished in 17.48s
 
 == TodoMVC, in three engines (e2e/todomvc.spec.mjs)
 
-  162 passed (1.8m)
+  162 passed (1.6m)
 
 == mutation controls (scripts/style_images_mutations.py)
 

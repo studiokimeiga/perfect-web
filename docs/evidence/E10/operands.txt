@@ -1,8 +1,8 @@
 ADR-0043 - operands are typed, and Float.from_int
 
 produced by: just e10-operands
-commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: bd1aaeeb8ba8d969afb7228305df754828267487
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the value relations (compiler/pw-core/tests/value_relations.rs)
@@ -10,24 +10,24 @@ rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 test an_operator_takes_operands_of_the_types_it_takes ... ok
 test an_untyped_operand_is_undecided_not_refused ... ok
 test the_accepted_corpus_disagrees_nowhere_and_decides_a_floor ... ok
-test result: ok. 42 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.56s
+test result: ok. 42 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.91s
 
 == Float.from_int (compiler/pw-conformance/tests/stdlib.rs)
 
 test an_int_becomes_the_nearest_float ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.13s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.24s
 
 == mutation controls (scripts/operand_mutations.py)
 
-baseline: 64 passed, 0 failed
-a comparison's sides are not related: KILLED (2 of 64 tests fail)
-arithmetic's left side need not be a number: KILLED (1 of 64 tests fail)
-arithmetic's right side need not match its left: KILLED (1 of 64 tests fail)
-a logical operator's left side need not be a Bool: KILLED (1 of 64 tests fail)
-`!` takes any type: KILLED (2 of 64 tests fail)
-an `if` condition is not related: KILLED (1 of 64 tests fail)
-an untyped operand is refused: KILLED (1 of 64 tests fail)
-`Float.from_int` reads its Int as unsigned: KILLED (1 of 64 tests fail)
+baseline: 66 passed, 0 failed
+a comparison's sides are not related: KILLED (2 of 66 tests fail)
+arithmetic's left side need not be a number: KILLED (1 of 66 tests fail)
+arithmetic's right side need not match its left: KILLED (1 of 66 tests fail)
+a logical operator's left side need not be a Bool: KILLED (1 of 66 tests fail)
+`!` takes any type: KILLED (2 of 66 tests fail)
+an `if` condition is not related: KILLED (1 of 66 tests fail)
+an untyped operand is refused: KILLED (1 of 66 tests fail)
+`Float.from_int` reads its Int as unsigned: KILLED (1 of 66 tests fail)
 8 of 8 mutants killed
 memory bound: no process was stopped
 

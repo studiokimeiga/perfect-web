@@ -6,6 +6,40 @@
 
 # Next
 
+## After trains 18 and 19, 2026-11-10
+
+The head-to-head at `7ac4f20c` is behind in 70 rows, each a defect until it
+is fixed or recorded as a real trade-off (the owner's order of 2026-11-09).
+In order:
+
+1. **Making a thousand rows** (creating, appending, replacing: about one and
+   a half times Svelte's in every engine). Writing a planned row straight
+   into its holes saved a few percent in one engine (ADR-0420's result), so
+   the time is elsewhere: profile it first. The device's runtime reads each
+   template's IR as it renders; Svelte compiles each to the DOM calls it
+   makes, and a page's own generated code is the larger answer the profile
+   may ask for.
+2. **Train-20, a page of its own build in one request**: a build whose one
+   page talks to no server carries its runtime, its code and its handler
+   table in its document. The large list's page is 19.4 KB as sent in four
+   requests (Svelte's 13.2 KB in two), TodoMVC's in four (five each).
+3. **What a row's computed values cost in Firefox** (ADR-0424's result):
+   selecting 7 ms from 6, updating every tenth row 15 and 16 from 13
+   (Svelte's 5 and 10). Profile both.
+4. **TodoMVC's first toggle in a cold WebKit**: up to 70 ms in some runs,
+   train-17's build and this one alike, where Svelte's is 13 to 19.
+5. **Rows the record's run moved**: thirteen rows crossed the line between
+   `2d2b57ea` and `7ac4f20c`, in a run that measured every stack slower. The
+   A/B of the large list and of TodoMVC found neither train moved them,
+   apart from item 3's; the rest are within a frame, or Firefox's
+   millisecond.
+6. **TodoMVC's bytes**, **the store's source** and what is **not measured
+   yet**, as after train-16 (below).
+7. **WebKit's cut-off test** (`e2e/connections.spec.mjs`): passed in both
+   of this train's full verify runs (42825062947 and 42869095436), after
+   failing in two of train-17's four; it stays here until master's
+   nightlies pass it too.
+
 ## After train-17, 2026-11-10
 
 The head-to-head at `2d2b57ea` is behind in 71 rows. By the owner's order of

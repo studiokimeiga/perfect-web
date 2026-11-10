@@ -1,8 +1,8 @@
 E14-E - a run's changed lines count the files an agent makes
 
 produced by: just e14-bench-footprint
-commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: bd1aaeeb8ba8d969afb7228305df754828267487
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 node: v22.21.1
 
 == the harness's tests (benchmarks/harness/test)
@@ -23,7 +23,7 @@ TAP version 13
 # Subtest: a file the agent makes counts with the lines it edits, and an ignored one does not
 not ok 1 - a file the agent makes counts with the lines it edits, and an ignored one does not
   ---
-  duration_ms: 50.278668
+  duration_ms: 49.829819
   type: 'test'
   location: '/home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/changed-lines.test.mjs:37:1'
   failureType: 'testCodeFailure'
@@ -47,13 +47,13 @@ not ok 1 - a file the agent makes counts with the lines it edits, and an ignored
 # Subtest: a sandbox nothing changed has no changed lines
 ok 2 - a sandbox nothing changed has no changed lines
   ---
-  duration_ms: 36.906254
+  duration_ms: 35.050208
   type: 'test'
   ...
 # Subtest: changes git cannot list are refused, not counted as none
 not ok 3 - changes git cannot list are refused, not counted as none
   ---
-  duration_ms: 4.771928
+  duration_ms: 3.880567
   type: 'test'
   location: '/home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/changed-lines.test.mjs:67:1'
   failureType: 'testCodeFailure'
@@ -79,14 +79,14 @@ not ok 3 - changes git cannot list are refused, not counted as none
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 155.810818
+# duration_ms 151.175763
 
 a file the agent makes is not counted: KILLED (by an assertion of its test; 2 of 3 tests fail)
 TAP version 13
 # Subtest: a file the agent makes counts with the lines it edits, and an ignored one does not
 not ok 1 - a file the agent makes counts with the lines it edits, and an ignored one does not
   ---
-  duration_ms: 56.150899
+  duration_ms: 53.469659
   type: 'test'
   location: '/home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/changed-lines.test.mjs:37:1'
   failureType: 'testCodeFailure'
@@ -110,13 +110,13 @@ not ok 1 - a file the agent makes counts with the lines it edits, and an ignored
 # Subtest: a sandbox nothing changed has no changed lines
 ok 2 - a sandbox nothing changed has no changed lines
   ---
-  duration_ms: 43.103045
+  duration_ms: 39.181876
   type: 'test'
   ...
 # Subtest: changes git cannot list are refused, not counted as none
 ok 3 - changes git cannot list are refused, not counted as none
   ---
-  duration_ms: 3.488986
+  duration_ms: 3.169003
   type: 'test'
   ...
 1..3
@@ -127,14 +127,14 @@ ok 3 - changes git cannot list are refused, not counted as none
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 170.116899
+# duration_ms 157.368336
 
 what the sandbox ignores is counted: KILLED (by an assertion of its test; 1 of 3 tests fail)
 TAP version 13
 # Subtest: a file the agent makes counts with the lines it edits, and an ignored one does not
 not ok 1 - a file the agent makes counts with the lines it edits, and an ignored one does not
   ---
-  duration_ms: 55.747997
+  duration_ms: 52.303128
   type: 'test'
   location: '/home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/changed-lines.test.mjs:37:1'
   failureType: 'testCodeFailure'
@@ -158,13 +158,13 @@ not ok 1 - a file the agent makes counts with the lines it edits, and an ignored
 # Subtest: a sandbox nothing changed has no changed lines
 ok 2 - a sandbox nothing changed has no changed lines
   ---
-  duration_ms: 40.623614
+  duration_ms: 39.725749
   type: 'test'
   ...
 # Subtest: changes git cannot list are refused, not counted as none
 ok 3 - changes git cannot list are refused, not counted as none
   ---
-  duration_ms: 3.218578
+  duration_ms: 2.894452
   type: 'test'
   ...
 1..3
@@ -175,26 +175,26 @@ ok 3 - changes git cannot list are refused, not counted as none
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 162.7822
+# duration_ms 157.309655
 
 removed lines are not counted: KILLED (by an assertion of its test; 1 of 3 tests fail)
 TAP version 13
 # Subtest: a file the agent makes counts with the lines it edits, and an ignored one does not
 ok 1 - a file the agent makes counts with the lines it edits, and an ignored one does not
   ---
-  duration_ms: 53.923508
+  duration_ms: 51.416557
   type: 'test'
   ...
 # Subtest: a sandbox nothing changed has no changed lines
 ok 2 - a sandbox nothing changed has no changed lines
   ---
-  duration_ms: 41.792781
+  duration_ms: 38.78906
   type: 'test'
   ...
 # Subtest: changes git cannot list are refused, not counted as none
 not ok 3 - changes git cannot list are refused, not counted as none
   ---
-  duration_ms: 7.520399
+  duration_ms: 6.389317
   type: 'test'
   location: '/home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/changed-lines.test.mjs:67:1'
   failureType: 'testCodeFailure'
@@ -220,7 +220,7 @@ not ok 3 - changes git cannot list are refused, not counted as none
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 167.265328
+# duration_ms 158.070139
 
 changes git cannot list are counted as none: KILLED (by an assertion of its test; 1 of 3 tests fail)
 4 of 4 mutants killed; 0 refused; 0 survived

@@ -1,18 +1,18 @@
 ADR-0309 - a page's query parameters are typed, and a GET form makes them
 
 produced by: just e14-query-params
-commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: bd1aaeeb8ba8d969afb7228305df754828267487
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
 
 == a route's query part, and what an address gives (compiler/pw-core/tests/routes.rs, uploads.rs)
 
-test a_route_names_each_parameter_once_and_nothing_else ... ok
 test a_query_part_ends_the_route_and_names_each_parameter_once ... ok
-test a_route_is_slash_and_segments ... ok
+test a_route_names_each_parameter_once_and_nothing_else ... ok
 test a_query_parameter_is_an_option_of_text ... ok
+test a_route_is_slash_and_segments ... ok
 test a_routes_parameter_is_text ... ok
 test the_plan_carries_the_route ... ok
 test a_route_that_names_its_parameters_is_the_control ... ok
@@ -31,17 +31,17 @@ test its_paths_are_literal_paths ... ok
 test two_uploads_are_at_two_paths ... ok
 test its_types_are_a_closed_set ... ok
 test its_paths_are_no_pages ... ok
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.39s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.32s
 
 == the host reads a query as a browser's form writes it, and moves a page by its path
 
 test tests::a_query_is_read_as_a_browsers_form_writes_it ... ok
 test tests::redirects::a_route_with_a_query_part_is_moved_by_its_path ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1032 filtered out; finished in 18.00s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1035 filtered out; finished in 17.90s
 
 == the demo's search, in three engines (e2e/query.spec.mjs)
 
-  18 passed (17.6s)
+  18 passed (17.5s)
 
 == mutation controls (scripts/query_params_mutations.py)
 
