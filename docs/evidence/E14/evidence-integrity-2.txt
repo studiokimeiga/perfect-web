@@ -1,78 +1,134 @@
 Track evidence-integrity-2 - a failed browser test fails its recipe, and five more rulings
 
 produced by: just e14-evidence-integrity-2
-commit: bfe0c4a376b6f60c80566a834794fb31a6bcd339
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/41450961585 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 python: Python 3.12.3
 just: just 1.58.0
 
 == 1. what the evidence recorded of failed browser tests while their recipes passed (scripts/recorded_browser_failures.py; a shallow checkout reads what it holds)
 
-2026-11-02 bfe0c4a3 (still committed) docs/evidence/E10/handlers-browser-suite-687aaf4.txt (just e10-browser "chromium firefox webkit" docs/evidence/E10/handlers-browser-suite.txt, recorded at 687aaf4a) full run 2:
+2026-11-09 3b0e7c4f (still committed) docs/evidence/E10/handlers-browser-suite-687aaf4.txt (just e10-browser "chromium firefox webkit" docs/evidence/E10/handlers-browser-suite.txt, recorded at 687aaf4a) full run 2:
     | 1) [webkit] › e2e/store.spec.mjs:130:3 › the update touches only what changed › only cart-related part ids update
     | 1 failed
-2026-11-02 bfe0c4a3 (still committed) docs/evidence/E10/handlers-browser-suite.txt (just e10-browser "chromium firefox webkit" docs/evidence/E10/handlers-browser-suite.txt, recorded at 12b3cb68) full run 1:
+2026-11-09 3b0e7c4f (still committed) docs/evidence/E10/handlers-browser-suite.txt (just e10-browser "chromium firefox webkit" docs/evidence/E10/handlers-browser-suite.txt, recorded at 12b3cb68) full run 1:
     | 1) [webkit] › e2e/keyed-list.spec.mjs:231:1 › changing one item's field replaces no sibling ──────
     | 1 failed
     | 5 did not run
-2026-11-02 bfe0c4a3 (still committed) docs/evidence/E14/command-deadline.txt (just e14-command-deadline, recorded at 58591617) mutation controls (scripts/command_deadline_mutations.py):
+2026-11-09 3b0e7c4f (still committed) docs/evidence/E14/command-deadline.txt (just e14-command-deadline, recorded at 58591617) mutation controls (scripts/command_deadline_mutations.py):
     | 1) [chromium] › e2e/command-deadline.spec.mjs:126:1 › a send no answer comes for is given up at its deadline and sent again, its line shown meanwhile
     | 2) [chromium] › e2e/command-deadline.spec.mjs:168:3 › a command whose connection is held before it runs is sent again at its deadline, and is one line
     | 3) [chromium] › e2e/command-deadline.spec.mjs:168:3 › a command whose connection is held after it committed is sent again at its deadline, and is one 
     | 4) [chromium] › e2e/command-deadline.spec.mjs:168:3 › a command whose connection is held partway through its answer's body is sent again at its deadli
     | 5) [chromium] › e2e/command-deadline.spec.mjs:192:1 › a press none of whose sends is answered fails at its last send's deadline, its line taken away
     | 6) [chromium] › e2e/command-deadline.spec.mjs:235:1 › a press made after one never answered runs once that one is given up
-2026-11-02 bfe0c4a3 (still committed) docs/evidence/E14/computed-conditions.txt (just e14-computed-conditions, recorded at 58591617) mutation controls (scripts/computed_conditions_mutations.py):
+2026-11-09 3b0e7c4f (still committed) docs/evidence/E14/computed-conditions.txt (just e14-computed-conditions, recorded at 58591617) mutation controls (scripts/computed_conditions_mutations.py):
     | 1) [chromium] › e2e/feed.spec.mjs:192:1 › a post reaches the author's timeline and every other reader's
     | 2) [firefox] › e2e/feed.spec.mjs:192:1 › a post reaches the author's timeline and every other reader's
     | 3) [chromium] › e2e/feed.spec.mjs:234:1 › what is left of a draft is computed as it is typed ─────
     | 4) [firefox] › e2e/feed.spec.mjs:234:1 › what is left of a draft is computed as it is typed ──────
     | 5) [chromium] › e2e/feed.spec.mjs:263:1 › a condition is computed: a draft too long, and a thread with no reply
     | 6) [firefox] › e2e/feed.spec.mjs:263:1 › a condition is computed: a draft too long, and a thread with no reply
-2026-11-02 bfe0c4a3 (still committed) docs/evidence/E14/device-store.txt (just e14-device-store, recorded at 58591617) mutation controls (scripts/device_store_mutations.py):
+2026-11-09 3b0e7c4f (still committed) docs/evidence/E14/device-store.txt (just e14-device-store, recorded at 58591617) mutation controls (scripts/device_store_mutations.py):
     | 1) [chromium] › e2e/device-store.spec.mjs:121:1 › what the device decides stays hidden until it is rendered at the device's value
     | 2) [chromium] › e2e/device-store.spec.mjs:97:1 › nothing the device decides is shown before the device is read, and the page's own is
     | 3) [chromium] › e2e/device-store.spec.mjs:164:1 › a value kept survives a reload, under its name and version
     | 4) [chromium] › e2e/device-store.spec.mjs:235:1 › a page that finds a newer version writes nothing more, and says so
     | 5) [chromium] › e2e/device-store.spec.mjs:212:1 › version 1's notes are taken to version 2, and the old key goes
     | 6) [chromium] › e2e/device-store.spec.mjs:269:1 › an unreadable value is refused, never used, and kept aside before it is replaced
-2026-11-02 bfe0c4a3 (still committed) docs/evidence/E14/press-modules.txt (just e14-press-modules, recorded at 58591617) mutation controls (scripts/press_modules_mutations.py):
+2026-11-09 3b0e7c4f (still committed) docs/evidence/E14/first-press-2026-11-06/first-add/head-warming.log (?, recorded at ?) p):
+    | 2) [chromium] › e2e/press-modules.spec.mjs:79:1 › a renderer that failed to load is loaded again for the next block a signal renders
+    | 6) [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose speculation module failed to load is sent unspeculated, and the next press loads it ag
+    | 7) [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose renderer failed to load is sent unspeculated, and the next press loads it again
+    | 9) [firefox] › e2e/press-modules.spec.mjs:51:5 › a press whose speculation module failed to load is sent unspeculated, and the next press loads it aga
+    | 12) [firefox] › e2e/press-modules.spec.mjs:51:5 › a press whose renderer failed to load is sent unspeculated, and the next press loads it again
+    | 14) [firefox] › e2e/press-modules.spec.mjs:79:1 › a renderer that failed to load is loaded again for the next block a signal renders
+2026-11-09 3b0e7c4f (still committed) docs/evidence/E14/first-press-2026-11-06/review/a2-verify.log (?, recorded at ?) 2026-11-06T08:13:18-05:00 mutant: the delivery's check removed:
+    | 1) [chromium] › e2e/soft-navigation.spec.mjs:193:1 › a page of another delivery of the same build is loaded whole
+    | 2) [firefox] › e2e/soft-navigation.spec.mjs:193:1 › a page of another delivery of the same build is loaded whole
+    | 2 failed
+2026-11-09 3b0e7c4f (still committed) docs/evidence/E14/first-press-2026-11-06/review/b1-verify.log (?, recorded at ?) 2026-11-06T08:19:09-05:00 red: the committed runtime:
+    | 1) [chromium] › e2e/warm.spec.mjs:244:1 › a press made during a warm speculation load waits for it within a deadline of its own
+    | 2) [firefox] › e2e/warm.spec.mjs:244:1 › a press made during a warm speculation load waits for it within a deadline of its own
+    | 3) [chromium] › e2e/warm.spec.mjs:232:1 › a press made during a warm load waits for it within a deadline of its own
+    | 4) [firefox] › e2e/warm.spec.mjs:232:1 › a press made during a warm load waits for it within a deadline of its own
+    | 4 failed
+2026-11-09 3b0e7c4f (still committed) docs/evidence/E14/first-press-2026-11-06/review/b2-verify.log (?, recorded at ?) 2026-11-06T08:23:13-05:00 red: the warm-up morphs the live block:
+    | 1) [chromium] › e2e/warm.spec.mjs:282:1 › a build that warms runs a block's paths on a copy, and the page is as it was
+    | 2) [firefox] › e2e/warm.spec.mjs:282:1 › a build that warms runs a block's paths on a copy, and the page is as it was
+    | 2 failed
+2026-11-09 3b0e7c4f (still committed) docs/evidence/E14/first-press-2026-11-06/review/minors-verify.log (?, recorded at ?) 2026-11-06T08:33:33-05:00 green: fragment, warm, soft-navigation, t:
+    | 1) [chromium] › e2e/fragment.spec.mjs:101:1 › a link to a form on a page that is leaving leaves its load alone
+    | 2) [firefox] › e2e/fragment.spec.mjs:101:1 › a link to a form on a page that is leaving leaves its load alone
+    | 2 failed
+2026-11-09 3b0e7c4f (still committed) docs/evidence/E14/first-press-2026-11-06/review/minors-verify.log (?, recorded at ?) 2026-11-06T08:34:35-05:00 red 1: the committed runtime (no leaving :
+    | 1) [chromium] › e2e/fragment.spec.mjs:101:1 › a link to a form on a page that is leaving leaves its load alone
+    | 2) [firefox] › e2e/fragment.spec.mjs:101:1 › a link to a form on a page that is leaving leaves its load alone
+    | 2 failed
+2026-11-09 3b0e7c4f (still committed) docs/evidence/E14/first-press-2026-11-06/review/minors-verify.log (?, recorded at ?) 2026-11-06T08:35:16-05:00 red 2: a link to the address it is at pus:
+    | 1) [chromium] › e2e/fragment.spec.mjs:89:1 › a link to the form the page is at makes no entry of its own
+    | 2) [firefox] › e2e/fragment.spec.mjs:89:1 › a link to the form the page is at makes no entry of its own
+    | 2 failed
+2026-11-09 3b0e7c4f (still committed) docs/evidence/E14/mandatory-requires-2026-11-06/README.md (?, recorded at ?) p):
+    | 2 failed; the corpus's formatting passed.
+2026-11-09 3b0e7c4f (still committed) docs/evidence/E14/press-modules.txt (just e14-press-modules, recorded at 58591617) mutation controls (scripts/press_modules_mutations.py):
     | 1) [chromium] › e2e/press-modules.spec.mjs:99:1 › a press whose handler's module never loads fails at the deadline, and the next press loads it again
     | 2) [chromium] › e2e/press-modules.spec.mjs:120:1 › a press made after one whose module never loads runs once that load is given up
     | 2 failed
     | 1) [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose speculation module never loaded is sent unspeculated, and the next press loads it agai
     | 2) [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose renderer never loaded is sent unspeculated, and the next press loads it again
     | 2 failed
-2026-11-02 bfe0c4a3 (still committed) docs/evidence/E14/speculated-arms.txt (just e14-speculated-arms, recorded at 58591617) mutation controls (scripts/speculated_arms_mutations.py):
+2026-11-09 3b0e7c4f (still committed) docs/evidence/E14/speculated-arms.txt (just e14-speculated-arms, recorded at 58591617) mutation controls (scripts/speculated_arms_mutations.py):
     | 1) [chromium] › e2e/feed.spec.mjs:630:1 › a like on the thread page shows before the server answers
     | 2) [firefox] › e2e/feed.spec.mjs:630:1 › a like on the thread page shows before the server answers
     | 3) [webkit] › e2e/feed.spec.mjs:630:1 › a like on the thread page shows before the server answers
     | 3 failed
-2026-11-02 bfe0c4a3 (still committed) docs/evidence/E14/todomvc.txt (just e14-todomvc, recorded at 58591617) mutation controls (scripts/todomvc_mutations.py):
+2026-11-09 3b0e7c4f (still committed) docs/evidence/E14/todomvc-checkbox-css-2026-11-06/review-2026-11-07.log (?, recorded at ?) p):
+    | 1) [chromium] › e2e/todomvc.spec.mjs:1005:1 › a todo's checkbox is fetched as nothing, and the tick takes no press
+    | 1 failed
+    | 1) [chromium] › e2e/todomvc.spec.mjs:1045:1 › a todo's checkbox is the official drawing, pixel for pixel
+    | 1 failed
+    | 1) [chromium] › e2e/todomvc.spec.mjs:1045:1 › a todo's checkbox is the official drawing, pixel for pixel
+    | 1 failed
+2026-11-09 3b0e7c4f (still committed) docs/evidence/E14/todomvc-checkbox-css-2026-11-06/styles-only-1.log (?, recorded at ?) p):
+    | 1) [chromium] › e2e/todomvc.spec.mjs:925:1 › a todo's checkbox is fetched as nothing, and the tick takes no press
+    | 1 failed
+    | 1) [chromium] › e2e/todomvc.spec.mjs:953:1 › a todo's checkbox is the official drawing, pixel for pixel
+    | 1 failed
+    | 1) [chromium] › e2e/todomvc.spec.mjs:953:1 › a todo's checkbox is the official drawing, pixel for pixel
+    | 1 failed
+2026-11-09 3b0e7c4f (still committed) docs/evidence/E14/todomvc-checkbox-css-2026-11-06/styles-only.log (?, recorded at ?) p):
+    | 1) [chromium] › e2e/todomvc.spec.mjs:986:1 › a todo's checkbox is fetched as nothing, and the tick takes no press
+    | 1 failed
+    | 1) [chromium] › e2e/todomvc.spec.mjs:1014:1 › a todo's checkbox is the official drawing, pixel for pixel
+    | 1 failed
+    | 1) [chromium] › e2e/todomvc.spec.mjs:1014:1 › a todo's checkbox is the official drawing, pixel for pixel
+    | 1 failed
+2026-11-09 3b0e7c4f (still committed) docs/evidence/E14/todomvc.txt (just e14-todomvc, recorded at 58591617) mutation controls (scripts/todomvc_mutations.py):
     | 1) [chromium] › e2e/todomvc.spec.mjs:129:1 › the text is trimmed ─────────────────────────────────
     | 2) [chromium] › e2e/todomvc.spec.mjs:135:1 › a title that is nothing once trimmed creates no todo, and is left to be corrected
     | 3) [chromium] › e2e/todomvc.spec.mjs:393:1 › the edit is trimmed ─────────────────────────────────
     | 4) [chromium] › e2e/todomvc.spec.mjs:404:1 › an edit trimmed to nothing destroys the todo ────────
     | 4 failed
     | 1) [chromium] › e2e/todomvc.spec.mjs:172:1 › the toggle-all completes every todo, and again clears every one
-2026-11-02 bfe0c4a3 (still committed) docs/evidence/E14/upload-metadata.txt (just e14-upload-metadata, recorded at 1afd58fc) mutation controls (scripts/upload_metadata_mutations.py):
+2026-11-09 3b0e7c4f (still committed) docs/evidence/E14/upload-metadata.txt (just e14-upload-metadata, recorded at 1afd58fc) mutation controls (scripts/upload_metadata_mutations.py):
     | 25) [webkit] › e2e/upload-metadata.spec.mjs:604:3 › JPEG orientation 6 keeps the same displayed pixels
     | 26) [webkit] › e2e/upload-metadata.spec.mjs:604:3 › JPEG orientation 7 keeps the same displayed pixels
     | 27) [webkit] › e2e/upload-metadata.spec.mjs:604:3 › JPEG orientation 8 keeps the same displayed pixels
     | 27 failed
     | 1) [chromium] › e2e/upload-metadata.spec.mjs:484:1 › each format is shown and served without its metadata
     | 2) [firefox] › e2e/upload-metadata.spec.mjs:484:1 › each format is shown and served without its metadata
-2026-11-02 bfe0c4a3 (still committed) docs/evidence/tooling/speculated-arms-proof.txt (?, recorded at ?) p):
+2026-11-09 3b0e7c4f (still committed) docs/evidence/tooling/speculated-arms-proof.txt (?, recorded at ?) p):
     | 1) [chromium] › e2e/feed.spec.mjs:622:1 › a like on the thread page shows before the server answers
     | 2) [firefox] › e2e/feed.spec.mjs:622:1 › a like on the thread page shows before the server answers
     | 3) [webkit] › e2e/feed.spec.mjs:622:1 › a like on the thread page shows before the server answers
     | 3 failed
-recorded browser failures: 10 (10 still committed), in 1264 versions of evidence files read
+recorded browser failures: 21 (21 still committed), in 2029 versions of evidence files read
 test_a_committed_report_does_not_become_a_new_failed_suite (scripts.tests.test_recorded_browser_failures.RecordedBrowserFailures.test_a_committed_report_does_not_become_a_new_failed_suite) ... ok
 test_a_green_run_a_skip_a_mutant_and_a_cargo_failure_are_no_browser_failure (scripts.tests.test_recorded_browser_failures.RecordedBrowserFailures.test_a_green_run_a_skip_a_mutant_and_a_cargo_failure_are_no_browser_failure) ... ok
 test_each_failure_is_named_once_at_its_first_commit_and_whether_it_stands (scripts.tests.test_recorded_browser_failures.RecordedBrowserFailures.test_each_failure_is_named_once_at_its_first_commit_and_whether_it_stands) ... ok
-Ran 3 tests in 0.157s
+Ran 3 tests in 0.132s
 OK
 
 == 1. a failed browser test fails its recipe: the helper (scripts/run_suite.sh, test_run_suite.py)
@@ -93,33 +149,33 @@ test_its_status_is_any_exit_but_zero (scripts.tests.test_run_suite.RunSuite.test
 test_the_benchmark_harness_keeps_under_its_own_directory (scripts.tests.test_run_suite.RunSuite.test_the_benchmark_harness_keeps_under_its_own_directory) ... ok
 test_two_calls_in_a_recipe_keep_apart (scripts.tests.test_run_suite.RunSuite.test_two_calls_in_a_recipe_keep_apart) ... ok
 test_what_is_kept_is_bounded_and_the_rest_is_named (scripts.tests.test_run_suite.RunSuite.test_what_is_kept_is_bounded_and_the_rest_is_named) ... ok
-Ran 16 tests in 1.023s
+Ran 16 tests in 0.865s
 OK
 
 == 1. every suite in the justfile runs by it, its status its recipe's (scripts/suite_status.py, test_suite_status.py)
 
-suite status: 107 `playwright test` in the recipes' lines, 107 run by `scripts/run_suite.sh` with their status their recipe's; 2 `bench.mjs controls`; 0 refused
+suite status: 118 `playwright test` in the recipes' lines, 118 run by `scripts/run_suite.sh` with their status their recipe's; 2 `bench.mjs controls`; 0 refused
 test_a_justfile_with_no_suite_is_refused_as_read_nothing (scripts.tests.test_suite_status.SuiteStatus.test_a_justfile_with_no_suite_is_refused_as_read_nothing) ... ok
 test_a_recipe_or_a_shell_that_would_not_stop_is_refused (scripts.tests.test_suite_status.SuiteStatus.test_a_recipe_or_a_shell_that_would_not_stop_is_refused) ... ok
 test_a_suite_not_run_by_the_helper_is_refused (scripts.tests.test_suite_status.SuiteStatus.test_a_suite_not_run_by_the_helper_is_refused) ... ok
 test_each_way_of_swallowing_a_status_is_refused (scripts.tests.test_suite_status.SuiteStatus.test_each_way_of_swallowing_a_status_is_refused) ... ok
 test_the_helper_with_its_status_raised_passes (scripts.tests.test_suite_status.SuiteStatus.test_the_helper_with_its_status_raised_passes) ... ok
 test_the_repository_runs_every_suite_by_the_helper_its_status_its_recipes (scripts.tests.test_suite_status.SuiteStatus.test_the_repository_runs_every_suite_by_the_helper_its_status_its_recipes) ... 
-Ran 6 tests in 0.813s
+Ran 6 tests in 0.615s
 OK
 
 == 1. each suite failed in turn fails its recipe, and its evidence says so (test_suites_fail_their_recipes.py, test_builds_before_suites.py)
 
 test_every_browser_suite_fails_its_recipe_and_its_evidence_says_so (scripts.tests.test_suites_fail_their_recipes.SuitesFailTheirRecipes.test_every_browser_suite_fails_its_recipe_and_its_evidence_says_so) ... 
-suites fail their recipes: 102 recipes run a browser suite; 154 suite runs, each failed in turn
+suites fail their recipes: 113 recipes run a browser suite; 165 suite runs, each failed in turn
 test_the_stand_ins_tell_a_recipe_its_suite_fails_from_one_that_swallows_it (scripts.tests.test_suites_fail_their_recipes.SuitesFailTheirRecipes.test_the_stand_ins_tell_a_recipe_its_suite_fails_from_one_that_swallows_it) ... ok
 test_every_recipe_that_runs_a_browser_suite_builds_first_and_stops_where_a_build_fails (scripts.tests.test_builds_before_suites.BuildsBeforeSuites.test_every_recipe_that_runs_a_browser_suite_builds_first_and_stops_where_a_build_fails) ... 
-builds before suites: 99 recipes run the browser suite that serves `dist`; 231 builds before their suites, each failed in turn
+builds before suites: 110 recipes run the browser suite that serves `dist`; 263 builds before their suites, each failed in turn
 test_the_stand_ins_tell_a_build_that_stops_its_recipe_from_one_that_does_not (scripts.tests.test_builds_before_suites.BuildsBeforeSuites.test_the_stand_ins_tell_a_build_that_stops_its_recipe_from_one_that_does_not) ... ok
 test_a_build_of_another_runtime_or_of_changed_sources_is_refused (scripts.tests.test_builds_before_suites.DistIsWhole.test_a_build_of_another_runtime_or_of_changed_sources_is_refused) ... ok
 test_a_build_stopped_part_way_or_never_made_is_refused (scripts.tests.test_builds_before_suites.DistIsWhole.test_a_build_stopped_part_way_or_never_made_is_refused) ... ok
 test_a_whole_build_is_served (scripts.tests.test_builds_before_suites.DistIsWhole.test_a_whole_build_is_served) ... ok
-Ran 7 tests in 112.224s
+Ran 7 tests in 103.501s
 OK
 
 == 2, 3. the planner reads every recipe, and the suite's configuration plans what runs under it (test_ci_scripts.py)
@@ -127,7 +183,7 @@ OK
 test_a_change_to_the_suites_configuration_plans_every_recipe_that_runs_a_suite_under_it (scripts.tests.test_ci_scripts.Plan.test_a_change_to_the_suites_configuration_plans_every_recipe_that_runs_a_suite_under_it) ... ok
 test_a_changed_spec_or_a_module_its_specs_import_plans_what_runs_them (scripts.tests.test_ci_scripts.Plan.test_a_changed_spec_or_a_module_its_specs_import_plans_what_runs_them) ... ok
 test_a_recipe_whose_parameters_have_defaults_is_read (scripts.tests.test_ci_scripts.Plan.test_a_recipe_whose_parameters_have_defaults_is_read) ... ok
-Ran 96 tests in 33.293s
+Ran 96 tests in 26.646s
 OK
 
 == 4. mutant-programs finds every program a mutation script mutates (scripts/mutant_programs.py, test_mutant_programs.py)
@@ -142,26 +198,26 @@ test_a_named_rule_the_mutant_does_not_meet_fails (scripts.tests.test_mutant_prog
 test_a_root_no_list_names_is_found_from_its_path (scripts.tests.test_mutant_programs.MutantPrograms.test_a_root_no_list_names_is_found_from_its_path) ... ok
 test_an_import_it_cannot_resolve_fails (scripts.tests.test_mutant_programs.MutantPrograms.test_an_import_it_cannot_resolve_fails) ... ok
 test_the_control_a_mutant_that_leaves_a_program_passes (scripts.tests.test_mutant_programs.MutantPrograms.test_the_control_a_mutant_that_leaves_a_program_passes) ... ok
-Ran 10 tests in 1.173s
+Ran 10 tests in 0.916s
 OK
-mutant programs: 344 mutants of a program's source, 344 judged, in 13 programs (benchmarks/baselines/pleris/store, examples, examples/demo, examples/feed, examples/guestbook, examples/kiokun, examples/kiokun-site, examples/lib, examples/rejected/R-004-private-cart-in-shared-cache.pw, examples/store, examples/todomvc, packages/pw-platform-web, packages/pw-std); 560 checks; 21 refused by the rule their script names, 0 failing
+mutant programs: 351 mutants of a program's source, 351 judged, in 13 programs (benchmarks/baselines/pleris/store, examples, examples/demo, examples/feed, examples/guestbook, examples/kiokun, examples/kiokun-site, examples/lib, examples/rejected/R-004-private-cart-in-shared-cache.pw, examples/store, examples/todomvc, packages/pw-platform-web, packages/pw-std); 567 checks; 20 refused by the rule their script names, 0 failing
 
 == 5. no comparison translates an old number (compiler/pw-core: diagnostics.rs, codes.rs)
 
 test codes::tests::an_old_number_is_no_registered_rule ... ok
 test diagnostics::tests::no_comparison_translates_an_old_number ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 196 filtered out; finished in 0.12s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 196 filtered out; finished in 0.11s
 
 == 6. the corpus's enforcement table is what the corpus checks now (checking_source.rs)
 
 test the_committed_enforcement_table_is_what_the_corpus_checks_now ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 19 filtered out; finished in 29.12s
-95/95 enforce their declared invariant
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 19 filtered out; finished in 20.44s
+97/97 enforce their declared invariant
 
 == 7. e9-latency names the machine it measured (test_e9_latency_recipe.py; the measurement is the integrator's, in a quiet window)
 
 test_the_evidence_names_this_machines_record_and_its_load (scripts.tests.test_e9_latency_recipe.LatencyNamesItsMachine.test_the_evidence_names_this_machines_record_and_its_load) ... ok
-Ran 1 test in 0.144s
+Ran 1 test in 0.139s
 OK
 
 == mutation controls (scripts/evidence_integrity_2_mutations.py)

@@ -1,29 +1,29 @@
 ADR-0169 - what a template reads through a member function
 
 produced by: just e14-row-reads
-commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 playwright: Version 1.58.0
 
 == planned or refused (compiler/pw-core/tests/row_reads.rs)
 
-test a_row_of_a_loop_inside_a_loop_reads_members_of_its_item ... ok
 test a_row_reads_a_member_of_its_item_once_in_text_and_attributes_alike ... ok
+test a_row_of_a_loop_inside_a_loop_reads_members_of_its_item ... ok
 test a_member_read_in_a_row_of_a_list_no_query_gives_is_refused ... ok
 test fields_are_the_renderer_s_and_a_query_s_member_in_text_at_the_top_is_a_part ... ok
-test a_signal_s_member_is_refused_since_the_browser_reads_a_signal_by_field ... ok
 test what_a_row_decides_by_and_a_list_it_iterates_are_computed_for_it ... ok
+test a_signal_s_member_is_refused_since_the_browser_reads_a_signal_by_field ... ok
 test a_query_s_member_read_outside_a_row_is_computed_by_a_host ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.17s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.01s
 
 == a path read field by field (runtime/pw-render/tests/paths.rs)
 
-test a_path_set_whole_is_read_before_the_name_it_begins_with ... ok
 test a_field_the_value_does_not_have_is_missing_not_empty ... ok
 test a_row_reads_a_value_two_fields_deep_in_its_item ... ok
-test a_value_computed_for_a_row_that_changed_is_set_where_it_is ... ok
 test a_value_computed_for_a_row_is_read_whole_where_a_field_has_none ... ok
+test a_path_set_whole_is_read_before_the_name_it_begins_with ... ok
+test a_value_computed_for_a_row_that_changed_is_set_where_it_is ... ok
 test a_row_whose_computed_value_changed_sets_its_text_where_it_is ... ok
 test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
@@ -47,17 +47,17 @@ test tests::a_menu_change_drops_that_stores_kept_menu_only ... ok
 test tests::a_menu_change_drops_that_stores_recommendations_only ... ok
 test tests::an_inserted_item_arrives_with_its_price ... ok
 test tests::each_menu_row_shows_its_price ... ok
-test result: ok. 732 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 350.32s
+test result: ok. 1021 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 632.19s
 
 == each price, and an inserted item's, in three engines
 
-  72 passed (1.1m)
+  72 passed (1.5m)
 
 == mutation controls (scripts/row_reads_mutations.py)
 
 baseline (core): 13 passed, 0 failed
 baseline (display): 3 passed, 0 failed
-baseline (render): 123 passed, 0 failed
+baseline (render): 125 passed, 0 failed
 baseline (server): 4 passed, 0 failed
 a property read is never a member's [core]: KILLED (5 of 6 tests fail)
 a loop's list is not read for a member [core]: KILLED (1 of 6 tests fail)
@@ -75,7 +75,7 @@ a signal's member is not refused [core]: KILLED (1 of 13 tests fail)
 a row is given its item's fields alone [server]: KILLED (3 of 4 tests fail)
 a menu change is rendered from the rows before it [server]: KILLED (2 of 4 tests fail)
 a line is priced 450 whatever its item [server]: KILLED (2 of 4 tests fail)
-a path is read one field deep [render]: KILLED (2 of 61 tests fail)
+a path is read one field deep [render]: KILLED (2 of 63 tests fail)
 an amount owed back is negated whole [display]: KILLED (2 of 3 tests fail)
 an amount owed back keeps its remainder as its cents [display]: KILLED (2 of 3 tests fail)
 thousands are not grouped [display]: KILLED (3 of 3 tests fail)

@@ -46,7 +46,7 @@ async function transferred(page, run) {
   await run();
   page.off("response", on);
 
-  const out = { script: 0, wasm: 0, document: 0, other: 0, sent: { script: 0, wasm: 0 }, urls: [] };
+  const out = { script: 0, wasm: 0, document: 0, other: 0, sent: { script: 0, wasm: 0 }, urls: [], asked: [...seen.keys()] };
   for (const [url, { type, response }] of seen) {
     let body;
     try {
@@ -105,7 +105,7 @@ test("gate 7b: the interactive route's runtime is bounded as it is sent", async 
 });
 
 test("gate 7d: a block a signal decides is rendered with what the page already holds", async ({ page }) => {
-  // The browser's renderer is the runtime's (the browser renderer's ADR): it
+  // The browser's renderer is the runtime's (ADR-0411): it
   // was a file of its own, fetched the first time a block was rendered again.
   await page.goto("/page/demo.panel.PanelPage~ui");
   await page.waitForFunction(() => document.documentElement.dataset.pwReady === "1");
@@ -113,6 +113,6 @@ test("gate 7d: a block a signal decides is rendered with what the page already h
     await page.locator("#open-cart").click();
     await expect(page.locator("#cart-panel")).toBeVisible();
   });
-  expect(during.urls.filter((u) => /wasm|render/.test(u)), "no renderer is fetched").toEqual([]);
+  expect(during.asked.filter((u) => /wasm|render/.test(u)), "no renderer is fetched").toEqual([]);
   expect((await page.request.get("/pw-render.wasm")).status(), "and none is served").toBe(404);
 });

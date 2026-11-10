@@ -1071,7 +1071,7 @@ struct Server {
     /// press's ADR), as its packaging says ([`warms`]): told to the browser
     /// on the handler table's `#warm` line.
     warm: bool,
-    /// **The pages whose code is one module** (the page bundle's ADR), as
+    /// **The pages whose code is one module** (ADR-0412), as
     /// its packaging wrote them: told to the browser on the handler table,
     /// and the only ones `/bundle/` serves.
     bundles: std::collections::BTreeSet<String>,
@@ -5913,9 +5913,9 @@ impl Server {
     }
 
     /// **A regeneration that failed, tried again within a held subscription**
-    /// (ADR-0176, the longer-holds ADR), about as often as a page that is not
-    /// held long would have asked: at the first look two seconds after the
-    /// last, and a subscription held long looks once a second.
+    /// (ADR-0176, ADR-0402), about as often as a page that is not held long
+    /// would have asked: at the first look two seconds after the last, and a
+    /// subscription held long looks once a second.
     fn try_again_within(&self, session: &str, tried: &mut std::time::Instant) {
         if tried.elapsed() < self.retried_every {
             return;
@@ -7232,7 +7232,7 @@ impl Server {
     }
 
     /// [`Self::render_page`], its identities in `partition`: a session's, or
-    /// the public one where the page is every reader's (the prerender's ADR).
+    /// the public one where the page is every reader's (ADR-0409).
     fn render_page_in(
         &self,
         path: &str,
@@ -7305,7 +7305,7 @@ impl Server {
         ))
     }
 
-    /// **Each page no reader decides, rendered once** (the prerender's ADR),
+    /// **Each page no reader decides, rendered once** (ADR-0409),
     /// in the public partition, once the deployment's origin and policy are
     /// settled. A page that does not render is said here, before the host
     /// listens, as a handler that was not compiled is: a build that cannot
@@ -9706,7 +9706,7 @@ fn main() {
             std::process::exit(1);
         }
     }
-    // **Each page no reader decides, rendered once** (the prerender's ADR),
+    // **Each page no reader decides, rendered once** (ADR-0409),
     // with the origin and the deployment's policy now settled, or the server
     // does not start.
     if let Err(e) = server.prerender() {
@@ -11572,7 +11572,7 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
                 ),
             }
         }
-        // A page's code in one module (the page bundle's ADR): only a page
+        // A page's code in one module (ADR-0412): only a page
         // whose packaging wrote one.
         ("GET", route)
             if route
@@ -11714,7 +11714,7 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
             if server.warm {
                 table.push_str("#warm|1\n");
             }
-            // Each page whose code is one module (the page bundle's ADR).
+            // Each page whose code is one module (ADR-0412).
             for page in &server.bundles {
                 table.push_str(&format!("#bundle|{page}|/bundle/{page}.mjs\n"));
             }
@@ -11838,7 +11838,7 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
             fresh,
             b"no such command",
         ),
-        // **A page no reader decides, at its route** (the prerender's ADR):
+        // **A page no reader decides, at its route** (ADR-0409):
         // after every route of the host's own, so that none loses its place.
         ("GET", _) if prerendered.is_some() => {
             respond_prerendered(&mut stream, &headers, prerendered.expect("matched"));
@@ -11981,7 +11981,7 @@ fn stream_held(
     };
 
     // Bounded, like the long poll: a held connection is a held thread.
-    // As long as its page asked (the longer-holds ADR); a pass runs when the table
+    // As long as its page asked (ADR-0402); a pass runs when the table
     // is woken (a frame pushed, a cut-off) or a slice has passed, and ends
     // the hold where its page has gone.
     let opened = std::time::Instant::now();
@@ -12077,7 +12077,7 @@ fn stream_held(
 }
 
 /// **How long a subscription is held when nothing happens and its page asked
-/// to be held long** (the longer-holds ADR), a stream's and a long poll's
+/// to be held long** (ADR-0402), a stream's and a long poll's
 /// alike, before the page asks again: 25 s. A push answers a held
 /// subscription at once, and each pass keeps its document live ([`LIVE`]), so
 /// the hold costs no change its speed. It costs an open page about 2.4
@@ -12123,7 +12123,7 @@ impl Drop for HeldLong<'_> {
 const STREAM_HOLD: std::time::Duration = std::time::Duration::from_secs(2);
 const POLL_HOLD: std::time::Duration = std::time::Duration::from_secs(1);
 
-/// **Whether a held subscription's page has gone** (the longer-holds ADR):
+/// **Whether a held subscription's page has gone** (ADR-0402):
 /// the browser closed the connection the subscription is held on, as a page
 /// leaving does (its runtime aborts the request). A browser sends nothing
 /// else on a connection while it waits for that connection's answer, so
@@ -12199,7 +12199,7 @@ fn stream_frames(server: &Server, stream: &mut Conn, session: &str, fresh: bool,
         return;
     }
 
-    // As long as its page asked (the longer-holds ADR); a pass runs
+    // As long as its page asked (ADR-0402); a pass runs
     // when the table is woken (a frame pushed, a cut-off) or a slice has
     // passed (ADR-0399), and ends the hold where its page has gone, with no
     // answer: no one is there to read one.
@@ -13482,10 +13482,10 @@ struct Delivery {
     /// address (`/todomvc-app.css`): only these are named at the version.
     files: std::collections::BTreeSet<String>,
     /// Whether this build has a runtime for a page that talks to no server
-    /// (the device runtime's ADR).
+    /// (ADR-0413).
     device: bool,
     /// Each stylesheet this build could make part of a document, by its
-    /// address (the inline styles' ADR).
+    /// address (ADR-0415).
     styles: BTreeMap<String, InlineStyle>,
 }
 
@@ -13540,10 +13540,10 @@ fn draws_with_data(css: &str) -> bool {
 }
 
 /// How much of a page's stylesheets may be part of its document, as Brotli
-/// sends them (the inline styles' ADR).
+/// sends them (ADR-0415).
 const INLINE_AT_MOST: usize = 4 * 1024;
 
-/// **Whether a page runs on the device alone** (the device runtime's ADR): one
+/// **Whether a page runs on the device alone** (ADR-0413): one
 /// document for everyone, whose handlers send nothing, and no layout to keep
 /// across a navigation.
 fn runs_on_device(plan: &serde_json::Value) -> bool {

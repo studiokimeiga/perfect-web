@@ -1,67 +1,81 @@
 ADR-0139 - a frame is forgotten when the page says it applied it
 
 produced by: just e14-stream-ack
-commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the server (spikes/own-renderer/server)
 
-test tests::a_page_with_nothing_streamed_is_one_response_of_known_length ... ok
 test tests::a_streamed_region_follows_its_document_in_the_same_response ... ok
-test tests::page_policy::a_streamed_document_carries_its_policy_in_its_head ... ok
+test tests::a_page_with_nothing_streamed_is_one_response_of_known_length ... ok
+test tests::keep_alive::a_streams_connection_is_closed_with_it ... ok
 test tests::a_frame_a_stream_wrote_to_a_dropped_connection_still_reaches_its_page ... ok
 test tests::a_stream_drops_what_its_page_says_it_applied ... ok
+test tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream ... ok
+test tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long ... ok
+test tests::page_policy::a_streamed_document_carries_its_policy_in_its_head ... ok
+test tests::longer_holds::a_streams_page_gone_ends_its_hold ... ok
+test tests::longer_holds::a_stream_that_asks_is_held_long ... ok
+test tests::session_revocation::a_stream_worker_keeps_its_render_actor_across_a_concurrent_account_change ... ok
+test tests::session_revocation::an_anonymous_stream_worker_cannot_borrow_the_live_account ... ok
+test uploads::png_state::tests::animation_reserves_one_budget_before_each_frame_stream ... ok
+test uploads::png_state::tests::streaming_drains_full_buffers_and_refuses_short_or_excess_extents ... ok
+test uploads::privacy_tests::png_animation_streams_are_complete_bounded_and_well_formed ... ok
+test uploads::privacy_tests::png_split_streams_and_both_animation_layouts_remain_images ... ok
+test tests::session_upload_reserved_routes::a_declared_upload_at_stream_path_is_admitted_before_dispatch ... ok
+test tests::longer_holds::a_held_stream_keeps_its_page_live ... ok
 test tests::the_feeds_page_opening_its_stream_is_not_told_to_reload ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 735 filtered out; finished in 4.88s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 1010 filtered out; finished in 7.49s
 
 == mutation controls (scripts/stream_ack_mutations.py)
 
-baseline: 6 passed, 0 failed
-the stream acknowledges what it wrote: KILLED (1 of 6 tests fail)
-the stream does not acknowledge what the page sent: KILLED (1 of 6 tests fail)
+baseline: 20 passed, 0 failed
+the stream acknowledges what it wrote: KILLED (2 of 20 tests fail)
+the stream does not acknowledge what the page sent: KILLED (1 of 20 tests fail)
 2 of 2 mutants killed
 memory bound: no process was stopped
 
 == the keyed-list suite, twenty runs
 
 == run 1 of 20
-  48 passed (2.0m)
+  48 passed (1.8m)
 == run 2 of 20
-  48 passed (2.0m)
+  48 passed (1.9m)
 == run 3 of 20
-  48 passed (2.0m)
+  48 passed (1.8m)
 == run 4 of 20
-  48 passed (2.0m)
+  48 passed (1.8m)
 == run 5 of 20
-  48 passed (2.0m)
+  48 passed (1.8m)
 == run 6 of 20
-  48 passed (2.0m)
+  48 passed (1.8m)
 == run 7 of 20
-  48 passed (2.0m)
+  48 passed (1.8m)
 == run 8 of 20
-  48 passed (2.0m)
+  48 passed (1.8m)
 == run 9 of 20
-  48 passed (2.0m)
+  48 passed (1.9m)
 == run 10 of 20
-  48 passed (2.0m)
+  48 passed (1.8m)
 == run 11 of 20
-  48 passed (2.0m)
+  48 passed (1.8m)
 == run 12 of 20
-  48 passed (2.0m)
+  48 passed (1.8m)
 == run 13 of 20
-  48 passed (2.0m)
+  48 passed (1.8m)
 == run 14 of 20
-  48 passed (2.0m)
+  48 passed (1.8m)
 == run 15 of 20
-  48 passed (2.0m)
+  48 passed (1.8m)
 == run 16 of 20
-  48 passed (2.0m)
+  48 passed (1.8m)
 == run 17 of 20
-  48 passed (2.0m)
+  48 passed (1.9m)
 == run 18 of 20
-  48 passed (2.0m)
+  48 passed (1.8m)
 == run 19 of 20
-  48 passed (2.0m)
+  48 passed (1.9m)
 == run 20 of 20
-  48 passed (2.0m)
+  48 passed (1.8m)

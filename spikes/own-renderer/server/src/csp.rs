@@ -195,7 +195,7 @@ pub(crate) fn document(
 }
 
 /// [`document`], allowing each of `scripts`: a build whose pages start one of
-/// two runtimes (the device runtime's ADR).
+/// two runtimes (ADR-0413).
 pub(crate) fn document_with(
     scripts: &[&str],
     style: &str,

@@ -1,5 +1,5 @@
 # The stylesheets' images' recipes (a build's stylesheets draw with their own
-# images, ADR unnumbered until it lands). The root justfile imports this file,
+# images, ADR-0416). The root justfile imports this file,
 # and its settings and variables (`set shell`, `PATH`) apply here as there. An
 # evidence recipe is `e14-<name>:`, writes `docs/evidence/E14/<name>.txt`, and is
 # planned by the verification run like any other (scripts/ci_plan.py reads this

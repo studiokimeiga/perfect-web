@@ -1,4 +1,4 @@
-//! **A page no reader decides is one document** (the prerender's ADR), the
+//! **A page no reader decides is one document** (ADR-0409), the
 //! host's part: what it sends for a page the build marked, over a real
 //! connection, and that everything else is as it was. Which pages are marked
 //! is the compiler's (`compiler/pw-core/tests/prerender.rs`).
@@ -461,7 +461,7 @@ fn nothing_is_one_document_until_it_is_rendered() {
     );
 }
 
-/// **TodoMVC is one document** (the prerender's ADR): nothing on it is
+/// **TodoMVC is one document** (ADR-0409): nothing on it is
 /// anyone's and nothing on it asks a server anything, so the build marks it.
 #[test]
 fn todomvc_is_one_document() {

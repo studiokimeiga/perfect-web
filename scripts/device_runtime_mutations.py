@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Mutation controls for the device runtime's ADR: a page that talks to no
+"""Mutation controls for ADR-0413: a page that talks to no
 server starts a runtime with no server's code in it.
 
 Each mutant undoes one piece:
@@ -401,7 +401,7 @@ def packaging():
 
 def host():
     total = (0, 0)
-    for name in ("tests::page_bundle::", "tests::todomvc::a_production_build_of_the_page"):
+    for name in ("tests::page_bundle::",):
         out, code = bounded(["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server", name], cwd=ROOT)
         if code is None:
             return True, 0, 1

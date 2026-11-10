@@ -1,4 +1,4 @@
-//! **A page no reader decides is one document** (the prerender's ADR): the
+//! **A page no reader decides is one document** (ADR-0409): the
 //! host renders it once, before it listens, and sends everyone those bytes,
 //! compressed and revalidated as a file of the build is. Which pages those
 //! are is the compiler's (`pw_core::prerender`), which a plan says.

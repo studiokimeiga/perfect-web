@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Mutation controls for the browser renderer's ADR: the two renderers give one
+"""Mutation controls for ADR-0411: the two renderers give one
 answer.
 
 Each mutant makes one renderer answer differently, on purpose: an escaping that

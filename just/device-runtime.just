@@ -1,5 +1,5 @@
 # The device runtime's recipes (a page that talks to no server starts a runtime
-# with no server's code in it, ADR unnumbered until it lands). The root justfile
+# with no server's code in it, ADR-0413). The root justfile
 # imports this file, and its settings and variables (`set shell`, `PATH`) apply
 # here as there. An evidence recipe is `e14-<name>:`, writes
 # `docs/evidence/E14/<name>.txt`, and is planned by the verification run like
@@ -24,9 +24,8 @@ e14-device-runtime:
        node --test --test-reporter=spec spikes/own-renderer/decision-agreement.test.mjs; \
        echo; echo "== what the packaging writes (optimize-assets.test.mjs)"; echo; \
        node --test --test-reporter=spec spikes/own-renderer/optimize-assets.test.mjs; \
-       echo; echo "== what the host starts (tests::page_bundle::, tests::todomvc::)"; echo; \
+       echo; echo "== what the host starts (tests::page_bundle::)"; echo; \
        cargo test --locked -p pw-dev-server --bin pw-dev-server tests::page_bundle:: 2>&1 | grep -E '^(test |test result)|panicked at'; \
-       cargo test --locked -p pw-dev-server --bin pw-dev-server tests::todomvc::a_production_build_of_the_page 2>&1 | grep -E '^(test |test result)|panicked at'; \
        echo; echo "== a production build, in three engines (e2e/todomvc.spec.mjs, e2e/device-runtime.spec.mjs)"; echo; \
        PW_PRODUCTION_ASSETS=1 BUILD_ONLY=1 bash spikes/own-renderer/run.sh > /dev/null; \
        PW_PRODUCTION_ASSETS=1 bash spikes/own-renderer/rows.sh > /dev/null; \

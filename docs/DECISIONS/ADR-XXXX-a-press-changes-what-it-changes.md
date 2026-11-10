@@ -3,7 +3,7 @@
 Status: proposed 2026-11-09, on branch `perf/rows-20261109`, under the owner's
 delegation of 2026-10-02 and order of 2026-10-25 ("deciding by best judgement
 without asking"), and the order of 2026-11-09 to work the gaps with Svelte
-largest first. Milestone: E14. Builds on the browser renderer's ADR and the device
+largest first. Milestone: E14. Builds on ADR-0411 and the device
 runtime's.
 
 ## Context

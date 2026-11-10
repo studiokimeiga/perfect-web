@@ -1,18 +1,15 @@
 #!/usr/bin/env python3
-"""Mutation controls for ADR-0400: the browser's decision
-carries none of its trace's words, and a refused handler is told in the
-console by its code and the page that explains it.
+"""Mutation controls for ADR-0400: a refused handler is told in the console by
+its code and the page that explains it. (The decision's WebAssembly's own
+controls went with it from a page, the decision being in the runtime now.)
 
 Each mutant undoes one piece:
-- the decision's WebAssembly built with its trace's words, as `pw-resume`
-  builds by default;
 - a refusal not told in the console;
 - a refusal told without its page;
 - a refusal told by a code its page does not have.
 
-The WebAssembly's mutant must fail `e2e/runtime-size.spec.mjs`; a runtime
-mutant, the refused handler's test in `e2e/lazy-handler.spec.mjs`. Each runs
-in Chromium, against a build of the mutated source.
+A runtime mutant must fail the refused handler's test in
+`e2e/lazy-handler.spec.mjs`, in Chromium, against a build of the mutated source.
 
 Run from the repository root; `just e14-refusal-codes` records the output.
 The source is restored after every mutant, whatever happens, and the build
@@ -27,32 +24,10 @@ import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-DECISION = ROOT / "runtime/pw-resume-wasm/Cargo.toml"
 RUNTIME = ROOT / "spikes/own-renderer/public/pw-runtime.mjs"
 
 # (what, suite, file, anchor, replacement)
 MUTANTS = [
-    (
-        "the decision's WebAssembly keeps its trace's words",
-        "size",
-        DECISION,
-        'pw-resume = { path = "../pw-resume", default-features = false }\n',
-        'pw-resume = { path = "../pw-resume" }\n',
-    ),
-    (
-        "a decision keeps what it allocated",
-        "decision",
-        ROOT / "runtime/pw-resume-wasm/src/browser.rs",
-        "            HEAP.next.set(self.0);\n",
-        "            let _ = self.0;\n",
-    ),
-    (
-        "the decision's WebAssembly carries a sort for its dependencies",
-        "decision",
-        ROOT / "runtime/pw-resume/src/lib.rs",
-        '''        DependencySet(Hash::of(&canonical.join("\\u{2}")))\n''',
-        '''        canonical.sort();\n        DependencySet(Hash::of(&canonical.join("\\u{2}")))\n''',
-    ),
     (
         "a refusal is not told in the console",
         "refused",
@@ -77,8 +52,6 @@ MUTANTS = [
 ]
 
 SUITES = {
-    "size": ["e2e/runtime-size.spec.mjs", "-g", "none of its trace", "--project=chromium", "--workers=1"],
-    "decision": ["e2e/runtime-size.spec.mjs", "-g", "keeps nothing", "--project=chromium", "--workers=1"],
     "refused": ["e2e/lazy-handler.spec.mjs", "-g", "did not compile is refused", "--project=chromium"],
 }
 

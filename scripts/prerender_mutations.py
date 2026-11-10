@@ -267,7 +267,7 @@ def main():
     files = sorted({path for _, path, _, _ in MUTANTS}
                    | {path for suite in SUITES.values() for path in suite["sources"]})
     before = {str(path.relative_to(ROOT)): digest(path) for path in files}
-    report = {"scope": "a page no reader decides is one document (the prerender's ADR)",
+    report = {"scope": "a page no reader decides is one document (ADR-0409)",
               "commands": {name: suite["command"] for name, suite in SUITES.items()},
               "producer_sha256": digest(Path(__file__)),
               "sources": before, "baseline": {}, "controls": [], "restored": False,

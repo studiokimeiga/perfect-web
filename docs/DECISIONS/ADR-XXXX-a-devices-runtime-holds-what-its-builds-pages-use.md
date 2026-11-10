@@ -3,7 +3,7 @@
 Status: proposed 2026-11-09, on branch `perf/after-train-20261109`, under the
 owner's delegation of 2026-10-02 and order of 2026-10-25 ("deciding by best
 judgement without asking"), and the order of 2026-11-09 to work the measured
-gaps with Svelte largest first. Milestone: E14. Amends the device runtime's ADR,
+gaps with Svelte largest first. Milestone: E14. Amends ADR-0413,
 which ruled out a runtime made from what an app's pages use.
 
 ## Context
@@ -47,7 +47,7 @@ device runtime. Its reason holds against a runtime per page, not per build.
   cached alone and each navigation would fetch another. Per page may still pay
   for a site of few, large pages. It is a separate experiment.
 - **Dynamic imports of each feature.** Each would be a request a page pays for
-  on the way to its first press, which is what the page bundle's ADR removed.
+  on the way to its first press, which is what ADR-0412 removed.
 - **The flag per feature set by hand in each app.** The compiler already knows,
   and a person would be wrong when an app changes.
 

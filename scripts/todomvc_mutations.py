@@ -382,7 +382,7 @@ SERVER_NAMES = {
     "tests::todomvc::the_page_has_the_templates_markup",
 }
 SPEC = ["e2e/todomvc.spec.mjs", "--project=chromium"]
-BROWSER_COUNT = 52
+BROWSER_COUNT = 54
 INVENTORIES = {}
 
 # A stopped, incomplete or erroneous producer is invalid, never a test failure.

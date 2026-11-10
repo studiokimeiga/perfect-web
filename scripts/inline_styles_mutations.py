@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Mutation controls for the inline styles' ADR: a page's stylesheets, small
+"""Mutation controls for ADR-0415: a page's stylesheets, small
 together, are part of its document.
 
 Each mutant undoes one piece:

@@ -183,7 +183,7 @@ impl Build {
                         0 => String::new(),
                         n => format!(", {n} stream(s)"),
                     },
-                    // And whether a host renders it once (the prerender's ADR).
+                    // And whether a host renders it once (ADR-0409).
                     if plan.prerender { ", prerendered" } else { "" }
                 ));
             }
@@ -538,7 +538,7 @@ pub(crate) fn prepare(
         }
     }
     // Which pages no reader decides, now that what each handler sends is
-    // known (the prerender's ADR).
+    // known (ADR-0409).
     crate::prerender::mark(&mut pages, &templates, &handlers);
     let build = Build {
         templates,

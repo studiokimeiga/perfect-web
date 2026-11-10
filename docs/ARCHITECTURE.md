@@ -45,7 +45,7 @@ backend implementation.
 | Document identity | `runtime/pw-document` | Document-part address vocabulary |
 | Transport contract | `runtime/pw-protocol` | Patch and recovery protocol data |
 | Rendering | `runtime/pw-render` | Renderer implementation |
-| Resumption | `runtime/pw-resume`, `runtime/pw-resume-wasm` | Resumption decisions and Wasm wrapper |
+| Resumption | `runtime/pw-resume`, `runtime/pw-resume-wasm` | The resumption decision's specification; pages decide in the runtime, held to its Wasm build by `decision-agreement.test.mjs` (ADR-0414) |
 | Host | `runtime/pw-host` | Component contracts, admission and engine integration |
 
 These locations identify ownership. Presence of a crate does not establish its

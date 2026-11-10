@@ -1,0 +1,143 @@
+a page that talks to no server starts a runtime with no server's code in it
+
+produced by: just e14-device-runtime
+commit: 7e6e631316e2cf28484b1dd191b9d9bcc643e7c8
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42697853597 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+node: v22.21.1
+playwright: Version 1.58.0
+
+== the page's decision, asked as pw-resume is asked (decision-agreement.test.mjs)
+
+✔ every change to one field of a manifest is answered as the module answers (45.153073ms)
+✔ every change to two fields is answered as the module answers (429.935383ms)
+✔ a walk over all nine fields is answered as the module answers (270.99454ms)
+✔ the manifests reach each answer this decision has (23.321131ms)
+✔ each recovery a refusal can name is one the module names (3.210508ms)
+✔ a handler's identity is not read as anything but the table's own lines (0.183937ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 819.078625
+
+== what the packaging writes (optimize-assets.test.mjs)
+
+✔ the production build minifies and compresses only public client assets (40.746139ms)
+✔ a production build compresses its compiled modules beside themselves, unchanged (15.739804ms)
+✔ a production build says its pages warm what their presses need (9.821589ms)
+✔ a production build puts each page's code in one module, and leaves each module as it was (24.358648ms)
+✔ a production build's packaging writes each page's module (12.817131ms)
+✔ a page whose handler has no module is a build that did not finish (1.878456ms)
+✔ a build with no pages bundles nothing (0.674178ms)
+✔ a production build writes a runtime for a page that talks to no server (5.274274ms)
+✔ a build with no runtime says nothing of one (2.256186ms)
+✔ the runtime of a page that talks to no server holds none of a server's code (145.867152ms)
+✔ a production build minifies its stylesheets, and keeps what they draw (7.475416ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 327.201945
+
+== what the host starts (tests::page_bundle::)
+
+test tests::page_bundle::a_build_with_no_device_runtime_leaves_a_document_as_it_was ... ok
+test tests::page_bundle::a_bundle_is_one_of_what_a_delivery_digests ... ok
+test tests::page_bundle::a_delivery_that_says_so_with_no_file_has_no_device_runtime ... ok
+test tests::page_bundle::a_file_its_delivery_does_not_name_is_no_device_runtime ... ok
+test tests::page_bundle::a_page_that_talks_to_no_server_starts_the_devices_runtime ... ok
+test tests::page_bundle::a_page_with_a_layout_starts_the_whole_runtime ... ok
+test tests::page_bundle::a_production_build_of_the_page_starts_the_devices_runtime ... ok
+test tests::page_bundle::a_bundled_build_names_its_pages_module_on_its_table ... ok
+test tests::page_bundle::only_a_page_no_reader_decides_and_with_no_layout_runs_on_the_device ... ok
+test tests::page_bundle::the_policy_allows_each_runtime_a_build_starts ... ok
+test tests::page_bundle::a_bundled_module_is_kept_a_year_at_its_delivery_and_revalidated_at_another ... ok
+test tests::page_bundle::a_build_that_does_not_say_so_names_no_module_and_serves_none ... ok
+test tests::page_bundle::only_a_module_its_packaging_wrote_is_served ... ok
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 1018 filtered out; finished in 2.54s
+
+== a production build, in three engines (e2e/todomvc.spec.mjs, e2e/device-runtime.spec.mjs)
+
+  183 passed (1.4m)
+
+== mutation controls (scripts/device_runtime_mutations.py)
+
+baseline (decision): 6 passed, 0 failed
+baseline (packaging): 36 passed, 0 failed
+baseline (host): 13 passed, 0 failed
+baseline (browser): 7 passed, 0 failed
+a `#` line of the table is a handler [decision]: KILLED (1 of 6 tests fail)
+an empty line of the table is a handler [decision]: KILLED (4 of 6 tests fail)
+a handler that captures nothing is not known [decision]: KILLED (4 of 6 tests fail)
+a line that begins as this page's is this page's [decision]: KILLED (4 of 6 tests fail)
+no bytes under a schema is not malformed [decision]: KILLED (4 of 6 tests fail)
+no bytes is malformed under any schema [decision]: KILLED (4 of 6 tests fail)
+any scheme is understood [decision]: KILLED (4 of 6 tests fail)
+only a bare 2 is the scheme [decision]: KILLED (4 of 6 tests fail)
+a scheme that begins with 2 is understood [decision]: KILLED (4 of 6 tests fail)
+a scheme with a sign is not understood [decision]: KILLED (4 of 6 tests fail)
+any ABI is supported [decision]: KILLED (4 of 6 tests fail)
+only a bare 1 is the ABI [decision]: KILLED (4 of 6 tests fail)
+an ABI with a sign is not supported [decision]: KILLED (4 of 6 tests fail)
+an unknown handler attaches [decision]: KILLED (5 of 6 tests fail)
+a handler is known by its name, whatever it captures [decision]: KILLED (4 of 6 tests fail)
+a wider scope attaches [decision]: KILLED (4 of 6 tests fail)
+a public manifest is held to the page's scope [decision]: KILLED (4 of 6 tests fail)
+the page's own scope is refused [decision]: KILLED (4 of 6 tests fail)
+told nothing, a scope is still compared [decision]: KILLED (4 of 6 tests fail)
+another document attaches [decision]: KILLED (4 of 6 tests fail)
+told nothing, a document is still compared [decision]: KILLED (4 of 6 tests fail)
+the scheme is asked before the bytes [decision]: KILLED (2 of 6 tests fail)
+the ABI is asked before the scheme [decision]: KILLED (4 of 6 tests fail)
+the handler is asked before the ABI [decision]: KILLED (4 of 6 tests fail)
+the scope is asked before the handler [decision]: KILLED (4 of 6 tests fail)
+the document is asked before the scope [decision]: KILLED (4 of 6 tests fail)
+every answer attaches [decision]: KILLED (5 of 6 tests fail)
+a private slot is refetched [decision]: KILLED (4 of 6 tests fail)
+a pending command is refetched [decision]: KILLED (5 of 6 tests fail)
+an open resource is refetched [decision]: KILLED (5 of 6 tests fail)
+a region of private state is refetched [decision]: KILLED (4 of 6 tests fail)
+a device page decides nothing [browser]: KILLED (3 of 7 tests fail)
+a device page's table is not heard [browser]: KILLED (1 of 7 tests fail)
+a device page's decision is another page's [browser]: KILLED (1 of 7 tests fail)
+the source's flag is off [packaging]: KILLED (1 of 36 tests fail)
+a read is asked for [packaging]: KILLED (1 of 36 tests fail)
+the subscription starts [packaging]: KILLED (1 of 36 tests fail)
+a stream is watched [packaging]: KILLED (1 of 36 tests fail)
+a command can be sent [packaging]: KILLED (1 of 36 tests fail)
+a press speculates [packaging]: KILLED (1 of 36 tests fail)
+a navigation keeps the layout [packaging]: KILLED (1 of 36 tests fail)
+a link is followed in place [packaging]: KILLED (1 of 36 tests fail)
+back and forward are heard [packaging]: KILLED (1 of 36 tests fail)
+the scroll is taken from the browser [packaging]: KILLED (1 of 36 tests fail)
+the frame hook holds the frames [packaging]: KILLED (1 of 36 tests fail)
+the batch hook holds the batches [packaging]: KILLED (1 of 36 tests fail)
+the flag is not replaced [packaging]: KILLED (2 of 36 tests fail)
+what is unused stays [packaging]: KILLED (2 of 36 tests fail)
+the device's runtime is not compressed [packaging]: KILLED (1 of 36 tests fail)
+the device's runtime is not gzipped [packaging]: KILLED (1 of 36 tests fail)
+a build does not say it has one [packaging]: KILLED (2 of 36 tests fail)
+a build says the runtime it packed, not what from [packaging]: KILLED (1 of 36 tests fail)
+a build with no runtime fails [packaging]: KILLED (2 of 36 tests fail)
+a production build is of any runtime [packaging]: KILLED (1 of 36 tests fail)
+a production build is of none [packaging]: KILLED (1 of 36 tests fail)
+a delivery that cannot be read is of any runtime [packaging]: KILLED (3 of 36 tests fail)
+every prerendered page runs on the device [host]: KILLED (1 of 13 tests fail)
+a page with a layout runs on the device [host]: KILLED (2 of 13 tests fail)
+no page runs on the device [host]: KILLED (1 of 13 tests fail)
+each marked page runs on the device [host]: KILLED (1 of 13 tests fail)
+a build that does not say so has one [host]: KILLED (1 of 13 tests fail)
+a build with no file has one [host]: KILLED (1 of 13 tests fail)
+the document starts the whole runtime [host]: KILLED (2 of 13 tests fail)
+the head preloads the whole runtime [host]: KILLED (1 of 13 tests fail)
+the policy allows the whole runtime alone [host]: KILLED (1 of 13 tests fail)
+the policy allows the first of several [host]: KILLED (2 of 13 tests fail)
+66 of 66 mutants killed
+memory bound: no process was stopped

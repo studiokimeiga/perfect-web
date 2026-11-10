@@ -1,8 +1,8 @@
 ADR-0195 ruling 13 - every HTML answer carries a Content-Security-Policy generated from its build, and the build refuses what it would refuse
 
 produced by: just e14-page-policy
-commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 playwright: Version 1.58.0
 
@@ -21,12 +21,12 @@ test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 accepted: 44 files
 accepted: 44/44 charter §16 categories covered
-rejected: 95 files
-rejected: 95/95 charter §16 categories covered
+rejected: 97 files
+rejected: 97/97 charter §16 categories covered
 corpus-check: OK
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 113.40s
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.76s
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 110.26s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 118.57s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.16s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 119.53s
 
 == the policy, and the answers it is sent with (csp.rs, tests/page_policy.rs)
 
@@ -34,9 +34,11 @@ test csp::tests::an_origin_is_a_scheme_and_an_authority ... ok
 test csp::tests::a_comment_holds_no_markup_whatever_it_says ... ok
 test csp::tests::a_hash_source_is_the_texts_digest_in_base64 ... ok
 test csp::tests::plain_markup_asks_nothing ... ok
-test csp::tests::raw_markup_may_hold_a_style_attribute ... ok
 test csp::tests::a_documents_policy_allows_what_it_is_given_and_no_more ... ok
+test csp::tests::raw_markup_may_hold_a_style_attribute ... ok
 test csp::tests::what_markup_writes_is_found_wherever_it_is ... ok
+test tests::page_policy::a_build_whose_stylesheets_draw_with_data_allows_those_images ... ok
+test tests::page_policy::a_policy_allows_data_images_only_where_a_build_needs_them ... ok
 test tests::page_policy::a_streamed_document_carries_its_policy_in_its_head ... ok
 test tests::page_policy::a_deployment_that_takes_payments_frames_its_provider_alone ... ok
 test tests::page_policy::a_sign_in_at_another_origin_is_a_forms_to_reach ... ok
@@ -47,16 +49,16 @@ test tests::page_policy::every_other_html_answer_runs_nothing ... ok
 test tests::page_policy::the_host_writes_no_style_attribute ... ok
 test tests::sign_in::the_development_provider_signs_up_and_in_through_the_flow ... ok
 test tests::redirects::a_page_at_another_address_of_the_page_is_moved_there_for_good ... ok
-test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 724 filtered out; finished in 26.04s
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 1011 filtered out; finished in 26.62s
 
 == the pages the suite serves, under it, in three engines (e2e/page-policy.spec.mjs)
 
-  54 passed (1.5m)
+  51 passed (2.1m)
 
 == mutation controls (scripts/page_policy_mutations.py)
 
 baseline (core): 32 passed, 0 failed
-baseline (server): 17 passed, 0 failed
+baseline (server): 19 passed, 0 failed
 baseline (browser): 1 passed, 0 failed
 a scheme is not another origin: KILLED (4 of 20 tests fail)
 a `//` names no host: KILLED (1 of 26 tests fail)
@@ -70,37 +72,37 @@ a link's address a value chooses is allowed: KILLED (1 of 32 tests fail)
 an address built with a value is not read: KILLED (1 of 32 tests fail)
 an address built with a value is read only to its first value: KILLED (1 of 32 tests fail)
 a link's text before its value is taken as known wherever it starts: KILLED (1 of 32 tests fail)
-the script that starts the runtime is not hashed: KILLED (3 of 17 tests fail)
-the runtime's WebAssembly is refused: KILLED (2 of 17 tests fail)
-the data layer's style is not hashed: KILLED (2 of 17 tests fail)
-a `<style>` the build writes is not hashed: KILLED (1 of 17 tests fail)
-a text is hashed with its CRs: KILLED (1 of 17 tests fail)
-a style attribute a value gives is not found: KILLED (1 of 17 tests fail)
-markup a capability lets through is taken as holding no style attribute: KILLED (1 of 17 tests fail)
-a block's markup is not read: KILLED (2 of 17 tests fail)
-a comment's text is read as markup: KILLED (1 of 17 tests fail)
-a style attribute written is not found: KILLED (1 of 17 tests fail)
-a quoted value is read as attributes: KILLED (1 of 17 tests fail)
-a frame is not found: KILLED (2 of 17 tests fail)
-a `<style>`'s text is not read: KILLED (1 of 17 tests fail)
-a style attribute the build writes is refused: KILLED (1 of 17 tests fail)
-a build that frames nothing frames the provider: KILLED (1 of 17 tests fail)
-an address's origin keeps who it is from: KILLED (1 of 17 tests fail)
-the deployment's payment provider is not framed: KILLED (1 of 17 tests fail)
-a sign-in at another origin is refused: KILLED (1 of 17 tests fail)
-a document written whole is sent no policy: KILLED (1 of 17 tests fail)
-a streamed document is sent no policy: KILLED (4 of 17 tests fail)
-a document is sent the bare policy: KILLED (4 of 17 tests fail)
-an HTML answer that runs nothing is sent no policy: KILLED (1 of 17 tests fail)
-a page the build rendered is sent no policy: KILLED (1 of 17 tests fail)
-an answer that is not HTML is sent the bare policy: KILLED (1 of 17 tests fail)
-a page moved is sent no policy: KILLED (1 of 17 tests fail)
-the identity's page is sent no policy: KILLED (1 of 17 tests fail)
-an answer's type may be sniffed: KILLED (1 of 17 tests fail)
-a streamed document's type may be sniffed: KILLED (1 of 17 tests fail)
-the identity's answers may be sniffed: KILLED (1 of 17 tests fail)
-a stylesheet the build ships is served as bytes: KILLED (1 of 17 tests fail)
-the announcer is served styled: KILLED (1 of 17 tests fail)
+the script that starts the runtime is not hashed: KILLED (3 of 19 tests fail)
+the policy allows WebAssembly no page compiles: KILLED (2 of 19 tests fail)
+the data layer's style is not hashed: KILLED (2 of 19 tests fail)
+a `<style>` the build writes is not hashed: KILLED (1 of 19 tests fail)
+a text is hashed with its CRs: KILLED (1 of 19 tests fail)
+a style attribute a value gives is not found: KILLED (1 of 19 tests fail)
+markup a capability lets through is taken as holding no style attribute: KILLED (1 of 19 tests fail)
+a block's markup is not read: KILLED (2 of 19 tests fail)
+a comment's text is read as markup: KILLED (1 of 19 tests fail)
+a style attribute written is not found: KILLED (1 of 19 tests fail)
+a quoted value is read as attributes: KILLED (1 of 19 tests fail)
+a frame is not found: KILLED (2 of 19 tests fail)
+a `<style>`'s text is not read: KILLED (1 of 19 tests fail)
+a style attribute the build writes is refused: KILLED (1 of 19 tests fail)
+a build that frames nothing frames the provider: KILLED (1 of 19 tests fail)
+an address's origin keeps who it is from: KILLED (1 of 19 tests fail)
+the deployment's payment provider is not framed: KILLED (1 of 19 tests fail)
+a sign-in at another origin is refused: KILLED (1 of 19 tests fail)
+a document written whole is sent no policy: KILLED (1 of 19 tests fail)
+a streamed document is sent no policy: KILLED (4 of 19 tests fail)
+a document is sent the bare policy: KILLED (4 of 19 tests fail)
+an HTML answer that runs nothing is sent no policy: KILLED (1 of 19 tests fail)
+a page the build rendered is sent no policy: KILLED (1 of 19 tests fail)
+an answer that is not HTML is sent the bare policy: KILLED (1 of 19 tests fail)
+a page moved is sent no policy: KILLED (1 of 19 tests fail)
+the identity's page is sent no policy: KILLED (1 of 19 tests fail)
+an answer's type may be sniffed: KILLED (1 of 19 tests fail)
+a streamed document's type may be sniffed: KILLED (1 of 19 tests fail)
+the identity's answers may be sniffed: KILLED (1 of 19 tests fail)
+a stylesheet the build ships is served as bytes: KILLED (1 of 19 tests fail)
+the announcer is served styled: KILLED (1 of 19 tests fail)
 the announcer, served unstyled, is never hidden: KILLED (1 of 1 tests fail)
 44 of 44 mutants killed
 memory bound: no process was stopped

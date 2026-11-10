@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Mutation controls for the page bundle's ADR: a page's code is one module.
+"""Mutation controls for ADR-0412: a page's code is one module.
 
 Each mutant undoes one piece:
 - the packaging: a handler in a block or a view left out, a page's computed

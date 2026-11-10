@@ -57,7 +57,7 @@ pub(super) fn built_todomvc() -> (tempfile::TempDir, std::path::PathBuf) {
 
 /// The page `session` is served, as a browser is answered: the document
 /// whole, its root and its head among it.
-fn page(s: &Server, session: &str) -> String {
+pub(super) fn page(s: &Server, session: &str) -> String {
     let answer: String = fetched_as(s, "/", Some(session))
         .into_iter()
         .map(|(_, c)| c)
@@ -226,63 +226,4 @@ fn the_page_has_the_templates_markup() {
     );
     // And TodoMVC's own stylesheets, which this host serves.
     assert!(html.contains("/todomvc-app.css"), "{html}");
-}
-
-/// **In a production build, the page runs on the device's runtime** (the device
-/// runtime's ADR): no reader decides it and it has no layout, so its one
-/// document starts the small runtime, and its policy allows that.
-#[test]
-fn a_production_build_of_the_page_starts_the_devices_runtime() {
-    let (_dir, out) = built_todomvc();
-    std::fs::write(
-        out.join("delivery.json"),
-        "{\"versioned\": true, \"device\": true}\n",
-    )
-    .expect("written");
-    for file in ["pw-runtime.mjs", "pw-runtime-device.mjs"] {
-        std::fs::write(out.join(file), "export {};\n").expect("written");
-    }
-    let s = Server::from_build(out.clone(), out).expect("served");
-    s.prerender().expect("prerendered");
-    let html = page(&s, "a");
-    let device = s.delivery.device_source().expect("a device runtime");
-    assert!(
-        html.contains(&format!("<script>{device}</script>")),
-        "{html}"
-    );
-    assert!(
-        !html.contains(&format!("<script>{}</script>", s.delivery.runtime_source())),
-        "{html}"
-    );
-    let policy = html
-        .lines()
-        .find(|l| l.starts_with("content-security-policy:"))
-        .unwrap_or_else(|| panic!("a policy in {html}"));
-    assert!(policy.contains(&csp::sha256_source(&device)), "{policy}");
-    assert!(!html.contains("/bundle/"), "{html}");
-}
-
-#[test]
-fn a_production_build_of_the_page_fetches_its_code_beside_its_runtime() {
-    const PAGE: &str = "todomvc.app.Todos~ui";
-    let (_dir, out) = built_todomvc();
-    std::fs::write(
-        out.join("delivery.json"),
-        "{\"versioned\": true, \"device\": true, \"bundled\": true}\n",
-    )
-    .expect("written");
-    for file in ["pw-runtime.mjs", "pw-runtime-device.mjs"] {
-        std::fs::write(out.join(file), "export {};\n").expect("written");
-    }
-    let bundles = out.join("bundles");
-    std::fs::create_dir_all(&bundles).expect("a directory");
-    std::fs::write(bundles.join(format!("{PAGE}.mjs")), "export const a = 1;\n").expect("written");
-    let s = Server::from_build(out.clone(), out).expect("served");
-    s.prerender().expect("prerendered");
-    let html = page(&s, "a");
-    let module = s.delivery.named(&format!("/bundle/{PAGE}.mjs"));
-    assert!(
-        html.contains(&format!("<link rel=\"modulepreload\" href=\"{module}\">")),
-        "{html}"
-    );
 }

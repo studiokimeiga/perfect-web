@@ -1,8 +1,8 @@
 ADR-0231 - a page's parameter is rendered on every page
 
 produced by: just e14-page-parameters
-commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -14,28 +14,28 @@ test a_computed_attribute_is_a_value_the_host_sets ... ok
 test a_view_composed_in_the_page_computes_from_the_pages_value ... ok
 test a_value_the_template_computes_performs_nothing ... ok
 test a_value_the_template_computes_is_lifted_and_planned ... ok
-test what_a_host_does_not_compute_is_refused_by_name ... ok
 test a_member_an_imported_module_lacks_does_not_resolve ... ok
+test what_a_host_does_not_compute_is_refused_by_name ... ok
 test a_view_that_contains_itself_computes_nothing_yet_and_a_speculated_value_is_computed ... ok
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.91s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.33s
 test a_parameter_is_read_where_a_value_is_and_set_again_nowhere ... ok
 test what_reads_a_parameter_where_a_host_does_not_render_is_refused_by_name ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.14s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.20s
 
 == the server (spikes/own-renderer/server/src/main.rs)
 
 test tests::a_row_a_change_renders_reads_the_pages_parameters ... ok
 test tests::a_page_that_binds_a_query_is_rendered_with_its_parameters ... ok
 test tests::a_reply_is_its_threads_to_every_reader_and_no_timelines ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 738 filtered out; finished in 2.89s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 1027 filtered out; finished in 1.53s
 
 == the feed in three engines (e2e/feed.spec.mjs)
 
-  66 passed (1.1m)
+  72 passed (52.7s)
 
 == mutation controls (scripts/page_parameters_mutations.py)
 
-baseline (browser): 66 passed, 0 failed
+baseline (browser): 72 passed, 0 failed
 baseline (cargo): 13 passed, 0 failed
 a page that binds a query is rendered without its parameters [cargo]: KILLED (3 of 13 tests fail)
 a block a host renders again is rendered without the page's parameters [cargo]: KILLED (1 of 13 tests fail)
@@ -44,6 +44,6 @@ a text part that reads a page's parameter is refused [cargo]: KILLED (2 of 13 te
 a value computed from a page's parameter is named as no query's [cargo]: KILLED (1 of 11 tests fail)
 a reply is no reply [cargo]: KILLED (2 of 13 tests fail)
 a reply to a post that is not there is made [cargo]: KILLED (1 of 13 tests fail)
-a reply is no reply, in three engines [browser]: KILLED (6 of 66 tests fail)
+a reply is no reply, in three engines [browser]: KILLED (12 of 72 tests fail)
 8 of 8 mutants killed
 memory bound: no process was stopped

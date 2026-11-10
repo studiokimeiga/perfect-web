@@ -1,8 +1,8 @@
 ADR-0171 - an attribute that reads a query's value is set again
 
 produced by: just e14-query-attributes
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the plan (compiler/pw-core/tests/query_attributes.rs)
@@ -10,12 +10,12 @@ rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 test one_a_block_or_a_row_renders_is_not_the_pages_to_set ... ok
 test an_attribute_at_the_top_that_reads_a_query_is_planned ... ok
 test one_written_with_several_values_is_planned_once ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.44s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.55s
 
 == the development server (pw-dev-server)
 
 test tests::an_attribute_that_reads_a_query_is_set_again_when_it_changes ... ok
-test result: ok. 704 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 297.53s
+test result: ok. 1021 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 452.51s
 
 == mutation controls (scripts/query_attributes_mutations.py)
 

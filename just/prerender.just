@@ -1,5 +1,5 @@
-# The prerender's recipes (a page no reader decides is one document, ADR
-# unnumbered until it lands). The root justfile imports this file, and its
+# The prerender's recipes (a page no reader decides is one document,
+# ADR-0409). The root justfile imports this file, and its
 # settings and variables (`set shell`, `PATH`) apply here as there. An evidence
 # recipe is `e14-<name>:`, writes `docs/evidence/E14/<name>.txt`, and is planned
 # by the verification run like any other (scripts/ci_plan.py reads this file
