@@ -4,8 +4,7 @@
 // heard at the document acts as it would on the element.
 // `examples/rows/app.pw`, and the fixture `examples/rows/events.pw`, which
 // is a build of its own (`row-events.sh`): the large list's is the app alone,
-// as the head-to-head measures it, and a page alone in its build (the one
-// page's ADR).
+// as the head-to-head measures it, and a page alone in its build (ADR-0426).
 import { test } from "@playwright/test";
 import { expect } from "../assertion-expect.mjs";
 import { ROWS_PORTS, ROW_EVENTS_PORTS } from "../host-metadata.mjs";

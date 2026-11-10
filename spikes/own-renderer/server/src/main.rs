@@ -1847,7 +1847,7 @@ impl Server {
             .map_err(|e| format!("graph.json: {e:?}"))?;
         // A build whose contracts export pages alone compiled nothing a host
         // runs, and has no `components` directory (a page of presses:
-        // `examples/rows/events.pw`, the one page's ADR). One whose contracts
+        // `examples/rows/events.pw`, ADR-0426). One whose contracts
         // export anything else is a build that did not finish without it.
         let pages_alone = contracts
             .iter()
@@ -7324,7 +7324,7 @@ impl Server {
 
     /// **What this build compiled, as its handler table says it** (ADR-0132):
     /// what `/pw-handlers` answers, and what a page alone in its build holds
-    /// (the one page's ADR). One writer for both.
+    /// (ADR-0426). One writer for both.
     fn handlers_said(&self) -> String {
         // The build's name, and each page's document: its schema and its
         // scope (ADR-0300), which the browser's decision holds a document
@@ -7374,8 +7374,8 @@ impl Server {
             let (document, _, _) = self
                 .render_page_in(page, &BTreeMap::new(), Partition::Public, &[])
                 .map_err(|why| format!("`{page}` cannot be prerendered: {why}"))?;
-            // A page alone in its build is one document (the one page's
-            // ADR): the host holds the build to one page, whatever its
+            // A page alone in its build is one document (ADR-0426):
+            // the host holds the build to one page, whatever its
             // packaging wrote.
             let alone = (runs_on_device(plan)
                 && self.plans.len() == 1
@@ -8140,8 +8140,7 @@ impl Server {
     }
 
     /// The policy of a document holding `style` as well (the inline styles'
-    /// ADR), and `script`, the one module of a page alone in its build (the
-    /// one page's ADR).
+    /// ADR), and `script`, the one module of a page alone in its build (ADR-0426).
     fn policy_allowing(&self, style: Option<String>, script: Option<&str>) -> String {
         let mut needs = self.needs.clone();
         needs.styles.extend(style);
@@ -8162,7 +8161,7 @@ impl Server {
         let runtime = self.delivery.runtime_source();
         let device = self.delivery.device_source();
         // A page alone in its build runs its one module and no other script
-        // (the one page's ADR): its policy allows that alone.
+        // (ADR-0426): its policy allows that alone.
         let scripts = match alone {
             Some(module) => vec![module],
             None => std::iter::once(runtime.as_str())
@@ -12974,7 +12973,7 @@ fn warms(dist: &std::path::Path) -> bool {
     delivery_says(dist, "warm")
 }
 
-/// **The one module a page alone in its build has** (the one page's ADR):
+/// **The one module a page alone in its build has** (ADR-0426):
 /// `(page, text)` where the packaging wrote exactly one into `alone/`, and
 /// none where it wrote none or several.
 fn alone_module(artifacts: &std::path::Path) -> Option<(String, String)> {
@@ -13730,14 +13729,14 @@ struct Delivery {
     /// Each stylesheet this build could make part of a document, by its
     /// address (ADR-0415).
     styles: BTreeMap<String, InlineStyle>,
-    /// **The one module of a page alone in its build** (the one page's ADR),
+    /// **The one module of a page alone in its build** (ADR-0426),
     /// by its page: the device's runtime and the page's code, which the
     /// packaging wrote where its build has exactly one page.
     alone: Option<(String, String)>,
 }
 
-/// **Whether `text` reads as one script inside a `<script>` element** (the
-/// one page's ADR): no `</script`, which would end it, and no `<script`,
+/// **Whether `text` reads as one script inside a `<script>` element** (ADR-0426):
+/// no `</script`, which would end it, and no `<script`,
 /// which after a `<!--` would hide its end, in any case (the HTML Standard's
 /// tokenizer, its script data escaped and double escaped states).
 fn one_script(text: &str) -> bool {
@@ -13899,13 +13898,13 @@ impl Delivery {
     }
 
     /// The page alone in this build, where its packaging wrote that page's
-    /// one module (the one page's ADR).
+    /// one module (ADR-0426).
     fn alone_page(&self) -> Option<&str> {
         self.alone.as_ref().map(|(page, _)| page.as_str())
     }
 
-    /// **`document`, the one document of a page alone in its build** (the one
-    /// page's ADR): its module as its one script and `table`, the build's
+    /// **`document`, the one document of a page alone in its build** (ADR-0426):
+    /// its module as its one script and `table`, the build's
     /// handler table, in a data block beside it, in place of the runtime's
     /// script and of the head's links that fetch it, its table and its code.
     /// `None` where this build has no such module, or its text would not read
@@ -18530,7 +18529,7 @@ public query Store(",
     mod browser_rows;
     mod inline_styles;
     mod page_bundle;
-    // A page alone in its build is one document (the one page's ADR).
+    // A page alone in its build is one document (ADR-0426).
     mod alone_page;
 
     // TRACK SEAM (store-search): the store's search page, served (W9).

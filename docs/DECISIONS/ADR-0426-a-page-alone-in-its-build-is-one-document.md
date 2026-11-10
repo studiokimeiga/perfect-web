@@ -1,11 +1,11 @@
-# ADR-XXXX: a page alone in its build is one document
+# ADR-0426: a page alone in its build is one document
 
-Status: proposed 2026-11-10, on branch `perf/train-20-20261110`, under the
-owner's delegation of 2026-10-02 and order of 2026-10-25 ("deciding by best
-judgement without asking"), and the order of 2026-11-09 that every row of the
-head-to-head Svelte wins is a defect until it is fixed or recorded. Milestone:
-E14. Builds on ADR-0409, ADR-0412, ADR-0413 and ADR-0419; amends ADR-0132's
-table, for this page alone.
+Status: accepted 2026-11-11, landed with trains 20 and 21. Proposed 2026-11-10,
+on branch `perf/train-20-20261110`, under the owner's delegation of 2026-10-02
+and order of 2026-10-25 ("deciding by best judgement without asking"), and the
+order of 2026-11-09 that every row of the head-to-head Svelte wins is a defect
+until it is fixed or recorded. Milestone: E14. Builds on ADR-0409, ADR-0412,
+ADR-0413 and ADR-0419; amends ADR-0132's table, for this page alone.
 
 ## Context
 

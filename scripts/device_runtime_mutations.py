@@ -450,7 +450,7 @@ MUTANTS = [
     ("the policy allows the first of several", "host", CSP,
      '            scripts\n                .iter()\n                .map(|s| sha256_source(s))\n',
      '            scripts\n                .iter()\n                .take(1)\n                .map(|s| sha256_source(s))\n'),
-    # -- a page alone in its build (the one page's ADR)
+    # -- a page alone in its build (ADR-0426)
     ("a build of two pages has a module alone", "packaging", PACKAGING,
      "  if (names.length !== 1) return null;\n", "  if (names.length < 1) return null;\n"),
     ("a page a reader decides has a module alone", "packaging", PACKAGING,

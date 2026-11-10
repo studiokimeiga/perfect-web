@@ -1,4 +1,4 @@
-//! **A page alone in its build is one document** (the one page's ADR), the
+//! **A page alone in its build is one document** (ADR-0426), the
 //! host's part: where the packaging wrote the page's code and the device's
 //! runtime as one module, the page's document holds it and the build's
 //! handler table, and asks for nothing as it boots. Any other page is

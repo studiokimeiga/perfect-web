@@ -59,7 +59,7 @@ function alone(source, is) {
 }
 
 /**
- * **A page alone in its build, as one module** (the one page's ADR): the
+ * **A page alone in its build, as one module** (ADR-0426): the
  * device's runtime, the page's one module (ADR-0412) imported into it, and
  * `PW_ALONE` true, so that it reads its table from the document that holds
  * it and its code from itself. Written where the build has exactly one page,
@@ -189,7 +189,7 @@ function serverRuntimeSource(source) {
   // `optimize-assets.test.mjs` holds the runtime's own to what falls away.
   const declared = "const PW_SERVER = true;";
   if (!source.includes(declared)) return source;
-  // A server's page is never alone in its build (the one page's ADR).
+  // A server's page is never alone in its build (ADR-0426).
   const server = alone(source.replace(declared, "").replaceAll("PW_SERVER", "true"), false);
   const delegated = "const DELEGATED = !true && !PW_VIEWS;";
   return server.includes(delegated) ? server.replace(delegated, "").replaceAll("DELEGATED", "false") : server;

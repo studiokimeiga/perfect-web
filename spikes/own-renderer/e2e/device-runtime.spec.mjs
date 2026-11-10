@@ -3,7 +3,7 @@
 // selected: `playwright.config.mjs`): a page no reader decides and with no
 // layout starts a runtime with no server's code in it, and refuses a handler
 // its build did not compile, as every other page does. TodoMVC is a page
-// alone in its build (the one page's ADR): its document holds that runtime,
+// alone in its build (ADR-0426): its document holds that runtime,
 // its code and its build's handler table, and it asks for nothing else.
 import { statSync } from "node:fs";
 import path from "node:path";

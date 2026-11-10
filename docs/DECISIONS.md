@@ -3391,3 +3391,9 @@ A row computes what it shows: a value a row of a list the browser renders comput
 
 [ADR-0425](DECISIONS/ADR-0425-a-lists-two-places-exchanged.md):
 A list's two places exchanged: `List.swap(items, i, j)`, the list as it is where either is no place in it; nothing traps.
+
+[ADR-0426](DECISIONS/ADR-0426-a-page-alone-in-its-build-is-one-document.md):
+A page alone in its build is one document: the packaging writes the device's runtime and the page's module as one, and the host sends it inside the page's document with the build's handler table, which it writes as it answers `/pw-handlers`; the page's policy allows that script alone. Loading the page is one request.
+
+[ADR-0427](DECISIONS/ADR-0427-a-row-a-plan-makes-is-computed-and-holds-what-its-handlers-capture.md):
+A row a plan makes is computed, and holds what its handlers capture: each hole computed alone, its markup written only when read, its nodes found by their siblings; a press computes what the row's handlers capture from the row it shows, and markup written as text keeps its attribute. The browser's module finds an Int's overflow as 64 bits wrap it, and holds a list of literals as one frozen value.

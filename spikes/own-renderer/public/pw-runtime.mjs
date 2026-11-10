@@ -42,8 +42,8 @@ const PW_FRAGMENT = true;
 const PW_AUTOFOCUS = true;
 const PW_PLANS = true;
 
-/** **Whether this runtime is a page alone in its build** (the one page's
- * ADR): the page's document holds it, the page's code and the build's handler
+/** **Whether this runtime is a page alone in its build** (ADR-0426):
+ * the page's document holds it, the page's code and the build's handler
  * table, so it asks for neither. True in that page's one module alone, which
  * the packaging writes; false, and folded away, everywhere else. */
 const PW_ALONE = false;
@@ -554,8 +554,8 @@ async function bootDecision() {
   if (schema !== undefined) log.push(`knows ${PAGE}'s documents: ${schema} ${scope}`);
 }
 
-/** **The handler table a page alone in its build holds** (the one page's
- * ADR): its document's, which holds this runtime too, so both are of one
+/** **The handler table a page alone in its build holds** (ADR-0426):
+ * its document's, which holds this runtime too, so both are of one
  * build, as ADR-0132 asks of a table. Empty where it cannot be read, and every
  * handler is refused: the closed side. */
 const tableAlone = !PW_ALONE ? null : function tableAlone() {
