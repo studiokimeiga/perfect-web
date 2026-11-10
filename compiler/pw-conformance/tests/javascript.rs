@@ -104,6 +104,27 @@ public query Head(xs: List<Int>) -> Int {
 
 public query AsFloat(n: Int) -> Float { Float.from_int(n) }
 
+// ADR-0427: a list of literals is a value of the module, made once, in a
+// function compiled beside the query and in a function value alike; one that
+// holds a value the query computes, or nothing, is made where it is.
+// Recursive, so compiled beside the query as well as inlined into it.
+fn colour(i: Int, depth: Int) -> String {
+    if depth > 0 {
+        colour(i, depth - 1)
+    } else {
+        match List.get([\"red\", \"green\", \"blue\"], i % 3) {
+            Some(w) => w,
+            None => \"none\",
+        }
+    }
+}
+
+public query Words(xs: List<Int>) -> List<String> { List.map(xs, (x) => colour(x, 1)) }
+
+public query Tables(n: Int) -> List<List<Int>> { [[1, 2, 3], [n, 2], List.map([1, 2, 3], (x) => x * n), []] }
+
+public query Counted(n: Int) -> Int { apply_to((k) => List.length([4, 5, 6]) * k, n) }
+
 // ADR-0050: recursion, compiled beside the query in both. The inputs are
 // bounded, so a generated `Int` does not ask for a depth nothing has.
 fn fib(n: Int) -> Int { if n < 2 { n } else { fib(n - 1) + fib(n - 2) } }
@@ -817,6 +838,24 @@ fn every_query_agrees_with_its_component_under_node() {
         "javascript: {queries} queries, {calls} calls, component and module agree \
          ({traps} trapped in both)"
     );
+}
+
+/// **A list of literals is a value of the module** (ADR-0427): made once,
+/// frozen and named by what it holds; the literals only it read are not
+/// written in the function that reads it; two of one text are one; and a
+/// list holding a value the query computes, or none, is made where it is.
+#[test]
+fn a_list_of_literals_is_a_value_of_the_module() {
+    let us = units(&[("j.pw", PROGRAM)]);
+    let words = pw_core::backend::js_pure::module(&us, "j.Words").unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(words.matches("Object.freeze([\"red\", \"green\", \"blue\"])").count(), 1, "{words}");
+    assert_eq!(words.matches("\"red\"").count(), 1, "{words}");
+    let tables = pw_core::backend::js_pure::module(&us, "j.Tables").unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(tables.matches("Object.freeze([1n, 2n, 3n])").count(), 1, "{tables}");
+    assert_eq!(tables.matches("1n, 2n, 3n").count(), 1, "{tables}");
+    assert_eq!(tables.matches("Object.freeze(").count(), 1, "{tables}");
+    let counted = pw_core::backend::js_pure::module(&us, "j.Counted").unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(counted.matches("Object.freeze([4n, 5n, 6n])").count(), 1, "{counted}");
 }
 
 /// **A type that contains itself** (ADR-0194): a module's value is nested,

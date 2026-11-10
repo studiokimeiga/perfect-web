@@ -99,6 +99,7 @@ fn encode(component_id: &str, function: &Function, program: &Program) -> Result<
         .map(|(n, c)| ((c.def, c.instance.clone()), n))
         .collect();
     let mut helpers = BTreeSet::new();
+    let mut constants = BTreeMap::new();
     let mut sources = Vec::new();
     // The function values' code (ADR-0052): its captures, then its
     // parameters, as a function of the module.
@@ -106,6 +107,7 @@ fn encode(component_id: &str, function: &Function, program: &Program) -> Result<
         let mut e = Emitter::new(program, &callees, &function.closures);
         e.function(&c.function).map_err(refused)?;
         helpers.extend(e.helpers.iter().copied());
+        constants_into(&mut constants, &e.constants).map_err(refused)?;
         let params: Vec<String> = c.function.params.iter().map(|(v, _)| val(*v)).collect();
         sources.push(format!(
             "function {}({}) {{\n{}}}",
@@ -118,6 +120,7 @@ fn encode(component_id: &str, function: &Function, program: &Program) -> Result<
         let mut e = Emitter::new(program, &callees, &function.closures);
         e.function(c).map_err(refused)?;
         helpers.extend(e.helpers.iter().copied());
+        constants_into(&mut constants, &e.constants).map_err(refused)?;
         let params: Vec<String> = c.params.iter().map(|(v, _)| val(*v)).collect();
         sources.push(format!(
             "function {}({}) {{\n{}}}",
@@ -129,6 +132,7 @@ fn encode(component_id: &str, function: &Function, program: &Program) -> Result<
     let mut e = Emitter::new(program, &callees, &function.closures);
     e.function(function).map_err(refused)?;
     e.helpers.extend(helpers);
+    constants_into(&mut e.constants, &constants).map_err(refused)?;
     Ok(e.finish(component_id, function, &sources))
 }
 
@@ -150,11 +154,13 @@ pub(crate) fn handler_source(
         .map(|(n, c)| ((c.def, c.instance.clone()), n))
         .collect();
     let mut helpers = BTreeSet::new();
+    let mut constants = BTreeMap::new();
     let mut sources = Vec::new();
     for (n, c) in function.closures.iter().enumerate() {
         let mut e = Emitter::new(program, &callees, &function.closures);
         e.function(&c.function)?;
         helpers.extend(e.helpers.iter().copied());
+        constants_into(&mut constants, &e.constants)?;
         let params: Vec<String> = c.function.params.iter().map(|(v, _)| val(*v)).collect();
         sources.push(format!(
             "function {}({}) {{\n{}}}",
@@ -167,6 +173,7 @@ pub(crate) fn handler_source(
         let mut e = Emitter::new(program, &callees, &function.closures);
         e.function(c)?;
         helpers.extend(e.helpers.iter().copied());
+        constants_into(&mut constants, &e.constants)?;
         let params: Vec<String> = c.params.iter().map(|(v, _)| val(*v)).collect();
         sources.push(format!(
             "function {}({}) {{\n{}}}",
@@ -179,6 +186,7 @@ pub(crate) fn handler_source(
     e.handler = true;
     e.handler_function(function, paths, event)?;
     e.helpers.extend(helpers);
+    constants_into(&mut e.constants, &constants)?;
     Ok(e.finish_handler(identity, name, &sources))
 }
 
@@ -194,11 +202,13 @@ pub(crate) fn isolated(function: &Function, program: &Program) -> Result<String,
         .map(|(n, c)| ((c.def, c.instance.clone()), n))
         .collect();
     let mut helpers = BTreeSet::new();
+    let mut constants = BTreeMap::new();
     let mut sources = Vec::new();
     for (n, c) in function.closures.iter().enumerate() {
         let mut e = Emitter::new(program, &callees, &function.closures);
         e.function(&c.function)?;
         helpers.extend(e.helpers.iter().copied());
+        constants_into(&mut constants, &e.constants)?;
         let params: Vec<String> = c.function.params.iter().map(|(v, _)| val(*v)).collect();
         sources.push(format!(
             "function {}({}) {{\n{}}}",
@@ -211,6 +221,7 @@ pub(crate) fn isolated(function: &Function, program: &Program) -> Result<String,
         let mut e = Emitter::new(program, &callees, &function.closures);
         e.function(c)?;
         helpers.extend(e.helpers.iter().copied());
+        constants_into(&mut constants, &e.constants)?;
         let params: Vec<String> = c.params.iter().map(|(v, _)| val(*v)).collect();
         sources.push(format!(
             "function {}({}) {{\n{}}}",
@@ -222,6 +233,7 @@ pub(crate) fn isolated(function: &Function, program: &Program) -> Result<String,
     let mut e = Emitter::new(program, &callees, &function.closures);
     e.function(function)?;
     e.helpers.extend(helpers);
+    constants_into(&mut e.constants, &constants)?;
     let mut before: Vec<String> = e.prelude();
     before.extend(sources);
     let params: Vec<String> = function.params.iter().map(|(v, _)| val(*v)).collect();
@@ -745,6 +757,14 @@ struct Emitter<'p> {
     types: BTreeMap<ValueId, Type>,
     /// The prelude functions the body calls.
     helpers: BTreeSet<&'static str>,
+    /// Each literal value's text, by the value it is (ADR-0427).
+    literals: BTreeMap<ValueId, String>,
+    /// **The lists of literals the body reads, each a value of the module**
+    /// (ADR-0427), by name: its elements' text.
+    constants: BTreeMap<String, String>,
+    /// The literals such a list was made of, whose lines go where nothing
+    /// else reads them.
+    hoisted: BTreeSet<ValueId>,
     /// A resumable handler's body (ADR-0058): a command it calls is awaited.
     /// Off in a function value's body, which is not async.
     handler: bool,
@@ -766,8 +786,9 @@ const HELPERS: &[(&str, &[&str], &str)] = &[
     (
         "int",
         &["trap"],
-        "// An Int is 64 bits, and a result that does not fit traps (ADR-0039).\n\
-         function int(v) {\n  if (v < -(2n ** 63n) || v > 2n ** 63n - 1n) trap(\"Int overflow\");\n  return v;\n}",
+        "// An Int is 64 bits, and a result that does not fit traps (ADR-0039):\n\
+         // one that 64 bits wrap is not itself (ADR-0427).\n\
+         function int(v) {\n  if (BigInt.asIntN(64, v) !== v) trap(\"Int overflow\");\n  return v;\n}",
     ),
     (
         "div",
@@ -868,7 +889,7 @@ const HELPERS: &[(&str, &[&str], &str)] = &[
         "// An Int sent to a command as a JSON number (ADR-0058): exact within\n\
          // ±2^53, and a trap past it rather than a different number.\n\
          function exact(v) {\n  \
-         if (v < -(2n ** 53n) || v > 2n ** 53n) trap(\"an Int a JavaScript number cannot carry exactly\");\n  \
+         if (v < -9007199254740992n || v > 9007199254740992n) trap(\"an Int a JavaScript number cannot carry exactly\");\n  \
          return Number(v);\n}",
     ),
     (
@@ -966,6 +987,9 @@ impl<'p> Emitter<'p> {
             closures,
             types: BTreeMap::new(),
             helpers: BTreeSet::new(),
+            literals: BTreeMap::new(),
+            constants: BTreeMap::new(),
+            hoisted: BTreeSet::new(),
             handler: false,
             graphs: false,
             body: String::new(),
@@ -999,7 +1023,45 @@ impl<'p> Emitter<'p> {
                 .filter(|(name, _)| used.contains(name))
                 .map(|(name, c)| case_table(name, c)),
         );
+        // Frozen: a list is a value, and no code of the module changes one in
+        // place, so one made once serves each call (ADR-0427).
+        out.extend(
+            self.constants
+                .iter()
+                .map(|(name, items)| format!("const {name} = Object.freeze([{items}]);")),
+        );
         out
+    }
+
+    /// A list of literals held as `name`, its elements `items`.
+    fn constant(&mut self, name: &str, items: &str) -> Result<(), String> {
+        constant_into(&mut self.constants, name, items)
+    }
+
+    /// **The body without the literals only a module's list read**
+    /// (ADR-0427): a literal's line goes where its name is nowhere else in
+    /// the body, as each literal a list was written with is read by it alone.
+    fn unread_dropped(&mut self) {
+        let word = |c: Option<char>| c.is_some_and(|c| c.is_ascii_alphanumeric() || c == '_' || c == '$');
+        for v in std::mem::take(&mut self.hoisted) {
+            let name = val(v);
+            let read = self
+                .body
+                .match_indices(&name)
+                .filter(|(at, _)| {
+                    !word(self.body[..*at].chars().next_back())
+                        && !word(self.body[at + name.len()..].chars().next())
+                })
+                .count();
+            let line = format!("const {name} = ");
+            if read != 1 {
+                continue;
+            }
+            let Some(at) = self.body.find(&line) else { continue };
+            let start = self.body[..at].rfind('\n').map_or(0, |n| n + 1);
+            let end = self.body[at..].find('\n').map_or(self.body.len(), |n| at + n + 1);
+            self.body.replace_range(start..end, "");
+        }
     }
 
     fn finish(self, component_id: &str, function: &Function, callees: &[String]) -> String {
@@ -1069,6 +1131,7 @@ impl<'p> Emitter<'p> {
             self.instr(i)?;
         }
         self.line(&format!("return {};", val(*result)));
+        self.unread_dropped();
         Ok(())
     }
 
@@ -1418,6 +1481,7 @@ impl<'p> Emitter<'p> {
             self.instr(i)?;
         }
         self.line(&format!("return {};", val(*result)));
+        self.unread_dropped();
         Ok(())
     }
 
@@ -1535,6 +1599,7 @@ impl<'p> Emitter<'p> {
                     Const::Unit => "undefined".into(),
                 };
                 self.line(&format!("const {r} = {lit};"));
+                self.literals.insert(i.result(), lit);
             }
             // A function value (ADR-0052): a JavaScript function that calls
             // its code with what it captured, then what it is given.
@@ -2087,8 +2152,30 @@ impl<'p> Emitter<'p> {
                 self.line(&format!("const {r} = {expr};"));
             }
             Instr::MakeList { items, .. } => {
-                let xs: Vec<String> = items.iter().map(|v| val(*v)).collect();
-                self.line(&format!("const {r} = [{}];", xs.join(", ")));
+                // **A list of literals is a value of the module** (ADR-0427),
+                // made once where a function made it at each call: a lookup
+                // table in a row's function was made once a row. Named by
+                // what it holds, so that two functions' are one.
+                let literal: Option<Vec<&str>> = items
+                    .iter()
+                    .map(|v| self.literals.get(v).map(String::as_str))
+                    .collect();
+                match literal {
+                    Some(xs) if !xs.is_empty() => {
+                        let text = xs.join(", ");
+                        let name = format!(
+                            "list_{:016x}",
+                            crate::build::fnv1a(crate::build::FNV_OFFSET, text.as_bytes())
+                        );
+                        self.constant(&name, &text)?;
+                        self.hoisted.extend(items.iter().copied());
+                        self.line(&format!("const {r} = {name};"));
+                    }
+                    _ => {
+                        let xs: Vec<String> = items.iter().map(|v| val(*v)).collect();
+                        self.line(&format!("const {r} = [{}];", xs.join(", ")));
+                    }
+                }
             }
         }
         Ok(())
@@ -2097,6 +2184,32 @@ impl<'p> Emitter<'p> {
 
 fn val(v: ValueId) -> String {
     format!("v{}", v.0)
+}
+
+/// `name`, holding `items`, among a module's lists of literals (ADR-0427):
+/// two lists of one name are refused, as no module can hold both.
+fn constant_into(
+    constants: &mut BTreeMap<String, String>,
+    name: &str,
+    items: &str,
+) -> Result<(), String> {
+    match constants.get(name) {
+        Some(had) if had != items => Err(format!("two lists of literals are both named {name}")),
+        Some(_) => Ok(()),
+        None => {
+            constants.insert(name.to_string(), items.to_string());
+            Ok(())
+        }
+    }
+}
+
+/// Every list of literals of `from` among `into`'s, as [`constant_into`].
+fn constants_into(
+    into: &mut BTreeMap<String, String>,
+    from: &BTreeMap<String, String>,
+) -> Result<(), String> {
+    from.iter()
+        .try_for_each(|(name, items)| constant_into(into, name, items))
 }
 
 /// A case table as a module constant: the numbers the component's data

@@ -67,7 +67,7 @@ MUTANTS = [
     ("a node no other holds is kept", RUNTIME, """    if (nodes.slice(1).some((n) => n !== NONE)) throw malformed("a node no other holds");\n""", ""),
     ("a $node outside a graph is a record", RUNTIME, """    if ("$node" in v && Object.keys(v).length === 1) throw malformed("a $node outside any $graph");\n""", ""),
     # --- writing --------------------------------------------------------------
-    ("a text part writes no anchors", RUNTIME, "        } else html.push(start, escaped(needText(e, p.value), p.context), end);\n", "        } else html.push(escaped(needText(e, p.value), p.context));\n"),
+    ("a text part writes no anchors", RUNTIME, "        else html.push(start, escaped(needText(e, p.value), p.context), end);\n", "        else html.push(escaped(needText(e, p.value), p.context));\n"),
     ("each handler writes its own attribute", RUNTIME, """          if (q?.chunk !== "dynamic" || q.value.part !== "event" || q.value.owner !== c.value.owner) break;\n""", "          break;\n"),
     ("an element's handlers run together with another's", RUNTIME, """q.value.part !== "event" || q.value.owner !== c.value.owner) break;""", """q.value.part !== "event") break;"""),
     ("an absent boolean attribute leaves its space", RUNTIME, "        else dropSpace(html);\n", "        else;\n"),

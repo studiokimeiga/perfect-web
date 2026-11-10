@@ -382,3 +382,71 @@ test("a row whose value changed is written again", async ({ page }) => {
   await expect(page.locator("#items .name").nth(1)).toHaveText("renamed");
   await expect(page.locator("#items .name").nth(0)).toHaveText("one");
 });
+
+// --- what a row's handlers capture (ADR-0427) --------------------------------
+
+test("a thousand rows a plan made hold no captured text, and a press on one reaches its row", async ({ page }) => {
+  await open(page);
+  await created(page);
+  await expect(page.locator("#tbody [data-pw-captures]")).toHaveCount(0);
+  await page.locator("#tbody tr").nth(6).locator(".select").click();
+  await expect(page.locator("#tbody tr").nth(6)).toHaveClass("danger");
+  await page.locator("#tbody tr").nth(6).locator(".remove").click();
+  await counted(page, 999);
+  await expect(page.locator("#tbody tr").nth(6).locator(".id")).toHaveText("8");
+});
+
+/** The tags as the document holds them, once the list's first render on the
+ * device has morphed them whole (ADR-0421, decision 4): each change after is
+ * the plan's. */
+async function tagsRendered(page) {
+  await open(page, "/events");
+  await page.click("#flip");
+  await expect(page.locator("#tags .on").nth(0)).toHaveAttribute("hidden", "");
+}
+
+const picked = (page) => page.evaluate(() => window.__pw.signals.picked);
+
+test("what a row's handler captures follows its row where nothing the row shows changed", async ({ page }) => {
+  await tagsRendered(page);
+  await page.click("#rehide");
+  await expect.poll(() => page.evaluate(() => window.__pw.signals.tags[1].unseen)).toBe("second!");
+  await page.locator("#tags .tag").nth(1).click();
+  await expect.poll(() => picked(page)).toBe("second!");
+  await page.locator("#tags .tag").nth(0).click();
+  await expect.poll(() => picked(page)).toBe("first!");
+});
+
+test("a row the plan takes over from the document keeps no captured text", async ({ page }) => {
+  await tagsRendered(page);
+  await expect(page.locator("#tags .tag").nth(1)).toHaveAttribute("data-pw-captures", /second/);
+  await page.click("#rehide");
+  await expect.poll(() => page.evaluate(() => window.__pw.signals.tags[1].unseen)).toBe("second!");
+  await expect(page.locator("#tags .tag").nth(1)).not.toHaveAttribute("data-pw-captures");
+});
+
+test("a row a plan made is pressed with what its row holds, then and after it changes", async ({ page }) => {
+  await tagsRendered(page);
+  await page.click("#add-tag");
+  await expect(page.locator("#tags .shown").nth(0)).toHaveText("three");
+  await expect(page.locator("#tags .tag").nth(0)).not.toHaveAttribute("data-pw-captures");
+  await page.locator("#tags .tag").nth(0).click();
+  await expect.poll(() => picked(page)).toBe("third");
+  await page.click("#rehide");
+  await expect.poll(() => page.evaluate(() => window.__pw.signals.tags[0].unseen)).toBe("third!");
+  await page.locator("#tags .tag").nth(0).click();
+  await expect.poll(() => picked(page)).toBe("third!");
+});
+
+test("a row's boolean attribute follows its row, on a row a plan made and one it took over", async ({ page }) => {
+  await tagsRendered(page);
+  // Flipped once by the list's first render: the first tag is off, the second on.
+  await expect(page.locator("#tags .on").nth(1)).not.toHaveAttribute("hidden");
+  await page.click("#add-tag");
+  await expect(page.locator("#tags .shown").nth(0)).toHaveText("three");
+  await expect(page.locator("#tags .on").nth(0)).not.toHaveAttribute("hidden");
+  await page.click("#flip");
+  await expect(page.locator("#tags .on").nth(0)).toHaveAttribute("hidden", "");
+  await expect(page.locator("#tags .on").nth(1)).not.toHaveAttribute("hidden");
+  await expect(page.locator("#tags .on").nth(2)).toHaveAttribute("hidden", "");
+});

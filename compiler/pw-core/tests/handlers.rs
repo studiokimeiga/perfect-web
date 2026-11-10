@@ -520,6 +520,7 @@ command Plant(t: Tree) -> Int { 0 }
 command Replant(g: Grove) -> Int { 0 }
 query Look(id: Sku) -> Int { 0 }
 fn helper(x: Int) -> Int { x }
+fn colours(n: Int) -> List<String> { if n > 0 { colours(n - 1) } else { [\"red\", \"blue\"] } }
 
 page Shop(items: List<Item>, sku: Sku) {
     view {
@@ -642,6 +643,38 @@ fn a_handler_computes_what_it_sends() {
     assert_eq!(
         sent(&sends("Rename(item.id, \"{item.name}: {item.stock}\")")),
         &serde_json::json!([["shop.ui.Rename", ["a", "nut: 5"]]])
+    );
+}
+
+/// **A list of literals is a value of the handler's module** (ADR-0427), as
+/// a query's is: made once, its literals not written where it is read, and
+/// sent as any list is.
+#[test]
+fn a_handlers_list_of_literals_is_a_value_of_its_module() {
+    let m = compiled("Tag([\"red\", \"blue\"], [])");
+    assert_eq!(
+        m.source.matches("Object.freeze([\"red\", \"blue\"])").count(),
+        1,
+        "{}",
+        m.source
+    );
+    assert_eq!(m.source.matches("\"red\"").count(), 1, "{}", m.source);
+    assert_eq!(
+        sent(&run(&m, ITEM)),
+        &serde_json::json!([["shop.ui.Tag", [["red", "blue"], []]]])
+    );
+    // In a function the handler calls, a value of the handler's module too:
+    // recursive, so compiled beside the handler as well as inlined into it.
+    let called = compiled("Tag(colours(1), [])");
+    assert_eq!(
+        called.source.matches("Object.freeze([\"red\", \"blue\"])").count(),
+        1,
+        "{}",
+        called.source
+    );
+    assert_eq!(
+        sent(&run(&called, ITEM)),
+        &serde_json::json!([["shop.ui.Tag", [["red", "blue"], []]]])
     );
 }
 

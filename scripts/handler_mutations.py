@@ -61,9 +61,25 @@ MUTANTS = [
     (
         "an Int past 2^53 is sent rounded",
         JS_PURE,
-        "if (v < -(2n ** 53n) || v > 2n ** 53n) trap(",
+        "if (v < -9007199254740992n || v > 9007199254740992n) trap(",
         "if (false) trap(",
     ),
+    # ADR-0427: a list of literals is a value of the handler's module.
+    (
+        "a handler's list of literals is made at each call",
+        JS_PURE,
+        "                    Some(xs) if !xs.is_empty() => {\n",
+        "                    Some(xs) if false => {\n",
+    ),
+    (
+        "the literals a handler's list of its module read are written",
+        JS_PURE,
+        "        self.line(&format!(\"return {};\", val(*result)));\n        self.unread_dropped();\n        Ok(())\n    }\n\n    /// An instance's shape",
+        "        self.line(&format!(\"return {};\", val(*result)));\n        Ok(())\n    }\n\n    /// An instance's shape",
+    ),
+    # The merge of a callee's lists into the handler's module has no control:
+    # the inliner copies each callee's first call into the handler, list and
+    # all (ADR-0427).
     (
         "an opaque argument is sent as it is held",
         JS_PURE,

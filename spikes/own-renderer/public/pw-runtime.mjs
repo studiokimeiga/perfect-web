@@ -1256,19 +1256,37 @@ const renderer = (() => {
     return opened(e.page.get(key));
   }
 
+  /** **A path, cut once** (ADR-0427): its names, and for each place it can
+   * be cut, the path before it and the path from it. A page's paths are its
+   * template's, so these are as many as it has. */
+  const cuts = new Map();
+  function cutsOf(path) {
+    let c = cuts.get(path);
+    if (c === undefined) {
+      const segments = path.split(".");
+      c = {
+        segments,
+        heads: segments.map((_, cut) => segments.slice(0, cut).join(".")),
+        tails: segments.map((_, rest) => segments.slice(rest).join(".")),
+      };
+      cuts.set(path, c);
+    }
+    return c;
+  }
+
   /** The value at `path`: a whole path set directly, or the longest name
    * bound and each field after it; at each record, the rest of the path is
    * read whole first, where a host set a value by its path (ADR-0170). */
   function read(e, path) {
     const whole = bound(e, path);
     if (whole !== NONE) return whole;
-    const segments = path.split(".");
+    const { segments, heads, tails } = cutsOf(path);
     for (let cut = segments.length - 1; cut >= 1; cut--) {
-      let value = bound(e, segments.slice(0, cut).join("."));
+      let value = bound(e, heads[cut]);
       if (value === NONE) continue;
       for (let rest = cut; rest < segments.length; rest++) {
         if (!isRecord(value)) return NONE;
-        const whole = segments.slice(rest).join(".");
+        const whole = tails[rest];
         const all = field(value, whole);
         if (all !== NONE) return all;
         // **A value its row computes** (ADR-0424), by
@@ -1316,7 +1334,7 @@ const renderer = (() => {
   /** An element's key: the text at `path` from it, empty where there is none. */
   function keyOf(item, path) {
     let v = item;
-    for (const name of path.split(".")) {
+    for (const name of cutsOf(path).segments) {
       if (name === "") continue;
       if (!isRecord(v)) return "";
       v = field(v, name);
@@ -1501,19 +1519,10 @@ const renderer = (() => {
           run.push(q.value);
         }
         i += run.length;
-        const text = capturedText(run, e);
-        out.html.push(capturesAttribute(run, e, text));
-        // A row's plan sets what the handlers capture as it was before it was
-        // escaped: nothing is read back.
-        if (!PW_SERVER && out.holes) {
-          out.holes.push(out.html[out.html.length - 1]);
-          out.raws[out.holes.length - 1] = text;
-        }
+        out.html.push(capturesAttribute(run, e));
         continue;
       } else {
-        const mark = out.html.length;
         emitPart(c.value, e, others, out);
-        if (!PW_SERVER && out.holes) out.holes.push(out.html.slice(mark).join(""));
       }
       i += 1;
     }
@@ -1540,11 +1549,8 @@ const renderer = (() => {
         return;
       case "text":
         // Nothing addresses a text inside a kept row: it is morphed whole.
-        if (out.bare) {
-          const text = needText(e, p.value);
-          if (!PW_SERVER && out.raws) out.raws[out.holes.length] = text;
-          html.push(escaped(text, p.context));
-        } else html.push(start, escaped(needText(e, p.value), p.context), end);
+        if (out.bare) html.push(escaped(needText(e, p.value), p.context));
+        else html.push(start, escaped(needText(e, p.value), p.context), end);
         return;
       case "attribute":
         if (p.context === "content") {
@@ -1554,15 +1560,11 @@ const renderer = (() => {
       // falls through: the attribute's value is `attributeOf`'s.
       case "interpolated_attribute": {
         const [name, value] = attributeOf(p, e);
-        // A planned row's attribute, as a plan sets it: its name and its
-        // value as written, or none.
-        if (!PW_SERVER && out.raws) out.raws[out.holes.length] = value === null ? null : [name, value];
         if (value !== null) html.push(`${name}="${value}"`);
         return;
       }
       case "boolean_attribute": {
         const present = attributeOf(p, e)[1] !== null;
-        if (!PW_SERVER && out.raws) out.raws[out.holes.length] = present ? [p.name, ""] : null;
         if (present) html.push(p.name);
         else dropSpace(html);
         return;
@@ -1715,26 +1717,48 @@ const renderer = (() => {
     // where the page's rows compute any.
     const computing = rowComputes.size ? { computedReads: new Map(), computedValues: [] } : null;
     if (PW_PLANS && planned(p)) return plannedRowOf(p, e, others, item, at, token, reads, computing);
-    const text = rendered(others, (out) => {
-      out.bare = !PW_SERVER && DELEGATED_ROWS;
-      out.html.push(`<!--pw:s${at}-->`);
-      emit(p.body, within(named({ ...e, reads, ...computing }, p.binding, item), p.id, token), others, out);
-      out.html.push(`<!--pw:e${at}-->`);
-    });
+    const text = rowText(p, within(named({ ...e, reads, ...computing }, p.binding, item), p.id, token), others, at);
     return { key: at, text, item, reads, names: e.names, computing };
   }
 
-  /** **A row a plan makes** (`planOf`): its holes, what each sets as it was
-   * before it was escaped (`raws`), and its text only when something reads
-   * it, a morph or a parse. Nothing in such a row is written later (no view
-   * is in it), so it needs none of the writer that waits for one, and its
-   * scope is made once. */
+  /** A row's markup in its scope `env`, its anchors included. */
+  function rowText(p, env, others, at) {
+    return rendered(others, (out) => {
+      out.bare = !PW_SERVER && DELEGATED_ROWS;
+      out.html.push(`<!--pw:s${at}-->`);
+      emit(p.body, env, others, out);
+      out.html.push(`<!--pw:e${at}-->`);
+    });
+  }
+
+  /** **A row a plan makes** (`planOf`, ADR-0427): what each of its holes
+   * sets, as it was before it was escaped (`raws`), and as it is written, to
+   * compare (`holes`), each computed alone; its text only when something
+   * reads it, a morph or a parse; and what its handlers capture only when one
+   * is pressed (`capturesOf`). Nothing in such a row is written later (no
+   * view is in it), so it needs none of the writer that waits for one, and
+   * its scope is made once. */
   const plannedRowOf = !PW_PLANS ? null : function plannedRowOf(p, e, others, item, at, token, reads, computing) {
     const env = { ...e, reads, ...computing, names: { name: p.binding, value: item, up: e.names }, frames: [...e.frames, { scope: p.id, instance: token }] };
-    const out = { html: [`<!--pw:s${at}-->`], later: [], lists: false, bare: true, holes: [], raws: [] };
-    emit(p.body, env, others, out);
-    out.html.push(`<!--pw:e${at}-->`);
-    const html = out.html;
+    const { parts, capturing } = holesOf(p);
+    const holes = new Array(parts.length);
+    const raws = new Array(parts.length);
+    for (let h = 0; h < parts.length; h++) {
+      const q = parts[h];
+      // A handler's: what it captures follows the row (`listMade`), and is
+      // read when it is pressed.
+      if (Array.isArray(q)) holes[h] = "";
+      else if (q.part === "text") holes[h] = raws[h] = needText(env, q.value);
+      else if (q.part === "boolean_attribute") {
+        const present = attributeOf(q, env)[1] !== null;
+        holes[h] = present ? q.name : "";
+        raws[h] = present ? [q.name, ""] : null;
+      } else {
+        const [name, value] = attributeOf(q, env);
+        holes[h] = `${name}="${value}"`;
+        raws[h] = [name, value];
+      }
+    }
     let text = null;
     return {
       key: at,
@@ -1742,12 +1766,40 @@ const renderer = (() => {
       reads,
       names: e.names,
       computing,
-      holes: out.holes,
-      raws: out.raws,
+      holes,
+      raws,
+      of: p,
+      env,
+      capturing,
       get text() {
-        return (text ??= html.join(""));
+        // What it computes is noted once, as its holes were computed.
+        return (text ??= rowText(p, { ...env, computedValues: null }, others, at));
       },
     };
+  };
+
+  /** **A planned list's holes, in its plan's order** (`planOf`): each part
+   * that writes one, the handlers of one element as one run of them, and
+   * whether any handler captures. */
+  const holeParts = !PW_PLANS ? null : new WeakMap();
+  const holesOf = !PW_PLANS ? null : function holesOf(p) {
+    let found = holeParts.get(p);
+    if (found) return found;
+    const parts = [];
+    for (let i = 0; i < p.body.length; i++) {
+      const c = p.body[i];
+      if (c.chunk === "static") continue;
+      if (c.value.part !== "event") {
+        parts.push(c.value);
+        continue;
+      }
+      const run = [c.value];
+      while (p.body[i + 1]?.value?.part === "event" && p.body[i + 1].value.owner === c.value.owner) run.push(p.body[++i].value);
+      parts.push(run);
+    }
+    found = { parts, capturing: parts.some((q) => Array.isArray(q) && q.some((v) => v.captures?.length > 0)) };
+    holeParts.set(p, found);
+    return found;
   };
 
   /** Each list part whose rows a plan can make, as `planned` found it. */
@@ -2009,6 +2061,19 @@ const renderer = (() => {
             }
           }
           return { strs, lists, written: rowsWritten };
+        },
+    /** **What `el`'s handlers capture, as the row a plan made or set shows
+     * it** (ADR-0427), computed as it is pressed: the text its attribute
+     * would hold, as the parser reads it back; `null` for nothing captured.
+     * `holes` are the nodes of the row's holes. */
+    capturesOf: !PW_PLANS
+      ? null
+      : (row, holes, el) => {
+          const { parts } = holesOf(row.of);
+          for (let h = 0; h < parts.length; h++) {
+            if (holes[h] === el && Array.isArray(parts[h])) return capturedText(parts[h], row.env);
+          }
+          return null;
         },
     same,
     captures,
@@ -3271,51 +3336,32 @@ function unescaped(text, nul) {
   return text.replace(/&(?:amp|lt|gt|quot|#39|#96);/g, (m) => ESCAPED[m]).replace(/\r\n?/g, "\n").replaceAll("\0", nul);
 }
 
-/** An attribute the renderer wrote, `name="value"` or `name`: `[name, value]`,
- * `null` for none, `undefined` for what it does not write. */
-function attributeOfPiece(piece) {
-  const written = piece.trim();
-  if (written === "") return null;
-  const m = /^([^\s="'<>`/]+)(?:="([^"]*)")?$/.exec(written);
-  if (!m) return undefined;
-  const value = m[2] === undefined ? "" : unescaped(m[2], "\ufffd");
-  return value === null ? undefined : [m[1], value];
+/** An attribute as the renderer wrote it, `[name, value]` or none (`null`),
+ * its value read back as the parser would; `undefined` for what it does not
+ * write. */
+function attributeRead(raw) {
+  if (raw === null) return null;
+  const value = unescaped(raw[1], "\ufffd");
+  return value === null ? undefined : value === raw[1] ? raw : [raw[0], value];
 }
 
-/** One hole given what the renderer wrote for it, where it was `was` (`null`
- * for a new row), and for a handler's, what it captures before it was
- * escaped (`raw`). False, with the hole perhaps half set, for what a plan does
- * not take: the row is then morphed. */
-function holeSet(kind, node, piece, was, raw, wasRaw) {
+/** One hole set to what the renderer wrote for it before escaping it
+ * (`raw`), where it held `was` (`undefined` for a new row's). False, with the
+ * hole perhaps half set, for what a plan does not take: the row is then
+ * morphed. A handler's hole is the row's to follow (`capturesHeld`). */
+function holeSet(kind, node, raw, was) {
   if (kind === "text") {
     // As the parser reads the text the renderer escaped: a return a line, a
     // NUL nothing.
-    if (raw !== undefined) {
-      node.data = /[\r\0]/.test(raw) ? raw.replace(/\r\n?/g, "\n").replaceAll("\0", "") : raw;
-      return true;
-    }
-    const text = unescaped(piece, "");
-    if (text === null) return false;
-    node.data = text;
+    node.data = /[\r\0]/.test(raw) ? raw.replace(/\r\n?/g, "\n").replaceAll("\0", "") : raw;
     return true;
   }
-  // What a row's handlers capture, as the renderer wrote it before escaping
-  // it (`capturesAttribute`). It is JSON's text, so no character in it is one
-  // the parser changes in an attribute: no return, no NUL.
-  if (kind === "event" && raw !== undefined) {
-    if (raw === null) node.removeAttribute("data-pw-captures");
-    else node.setAttribute("data-pw-captures", raw);
-    return true;
-  }
-  // An attribute as the renderer wrote it, `[name, value]` or none: its value
-  // read back as the parser would, `undefined` for what it does not write.
-  const held = (r) => (r === null ? null : ((v) => (v === null ? undefined : [r[0], v]))(unescaped(r[1], "\ufffd")));
-  const now = raw !== undefined ? held(raw) : attributeOfPiece(piece);
-  const then = was === null ? null : wasRaw !== undefined ? held(wasRaw) : attributeOfPiece(was);
+  const now = attributeRead(raw);
+  const then = was === undefined ? null : attributeRead(was);
   if (now === undefined || then === undefined) return false;
   if (then && then[0] !== now?.[0]) node.removeAttribute(then[0]);
   if (now) node.setAttribute(now[0], now[1]);
-  if (was === null) return true;
+  if (was === undefined) return true;
   // A field's value follows the rendering where it changed it, as a morph's
   // does. A box's is the block's own pass over its boxes (`rowsMade`).
   if ((then?.[0] === "value" || now?.[0] === "value") && "value" in node && node.tagName !== "TEXTAREA") {
@@ -3324,24 +3370,52 @@ function holeSet(kind, node, piece, was, raw, wasRaw) {
   return true;
 }
 
+/** **The row each handler's element a plan made or set captures for**
+ * (ADR-0427): the row's nodes, `[its anchors, the node of each hole, its
+ * row]`, the row the one the plan last made or set. A row morphed has no
+ * holes and no row, and its markup holds what it captures. */
+const rowOfHandler = !PW_PLANS ? null : new WeakMap();
+
+/** **What `el`'s handlers capture, where no attribute holds it**: as the row
+ * a plan made or set shows it, computed now; `undefined` where none did. */
+function heldCaptures(el) {
+  const nodes = rowOfHandler.get(el);
+  return nodes?.[3] ? renderer.capturesOf(nodes[3], nodes[2], el) : undefined;
+}
+
+/** A handler's element a plan takes over, the document's or a morph's: what
+ * it captures is its row's from now, and no attribute is left saying
+ * otherwise. */
+function capturesHeld(el, nodes) {
+  el.removeAttribute("data-pw-captures");
+  rowOfHandler.set(el, nodes);
+}
+
 /** New rows, each a clone of its plan given its values, noted in `shown` with
- * the node of each hole. `null`, with nothing put in, where one row's values
- * are not a plan's. */
+ * the node of each hole and the row. `null`, with nothing put in, where one
+ * row's values are not a plan's. */
 function rowsPlanned(rows, plan, shown, inserted) {
   const content = document.createDocumentFragment();
   for (const row of rows) {
     const clone = plan.proto.cloneNode(true);
     const holes = new Array(plan.paths.length);
+    const nodes = [null, null, holes, row];
     for (let h = 0; h < holes.length; h++) {
+      // By its siblings: a node's `childNodes` is a list each step makes.
       let n = clone;
-      for (const i of plan.paths[h]) n = n.childNodes[i];
+      const path = plan.paths[h];
+      for (let d = 0; d < path.length; d++) {
+        n = n.firstChild;
+        for (let k = path[d]; k > 0; k--) n = n.nextSibling;
+      }
       holes[h] = n;
-      if (!holeSet(plan.kinds[h], n, row.holes[h], null, row.raws?.[h])) return null;
+      if (plan.kinds[h] === "event") rowOfHandler.set(n, nodes);
+      else if (!holeSet(plan.kinds[h], n, row.raws[h])) return null;
     }
-    const start = document.createComment(`pw:s${row.key}`);
-    const end = document.createComment(`pw:e${row.key}`);
-    content.append(start, clone, end);
-    shown.set(row.key, [start, end, holes]);
+    nodes[0] = document.createComment(`pw:s${row.key}`);
+    nodes[1] = document.createComment(`pw:e${row.key}`);
+    content.append(nodes[0], clone, nodes[1]);
+    shown.set(row.key, nodes);
   }
   if (PW_DIALOGS) inserted.push(...content.childNodes);
   return content;
@@ -3355,11 +3429,15 @@ function rowsChanged(changed, plan, inserted) {
     if (!plan || !row.holes || !old.holes) return true;
     // A row the document holds, or one a morph wrote, is set by its holes
     // where the plan finds them in it (ADR-0420, decision 6).
-    if (!nodes[2]) nodes[2] = holesFound(nodes, plan) ?? undefined;
+    const found = !nodes[2];
+    if (found) nodes[2] = holesFound(nodes, plan) ?? undefined;
     if (!nodes[2]) return true;
     for (let h = 0; h < row.holes.length; h++) {
-      if (row.holes[h] !== old.holes[h] && !holeSet(plan.kinds[h], nodes[2][h], row.holes[h], old.holes[h], row.raws?.[h], old.raws?.[h])) return true;
+      if (plan.kinds[h] === "event") continue;
+      if (row.holes[h] !== old.holes[h] && !holeSet(plan.kinds[h], nodes[2][h], row.raws[h], old.raws[h])) return true;
     }
+    if (found) plan.kinds.forEach((kind, h) => kind === "event" && capturesHeld(nodes[2][h], nodes));
+    nodes[3] = row;
     return false;
   });
   for (const [nodes] of morphed) nodes.length = 2;
@@ -3396,9 +3474,12 @@ function holesFound([start, end], plan) {
 /** **Whether a row's markup differs from the one before it**: by its holes
  * where both were written by them, the rest of a row being its template's,
  * which equal holes make equal; by its text otherwise. A plan's row's text is
- * written only when something asks for it. */
+ * written only when something asks for it. What a row's handlers capture is
+ * none of its holes: the row is given to the plan whenever its value changed,
+ * for what they capture to follow it (ADR-0427). */
 function rowDiffers(old, row) {
   if (!old.holes || !row.holes) return old.text !== row.text;
+  if (row.capturing) return true;
   for (let h = 0; h < row.holes.length; h++) if (old.holes[h] !== row.holes[h]) return true;
   return false;
 }
@@ -4763,7 +4844,8 @@ async function acted(part, event, modifiers, el, e) {
     ).join("");
     let calls = 0;
     await module.run({
-      captures: JSON.parse(el.dataset.pwCaptures ?? "{}"),
+      // Its markup's, or the row's a plan made or set (ADR-0427).
+      captures: JSON.parse(el.dataset.pwCaptures ?? (PW_PLANS ? heldCaptures(el) : undefined) ?? "{}"),
       // What the event was, read in the listener (ADR-0138).
       event: record,
       // The page's signals (ADR-0130), as JSON carries them, and where
