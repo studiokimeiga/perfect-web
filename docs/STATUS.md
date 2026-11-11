@@ -2,6 +2,16 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**Train-24, 2026-11-11:** on train-23, landed with it. `pw build --dist`
+builds a whole app (ADR-0429): the standard packages added, a directory
+read for its `.pw` files, checked as `pw check` checks, its artifacts, its
+runtime and each asset written, packed for production on asking, and last
+its sources by their digests; only an app's build is replaced. Each app's
+build script is one command and builds, byte for byte, what it built
+before. The head-to-head at `1de39139`: the large list's build is 5 lines
+(React's 24, Svelte's 27), the row Pleris's; TodoMVC's 10 (Svelte's 44).
+Pleris is behind in 36 rows and ahead in 77, most of the change the run's.
+
 **Train-23, 2026-11-11:** on trains 20 and 21. What a device's page holds is
 what its build reaches (ADR-0428): its runtime holds no command's refusal
 and reads a graph only where a file of its build writes one; what a page's
@@ -9,7 +19,8 @@ handlers write alike is in its module once, where each name means what it
 meant in each; and a validator is 22 characters. The head-to-head at
 `06408e2d`: Pleris is behind in 50 rows and ahead in 79, from 60 and 84.
 TodoMVC's first load is 20,668 bytes as sent, Svelte's 20,821: the row is
-Pleris's. The large list's is 17,117 (13,242).
+Pleris's. The large list's is 17,117 (13,242). Its full verify
+(42960802223, at `ae9cf7e0`) passed every recipe and browser suite.
 
 **Trains 20 and 21, 2026-11-11:** on trains 18 and 19. A page alone in its
 build is one document (ADR-0426): its runtime, its code and its build's

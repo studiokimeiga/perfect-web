@@ -6,6 +6,24 @@
 
 # Next
 
+## After train-24, 2026-11-11
+
+The head-to-head at `1de39139` is behind in 36 rows. The list is as after
+train-23 (below), less the large list's build and configuration lines, which
+are Pleris's now, and with two more, each measured and not yet decided:
+
+1. **What a production page carries for its tests**: the runtime pushes
+   about 4.3 KB of text to the log the browser suites read (73 calls in the
+   source, 56 reads in 22 specs) and about 1.7 KB of error messages. A
+   production page needs neither; the suites read the log of a production
+   build. Either the suites watch what the page does, or a build for them
+   keeps it: a decision of its own, worth perhaps 1 to 1.5 KB of Brotli, part
+   of TodoMVC's 2.8 KB to Svelte as a static host compresses them.
+2. **A dialog's open state bound to a signal** (T11, the store's
+   confirmation before clearing its cart, 23 lines changed to SvelteKit's
+   22): the `{#if}` around the dialog and its `on:close` are what a
+   `bind:open` would say.
+
 ## After train-23, 2026-11-11
 
 The head-to-head at `06408e2d` is behind in 50 rows, each a defect until it
