@@ -39,7 +39,7 @@ MUTANTS = [
     (
         "a region that settled while the runtime booted is not reported",
         RUNTIME,
-        "    for (const id of whileBooting) window.__pw.settled.push({ part: Number(id), by: \"browser\" });\n",
+        "    REPORT: for (const id of whileBooting) window.__pw.settled.push({ part: Number(id), by: \"browser\" });\n",
         "",
     ),
 ]

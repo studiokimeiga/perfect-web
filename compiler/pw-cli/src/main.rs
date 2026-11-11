@@ -1325,19 +1325,30 @@ fn app_sources_of(paths: &[&String]) -> Result<Vec<String>, String> {
         .collect())
 }
 
+/// **What a production build does with what the page reports about itself**
+/// for its tests (ADR-0430): a build to serve drops it; one for a suite that
+/// reads it keeps it (`--report`). A development build is its runtime as
+/// written, and reports.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Reports {
+    Dropped,
+    Kept,
+}
+
 /// **`pw build --dist DIR`: a whole app, built to be served** (ADR-0429):
 /// its artifacts in `DIR/build`, as `pw build --out DIR/build` writes them;
 /// the runtime its host serves it with (`DIR/pw-runtime.mjs`); each
 /// `--asset FILE=NAME` beside it as `DIR/NAME`; with `--production`, packed
-/// as a production build is (`optimize-assets.mjs`, ADR-0399); and last,
-/// what it was built from, each source by its digest (`DIR/sources.json`,
-/// ADR-0166). A build stopped part-way names no sources, and the browser
-/// suite serves no such build. `DIR` is replaced: it must be new, empty or
-/// an app's build (its artifacts and its runtime).
+/// as a production build is (`optimize-assets.mjs`, ADR-0399), its reports
+/// dropped or kept (ADR-0430); and last, what it was built from, each source
+/// by its digest (`DIR/sources.json`, ADR-0166). A build stopped part-way
+/// names no sources, and the browser suite serves no such build. `DIR` is
+/// replaced: it must be new, empty or an app's build (its artifacts and its
+/// runtime).
 fn dist_command(
     sources: &[&String],
     dist: &str,
-    production: bool,
+    production: Option<Reports>,
     assets: &[String],
     released: Option<&pw_core::tables::Schema>,
 ) -> ExitCode {
@@ -1409,12 +1420,13 @@ fn dist_command(
             return fail(format!("{file}: {e}"));
         }
     }
-    if production {
-        let packed = std::process::Command::new("node")
-            .arg(spike.join("optimize-assets.mjs"))
-            .arg(dir)
-            .status();
-        match packed {
+    if let Some(reports) = production {
+        let mut packing = std::process::Command::new("node");
+        packing.arg(spike.join("optimize-assets.mjs")).arg(dir);
+        if reports == Reports::Kept {
+            packing.arg("--report");
+        }
+        match packing.status() {
             Ok(status) if status.success() => {}
             Ok(status) => return fail(format!("its packaging failed: {status}")),
             Err(e) => return fail(format!("its packaging needs node: {e}")),
@@ -1440,10 +1452,10 @@ fn dist_command(
     println!(
         "pw build: an app of {} source(s) -> {dist}{}",
         sources.len(),
-        if production {
-            ", packed for production"
-        } else {
-            ""
+        match production {
+            None => "",
+            Some(Reports::Dropped) => ", packed for production",
+            Some(Reports::Kept) => ", packed for production, its reports kept",
         }
     );
     ExitCode::SUCCESS
@@ -1883,7 +1895,10 @@ fn run() -> ExitCode {
         eprintln!(
             "                           the runtime, each --asset FILE=NAME, and its sources' digests;"
         );
-        eprintln!("                           --production packs it as a production build");
+        eprintln!("                           --production packs it as a production build;");
+        eprintln!(
+            "                           --report keeps what its pages report, for a suite that reads it"
+        );
         eprintln!(
             "  --schema-lock FILE       (check, build) hold the program's tables to the schema released"
         );
@@ -1921,6 +1936,20 @@ fn run() -> ExitCode {
         eprintln!("pw build: --production and --asset build a whole app: give --dist DIR");
         return ExitCode::from(2);
     }
+    // What the page reports about itself is a production build's to drop or
+    // keep (ADR-0430): a development build is the runtime as written.
+    let report = args.iter().any(|a| a == "--report");
+    if cmd == "build" && report && !production {
+        eprintln!(
+            "pw build: --report keeps a production build's reports, for a suite that reads them: give --production; a development build reports already"
+        );
+        return ExitCode::from(2);
+    }
+    let packing = production.then_some(if report {
+        Reports::Kept
+    } else {
+        Reports::Dropped
+    });
     if cmd == "build" && dist.is_some() && flag_value(&args, "--out").is_some() {
         eprintln!(
             "pw build: --dist DIR builds a whole app, --out DIR its artifacts alone: one of them"
@@ -1937,7 +1966,7 @@ fn run() -> ExitCode {
         let Some(out) = out else {
             eprintln!("usage: pw build --out DIR [--schema-lock FILE] <path.pw>...");
             eprintln!(
-                "       pw build --dist DIR [--production] [--asset FILE=NAME]... <app path>..."
+                "       pw build --dist DIR [--production [--report]] [--asset FILE=NAME]... <app path>..."
             );
             return ExitCode::from(2);
         };
@@ -2179,7 +2208,7 @@ fn run() -> ExitCode {
             );
             return ExitCode::from(1);
         }
-        return dist_command(&checking, dist, production, &assets, released.as_ref());
+        return dist_command(&checking, dist, packing, &assets, released.as_ref());
     }
 
     if errors > 0 {

@@ -103,7 +103,7 @@ MUTANTS = [
         "  try {\n"
         "    module = await speculationsWithin();\n"
         "  } catch (error) {\n"
-        "    log.push(`${component} sent unspeculated: ${error.message ?? error}`);\n"
+        "    REPORT: log.push(`${component} sent unspeculated: ${error.message ?? error}`);\n"
         "    return [];\n"
         "  }\n",
         "  const module = await speculationsWithin();\n",

@@ -9,6 +9,9 @@
 # decision held to `pw-resume`'s own build over changed manifests; what the
 # packaging writes; what the host starts; TodoMVC's whole suite and the page's
 # requests on a production build, in three engines; and the mutation controls.
+# Each suite runs on its build as it is served, which reports nothing to its
+# tests, less a test that reads what the page reports (`@report`, ADR-0430),
+# which runs on the same app built to report.
 e14-device-runtime:
     @BUILD_ONLY=1 bash spikes/own-renderer/run.sh > /dev/null
     @PW_PRODUCTION_ASSETS=1 bash spikes/own-renderer/todomvc.sh > /dev/null
@@ -28,11 +31,15 @@ e14-device-runtime:
        cargo test --locked -p pw-dev-server --bin pw-dev-server tests::page_bundle:: 2>&1 | grep -E '^(test |test result)|panicked at'; \
        echo; echo "== a page alone in its build (tests::alone_page::)"; echo; \
        cargo test --locked -p pw-dev-server --bin pw-dev-server tests::alone_page:: 2>&1 | grep -E '^(test |test result)|panicked at'; \
-       echo; echo "== a production build, in three engines (e2e/todomvc.spec.mjs, e2e/device-runtime.spec.mjs)"; echo; \
+       echo; echo "== a production build as it is served, in three engines (e2e/todomvc.spec.mjs, e2e/device-runtime.spec.mjs, e2e/nested-blocks.spec.mjs, e2e/rows.spec.mjs less its @report tests)"; echo; \
        PW_PRODUCTION_ASSETS=1 BUILD_ONLY=1 bash spikes/own-renderer/run.sh > /dev/null; \
        PW_PRODUCTION_ASSETS=1 bash spikes/own-renderer/rows.sh > /dev/null; \
        PW_PRODUCTION_ASSETS=1 bash spikes/own-renderer/row-events.sh > /dev/null; \
-       PW_PRODUCTION_ASSETS=1 bash scripts/run_suite.sh -- pnpm exec playwright test e2e/todomvc.spec.mjs e2e/device-runtime.spec.mjs e2e/nested-blocks.spec.mjs e2e/rows.spec.mjs --reporter=line; \
+       PW_PRODUCTION_ASSETS=1 bash scripts/run_suite.sh -- pnpm exec playwright test e2e/todomvc.spec.mjs e2e/device-runtime.spec.mjs e2e/nested-blocks.spec.mjs e2e/rows.spec.mjs --grep-invert @report --reporter=line; \
+       echo; echo "== the large list built to report, in three engines (e2e/rows.spec.mjs, its @report tests)"; echo; \
+       PW_PRODUCTION_ASSETS=1 PW_REPORT=1 bash spikes/own-renderer/rows.sh > /dev/null; \
+       PW_PRODUCTION_ASSETS=1 PW_REPORT=1 bash spikes/own-renderer/row-events.sh > /dev/null; \
+       PW_PRODUCTION_ASSETS=1 bash scripts/run_suite.sh -- pnpm exec playwright test e2e/rows.spec.mjs --grep @report --reporter=line; \
        echo; echo "== mutation controls (scripts/device_runtime_mutations.py)"; echo; \
        CARGO_INCREMENTAL=0 python3 scripts/device_runtime_mutations.py; \
      } > docs/evidence/E14/device-runtime.txt

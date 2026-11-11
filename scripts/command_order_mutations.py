@@ -168,19 +168,19 @@ MUTANTS = [
         "an early answer is sent again at once",
         "browser",
         RUNTIME,
-        "        log.push(`${component} sent again: the one before it had not arrived`);\n"
+        "        REPORT: log.push(`${component} sent again: the one before it had not arrived`);\n"
         "        await Promise.all(before);\n",
-        "        log.push(`${component} sent again: the one before it had not arrived`);\n",
+        "        REPORT: log.push(`${component} sent again: the one before it had not arrived`);\n",
     ),
     (
         # Re-anchored by ADR-0381, as above.
         "an early answer is sent again naming the one before it",
         "browser",
         RUNTIME,
-        "        log.push(`${component} sent again: the one before it had not arrived`);\n"
+        "        REPORT: log.push(`${component} sent again: the one before it had not arrived`);\n"
         "        await Promise.all(before);\n"
         "        after = undefined;\n",
-        "        log.push(`${component} sent again: the one before it had not arrived`);\n"
+        "        REPORT: log.push(`${component} sent again: the one before it had not arrived`);\n"
         "        await Promise.all(before);\n",
     ),
     (

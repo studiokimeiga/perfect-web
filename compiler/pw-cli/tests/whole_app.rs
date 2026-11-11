@@ -293,3 +293,86 @@ fn what_builds_a_whole_app_is_asked_of_dist_alone() {
         assert_eq!(out.status.code(), Some(2), "{args:?}: {}", said(&out));
     }
 }
+
+/// `pw` run with a `node` of this test's own first on its path: one that
+/// writes what it was asked, a line each, to `asked`, and packs nothing.
+#[cfg(unix)]
+fn pw_with_recording_node(args: &[&str], dir: &Path) -> Output {
+    use std::os::unix::fs::PermissionsExt as _;
+    let bin = dir.join("bin");
+    let _ = std::fs::create_dir_all(&bin);
+    let node = bin.join("node");
+    let _ = std::fs::write(
+        &node,
+        format!(
+            "#!/bin/sh\nprintf '%s\\n' \"$@\" > '{}'\n",
+            dir.join("asked").display()
+        ),
+    );
+    let _ = std::fs::set_permissions(&node, std::fs::Permissions::from_mode(0o755));
+    let path = std::env::var("PATH").unwrap_or_default();
+    Command::new(env!("CARGO_BIN_EXE_pw"))
+        .args(args)
+        .current_dir(repository())
+        .env("PATH", format!("{}:{path}", bin.display()))
+        .output()
+        .expect("pw runs")
+}
+
+/// **A production build drops what its pages report, unless asked**
+/// (ADR-0430): the packaging is asked to keep them with `--report` alone.
+#[cfg(unix)]
+#[test]
+fn a_production_build_keeps_its_reports_only_where_asked() {
+    for (flags, keeps) in [
+        (vec!["--production"], false),
+        (vec!["--production", "--report"], true),
+    ] {
+        let dir = scratch(if keeps {
+            "report-kept"
+        } else {
+            "report-dropped"
+        });
+        let dist = dir.join("dist");
+        let mut args = vec!["build", "--dist", dist.to_str().unwrap_or_default()];
+        args.extend(flags.iter().copied());
+        args.push("examples/rows/app.pw");
+        let out = pw_with_recording_node(&args, &dir);
+        assert!(out.status.success(), "{flags:?}: {}", said(&out));
+        let asked = std::fs::read_to_string(dir.join("asked")).unwrap_or_default();
+        let asked: Vec<&str> = asked.lines().collect();
+        let packaging = repository().join("spikes/own-renderer/optimize-assets.mjs");
+        let first = asked.first().and_then(|p| Path::new(p).canonicalize().ok());
+        assert_eq!(
+            first,
+            Some(packaging),
+            "{flags:?}: the packaging is run: {asked:?}"
+        );
+        assert_eq!(
+            asked.get(1..).unwrap_or_default(),
+            if keeps {
+                vec![dist.to_str().unwrap_or_default(), "--report"]
+            } else {
+                vec![dist.to_str().unwrap_or_default()]
+            },
+            "{flags:?}"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+}
+
+/// A development build is its runtime as written, which reports: `--report`
+/// is a production build's to ask for, and refused without one.
+#[test]
+fn reports_are_kept_by_a_production_build_alone() {
+    let dist = scratch("report-alone");
+    let out = pw(&[
+        "build",
+        "--dist",
+        dist.to_str().unwrap_or_default(),
+        "--report",
+        "examples/rows/app.pw",
+    ]);
+    assert_eq!(out.status.code(), Some(2), "{}", said(&out));
+    assert!(!dist.exists(), "nothing is built");
+}

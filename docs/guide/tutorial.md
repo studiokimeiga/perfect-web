@@ -560,8 +560,10 @@ PORT=7741 PW_IDENTITY=dev-accounts ../../target/debug/pw-dev-server dist-guestbo
 `pw check` does, adds the platform's packages, and writes the app's build,
 the runtime the server serves it with, and last `sources.json`, each source
 it was built from by its digest, so a build stopped part-way names none.
-With `--production` it packs the app as a production build is packed. It
-replaces a build it made before, and nothing else.
+With `--production` it packs the app as a production build is packed,
+leaving out what a page tells its tests about itself (`window.__pw`), which
+a development build keeps; `--report` keeps it, for a suite that reads it.
+It replaces a build it made before, and nothing else.
 
 The build writes `tables.json` beside the app: its tables, their fields,
 keys and functions, which the server serves them from. Open

@@ -179,8 +179,8 @@ MUTANTS = [
         "a bundle that failed is asked for again",
         "browser",
         RUNTIME,
-        "    pageBundleAt = null;\n    log.push(`the page's module was not loaded: ${error.message ?? error}`);\n",
-        "    pageBundleLoading = null;\n    log.push(`the page's module was not loaded: ${error.message ?? error}`);\n",
+        "    pageBundleAt = null;\n    REPORT: log.push(`the page's module was not loaded: ${error.message ?? error}`);\n",
+        "    pageBundleLoading = null;\n    REPORT: log.push(`the page's module was not loaded: ${error.message ?? error}`);\n",
     ),
     (
         "a press asks for its own module beside the bundle",

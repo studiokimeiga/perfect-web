@@ -6,6 +6,19 @@
 
 # Next
 
+## After train-25, 2026-11-11
+
+The list is as after train-24 (below), less its first item: a production
+page reports nothing to its tests (ADR-0430), TodoMVC's one script 694
+bytes lighter with Brotli and the large list's 576. One item more:
+
+1. **A failure the runtime recovers from is told no developer**, in a
+   production build as in a development one: a boot that failed, a handler
+   that threw, a module that did not load, the next runtime of a soft
+   navigation. Each was a line of the log, which no console shows. Which of
+   them a production page tells the console, in what words and at what
+   cost, is a decision of its own (ADR-0430, why not the other ways).
+
 ## After train-24, 2026-11-11
 
 The head-to-head at `1de39139` is behind in 36 rows. The list is as after

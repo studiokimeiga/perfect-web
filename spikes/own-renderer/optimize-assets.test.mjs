@@ -104,6 +104,7 @@ test("a production build says its pages warm what their presses need", async () 
       bundled: true,
       device: true,
       inline: true,
+      report: false,
       runtime: createHash("sha256").update("export const a = 1;\n").digest("hex"),
     });
     await assert.rejects(readFile(path.join(dir, "delivery.json.br")), { code: "ENOENT" });
@@ -375,32 +376,41 @@ const SERVER_ONLY = {
   "a subscription": "/stream?doc",
   "a stream's reading": "getReader",
   "a stream's marks": "pw-slot",
-  "a stream's settling": 'by:"browser"',
+  "a stream's settling": "template[for]",
   "a read": "/pw-read",
   "a speculation": "speculation",
   "a navigation that keeps a layout": "popstate",
-  "a handler's navigation": "navigating to",
+  "a handler's navigation": "location.assign",
   "its scroll": "scrollRestoration",
-  "the frame hook": "__pwTestApply",
-  "the batch hook": "__pwTestBatch",
   "a list's comparison": "is not a keyed loop",
   "a server's build name": "pw-build",
 };
 
+// What only a page with a server reports about itself (ADR-0430): in a build
+// that reports, the device's runtime holds none of it either.
+const SERVER_REPORTS = {
+  "a stream's settling, reported": 'by:"browser"',
+  "a handler's navigation, reported": "navigating to",
+  "the frame hook": "__pwTestApply",
+  "the batch hook": "__pwTestBatch",
+};
+
 test("the runtime of a page that talks to no server holds none of a server's code", async () => {
-  const dir = await mkdtemp(path.join(tmpdir(), "pw-assets-"));
-  try {
-    await copyFile(new URL("./public/pw-runtime.mjs", import.meta.url), path.join(dir, "pw-runtime.mjs"));
-    await optimizeAssets(dir);
-    const full = (await readFile(path.join(dir, "pw-runtime.mjs"))).toString();
-    const device = (await readFile(path.join(dir, "pw-runtime-device.mjs"))).toString();
-    for (const [what, word] of Object.entries(SERVER_ONLY)) {
-      assert.ok(full.includes(word), `the full runtime has ${what}`);
-      assert.ok(!device.includes(word), `the device's has no ${what}: ${word}`);
+  for (const report of [false, true]) {
+    const dir = await mkdtemp(path.join(tmpdir(), "pw-assets-"));
+    try {
+      await copyFile(new URL("./public/pw-runtime.mjs", import.meta.url), path.join(dir, "pw-runtime.mjs"));
+      await optimizeAssets(dir, { report });
+      const full = (await readFile(path.join(dir, "pw-runtime.mjs"))).toString();
+      const device = (await readFile(path.join(dir, "pw-runtime-device.mjs"))).toString();
+      for (const [what, word] of Object.entries(report ? { ...SERVER_ONLY, ...SERVER_REPORTS } : SERVER_ONLY)) {
+        assert.ok(full.includes(word), `the full runtime has ${what}`);
+        assert.ok(!device.includes(word), `the device's has no ${what}: ${word}`);
+      }
+      assert.ok(device.includes("/pw-handlers"), "a page's table is still asked for");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
     }
-    assert.ok(device.includes("/pw-handlers"), "a page's table is still asked for");
-  } finally {
-    await rm(dir, { recursive: true, force: true });
   }
 });
 
@@ -427,6 +437,140 @@ test("the runtime of a page with a server holds none of what only a page with no
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
+});
+
+// **What the page reports about itself** (ADR-0430): the object and the hooks
+// a test drives the runtime by, by their names (the runtime's own
+// `__pwUnloading` and `__pwSoftNavigations` are not reports), and each line
+// of its log, by the words it starts with.
+const REPORTED = /__pw(?:(?![A-Za-z])|TestApply|TestBatch|Held|Known)/;
+const RUNTIME_SOURCE = new URL("./public/pw-runtime.mjs", import.meta.url);
+async function logWords() {
+  const source = await readFile(RUNTIME_SOURCE, "utf8");
+  const lines = [...source.matchAll(/log\.push\(\s*(`[^`]*`|"[^"]*")/g)].map((m) => m[1].slice(1, -1));
+  // Each line by the longest of its words between what it interpolates,
+  // where those are long enough to be the line's own: " recovery " is the
+  // console's too, and "handler " a refusal's.
+  return lines
+    .map((line) => line.split(/\$\{(?:[^{}]|\{[^{}]*\})*\}/).sort((a, b) => b.length - a.length)[0])
+    .filter((words) => words.length >= 12);
+}
+
+async function packed(report) {
+  const dir = await mkdtemp(path.join(tmpdir(), "pw-assets-"));
+  try {
+    await copyFile(RUNTIME_SOURCE, path.join(dir, "pw-runtime.mjs"));
+    await optimizeAssets(dir, report === undefined ? undefined : { report });
+    const delivery = JSON.parse(await readFile(path.join(dir, "delivery.json"), "utf8"));
+    return {
+      delivery,
+      full: await readFile(path.join(dir, "pw-runtime.mjs"), "utf8"),
+      device: await readFile(path.join(dir, "pw-runtime-device.mjs"), "utf8"),
+    };
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
+test("a production build holds none of what the page reports about itself", async () => {
+  const words = await logWords();
+  assert.ok(words.length >= 45, `the log's lines are read from the runtime: ${words.length}`);
+  const { delivery, full, device } = await packed();
+  assert.equal(delivery.report, false);
+  for (const [which, runtime] of [["a server's", full], ["the device's", device]]) {
+    assert.equal(REPORTED.test(runtime), false, `${which} runtime has no window.__pw`);
+    for (const word of words) assert.equal(runtime.includes(word), false, `${which} runtime logs no "${word}"`);
+  }
+});
+
+test("a build for a suite that reads the page's reports keeps them", async () => {
+  const words = await logWords();
+  const { delivery, full, device } = await packed(true);
+  assert.equal(delivery.report, true);
+  assert.equal(REPORTED.test(full), true, "a server's runtime has window.__pw");
+  assert.equal(REPORTED.test(device), true, "the device's runtime has window.__pw");
+  // A line only a server's page writes is in its runtime alone, and one only
+  // a device's page writes in the device's: each is in one of them.
+  for (const word of words) assert.equal(full.includes(word) || device.includes(word), true, `a line logs "${word}"`);
+});
+
+/** The calls a report may make: what reads a value, and the log's and the
+ * object's own (and the words that open a statement). A report that calls
+ * anything else does work a production build would drop with it. */
+const READS = new Set(["push", "splice", "fromEntries", "stringify", "join", "filter", "reduce", "slice", "has", "Number", "String", "if", "for"]);
+
+/** A line's code without the text of its strings or its comment: a
+ * template's `${...}` is kept, as code, and its words are not. Read a
+ * character at a time, since a template may hold another. */
+function codeOf(line) {
+  if (/^\s*(\/\/|\*|\/\*\*)/.test(line)) return "";
+  let out = "";
+  const stack = [];
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    const top = stack.at(-1);
+    if (top === "`") {
+      if (c === "\\") i++;
+      else if (c === "`") stack.pop();
+      else if (c === "$" && line[i + 1] === "{") (stack.push("${"), i++);
+      continue;
+    }
+    if (top === '"' || top === "'") {
+      if (c === "\\") i++;
+      else if (c === top) stack.pop();
+      continue;
+    }
+    if (c === "/" && line[i + 1] === "/") break;
+    if (c === "`" || c === '"' || c === "'") stack.push(c);
+    else if (top === "${" && c === "}") stack.pop();
+    else if (top === "${" && c === "{") (stack.push("{"), (out += c));
+    else if (top === "{" && c === "}") (stack.pop(), (out += c));
+    else out += c;
+  }
+  return out;
+}
+
+const OBJECT = /window\.__pw(?:(?![A-Za-z])|TestApply|TestBatch|Held|Known)/;
+// The log, read or written: its declaration alone is not.
+const LOG = /\blog\.|\blog\b\s*,|(?<!const )\blog\b\s*=/;
+const CALL = /([A-Za-z_$][\w$]*)\s*\(/g;
+// An assignment, once what sets the object and an arrow's `=>` are taken out.
+const SETS = /(^|[^=!<>])=(?!=)/;
+const SETS_THE_OBJECT = /window\.__pw[\w.]*\s*=|=>/g;
+
+const braces = (code) => (code.match(/\{/g) ?? []).length - (code.match(/\}/g) ?? []).length;
+/** The report a line opens, or `null`: the object's assignment, whose
+ * members are what a test calls, or a statement. */
+const opened = (code) => (code.includes("REPORT: ") ? { object: /window\.__pw = \{$/.test(code.trim()) } : null);
+
+/** Each line of the runtime, its code, and the report it is in: the
+ * statement a `REPORT:` label opens, to the brace that closes what it opens. */
+function reportLines(source) {
+  let depth = 0;
+  let report = null;
+  return source.split("\n").map((line, i) => {
+    const code = codeOf(line);
+    report = depth === 0 ? opened(code) : report;
+    depth = report ? Math.max(0, depth + braces(code)) : 0;
+    return { n: i + 1, line: line.trim(), code, report };
+  });
+}
+
+/** What a line does that only a report may, outside one; and what a report
+ * does that is the runtime's work: a call that reads nothing, or a value set
+ * that is not the object's. */
+function misreported({ n, line, code, report }) {
+  if (!report) return [LOG, OBJECT].filter((what) => what.test(code)).map(() => `${n}: outside a report: ${line}`);
+  if (report.object) return [];
+  const calls = [...code.matchAll(CALL)].filter((m) => !READS.has(m[1])).map((m) => `calls ${m[1]}`);
+  const sets = SETS.test(code.replace(SETS_THE_OBJECT, "")) ? ["sets a value"] : [];
+  return [...calls, ...sets].map((what) => `${n}: a report ${what}: ${line}`);
+}
+
+test("each report is a statement labeled REPORT, and does nothing but report", async () => {
+  const lines = reportLines(await readFile(RUNTIME_SOURCE, "utf8"));
+  assert.ok(lines.filter((l) => l.code.includes("REPORT: ")).length >= 100, "the reports are read from the runtime");
+  assert.deepEqual(lines.flatMap(misreported), []);
 });
 
 test("a production build minifies its stylesheets, and keeps what they draw", async () => {
@@ -618,6 +762,7 @@ test("a page alone in its build has its code and the device's runtime in one mod
     assert.ok(alone.includes('"pw-handlers"'), "it reads the table its document holds");
     assert.ok(!alone.includes("/pw-handlers"), "it asks for no table");
     for (const [what, word] of Object.entries(SERVER_ONLY)) assert.ok(!alone.includes(word), `no ${what}: ${word}`);
+    assert.equal(REPORTED.test(alone), false, "it reports nothing to a test (ADR-0430)");
     assert.ok(!/<\/?script/i.test(alone), "the parser reads it as one script");
     const device = (await readFile(path.join(dir, "pw-runtime-device.mjs"))).toString();
     assert.ok(device.includes("/pw-handlers"), "the device's runtime asks for its table");

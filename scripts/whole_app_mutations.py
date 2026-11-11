@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Mutation controls for ADR-0429: `pw build --dist DIR` builds a whole app.
+"""Mutation controls for ADR-0429 and ADR-0430: `pw build --dist DIR` builds a whole app.
 
 Each mutant undoes one piece of what the command does that an app's build
 script did by hand: the standard packages added, a directory read for its
@@ -7,7 +7,9 @@ script did by hand: the standard packages added, a directory read for its
 written beside the artifacts, the record of the sources and their digests,
 a program in error building nothing, a build before replaced whole and
 nothing else replaced, and what only a whole app's build takes refused
-elsewhere. The tests in pw-cli's `whole_app.rs` must then fail.
+elsewhere; and, for ADR-0430, a production build asked to keep what its
+pages report where `--report` asks, and a development build never. The
+tests in pw-cli's `whole_app.rs` must then fail.
 
 Run from the repository root; `just e14-whole-app` records the output. The
 source is restored after every mutant, whatever happens.
@@ -64,6 +66,16 @@ MUTANTS = [
     ("a whole app and its artifacts alone are asked together", CLI,
      "    if cmd == \"build\" && dist.is_some() && flag_value(&args, \"--out\").is_some() {\n",
      "    if false {\n"),
+    # ADR-0430: what a production build does with what its pages report.
+    ("a production build is not asked to keep its reports", CLI,
+     "        if reports == Reports::Kept {\n            packing.arg(\"--report\");\n        }\n",
+     ""),
+    ("a production build is asked to keep its reports always", CLI,
+     "        if reports == Reports::Kept {\n",
+     "        if reports == Reports::Kept || reports == Reports::Dropped {\n"),
+    ("--report is taken without --production", CLI,
+     "    if cmd == \"build\" && report && !production {\n",
+     "    if false && cmd == \"build\" && report && !production {\n"),
 ]
 
 TESTS = [

@@ -2,6 +2,16 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**Train-25, 2026-11-11:** on train-24. A production page reports nothing to
+its tests (ADR-0430): each thing the runtime tells them, `window.__pw`, its
+log and its hooks, is a statement labeled `REPORT`, which a production build
+drops, arguments and all, unless it is built `--report` for a suite that
+reads it; nothing the runtime does reads a report. TodoMVC's one script is
+46,090 bytes, 15,360 with Brotli, from 48,670 and 16,054; the large list's
+43,760 and 14,950, from 45,639 and 15,526; a server's page's runtime 66,522
+and 21,811, from 71,794 and 23,247. A test that reads a report is tagged
+`@report`; `e14-device-runtime` runs the rest on the builds as served.
+
 **Train-24, 2026-11-11:** on train-23, landed with it. `pw build --dist`
 builds a whole app (ADR-0429): the standard packages added, a directory
 read for its `.pw` files, checked as `pw check` checks, its artifacts, its
