@@ -68,6 +68,14 @@ its script built before, production builds too.
 - **Keeping `pw check` a step of its own in each script**: a build checks
   anyway, and printing what the check finds is the build's to do.
 
+## Result
+
+The head-to-head at `1de39139`: the large list's build and configuration
+lines are 5, from 29 (React's 24, Svelte's 27), and the row is Pleris's;
+TodoMVC's are 10, from 43 (Svelte's 44). Each app's build makes, byte for
+byte, what its script made before. The record's other rows that crossed are
+presses and paints this decision does not touch, moving both ways.
+
 ## Consequences
 
 - `rows.sh`, `todomvc.sh`, `guestbook.sh` and `feed.sh` call `pw build
