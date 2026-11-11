@@ -1781,20 +1781,14 @@ const renderer = (() => {
         raws[h] = [name, value];
       }
     }
-    return { __proto__: PLANNED_ROW, key: at, item, reads, names: e.names, computing, holes, raws, of: p, env, capturing, others, written: null };
-  };
-
-  /** **A planned row, of one shape** (ADR-0432): its text written when
-   * something first reads it, by a getter on the prototype all such rows
-   * share. Until 2026-11-11 each row was an object literal with a getter of
-   * its own, which V8 makes an object of slow properties, a dictionary of its
-   * own: about 920 bytes a row, a third of what making a thousand allocated,
-   * and each of its fields looked up by name wherever it was read. */
-  const PLANNED_ROW = !PW_PLANS ? null : {
-    get text() {
-      // What it computes is noted once, as its holes were computed.
-      return (this.written ??= rowText(this.of, { ...this.env, computedValues: null }, this.others, this.key));
-    },
+    // **A plain object of plain fields** (ADR-0432), its text none until
+    // `textOf` writes it, so that V8 makes each row by copying one it keeps
+    // for this literal. A getter of its own made each row an object of slow
+    // properties, a dictionary of its own (about 920 bytes a row); a getter
+    // on a prototype the literal names first made each row from an empty
+    // object, its prototype set by a call into V8 and each field added after,
+    // which in code not yet optimized was 4.2 ms to make a thousand.
+    return { key: at, text: null, item, reads, names: e.names, computing, holes, raws, of: p, env, capturing, others };
   };
 
   /** **A planned list's holes, in its plan's order** (`planOf`): each part
@@ -2061,6 +2055,12 @@ const renderer = (() => {
       }
     },
     letGo: () => tokens.clear(),
+    /** **A row's markup, its anchors included**: a planned row's written the
+     * first time something reads it, a morph or a parse (ADR-0432), and kept.
+     * What it computes is noted once, as its holes were computed. */
+    textOf: !PW_PLANS
+      ? (row) => row.text
+      : (row) => (row.text ??= rowText(row.of, { ...row.env, computedValues: null }, row.others, row.key)),
     /** One part, its anchors included. */
     part: (p, e, others) => rendered(others, (out) => emit([{ chunk: "dynamic", value: p }], e, others, out)),
     /** A block as a page that talks to no server keeps it: what is around
@@ -2724,7 +2724,7 @@ function textOfBlock(block, without = []) {
   if (PW_SERVER) return block;
   let text = block.strs[0];
   block.lists.forEach((list, i) => {
-    text += (without.includes(list) ? "" : list.rows.map((row) => row.text).join("")) + block.strs[i + 1];
+    text += (without.includes(list) ? "" : list.rows.map(renderer.textOf).join("")) + block.strs[i + 1];
   });
   return text;
 }
@@ -3245,7 +3245,7 @@ function rowsAllGone(range) {
  * they are, parsed as one. */
 function rowsMorphed(changed, inserted) {
   if (changed.length === 0) return;
-  const parsed = parseInstance(changed.map(([, row]) => row.text).join(""));
+  const parsed = parseInstance(changed.map(([, row]) => renderer.textOf(row)).join(""));
   let at = 0;
   for (const [[start, end], row] of changed) {
     const close = `pw:e${row.key}`;
@@ -3260,7 +3260,7 @@ function rowsMorphed(changed, inserted) {
  * are the fragment's until they are placed. */
 function rowsParsed(rows, shown, inserted) {
   const template = document.createElement("template");
-  template.innerHTML = rows.map((row) => row.text).join("");
+  template.innerHTML = rows.map(renderer.textOf).join("");
   const content = template.content;
   let n = content.firstChild;
   for (const row of rows) {
@@ -3497,7 +3497,7 @@ function holesFound([start, end], plan) {
  * none of its holes: the row is given to the plan whenever its value changed,
  * for what they capture to follow it (ADR-0427). */
 function rowDiffers(old, row) {
-  if (!old.holes || !row.holes) return old.text !== row.text;
+  if (!old.holes || !row.holes) return renderer.textOf(old) !== renderer.textOf(row);
   if (row.capturing) return true;
   for (let h = 0; h < row.holes.length; h++) if (old.holes[h] !== row.holes[h]) return true;
   return false;
