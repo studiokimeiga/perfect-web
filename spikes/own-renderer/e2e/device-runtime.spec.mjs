@@ -208,6 +208,23 @@ test("a table of another document's schema refuses each, by that", async ({ page
   expect(refused.filter((line) => !line.includes(": PWR06, "))).toEqual([]);
 });
 
+test("a boot that fails leaves the page to be read, and is told the developer", async ({ page }) => {
+  // A platform that refuses the first thing the runtime asks of it, as a
+  // broken extension might: the boot fails, and the developer is told as of
+  // an error nothing caught, on the build as it is served (ADR-0431).
+  await page.addInitScript(() => {
+    performance.mark = () => {
+      throw new TypeError("a mark the platform refused");
+    };
+  });
+  const uncaught = [];
+  page.on("pageerror", (e) => uncaught.push(e.message));
+  await page.goto("/");
+  await page.waitForFunction(() => document.documentElement.dataset.pwReady === "failed");
+  await expect.poll(() => uncaught.join("\n")).toBe("a mark the platform refused");
+  await expect(page.locator(".new-todo")).toBeVisible();
+});
+
 test("the device's runtime stays small as sent", () => {
   // As a page is sent it: of a build that reports nothing (ADR-0430).
   const { report } = JSON.parse(readFileSync(path.join(SPIKE, "dist-todomvc/delivery.json"), "utf8"));

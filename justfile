@@ -1539,6 +1539,31 @@ e14-whole-app:
      } > docs/evidence/E14/whole-app.txt
     @grep -E "^test result|mutants killed|^---- |panicked at" docs/evidence/E14/whole-app.txt
 
+# ADR-0431: a failure the runtime recovers from is told the developer as the
+# platform tells an error nothing caught, and a condition it names, which the
+# reader is told, is not. The specs that drive each failure in three engines,
+# on the demos and the feed as developed and on TodoMVC as served, and the
+# mutation controls.
+e14-failures-told:
+    @BUILD_ONLY=1 bash spikes/own-renderer/run.sh > /dev/null
+    @bash spikes/own-renderer/feed.sh > /dev/null
+    @PW_PRODUCTION_ASSETS=1 bash spikes/own-renderer/todomvc.sh > /dev/null
+    @cargo build --quiet --locked -p pw-dev-server -p kiokun-server
+    @mkdir -p docs/evidence/E14
+    @{ echo "ADR-0431 - a failure the runtime recovers from is told the developer"; echo; \
+       echo "produced by: just e14-failures-told"; \
+       echo "commit: $(git rev-parse HEAD)$(git diff --quiet HEAD -- . ':(exclude)docs/evidence' ':(exclude)spikes/own-renderer/store-ir.json' || echo ' + uncommitted changes')"; \
+       echo "rust: $(rustc --version)"; echo "node: $(node --version)"; \
+       echo "playwright: $(cd spikes/own-renderer && pnpm exec playwright --version)"; echo; \
+       echo "== the demos and the feed as developed, in three engines"; echo; \
+       bash scripts/run_suite.sh -- pnpm exec playwright test e2e/lazy-handler.spec.mjs e2e/argument-invariants.spec.mjs e2e/identity.spec.mjs e2e/computed-modules.spec.mjs e2e/page-bundle.spec.mjs e2e/press-modules.spec.mjs e2e/soft-navigation.spec.mjs e2e/feed.spec.mjs --grep "fails to load is visible|altered on the way|signed out in another tab is refused where|no answer comes for is told|computed values module that failed|bundle that does not load|sent unspeculated|next runtime that does not load|cannot be shown in place|a rollback that cannot render" --reporter=line; \
+       echo; echo "== TodoMVC as served, in three engines (e2e/device-runtime.spec.mjs)"; echo; \
+       PW_PRODUCTION_ASSETS=1 bash scripts/run_suite.sh -- pnpm exec playwright test e2e/device-runtime.spec.mjs --grep "a boot that fails" --reporter=line; \
+       echo; echo "== mutation controls (scripts/failures_told_mutations.py)"; echo; \
+       python3 scripts/failures_told_mutations.py; \
+     } > docs/evidence/E14/failures-told.txt
+    @grep -E "passed|failed|mutants killed" docs/evidence/E14/failures-told.txt
+
 # ADR-0107: a cache key names each parameter its entry depends on. Its
 # tests, and the mutation controls.
 e10-keys-cover-reads:

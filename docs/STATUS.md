@@ -2,6 +2,16 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**Train-26, 2026-11-11:** on train-25. A failure the runtime recovers from is
+told the developer (ADR-0431), as the platform tells an error nothing
+caught (`reportError`): a press that failed, the page's or a speculation's
+module that did not load, a rollback that could not render, a navigation
+that could not be finished in place, a boot that failed. A refusal, no
+answer and a full store, which the reader is told by name, are not. Each
+held by a test of the spec that drives it, in three engines; ten controls
+(`just e14-failures-told`). Seven calls: TodoMVC's one script 43 bytes more
+with Brotli, the large list's 12.
+
 **Train-25, 2026-11-11:** on train-24. A production page reports nothing to
 its tests (ADR-0430): each thing the runtime tells them, `window.__pw`, its
 log and its hooks, is a statement labeled `REPORT`, which a production build

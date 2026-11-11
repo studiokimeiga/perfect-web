@@ -43,6 +43,8 @@ for (const [what, pattern] of [["speculation module", "**/speculation/**"]]) {
       page,
     }) => {
       await ready(page, `/stores/47?load-deadline=${DEADLINE}`);
+      const uncaught = [];
+      page.on("pageerror", (e) => uncaught.push(e.message));
       let calls = 0;
       await page.route(pattern, (route) => (++calls === 1 ? fault(route) : route.continue()));
       try {
@@ -53,12 +55,15 @@ for (const [what, pattern] of [["speculation module", "**/speculation/**"]]) {
         await expect(page.locator("#cart-count")).toHaveText("1");
         await expect(failed(page)).toHaveCount(0);
         expect(await logged(page, `speculated ${ADD}`)).toBe(0);
+        // The developer is told, as of an error nothing caught (ADR-0431).
+        await expect.poll(() => uncaught.length).toBe(1);
         // The next press asks the network again, and is shown before its
         // answer.
         await page.getByRole("button", { name: "Add Espresso" }).click();
         await expect.poll(() => logged(page, `speculated ${ADD}`), { timeout: 8_000 }).toBe(1);
         await expect(page.locator("#cart-count")).toHaveText("2");
         expect(calls).toBe(2);
+        expect(uncaught.length).toBe(1);
       } finally {
         await page.unrouteAll({ behavior: "ignoreErrors" });
       }

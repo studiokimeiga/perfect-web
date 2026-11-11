@@ -457,6 +457,9 @@ function pageBundle() {
   pageBundleLoading ??= (PW_ALONE ? Promise.resolve(alonePage) : import(delivered(pageBundleAt))).catch((error) => {
     pageBundleAt = null;
     REPORT: log.push(`the page's module was not loaded: ${error.message ?? error}`);
+    // Told the developer once, as of an error nothing caught (ADR-0431):
+    // each press that asks for it is answered by its own module.
+    reportError(error);
     throw error;
   });
   return pageBundleLoading;
@@ -1039,6 +1042,7 @@ async function speculate(component, args, interaction) {
     module = await speculationsWithin();
   } catch (error) {
     REPORT: log.push(`${component} sent unspeculated: ${error.message ?? error}`);
+    reportError(error);
     return [];
   }
   const ids = [];
@@ -1094,6 +1098,7 @@ async function restoreSpeculation(ids) {
     await resolveSpeculation(ids, false);
   } catch (error) {
     REPORT: log.push(`speculation rollback failed: ${error.message ?? error}`);
+    reportError(error);
   }
 }
 
@@ -4926,6 +4931,12 @@ async function acted(part, event, modifiers, el, e) {
       tell(el, PLATFORM_SAYS.unreachable, "unreachable");
     } else {
       tell(el, PLATFORM_SAYS.failed, "failed");
+      // **Told the developer, as of an error nothing caught** (ADR-0431):
+      // to the console and to whatever hears the window's errors. A
+      // refusal is the host's answer and no answer the network's, each
+      // told the reader by name above; this is a failure of the program,
+      // its build or the runtime.
+      reportError(error);
     }
     REPORT: log.push(`handler ${part.value} failed: ${error.message ?? error}`);
     REPORT: window.__pw.handlerErrors = (window.__pw.handlerErrors ?? 0) + 1;
@@ -5853,6 +5864,7 @@ async function softNavigate(url, how, mine, chosen = false) {
     if (!focusPage(here)) say(document.title);
   } catch (e) {
     REPORT: log.push(`navigation to ${at} failed in place: ${e}`);
+    reportError(e);
     showAgain();
     return;
   }
@@ -5873,6 +5885,7 @@ function handOver() {
   const next = delivered("/pw-runtime.mjs");
   import(`${next}${next.includes("?") ? "&" : "?"}document=${window.__pwSoftNavigations}`).catch((e) => {
     REPORT: log.push(`the next runtime did not load: ${e}`);
+    reportError(e);
     showAgain();
   });
 }
@@ -5929,6 +5942,7 @@ if (PW_SERVER) addEventListener(
 
 attach().catch((e) => {
   REPORT: log.push(`boot failed: ${e}`);
+  reportError(e);
   // Deliberately NOT re-thrown into a state where handlers attach anyway. A
   // runtime that failed to boot leaves an inert page, which is a page that
   // works for reading and does nothing surprising.

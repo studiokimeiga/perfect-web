@@ -355,3 +355,50 @@ test("the document left is asked for nothing more", async ({ page }) => {
   await page.waitForTimeout(4000);
   expect(asked).toEqual([]);
 });
+
+// ADR-0431: a soft navigation that cannot be finished reads the page again
+// whole, and tells the developer, as of an error nothing caught, once.
+test("a next runtime that does not load is told the developer, and the page is read again", async ({
+  page,
+}) => {
+  await ready(page, "/");
+  const uncaught = [];
+  page.on("pageerror", (e) => uncaught.push(e.message));
+  await page.route(/\/pw-runtime\.mjs\?(.*&)?document=1\b/, (route) => route.abort("failed"));
+  await mark(page);
+  await page.locator("#header-cart").click();
+  await expect(page).toHaveURL(/\/cart$/);
+  await page.waitForFunction(
+    () => window.__kept !== true && document.documentElement.dataset.pwReady === "1",
+    null,
+    { polling: 50 },
+  );
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Your cart");
+  expect(uncaught.length).toBe(1);
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+});
+
+test("a page that cannot be shown in place is told the developer, and is read again", async ({
+  page,
+}) => {
+  await ready(page, "/");
+  const uncaught = [];
+  page.on("pageerror", (e) => uncaught.push(e.message));
+  await mark(page);
+  // The last step of showing the next page in place, refused by the platform:
+  // the page is the next one's by then, at its address.
+  await page.evaluate(() => {
+    window.scrollTo = () => {
+      throw new TypeError("a scroll the platform refused");
+    };
+  });
+  await page.locator("#header-cart").click();
+  await expect(page).toHaveURL(/\/cart$/);
+  await page.waitForFunction(
+    () => window.__kept !== true && document.documentElement.dataset.pwReady === "1",
+    null,
+    { polling: 50 },
+  );
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Your cart");
+  expect(uncaught).toEqual(["a scroll the platform refused"]);
+});

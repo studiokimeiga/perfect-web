@@ -6,6 +6,15 @@
 
 # Next
 
+## After train-26, 2026-11-11
+
+A failure the runtime recovers from is told the developer (ADR-0431), so
+the item after train-25 (below) is done. What is left is the list after
+train-24 and train-23 (below): the head-to-head at `afb99fe3` is behind in
+56 rows, most of them the large list's presses within a few milliseconds of
+Svelte, which train-22 (held back) began, and the bytes of the device's
+runtime, which a page's own generated code is the larger answer to.
+
 ## After train-25, 2026-11-11
 
 The list is as after train-24 (below), less its first item: a production

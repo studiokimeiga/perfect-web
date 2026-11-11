@@ -101,6 +101,8 @@ test("a like pressed on a page whose reader signed out in another tab is refused
   // Q3), in the platform's words.
   const context = await browser.newContext();
   const [page, there] = [await context.newPage(), await context.newPage()];
+  const uncaught = [];
+  page.on("pageerror", (e) => uncaught.push(e.message));
   await signUp(page, handle(testInfo, "lee"), `Lee ${testInfo.project.name}`);
   await holdStream(page);
   await home(there);
@@ -123,6 +125,10 @@ test("a like pressed on a page whose reader signed out in another tab is refused
   await expect(announced(page)).toHaveText(words);
   // The focus stays where the press was.
   await expect(like).toBeFocused();
+  // A refusal is the host's answer, told the reader: no developer's error
+  // (ADR-0431). What the press raised has reached the test by now.
+  await page.evaluate(() => 0);
+  expect(uncaught).toEqual([]);
   // Taken back: the count is the server's.
   await expect(post(page, "Hello, feed.").locator(".likes")).toHaveText(likes);
   // Pressed again: cleared as it is pressed, and told again; the announcer
@@ -205,6 +211,8 @@ test("a tab whose reader signed out in another is told so at its next post", asy
 test("a press no answer comes for is told so", async ({ page }, testInfo) => {
   // A signed-in reader's Like, which the page shows them.
   await signUp(page, handle(testInfo, "ned"), `Ned ${testInfo.project.name}`);
+  const uncaught = [];
+  page.on("pageerror", (e) => uncaught.push(e.message));
   await page.route("**/command/feed.app.like", (route) => route.abort("failed"));
   const like = post(page, "Hello, feed.").getByRole("button", { name: "Like" });
   await like.click();
@@ -212,6 +220,10 @@ test("a press no answer comes for is told so", async ({ page }, testInfo) => {
     "This could not be sent. Check the connection and try again.",
   );
   await expect(like).toHaveAttribute("data-pw-handler-error", "unreachable");
+  // No answer at all is the network's, told the reader: no developer's error
+  // (ADR-0431). What the press raised has reached the test by now.
+  await page.evaluate(() => 0);
+  expect(uncaught).toEqual([]);
   await page.unrouteAll({ behavior: "ignoreErrors" });
 });
 
