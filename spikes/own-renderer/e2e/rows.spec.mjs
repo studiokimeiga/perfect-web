@@ -297,6 +297,34 @@ test("an event that stays on its element does not reach a handler around it", as
   await expect(page.locator("#wrapped")).toHaveText("0");
 });
 
+/** What the page says it did with its rows for `press` (ADR-0432): each
+ * `rows ...` line its log gains, once `n` rows show and one has been said. */
+async function madeBy(page, press, n) {
+  const before = await page.evaluate(() => window.__pw.log.length);
+  await press();
+  await counted(page, n);
+  await page.waitForFunction((b) => window.__pw.log.slice(b).some((l) => l.startsWith("rows ")), before);
+  return page.evaluate((b) => window.__pw.log.slice(b).filter((l) => l.startsWith("rows ")), before);
+}
+
+test("rows where they were are changed in place and new ones go in after them, and a list replaced goes at once", { tag: "@report" }, async ({ page }) => {
+  await open(page);
+  const row = (i) => page.locator("#tbody tr").nth(i);
+  // Made from none, and added to at its end: no row is looked for or placed.
+  expect(await madeBy(page, () => page.click("#run"), 1000)).toEqual(["rows in order: 0 changed, 1000 added"]);
+  expect(await madeBy(page, () => page.click("#add"), 2000)).toEqual(["rows in order: 0 changed, 1000 added"]);
+  // Changed where they are: every tenth row, then the one selected.
+  expect(await madeBy(page, () => page.click("#update"), 2000)).toEqual(["rows in order: 200 changed, 0 added"]);
+  expect(await madeBy(page, () => row(4).locator(".select").click(), 2000)).toEqual(["rows in order: 1 changed, 0 added"]);
+  // Replaced: every row goes at once, and the new ones go in as one.
+  expect(await madeBy(page, () => page.click("#run"), 1000)).toEqual(["rows replaced: 2000 gone", "rows in order: 0 changed, 1000 added"]);
+  // Moved, and one taken out: the rows are placed.
+  expect(await madeBy(page, () => page.click("#swaprows"), 1000)).toEqual(["rows placed: 0 gone, 0 changed, 0 added"]);
+  expect(await madeBy(page, () => row(4).locator(".remove").click(), 999)).toEqual(["rows placed: 1 gone, 0 changed, 0 added"]);
+  expect(await madeBy(page, () => page.click("#clear"), 0)).toEqual(["rows replaced: 999 gone", "rows in order: 0 changed, 0 added"]);
+  expect(page.errors).toEqual([]);
+});
+
 test("a press writes the text of the rows it changed and indexes nothing inside them", { tag: "@report" }, async ({ page }) => {
   await open(page);
   await created(page);

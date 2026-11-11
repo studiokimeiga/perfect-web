@@ -1646,6 +1646,7 @@ const renderer = (() => {
         continue;
       }
       const key = rowKey(item, p, seen);
+      seen.add(key);
       const token = tokenOf(e, p.id, key);
       html.push(`<!--pw:s${p.id}@${token}-->`);
       emit(p.body, within(scoped, p.id, token), others, out);
@@ -1654,12 +1655,12 @@ const renderer = (() => {
     html.push(end);
   }
 
-  /** An item's key in its list, and no other item's. */
+  /** An item's key in its list, and none of the keys `seen` holds, which
+   * the caller notes. */
   function rowKey(item, p, seen) {
     const key = keyOf(item, p.key);
     if (key === "") throw new Blocked("MissingLoopKey", p.key);
     if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);
-    seen.add(key);
     return key;
   }
 
@@ -1677,11 +1678,11 @@ const renderer = (() => {
    * changed, so a press writes the text of the rows it changed. */
   function rowsKept(p, e, others, items) {
     const was = kept.get(p.id);
+    // Each row by its key, which is also what says a key is taken (ADR-0432).
     const now = new Map();
-    const seen = new Set();
     const rows = items.map((raw) => {
       const item = opened(raw);
-      const key = rowKey(item, p, seen);
+      const key = rowKey(item, p, now);
       const old = was?.get(key);
       const row = old && holdsStill(old, item, e, p) ? old : rowOf(p, e, others, item, key);
       now.set(key, row);
@@ -1780,23 +1781,20 @@ const renderer = (() => {
         raws[h] = [name, value];
       }
     }
-    let text = null;
-    return {
-      key: at,
-      item,
-      reads,
-      names: e.names,
-      computing,
-      holes,
-      raws,
-      of: p,
-      env,
-      capturing,
-      get text() {
-        // What it computes is noted once, as its holes were computed.
-        return (text ??= rowText(p, { ...env, computedValues: null }, others, at));
-      },
-    };
+    return { __proto__: PLANNED_ROW, key: at, item, reads, names: e.names, computing, holes, raws, of: p, env, capturing, others, written: null };
+  };
+
+  /** **A planned row, of one shape** (ADR-0432): its text written when
+   * something first reads it, by a getter on the prototype all such rows
+   * share. Until 2026-11-11 each row was an object literal with a getter of
+   * its own, which V8 makes an object of slow properties, a dictionary of its
+   * own: about 920 bytes a row, a third of what making a thousand allocated,
+   * and each of its fields looked up by name wherever it was read. */
+  const PLANNED_ROW = !PW_PLANS ? null : {
+    get text() {
+      // What it computes is noted once, as its holes were computed.
+      return (this.written ??= rowText(this.of, { ...this.env, computedValues: null }, this.others, this.key));
+    },
   };
 
   /** **A planned list's holes, in its plan's order** (`planOf`): each part
@@ -3519,29 +3517,43 @@ function listMade(was, now, inserted, range = index.get(addressOf([], now.part))
   now.nodes = shown;
   const a = was.rows;
   const b = now.rows;
-  let inPlace = a.length === b.length;
-  for (let i = 0; inPlace && i < a.length; i++) inPlace = a[i].key === b[i].key;
-  if (inPlace) {
-    const changed = [];
-    for (let i = 0; i < b.length; i++) {
-      if (a[i] !== b[i] && rowDiffers(a[i], b[i])) changed.push([shown.get(b[i].key), b[i], a[i]]);
-    }
-    if (PW_PLANS) rowsChanged(changed, plan, inserted);
-    else rowsMorphed(changed, inserted);
-    return true;
-  }
-  const places = placesOf(a, b);
-  const stay = new Set(places.filter((p) => p >= 0));
-  if (stay.size === 0 && !PW_DIALOGS) {
-    rowsAllGone(range);
+  // **Each row where it was, and any new ones after them** (ADR-0432): an
+  // update, a list made from none, rows added at its end. The rows there are
+  // changed in place, and the new ones go in after them as one: no row is
+  // looked for, placed or moved.
+  let kept = 0;
+  while (kept < a.length && kept < b.length && a[kept].key === b[kept].key) kept++;
+  if (kept < a.length) {
+    const places = placesOf(a, b);
+    if (places.some((p) => p >= 0)) return rowsPlaced(a, b, places, shown, plan, range, inserted);
+    // **No row stays** (ADR-0432): the list replaced or cleared. Every row
+    // goes at once, and the new ones go in as one, as after rows kept.
+    if (PW_DIALOGS) for (const row of a) rowGone(shown.get(row.key));
+    else rowsAllGone(range);
     shown.clear();
-  } else {
-    a.forEach((row, i) => {
-      if (stay.has(i)) return;
-      rowGone(shown.get(row.key));
-      shown.delete(row.key);
-    });
+    REPORT: log.push(`rows replaced: ${a.length} gone`);
   }
+  const changed = [];
+  for (let i = 0; i < kept; i++) {
+    if (a[i] !== b[i] && rowDiffers(a[i], b[i])) changed.push([shown.get(b[i].key), b[i], a[i]]);
+  }
+  if (PW_PLANS) rowsChanged(changed, plan, inserted);
+  else rowsMorphed(changed, inserted);
+  if (b.length > kept) range.end.parentNode.insertBefore(rowsNew(b.slice(kept), plan, shown, inserted), range.end);
+  REPORT: log.push(`rows in order: ${changed.length} changed, ${b.length - kept} added`);
+  return true;
+}
+
+/** **Rows some of which stay, placed** (`listMade`): those gone taken out,
+ * those changed set, the new ones put in, and as few moved as leave the
+ * rest in their order. */
+function rowsPlaced(a, b, places, shown, plan, range, inserted) {
+  const stay = new Set(places.filter((p) => p >= 0));
+  a.forEach((row, i) => {
+    if (stay.has(i)) return;
+    rowGone(shown.get(row.key));
+    shown.delete(row.key);
+  });
   const changed = [];
   b.forEach((row, i) => {
     const old = places[i] < 0 ? null : a[places[i]];
@@ -3551,10 +3563,7 @@ function listMade(was, now, inserted, range = index.get(addressOf([], now.part))
   else rowsMorphed(changed, inserted);
   const parent = range.end.parentNode;
   const fresh = b.filter((_, i) => places[i] < 0);
-  const content =
-    fresh.length === 0
-      ? null
-      : (PW_PLANS && plan && fresh.every((row) => row.holes) && rowsPlanned(fresh, plan, shown, inserted)) || rowsParsed(fresh, shown, inserted);
+  const content = fresh.length === 0 ? null : rowsNew(fresh, plan, shown, inserted);
   // The new rows side by side go in together, as one parsed fragment.
   const first = places.indexOf(-1);
   const together = fresh.length > 0 && places.lastIndexOf(-1) - first + 1 === fresh.length;
@@ -3575,7 +3584,14 @@ function listMade(was, now, inserted, range = index.get(addressOf([], now.part))
     }
     anchor = nodes[0];
   }
+  REPORT: log.push(`rows placed: ${a.length - stay.size} gone, ${changed.length} changed, ${fresh.length} added`);
   return true;
+}
+
+/** **New rows, as one fragment**, each noted in `shown`: made by the plan
+ * where each row's values are a plan's, parsed as one otherwise. */
+function rowsNew(rows, plan, shown, inserted) {
+  return (PW_PLANS && plan && rows.every((row) => row.holes) && rowsPlanned(rows, plan, shown, inserted)) || rowsParsed(rows, shown, inserted);
 }
 
 /** **A block's rows made what its render says**, where nothing around them

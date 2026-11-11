@@ -77,7 +77,8 @@ MUTANTS = [
     ("raw HTML is written", RUNTIME, """        throw new Blocked("UnauthorisedRawHtml", p.capability);\n""", """        html.push(needText(e, p.value));\n        return;\n"""),
     ("a blocked part writes nothing", RUNTIME, """      case "blocked":\n        throw unrepresented(p.reason);\n""", """      case "blocked":\n        return;\n"""),
     ("a loop's missing key is rendered", RUNTIME, """    const key = keyOf(item, p.key);\n    if (key === "") throw new Blocked("MissingLoopKey", p.key);\n""", """    const key = keyOf(item, p.key);\n"""),
-    ("a loop's duplicate key is rendered", RUNTIME, """    if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);\n    seen.add(key);\n    return key;\n""", """    seen.add(key);\n    return key;\n"""),
+    ("a loop's duplicate key is rendered", RUNTIME, """    if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);\n    return key;\n""", """    return key;\n"""),
+    ("a loop's key is not noted", RUNTIME, "      seen.add(key);\n      const token = tokenOf(e, p.id, key);\n", "      const token = tokenOf(e, p.id, key);\n"),
     ("a row is kept whatever a block around it bound", RUNTIME, """      if (!a || !b || !same(a.value, b.value)) return false;\n""", """      if (!a || !b) return false;\n"""),
     # Not "a row is kept whichever names a block around it bound": the names
     # around a list are its template's, the same at every render of it, so a
