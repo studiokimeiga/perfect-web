@@ -43,8 +43,9 @@ const PW_AUTOFOCUS = true;
 const PW_PLANS = true;
 
 /** **Whether a value of a type that contains itself can reach the page**
- * (ADR-0430), as its nodes (`$graph`, ADR-0205): only where the build writes
- * one, a page's first value, a handler or a computed module. */
+ * (ADR-0428), as its nodes (`$graph`, ADR-0205): only where a file of its
+ * build writes one, a page's first value, a handler, a computed module or a
+ * component the host runs as it renders (`optimize-assets.mjs`). */
 const PW_GRAPHS = true;
 
 /** **Whether this runtime is a page alone in its build** (ADR-0426):
@@ -1168,12 +1169,12 @@ const renderer = (() => {
   const isInt = (v) => typeof v === "bigint" || (Number.isInteger(v) && Math.abs(v) < 2 ** 63);
 
   /** Each `$graph` as the tree it says, read once. */
-  const graphs = new WeakMap();
+  const graphs = PW_GRAPHS ? new WeakMap() : null;
 
   /** A value as it is read: a `$graph` is its tree. A `$node` outside one
    * is no value. */
   function opened(v) {
-    // A build that writes no graph holds no graph's reading (ADR-0430).
+    // A build that writes no graph holds no graph's reading (ADR-0428).
     if (!PW_GRAPHS || !isObject(v)) return v;
     if ("$graph" in v && Object.keys(v).length === 1) {
       if (!graphs.has(v)) graphs.set(v, built(v.$graph));
@@ -1184,8 +1185,10 @@ const renderer = (() => {
   }
 
   /** A `$graph`'s tree, from its last node to its first: a `$node` takes a
-   * later node, once, and every node is taken but the first. */
-  function built(list) {
+   * later node, once, and every node is taken but the first. A build that
+   * writes no graph holds none of it (an expression, so that esbuild drops
+   * it: it drops no function declared inside another). */
+  const built = !PW_GRAPHS ? null : function built(list) {
     if (!isList(list) || list.length === 0) throw malformed("a $graph that is not a list of nodes");
     const nodes = new Array(list.length).fill(NONE);
     const take = (k) => {
@@ -1207,7 +1210,7 @@ const renderer = (() => {
     for (let at = list.length - 1; at >= 0; at--) nodes[at] = read(list[at]);
     if (nodes.slice(1).some((n) => n !== NONE)) throw malformed("a node no other holds");
     return nodes[0];
-  }
+  };
 
   const field = (record, name) => (Object.hasOwn(record, name) ? opened(record[name]) : NONE);
 
@@ -4903,7 +4906,7 @@ async function acted(part, event, modifiers, el, e) {
     // Told where the press was (ADR-0302): a refusal in its predicate's
     // words, anything else in the platform's. Only a command is refused or
     // unreachable, and a page that talks to no server sends none, so its
-    // runtime holds neither (ADR-0430).
+    // runtime holds neither (ADR-0428).
     if (PW_SERVER && error instanceof Refused) {
       tell(el, error.says || PLATFORM_SAYS.failed, `refused:${error.predicate}`);
     } else if (PW_SERVER && error instanceof Unreachable) {

@@ -178,14 +178,21 @@ async function deviceFeatures(directory) {
 }
 
 /** **Whether a build writes a value of a type that contains itself**
- * (ADR-0430): as its nodes, `$graph`, which only a page's first value, a
- * handler or a computed module writes, so a build none of whose files says
- * so holds none, and its device's runtime reads none. */
-async function writesGraphs(base) {
-  for (const dir of ["pages", "handlers", "computed"]) {
-    for (const name of await readdir(path.join(base, dir)).catch(() => [])) {
-      if (!name.endsWith(".json") && !name.endsWith(".mjs")) continue;
-      if ((await readFile(path.join(base, dir, name), "utf8")).includes("$graph")) return true;
+ * (ADR-0428): as its nodes, `$graph`, which the compiler writes into what
+ * writes such a value, a page's first value, a handler, a computed module or
+ * a component the host runs as it renders. A build none of whose files holds
+ * the word holds none, and its device's runtime reads none. Every file is
+ * read, whatever its kind: one this does not know of keeps the reading. What
+ * the packaging writes is made from the rest and the runtime, which holds the
+ * word, and is not read, so a build packed again is packed alike. */
+const PACKED = new Set(["alone", "bundles"]);
+async function writesGraphs(base, dir = base) {
+  for (const entry of await readdir(dir, { withFileTypes: true }).catch(() => [])) {
+    const file = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (!(dir === base && PACKED.has(entry.name)) && (await writesGraphs(base, file))) return true;
+    } else if (!/\.(br|gz)$/.test(entry.name) && (await readFile(file)).includes("$graph")) {
+      return true;
     }
   }
   return false;
@@ -322,50 +329,91 @@ async function readIfThere(file) {
  * (`callee0`, `closure0`), and another's of that name is another. */
 const SHAREABLE = /^((?:\/\/[^\n]*\n)*)(function|const)\s+([A-Za-z_$][\w$]*)/;
 const PLACED = /^(?:callee|closure)\d+$/;
+const IDENTIFIER = /[A-Za-z_$][\w$]*/g;
+/** **A line of a prelude in the compiler's form** (js_pure's `prelude`):
+ * what is inside a declaration indented, and at the margin only a comment,
+ * the close of what a line above opened, or a declaration of one name. */
+const IN_FORM = /^(?:$|\s|\/\/|[}\])]|function [A-Za-z_$][\w$]*\(|const [A-Za-z_$][\w$]* = )/;
+const AT_MARGIN = /^(?:function|const) ([A-Za-z_$][\w$]*)/gm;
+// A second name a `const` at the margin declares.
+const SECOND = /^const [^\n]*,\s*[A-Za-z_$][\w$]*\s*=/m;
 
-/** **What a page's handlers write alike, written once** (ADR-0430): each
+/** **What a page's handlers write alike, written once** (ADR-0428): each
  * compiled handler's prelude, what precedes its `name`, is its declarations,
- * one to a paragraph; one that two or more of them hold word for word is a
- * shared module's, which each imports, so the page's module holds it once
- * where esbuild would hold a copy for each. A helper's own helpers are in
- * each prelude that holds it, and so shared with it. `null` where nothing is
- * shared. `texts`: each handler's file, by its path. */
+ * a paragraph each, or a paragraph for two where one is the other's alone
+ * (`WHITE` and `trim`); one that two or more of them hold word for word is
+ * a shared module's, each of its names exported, which each imports, so the
+ * page's module holds it once where esbuild would hold a copy for each.
+ *
+ * Each name in what is shared means what it meant in each handler that
+ * imports it. A handler's names are those it declares at its prelude's
+ * margin, as the compiler writes every prelude; one whose prelude is in
+ * another form imports nothing. A shared paragraph says no name a handler
+ * declares that is not shared too, every word of it counted, a comment's
+ * too; and a handler imports what it holds of them only where it holds each
+ * one what it imports says, or nothing: one whose `trap` is its own keeps
+ * the `int` that reads it. A paragraph fewer than two handlers import is
+ * shared with none. `null` where nothing is shared. `texts`: each handler's
+ * file, by its path. */
 export function sharedPreludes(texts) {
-  const paragraphs = new Map();
-  const counts = new Map();
+  const words = (p) => [...p.matchAll(IDENTIFIER)].map(([w]) => w);
+  const handlers = [];
+  // Every name a handler declares.
+  const named = new Set();
   for (const [file, text] of texts) {
     const at = text.indexOf("\nexport const name = ");
+    if (at < 0) continue;
     // The last paragraph as any other, without the line that ends it.
-    const head = at < 0 ? [] : text.slice(0, at).replace(/\n+$/, "").split("\n\n");
-    paragraphs.set(file, head);
+    const head = text.slice(0, at).replace(/\n+$/, "").split("\n\n");
+    if (!head.every((p) => p.split("\n").every((line) => IN_FORM.test(line)) && !SECOND.test(p))) continue;
+    for (const p of head) for (const [, name] of p.matchAll(AT_MARGIN)) named.add(name);
+    handlers.push({ file, text, at, head });
+  }
+  // Each paragraph a handler could share, and the names it declares.
+  const counts = new Map();
+  const nameOf = new Map();
+  for (const { head } of handlers) {
     for (const p of new Set(head)) {
-      const m = SHAREABLE.exec(p);
-      // One name to a paragraph, or it is not shared: an import names one.
-      const declared = (p.match(/^(?:function|const|let|var|class)\s/gm) ?? []).length;
-      if (m && declared === 1 && !PLACED.test(m[3])) counts.set(p, (counts.get(p) ?? 0) + 1);
+      const declared = [...p.matchAll(AT_MARGIN)].map(([, name]) => name);
+      if (!SHAREABLE.test(p) || declared.some((name) => PLACED.test(name))) continue;
+      counts.set(p, (counts.get(p) ?? 0) + 1);
+      nameOf.set(p, declared);
     }
   }
-  // A name two paragraphs declare otherwise is shared by neither.
   const held = [...counts].filter(([, n]) => n > 1).map(([p]) => p);
+  // A name two paragraphs declare otherwise is shared by neither.
   const declaring = new Map();
-  for (const p of held) {
-    const name = SHAREABLE.exec(p)[3];
-    declaring.set(name, (declaring.get(name) ?? 0) + 1);
+  for (const p of held) for (const name of nameOf.get(p)) declaring.set(name, (declaring.get(name) ?? 0) + 1);
+  let shared = held.filter((p) => nameOf.get(p).every((name) => declaring.get(name) === 1));
+  let names;
+  let imported;
+  for (;;) {
+    let closed = shared;
+    for (;;) {
+      names = new Map(closed.flatMap((p) => nameOf.get(p).map((name) => [name, p])));
+      const next = closed.filter((p) => words(p).every((w) => !named.has(w) || names.has(w)));
+      if (next.length === closed.length) break;
+      closed = next;
+    }
+    imported = handlers.map(({ head }) => {
+      const mine = new Set(head.filter((p) => closed.includes(p)));
+      return [...mine].every((p) => words(p).every((w) => !names.has(w) || mine.has(names.get(w)))) ? mine : new Set();
+    });
+    const next = closed.filter((p) => imported.filter((mine) => mine.has(p)).length > 1);
+    if (next.length === shared.length) break;
+    shared = next;
   }
-  const common = held.filter((p) => declaring.get(SHAREABLE.exec(p)[3]) === 1);
-  if (common.length === 0) return null;
-  const names = new Map(common.map((p) => [p, SHAREABLE.exec(p)[3]]));
+  if (shared.length === 0) return null;
   const rewritten = new Map();
-  for (const [file, text] of texts) {
-    const head = paragraphs.get(file);
-    const mine = head.filter((p) => names.has(p));
-    if (mine.length === 0) continue;
-    const at = text.indexOf("\nexport const name = ");
-    const kept = head.filter((p) => !names.has(p));
-    const imports = `import { ${mine.map((p) => names.get(p)).join(", ")} } from "pw:shared";`;
+  handlers.forEach(({ file, text, at, head }, i) => {
+    const mine = imported[i];
+    if (mine.size === 0) return;
+    const kept = head.filter((p) => !mine.has(p));
+    const imports = `import { ${head.filter((p) => mine.has(p)).flatMap((p) => nameOf.get(p)).join(", ")} } from "pw:shared";`;
     rewritten.set(file, `${imports}\n\n${kept.join("\n\n")}\n${text.slice(at)}`);
-  }
-  const module = common.map((p) => p.replace(SHAREABLE, (_, comment, kind, name) => `${comment}export ${kind} ${name}`)).join("\n\n");
+  });
+  // Each declaration at a shared paragraph's margin, exported.
+  const module = shared.map((p) => p.replace(/^(function|const) /gm, "export $1 ")).join("\n\n");
   return { module, rewritten };
 }
 
