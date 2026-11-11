@@ -10,7 +10,12 @@ that could not be finished in place, a boot that failed. A refusal, no
 answer and a full store, which the reader is told by name, are not. Each
 held by a test of the spec that drives it, in three engines; ten controls
 (`just e14-failures-told`). Seven calls: TodoMVC's one script 43 bytes more
-with Brotli, the large list's 12.
+with Brotli, the large list's 12. The head-to-head at `87446c10`, trains 25
+and 26 together: TodoMVC's first load as sent 19,975 (Svelte's 20,821);
+Pleris behind in 52 rows and best in 86. Trains 25 and 26 land together:
+GitHub's runners could not resolve the Ubuntu mirrors for hours, and
+train-25's own full verify (43053690319) failed in setup alone, so
+train-26's (43069176405, at `87446c10`, 24 shards) is the record of both.
 
 **Train-25, 2026-11-11:** on train-24. A production page reports nothing to
 its tests (ADR-0430): each thing the runtime tells them, `window.__pw`, its

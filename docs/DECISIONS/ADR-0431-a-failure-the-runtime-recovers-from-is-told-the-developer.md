@@ -72,6 +72,14 @@ Brotli, from 46,090 and 15,360; the large list's 43,808 and 14,962, from
 43,760 and 14,950; a server's page's runtime, which holds all seven, 66,638
 and 21,904, from 66,522 and 21,811.
 
+The head-to-head at `87446c10`, with train-25, from `afb99fe3`, train-25
+alone: TodoMVC's first load as sent 19,975, from 19,908 (Svelte's 20,821),
+the row Pleris's as it was; decoded 63,226, from 63,178 (57,354); the large
+list's 16,539 and 48,447, from 16,507 and 48,399 (13,242 and 35,039); the
+store's 27,468 as sent, from 27,375 (SvelteKit's 35,023). Pleris is behind
+in 52 rows and best in 86, from 56 and 90: ten timing rows crossed, seven of
+them toward Pleris, none of them a failure's.
+
 Each place is held by a test of the spec that drives its failure, in three
 engines, on the demos and the feed as developed and on TodoMVC as served for
 a boot: the developer is told once where the press failed, and not where a
