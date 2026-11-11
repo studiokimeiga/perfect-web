@@ -50,7 +50,7 @@ def compiler_output(codes=("PW5048",)):
     files = sum(len(list((ROOT / directory).glob("*.pw"))) for directory in
                 ("packages/pw-std", "packages/pw-platform-web", "examples/guestbook"))
     return "\n".join([*(f"error: [{code}] private named diagnostic" for code in codes),
-                       f"pw check: {files} file(s), {len(codes)} error(s), 0 warning(s)"])
+                       f"pw build: {files} file(s), {len(codes)} error(s), 0 warning(s); nothing built"])
 
 
 def python_output(failed=False, name="intended_private_witness"):
@@ -298,7 +298,8 @@ class GuideProducers(unittest.TestCase):
                                (1, native.replace("1 error(s)", "2 error(s)")),
                                (1, native.replace("0 warning(s)", "1 warning(s)")),
                                (1, native.replace("error: [PW5048]", "error: untyped")),
-                               (1, native + "\npw check: 1 file(s), 1 error(s), 0 warning(s)"),
+                               (1, native + "\npw build: 1 file(s), 1 error(s), 0 warning(s); nothing built"),
+                               (1, native.replace("; nothing built", "")),
                                (1, "error[E0001]: build failed\n" + native),
                                (1, "internal compiler error: compiler defect\n" + native),
                                (1, "bash: line 2: unexpected failure\n" + native),

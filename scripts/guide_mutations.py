@@ -898,13 +898,15 @@ def browser_titles(metadata, inventory):
 
 
 def compiler_codes(code, output):
-    """A complete plain `pw check` refusal, before guestbook.sh can build."""
+    """A complete plain refusal of the app's check, which `pw build --dist`
+    runs before guestbook.sh's build writes anything (ADR-0429): its
+    diagnostics, then its one summary, `nothing built`."""
     if type(code) is not int or code != 1:
         return set()
     lines = output.splitlines()
     if not lines:
         return set()
-    summary = re.fullmatch(r"pw check: (\d+) file\(s\), (\d+) error\(s\), 0 warning\(s\)", lines[-1])
+    summary = re.fullmatch(r"pw build: (\d+) file\(s\), (\d+) error\(s\), 0 warning\(s\); nothing built", lines[-1])
     files = sum(len(list((ROOT / directory).glob("*.pw"))) for directory in
                 ("packages/pw-std", "packages/pw-platform-web", "examples/guestbook"))
     errors = [line for line in lines if line.startswith("error:")]
@@ -922,7 +924,7 @@ def compiler_codes(code, output):
             unrecognized = True
     if (summary is None or int(summary[1]) != files or int(summary[2]) != len(errors)
             or not errors or not all(codes) or unrecognized
-            or sum(line.startswith("pw check:") for line in lines) != 1
+            or sum(line.startswith("pw build:") for line in lines) != 1
             or any(re.match(r"(?:warning:|error\[|thread |fatal:|Traceback|panicked)", line) for line in lines)):
         return set()
     return {match[1] for match in codes}
