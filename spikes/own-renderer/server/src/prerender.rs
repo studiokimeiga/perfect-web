@@ -65,12 +65,18 @@ impl Prerendered {
 
 /// **A strong validator for these bytes**, a representation's own: a
 /// compressed form is not the same bytes as the document (RFC 9110 §8.8.1).
+/// The first 128 bits of their SHA-256, in base64url (RFC 4648 §5, an
+/// entity-tag's characters): 22 characters, where the whole digest in
+/// hexadecimal was 64, and every response's head carries one. Two
+/// representations of one resource that differ share one by chance once in
+/// 2^128; a validator need tell apart only what one resource sends.
 pub(crate) fn strong_tag(bytes: &[u8]) -> String {
-    let hex: String = sha2::Sha256::digest(bytes)
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect();
-    format!("\"{hex}\"")
+    use base64::Engine as _;
+    let digest = sha2::Sha256::digest(bytes);
+    format!(
+        "\"{}\"",
+        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(&digest[..16])
+    )
 }
 
 /// Brotli at its highest quality, what a static host precompresses with. Two

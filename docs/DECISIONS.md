@@ -3397,3 +3397,6 @@ A page alone in its build is one document: the packaging writes the device's run
 
 [ADR-0427](DECISIONS/ADR-0427-a-row-a-plan-makes-is-computed-and-holds-what-its-handlers-capture.md):
 A row a plan makes is computed, and holds what its handlers capture: each hole computed alone, its markup written only when read, its nodes found by their siblings; a press computes what the row's handlers capture from the row it shows, and markup written as text keeps its attribute. The browser's module finds an Int's overflow as 64 bits wrap it, and holds a list of literals as one frozen value.
+
+[ADR-0428](DECISIONS/ADR-0428-what-a-device-page-holds-is-what-its-build-reaches.md):
+What a device's page holds is what its build reaches: its runtime holds no command's refusal, and reads a graph only where a file of its build writes one; what a page's handlers write alike is in its module once, where each name means what it meant in each; a validator is the first 128 bits of its digest.
