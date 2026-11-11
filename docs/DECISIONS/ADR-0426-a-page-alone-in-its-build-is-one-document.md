@@ -100,14 +100,35 @@ commit (`7ac4f20c`) in one state of the machine (`--apps rows,todomvc
   here allowed the two scripts this page does not hold; it allows its own
   alone now, 106 bytes fewer.
 
-The head-to-head's figures at this branch's commit go here when it has run.
+The head-to-head at `71987e54`, with ADR-0427, against the record at
+`7ac4f20c`, Svelte's in brackets:
+
+- **Requests on a first visit**: the large list 1, from 4 (2); TodoMVC 1,
+  from 4 (5). Both rows are Pleris's now.
+- **Ready to use**: the large list in Chromium, cold, 8.0 ms, from 23
+  (8.4); Firefox, cold, 15, from 50 (31); Slow 4G, cold, 681, from 1,281
+  (1,222). TodoMVC in Chromium, cold, 10, from 29 (17); warm, 5.9, from 16
+  (7.5); Firefox, cold, 19, from 54 (40); Slow 4G, cold, 710, from 1,291
+  (1,287). Ahead or level everywhere but WebKit, where the large list is 18
+  and 15 ms (16 and 14) and TodoMVC 35 cold (27), and the large list's warm
+  visit under Slow 4G, 607 (588).
+- **Bytes as sent**: the large list 17,819, from 19,387 (13,242); TodoMVC
+  21,203, from 22,843 (20,821), 382 behind. What is sent is the runtime's.
+- **What it cost**: TodoMVC's first paint, warm, came one or two of the
+  browser's paint intervals later, 32 ms in Chromium (24) and 30 in Firefox
+  (24): the page's one script is its whole runtime, which the browser
+  evaluates before its first paint where it used to fetch it. NEXT.
 
 ## Consequences
 
 - A page alone in its build asks for nothing as it boots, and a visit after
   the first revalidates its document alone (ADR-0409's validators).
 - The device's runtime holds `PW_ALONE`, false and folded away in every file
-  but the alone module; the server's runtime drops it too.
+  but the alone module; the server's runtime drops it too. **Found by the
+  trains' run** (verify 42919314507): that the server's runtime drops it was
+  held by no test, and its control survived. The table a page alone reads
+  from its document is one of the words a server's runtime must not hold
+  (`optimize-assets.test.mjs`'s `DEVICE_ONLY`); the control is killed.
 - `e2e/device-runtime.spec.mjs` reads TodoMVC's production build, which is a
   page alone in its build: it holds the one request, and changes the table
   in the document where it changed `/pw-handlers` before. A build of several

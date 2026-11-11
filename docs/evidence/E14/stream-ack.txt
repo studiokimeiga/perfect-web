@@ -1,8 +1,8 @@
 ADR-0139 - a frame is forgotten when the page says it applied it
 
 produced by: just e14-stream-ack
-commit: bd1aaeeb8ba8d969afb7228305df754828267487
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 71987e540d75e16819b7cf196055da31024d2688
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the server (spikes/own-renderer/server)
@@ -19,15 +19,15 @@ test tests::page_policy::a_streamed_document_carries_its_policy_in_its_head ... 
 test tests::longer_holds::a_streams_page_gone_ends_its_hold ... ok
 test tests::longer_holds::a_stream_that_asks_is_held_long ... ok
 test tests::session_revocation::a_stream_worker_keeps_its_render_actor_across_a_concurrent_account_change ... ok
-test tests::session_revocation::an_anonymous_stream_worker_cannot_borrow_the_live_account ... ok
 test tests::longer_holds::a_held_stream_keeps_its_page_live ... ok
 test uploads::png_state::tests::animation_reserves_one_budget_before_each_frame_stream ... ok
+test tests::session_revocation::an_anonymous_stream_worker_cannot_borrow_the_live_account ... ok
 test uploads::privacy_tests::png_animation_streams_are_complete_bounded_and_well_formed ... ok
 test uploads::privacy_tests::png_split_streams_and_both_animation_layouts_remain_images ... ok
 test uploads::png_state::tests::streaming_drains_full_buffers_and_refuses_short_or_excess_extents ... ok
 test tests::session_upload_reserved_routes::a_declared_upload_at_stream_path_is_admitted_before_dispatch ... ok
 test tests::the_feeds_page_opening_its_stream_is_not_told_to_reload ... ok
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 8.84s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 1027 filtered out; finished in 8.85s
 
 == mutation controls (scripts/stream_ack_mutations.py)
 

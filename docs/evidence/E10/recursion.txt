@@ -1,8 +1,8 @@
 ADR-0050 - recursion and generic callees compile
 
 produced by: just e10-recursion
-commit: bd1aaeeb8ba8d969afb7228305df754828267487
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 71987e540d75e16819b7cf196055da31024d2688
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
@@ -21,17 +21,17 @@ test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 javascript: 3 queries over cases written alone, 600 calls, component and module agree (57 trapped in both)
 javascript: 5 queries over trees, 1000 calls, component and module agree (155 trapped in both)
 javascript: 5 queries over values held in place, 1000 calls, component and module agree (132 trapped in both)
-javascript: 94 queries, 18800 calls, component and module agree (1243 trapped in both)
+javascript: 97 queries, 19400 calls, component and module agree (1446 trapped in both)
 
 == mutation controls (scripts/recursion_mutations.py)
 
-baseline: 25 passed, 0 failed
-a recursion's callee is never compiled: KILLED (10 of 25 tests fail)
-every instance of a callee is one: KILLED (2 of 25 tests fail)
-a callee compiled beside the export forgets its instance: KILLED (2 of 25 tests fail)
-a list's element type binds nothing: KILLED (2 of 25 tests fail)
-a callee's result is left on the stack: KILLED (10 of 25 tests fail)
-the module omits its callees: KILLED (3 of 25 tests fail)
+baseline: 26 passed, 0 failed
+a recursion's callee is never compiled: KILLED (11 of 26 tests fail)
+every instance of a callee is one: KILLED (2 of 26 tests fail)
+a callee compiled beside the export forgets its instance: KILLED (2 of 26 tests fail)
+a list's element type binds nothing: KILLED (2 of 26 tests fail)
+a callee's result is left on the stack: KILLED (10 of 26 tests fail)
+the module omits its callees: KILLED (3 of 26 tests fail)
 6 of 6 mutants killed
 memory bound: no process was stopped
 

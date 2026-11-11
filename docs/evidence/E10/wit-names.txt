@@ -1,15 +1,15 @@
 WIT's reserved names, escaped
 
 produced by: just e10-wit-names
-commit: bd1aaeeb8ba8d969afb7228305df754828267487
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 71987e540d75e16819b7cf196055da31024d2688
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == through the E8 host (compiler/pw-conformance/tests/wit_names.rs)
 
-test a_type_and_a_query_of_one_name_are_two_things ... ok
 test a_query_named_by_a_keyword_is_exported_under_its_name ... ok
 test a_field_named_by_a_keyword_is_named_unescaped ... ok
+test a_type_and_a_query_of_one_name_are_two_things ... ok
 test a_case_named_by_a_keyword_is_built_and_named_unescaped ... ok
 test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.41s
 

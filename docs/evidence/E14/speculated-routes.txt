@@ -1,8 +1,8 @@
 ADR-0236 - a speculation on the entry a page's parameter keys
 
 produced by: just e14-speculated-routes
-commit: bd1aaeeb8ba8d969afb7228305df754828267487
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 71987e540d75e16819b7cf196055da31024d2688
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -12,13 +12,13 @@ playwright: Version 1.58.0
 test a_region_a_speculation_renders_reads_the_pages_parameter ... ok
 test the_thread_page_speculates_on_the_thread_its_parameter_keys ... ok
 test any_other_flow_to_the_key_is_refused_by_name ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.80s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.65s
 
 == the server (spikes/own-renderer/server/src/main.rs)
 
 test tests::a_speculating_document_carries_its_parameters ... ok
 test tests::a_speculated_thread_is_named_by_its_page_parameter ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1035 filtered out; finished in 1.95s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1045 filtered out; finished in 1.75s
 
 == the feed in three engines (e2e/feed.spec.mjs)
 

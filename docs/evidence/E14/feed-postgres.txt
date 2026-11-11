@@ -1,8 +1,8 @@
 ADR-0246 - the feed's data in PostgreSQL, held to what its source states
 
 produced by: just e14-feed-postgres
-commit: bd1aaeeb8ba8d969afb7228305df754828267487
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 71987e540d75e16819b7cf196055da31024d2688
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 postgres: 18.6 (Debian 18.6-1.pgdg13+2)
 
@@ -16,20 +16,20 @@ test tests::feed_pg::on_postgres_a_post_reaches_another_session ... ok
 test tests::feed_pg::on_postgres_a_reply_is_in_its_thread_as_deep_as_it_goes ... ok
 test tests::feed_pg::on_postgres_a_stated_change_feed_the_layer_cannot_deliver_is_refused ... ok
 test tests::feed_pg::on_postgres_the_database_provides_what_the_feed_states ... ok
-test tests::feed_pg::on_postgres_a_posts_interaction_outlives_its_host ... ok
 test tests::feed_pg::on_postgres_an_entry_written_with_a_wildcard_is_every_entry ... ok
-test tests::follows::on_postgres_a_users_page_counts_who_follows_them ... ok
+test tests::feed_pg::on_postgres_a_posts_interaction_outlives_its_host ... ok
 test tests::feed_pg::on_postgres_the_timeline_loads_more ... ok
+test tests::follows::on_postgres_a_users_page_counts_who_follows_them ... ok
 test tests::feed_pg::on_postgres_the_feed_serves_what_it_serves_in_memory ... ok
-test tests::follows::on_postgres_following_brings_their_posts_into_your_timeline ... ok
-test tests::follows::on_postgres_the_button_is_what_the_reader_is_to_the_user ... ok
-test tests::follows::on_postgres_following_yourself_or_no_one_is_not_found ... ok
 test tests::feed_pg::on_postgres_serializable_against_a_read_committed_default_is_refused ... ok
-test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 1020 filtered out; finished in 9.19s
+test tests::follows::on_postgres_following_brings_their_posts_into_your_timeline ... ok
+test tests::follows::on_postgres_following_yourself_or_no_one_is_not_found ... ok
+test tests::follows::on_postgres_the_button_is_what_the_reader_is_to_the_user ... ok
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 1030 filtered out; finished in 17.00s
 
 == the in-memory layer, unchanged (the server's other tests)
 
-test result: ok. 1011 passed; 0 failed; 9 ignored; 0 measured; 17 filtered out; finished in 387.96s
+test result: ok. 1021 passed; 0 failed; 9 ignored; 0 measured; 17 filtered out; finished in 739.68s
 
 == mutation controls (scripts/feed_postgres_mutations.py)
 

@@ -1,8 +1,8 @@
 E9 gate item 2 — differential agreement with Koka
 
 produced by: just e9-parity
-commit: bd1aaeeb8ba8d969afb7228305df754828267487
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 71987e540d75e16819b7cf196055da31024d2688
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 koka: Koka 3.2.3, 01:25:33 Mar 18 2026 (ghc release version)
 
 Every accepted corpus file that lowers to the pure subset (ADR-0015),

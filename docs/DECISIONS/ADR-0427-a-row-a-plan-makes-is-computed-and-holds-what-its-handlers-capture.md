@@ -109,6 +109,15 @@ trade the record's bytes row holds against the time. TodoMVC's grows by 30
 bytes (16,627 from 16,597): its rows are no plan's, as each holds an
 `{#if}`, so its build holds none of this.
 
+The head-to-head at `71987e54`, with ADR-0426, against the record at
+`7ac4f20c` (Svelte's in brackets): creating a thousand rows to its frame,
+Chromium, cold, 45 ms from 72 (36); warm, 34 from 62 (31); Firefox, cold,
+46 from 65 (41); warm, 39 from 58 (36), level; WebKit, cold, 59 from 84
+(57); Slow 4G, cold, 184 from 319 (163): behind by 2 to 9 ms in each
+engine, where it was 13 to 27, and by 8 and 21 under Slow 4G, where it was
+94 and 102. Appending a thousand and replacing them all came level or
+ahead in six rows of sixteen, updating every tenth row in two.
+
 Still behind Svelte by about 4 ms to the document. Of what is left
 (`profile_tree.mjs`, at `aea083eb`): the press's handler 2.1 ms, in
 `BigInt` where Svelte's is in numbers; computing the rows 4.7 ms, most of it
@@ -129,6 +138,14 @@ clone; and putting them in 2.4. These are the next train's (NEXT).
   function's lists of literals into its module's has no control: the inliner
   copies each callee's first call into its caller, list and all, so no
   program yet has a list that a callee alone holds.
+- **Found by the trains' run** (verify 42919314507): an older control
+  survived, coverage this decision took away. Every list the rows suite
+  changes now has a handler that captures, and such a row is given to the
+  plan whatever its holes say, so a row whose holes alone say it changed was
+  never compared. The events fixture has a list with no handler
+  (`#plain`), changed in place and moved after its first render on the
+  device, which writes it whole (ADR-0421, decision 4); the control is
+  killed, two of the suite's tests failing under it.
 - The audit's ceilings: `emitPart` is back to its score before trains 18 and
   19, and `holeSet` to 380 from 702; `plannedRowOf`, `holesOf`,
   `rowsPlanned`, `rowDiffers`, `acted` and the renderer are raised or added

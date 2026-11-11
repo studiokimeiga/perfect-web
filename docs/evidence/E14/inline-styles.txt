@@ -1,48 +1,52 @@
 a page's stylesheets, small together, are part of its document
 
 produced by: just e14-inline-styles
-commit: bd1aaeeb8ba8d969afb7228305df754828267487
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 71987e540d75e16819b7cf196055da31024d2688
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
 
 == what the packaging says (optimize-assets.test.mjs)
 
-✔ the production build minifies and compresses only public client assets (49.193584ms)
-✔ a production build compresses its compiled modules beside themselves, unchanged (16.406616ms)
-✔ a production build says its pages warm what their presses need (11.553004ms)
-✔ a production build puts each page's code in one module, and leaves each module as it was (30.884515ms)
-✔ a production build's packaging writes each page's module (14.68178ms)
-✔ a page whose handler has no module is a build that did not finish (2.131843ms)
-✔ a build with no pages bundles nothing (0.710201ms)
-✔ a production build writes a runtime for a page that talks to no server (7.786188ms)
-✔ a build with no runtime says nothing of one (2.747423ms)
-✔ the runtime of a page that talks to no server holds none of a server's code (220.497235ms)
-✔ the runtime of a page with a server holds none of what only a page with no server runs (218.497373ms)
-✔ a production build minifies its stylesheets, and keeps what they draw (7.18772ms)
-✔ the device's runtime holds what its pages use, and none of what they do not (1999.390158ms)
-✔ a list whose rows change shape has no plan (393.103815ms)
-✔ an autofocus a value decides counts (192.120145ms)
-✔ what a block or a conditional's arm holds counts (583.056089ms)
-✔ a page a reader decides, or one with a layout, keeps out of what is read (578.91504ms)
-✔ a view a page uses is read for what it uses (191.475023ms)
-✔ a build whose pages cannot be read keeps everything (209.500312ms)
-ℹ tests 19
+✔ the production build minifies and compresses only public client assets (40.83562ms)
+✔ a production build compresses its compiled modules beside themselves, unchanged (17.434609ms)
+✔ a production build says its pages warm what their presses need (6.44705ms)
+✔ a production build puts each page's code in one module, and leaves each module as it was (22.491493ms)
+✔ a production build's packaging writes each page's module (10.710788ms)
+✔ a page whose handler has no module is a build that did not finish (1.867739ms)
+✔ a build with no pages bundles nothing (0.608034ms)
+✔ a production build writes a runtime for a page that talks to no server (5.375274ms)
+✔ a build with no runtime says nothing of one (2.237395ms)
+✔ the runtime of a page that talks to no server holds none of a server's code (180.641944ms)
+✔ the runtime of a page with a server holds none of what only a page with no server runs (176.357962ms)
+✔ a production build minifies its stylesheets, and keeps what they draw (5.847473ms)
+✔ the device's runtime holds what its pages use, and none of what they do not (1428.650155ms)
+✔ a list whose rows change shape has no plan (314.4873ms)
+✔ an autofocus a value decides counts (153.661761ms)
+✔ what a block or a conditional's arm holds counts (478.086715ms)
+✔ a page a reader decides, or one with a layout, keeps out of what is read (478.288599ms)
+✔ a view a page uses is read for what it uses (155.693837ms)
+✔ a build whose pages cannot be read keeps everything (175.004796ms)
+✔ a page alone in its build has its code and the device's runtime in one module (391.499759ms)
+✔ a build of two pages has no module alone: its pages share one runtime (171.789166ms)
+✔ a page a reader decides has no module alone: it is no page of the device's (159.455734ms)
+✔ a page with no code of its own has no module alone (158.265905ms)
+ℹ tests 23
 ℹ suites 0
-ℹ pass 19
+ℹ pass 23
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 4804.930669
+ℹ duration_ms 4602.584436
 
 == what the host does (tests::inline_styles::)
 
 test tests::inline_styles::a_build_that_does_not_say_so_keeps_its_links ... ok
-test tests::inline_styles::a_link_written_another_way_keeps_them_all ... ok
 test tests::inline_styles::a_link_that_says_more_than_its_address_keeps_them_all ... ok
 test tests::inline_styles::a_link_in_the_head_keeps_its_place_among_the_heads_styles ... ok
+test tests::inline_styles::a_link_written_another_way_keeps_them_all ... ok
 test tests::inline_styles::a_page_with_no_stylesheet_is_as_it_was ... ok
 test tests::inline_styles::a_pages_stylesheets_small_together_are_in_its_head_in_their_order ... ok
 test tests::inline_styles::a_style_of_the_pages_own_after_them_keeps_its_place ... ok
@@ -52,19 +56,19 @@ test tests::inline_styles::a_stylesheet_the_build_does_not_hold_keeps_them_all .
 test tests::inline_styles::a_stylesheet_with_nothing_said_of_how_it_is_sent_stays_a_link ... ok
 test tests::inline_styles::an_address_that_means_the_same_from_the_document_can_move ... ok
 test tests::inline_styles::stylesheets_exactly_at_the_bound_are_inlined ... ok
-test tests::inline_styles::stylesheets_too_large_together_stay_links ... ok
 test tests::inline_styles::one_stylesheet_that_cannot_move_keeps_them_all ... ok
+test tests::inline_styles::stylesheets_too_large_together_stay_links ... ok
 test tests::inline_styles::a_page_rendered_for_each_reader_keeps_its_links ... ok
 test tests::inline_styles::a_production_page_holds_its_stylesheets_and_its_policy_allows_them ... ok
-test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 1020 filtered out; finished in 0.51s
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 1030 filtered out; finished in 0.45s
 
 == a production build, in three engines (e2e/todomvc.spec.mjs, e2e/device-runtime.spec.mjs)
 
-  195 passed (1.6m)
+  195 passed (1.5m)
 
 == mutation controls (scripts/inline_styles_mutations.py)
 
-baseline (packaging): 19 passed, 0 failed
+baseline (packaging): 23 passed, 0 failed
 baseline (host): 17 passed, 0 failed
 baseline (browser): 11 passed, 0 failed
 a build that does not say so inlines [host]: KILLED (1 of 17 tests fail)
@@ -93,8 +97,8 @@ a space before an address is its first character [host]: KILLED (1 of 17 tests f
 a quote is part of an address [host]: KILLED (1 of 17 tests fail)
 a stylesheet with no record of its size has none [host]: KILLED (1 of 17 tests fail)
 the policy is not told [host]: KILLED (1 of 17 tests fail)
-a stylesheet is not minified [packaging]: KILLED (1 of 19 tests fail)
-the packaging does not say so [packaging]: KILLED (1 of 19 tests fail)
-the page does not ask for less [browser]: KILLED (1 of 11 tests fail)
+a stylesheet is not minified [packaging]: KILLED (1 of 23 tests fail)
+the packaging does not say so [packaging]: KILLED (1 of 23 tests fail)
+the page does not ask for less [browser]: KILLED (2 of 11 tests fail)
 29 of 29 mutants killed
 memory bound: no process was stopped

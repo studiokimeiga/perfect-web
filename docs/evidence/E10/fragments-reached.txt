@@ -1,22 +1,22 @@
 ADR-0103 - a write reaches the fragments built on it
 
 produced by: just e10-fragments-reached
-commit: bd1aaeeb8ba8d969afb7228305df754828267487
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 71987e540d75e16819b7cf196055da31024d2688
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == fragments reached (compiler/pw-core/tests/writes_reach_fragments.rs)
 
+test an_event_reaches_a_fragment_through_what_it_reads ... ok
 test a_fragment_that_reads_in_its_body_is_held_too ... ok
 test naming_the_query_does_not_reach_the_fragment ... ok
-test an_event_reaches_a_fragment_through_what_it_reads ... ok
 test a_fragment_hears_of_a_write_to_what_it_is_built_from ... ok
 test the_write_is_underlined_and_the_fragment_named ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.66s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.69s
 
 == ADR-0101's readers, unchanged
 
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.24s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.28s
 
 == mutation controls (scripts/fragment_reach_mutations.py)
 

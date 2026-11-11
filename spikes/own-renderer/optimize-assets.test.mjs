@@ -408,6 +408,9 @@ test("the runtime of a page that talks to no server holds none of a server's cod
 const DEVICE_ONLY = {
   "a row's plan": "data-pwh",
   "presses heard at the document": "composedPath",
+  // Its document's, which a page alone reads (ADR-0426); a server's page
+  // asks for `/pw-handlers`.
+  "a page alone's handler table": '"pw-handlers"',
 };
 
 test("the runtime of a page with a server holds none of what only a page with no server runs", async () => {

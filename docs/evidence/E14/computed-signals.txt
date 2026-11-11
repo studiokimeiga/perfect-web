@@ -1,8 +1,8 @@
 ADR-0227 - a value computed from a signal is the browser's, and its first value the host's
 
 produced by: just e14-computed-signals
-commit: bd1aaeeb8ba8d969afb7228305df754828267487
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 71987e540d75e16819b7cf196055da31024d2688
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -17,23 +17,23 @@ test a_value_the_template_computes_is_lifted_and_planned ... ok
 test what_a_host_does_not_compute_is_refused_by_name ... ok
 test a_member_an_imported_module_lacks_does_not_resolve ... ok
 test a_view_that_contains_itself_computes_nothing_yet_and_a_speculated_value_is_computed ... ok
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.35s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.18s
 test an_attribute_and_a_views_field_of_a_signal_are_computed_as_well ... ok
 test what_the_browser_does_not_compute_yet_is_refused_by_name ... ok
 test standalone_and_prepared_signal_modules_are_byte_identical ... ok
 test a_value_computed_from_a_signal_is_the_browsers_and_its_first_the_hosts ... ok
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.57s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.24s
 
 == the server (spikes/own-renderer/server/src/main.rs)
 
 test tests::address_fragment::the_document_of_a_page_of_signals_alone_names_its_binding ... ok
 test tests::a_page_of_signals_alone_computes_at_their_first_values ... ok
 test tests::what_a_page_computes_from_a_signal_is_rendered_at_its_first_value ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 1034 filtered out; finished in 2.58s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 1044 filtered out; finished in 3.65s
 
 == the feed in three engines (e2e/feed.spec.mjs)
 
-  72 passed (1.0m)
+  72 passed (1.2m)
 
 == mutation controls (scripts/computed_signals_mutations.py)
 
