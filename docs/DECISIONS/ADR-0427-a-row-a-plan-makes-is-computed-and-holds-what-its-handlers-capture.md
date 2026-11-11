@@ -129,6 +129,14 @@ clone; and putting them in 2.4. These are the next train's (NEXT).
   function's lists of literals into its module's has no control: the inliner
   copies each callee's first call into its caller, list and all, so no
   program yet has a list that a callee alone holds.
+- **Found by the trains' run** (verify 42919314507): an older control
+  survived, coverage this decision took away. Every list the rows suite
+  changes now has a handler that captures, and such a row is given to the
+  plan whatever its holes say, so a row whose holes alone say it changed was
+  never compared. The events fixture has a list with no handler
+  (`#plain`), changed in place and moved after its first render on the
+  device, which writes it whole (ADR-0421, decision 4); the control is
+  killed, two of the suite's tests failing under it.
 - The audit's ceilings: `emitPart` is back to its score before trains 18 and
   19, and `holeSet` to 380 from 702; `plannedRowOf`, `holesOf`,
   `rowsPlanned`, `rowDiffers`, `acted` and the renderer are raised or added

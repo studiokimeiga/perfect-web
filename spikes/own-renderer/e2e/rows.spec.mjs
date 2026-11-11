@@ -244,6 +244,28 @@ test("a row changed and moved shows its new text where it now is", async ({ page
   expect(await names(page)).toEqual(["two", "renamed"]);
 });
 
+/** The event page, its list of rows with no handler rendered once on the
+ * device, which writes them whole (ADR-0421, decision 4): what comes next is
+ * made by key, and a row no handler captures from changes only where one of
+ * its holes does. */
+async function plainRendered(page) {
+  await open(page, "/events");
+  await page.click("#plain-first");
+  await expect(page.locator("#plain li")).toHaveText(["one", "renamed"]);
+}
+
+test("a row with no handler shows its new text", async ({ page }) => {
+  await plainRendered(page);
+  await page.click("#plain-again");
+  await expect(page.locator("#plain li")).toHaveText(["one", "again"]);
+});
+
+test("a row with no handler, changed and moved, shows its new text where it now is", async ({ page }) => {
+  await plainRendered(page);
+  await page.click("#plain-moved");
+  await expect(page.locator("#plain li")).toHaveText(["renamed", "moved"]);
+});
+
 test("new rows before the others go before them", async ({ page }) => {
   await listRendered(page);
   await page.click("#prepend");

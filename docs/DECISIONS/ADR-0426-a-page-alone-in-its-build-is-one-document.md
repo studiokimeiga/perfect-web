@@ -107,7 +107,11 @@ The head-to-head's figures at this branch's commit go here when it has run.
 - A page alone in its build asks for nothing as it boots, and a visit after
   the first revalidates its document alone (ADR-0409's validators).
 - The device's runtime holds `PW_ALONE`, false and folded away in every file
-  but the alone module; the server's runtime drops it too.
+  but the alone module; the server's runtime drops it too. **Found by the
+  trains' run** (verify 42919314507): that the server's runtime drops it was
+  held by no test, and its control survived. The table a page alone reads
+  from its document is one of the words a server's runtime must not hold
+  (`optimize-assets.test.mjs`'s `DEVICE_ONLY`); the control is killed.
 - `e2e/device-runtime.spec.mjs` reads TodoMVC's production build, which is a
   page alone in its build: it holds the one request, and changes the table
   in the document where it changed `/pw-handlers` before. A build of several
