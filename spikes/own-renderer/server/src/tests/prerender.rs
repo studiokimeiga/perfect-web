@@ -291,7 +291,10 @@ fn a_browser_that_holds_a_representation_is_told_so() {
 /// a page sends, and a validator need only differ where the bytes do.
 #[test]
 fn a_validator_is_the_first_128_bits_of_its_digest() {
-    assert_eq!(crate::prerender::strong_tag(b"abc"), "\"ungWv48Bz-pBQUDeXa4iIw\"");
+    assert_eq!(
+        crate::prerender::strong_tag(b"abc"),
+        "\"ungWv48Bz-pBQUDeXa4iIw\""
+    );
     let s = home();
     let (head, _) = get(&s, "/", "Accept-Encoding: br\r\n");
     assert!(header(&head, "etag").is_some(), "a validator: {head}");
