@@ -1,15 +1,15 @@
 ADR-0093 - an element handles an event the platform declares
 
 produced by: just e10-declared-events
-commit: 71987e540d75e16819b7cf196055da31024d2688
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1de391393d7364eae718a4f5715c3b1d183f0710
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == declared events (compiler/pw-core/tests/declared_events.rs)
 
 test a_program_without_a_platform_declares_no_events ... ok
 test an_element_handles_an_event_the_platform_declares ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.63s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.46s
 
 == mutation controls (scripts/declared_event_mutations.py)
 

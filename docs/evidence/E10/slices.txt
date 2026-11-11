@@ -2,8 +2,8 @@ ADR-0055 - slicing, and the standard library's placeholders computed
 ADR-0422 - the numbers from one to another are a list
 
 produced by: just e10-slices
-commit: 71987e540d75e16819b7cf196055da31024d2688
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1de391393d7364eae718a4f5715c3b1d183f0710
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
@@ -18,11 +18,11 @@ test records_are_sorted_stably_and_built_in_lists ... ok
 test sum_and_maximum_compute ... ok
 test slices_drops_and_reversals_agree_with_vec_and_str ... ok
 test swaps_agree_with_vec_and_a_place_outside_leaves_the_list ... ok
-test string_operations_agree_with_str ... ok
 test text_is_rebuilt_from_code_points_and_bad_ones_trap ... ok
+test string_operations_agree_with_str ... ok
 test list_operations_agree_with_vec ... ok
 test what_stays_outside_is_refused_by_name ... ok
-test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.75s
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.86s
 
 == the component and the JavaScript module, on the same arguments
 

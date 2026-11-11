@@ -1,8 +1,8 @@
 ADR-0295 - a page at another address of the page is moved there
 
 produced by: just e14-redirects
-commit: 71987e540d75e16819b7cf196055da31024d2688
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1de391393d7364eae718a4f5715c3b1d183f0710
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the compiler (compiler/pw-core/tests/redirects.rs, not_found.rs)
@@ -13,7 +13,7 @@ test an_error_imported_from_another_module_is_named_as_it_is_imported ... ok
 test the_plan_carries_the_case_on_the_bindings_that_can_answer_it ... ok
 test a_page_that_names_its_absence_is_the_control ... ok
 test the_clause_names_a_case_of_a_declared_type ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 test a_page_that_is_absent_is_not_elsewhere ... ok
 test a_query_the_page_reads_can_answer_it ... ok
 test the_clause_is_a_pages ... ok
@@ -29,9 +29,9 @@ test tests::redirects::a_case_the_page_does_not_name_is_a_failure_like_any_other
 test tests::redirects::a_move_to_itself_or_to_no_segment_is_the_programs_fault ... ok
 test tests::redirects::a_route_with_a_query_part_is_moved_by_its_path ... ok
 test tests::redirects::a_page_at_another_address_of_the_page_is_moved_there_for_good ... ok
-test tests::redirects::the_plan_carries_the_move_on_the_binding_that_can_answer_it ... ok
 test tests::redirects::a_temporary_move_is_answered_307 ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 1041 filtered out; finished in 21.18s
+test tests::redirects::the_plan_carries_the_move_on_the_binding_that_can_answer_it ... ok
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 1042 filtered out; finished in 15.25s
 
 == mutation controls (scripts/redirects_mutations.py)
 

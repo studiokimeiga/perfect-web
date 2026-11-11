@@ -11,6 +11,11 @@ build script is one command and builds, byte for byte, what it built
 before. The head-to-head at `1de39139`: the large list's build is 5 lines
 (React's 24, Svelte's 27), the row Pleris's; TodoMVC's 10 (Svelte's 44).
 Pleris is behind in 36 rows and ahead in 77, most of the change the run's.
+Its full verify (42969400003, at `1de39139`, train-23 with it) passed 353 of
+354 recipes and the browser suites: `e14-guide`'s controls read a refusal
+by `pw check`'s summary, which guestbook.sh no longer prints, and read
+`pw build`'s now (75 of 75 killed here); the pull request's verify runs it
+again.
 
 **Train-23, 2026-11-11:** on trains 20 and 21. What a device's page holds is
 what its build reaches (ADR-0428): its runtime holds no command's refusal

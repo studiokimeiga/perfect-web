@@ -1,8 +1,8 @@
 ADR-0202 - a type that holds itself in place is boxed, and crosses as its nodes
 
 produced by: just e14-boxed-types
-commit: 71987e540d75e16819b7cf196055da31024d2688
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1de391393d7364eae718a4f5715c3b1d183f0710
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
@@ -27,12 +27,12 @@ test a_value_held_in_place_is_built_and_walked_in_the_component ... ok
 test nodes_that_are_not_one_tree_in_level_order_trap ... ok
 test types_that_hold_each_other_in_place_compile_inside_a_component ... ok
 test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.27s
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.04s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.19s
 
 == the JavaScript modules, against their components under Node (compiler/pw-conformance/tests/javascript.rs)
 
 javascript: 5 queries over values held in place, 1000 calls, component and module agree (132 trapped in both)
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8 filtered out; finished in 1.36s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8 filtered out; finished in 1.39s
 
 == mutation controls (scripts/boxed_types_mutations.py)
 

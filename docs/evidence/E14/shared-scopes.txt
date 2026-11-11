@@ -1,8 +1,8 @@
 ADR-0294 - a list renders in its length
 
 produced by: just e14-shared-scopes
-commit: 71987e540d75e16819b7cf196055da31024d2688
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1de391393d7364eae718a4f5715c3b1d183f0710
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the renderer (runtime/pw-render: scopes, tests/list_scale.rs)
@@ -10,15 +10,15 @@ rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 test scopes::an_items_scope_shares_the_pages_values ... ok
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
 test every_name_is_rendered_once_in_order ... ok
-250 names: 2907 us; 2000 names: 23907 us; ratio 8.2
-32 names: 354 us
-64 names: 713 us
-128 names: 1431 us
-256 names: 2873 us
-512 names: 5872 us
-1024 names: 11930 us
+250 names: 1526 us; 2000 names: 12556 us; ratio 8.2
+32 names: 190 us
+64 names: 380 us
+128 names: 769 us
+256 names: 1544 us
+512 names: 3138 us
+1024 names: 6321 us
 test eight_times_the_names_take_about_eight_times_as_long ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
 
 == mutation controls (scripts/shared_scopes_mutations.py)
 

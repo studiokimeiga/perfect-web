@@ -1,8 +1,8 @@
 ADR-0138 - a handler is given its event
 
 produced by: just e14-events
-commit: 71987e540d75e16819b7cf196055da31024d2688
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1de391393d7364eae718a4f5715c3b1d183f0710
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the compiler (compiler/pw-core/tests/events.rs)
@@ -10,20 +10,20 @@ rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 test a_lambda_s_written_parameter_type_is_checked ... ok
 test a_handler_written_for_another_event_is_refused ... ok
 test an_element_s_handlers_are_lowered_last_and_together ... ok
-test a_handler_is_given_its_event_s_record ... ok
 test a_modifier_is_one_the_runtime_applies ... ok
-test a_double_press_and_a_blur_are_given_their_records ... ok
+test a_handler_is_given_its_event_s_record ... ok
 test the_manifest_says_which_event_a_part_handles ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.84s
+test a_double_press_and_a_blur_are_given_their_records ... ok
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.99s
 
 == the grammar (compiler/pw-syntax)
 
 test grammar::tests::an_arm_without_an_arrow_is_reported ... ok
 test grammar::tests::an_each_head_is_its_list_its_name_and_its_key ... ok
-test grammar::tests::an_arrow_lambda_s_parameters_may_be_typed ... ok
-test grammar::tests::an_html_comment_in_markup_is_a_comment ... ok
-test grammar::tests::an_opaque_type_states_its_invariant_after_its_representation ... ok
 test grammar::tests::an_event_s_modifiers_are_part_of_its_attribute ... ok
+test grammar::tests::an_arrow_lambda_s_parameters_may_be_typed ... ok
+test grammar::tests::an_opaque_type_states_its_invariant_after_its_representation ... ok
+test grammar::tests::an_html_comment_in_markup_is_a_comment ... ok
 test grammar::tests::an_unclosed_element_still_produces_a_well_formed_tree ... ok
 test grammar::tests::an_optimistic_clause_without_its_arrow_reads_its_transition ... ok
 test grammar::tests::an_optimistic_clause_has_an_arm_for_each_entry ... ok

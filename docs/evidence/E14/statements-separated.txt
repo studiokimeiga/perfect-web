@@ -1,8 +1,8 @@
 ADR-0243 - a block's statements are separated, by ; or a line
 
 produced by: just e14-statements-separated
-commit: 71987e540d75e16819b7cf196055da31024d2688
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1de391393d7364eae718a4f5715c3b1d183f0710
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the checker (compiler/pw-core/tests/statements_separated.rs)
@@ -12,7 +12,7 @@ test two_statements_on_one_line_are_refused_at_the_second ... ok
 test a_clauses_word_where_no_clause_is_is_a_statement ... ok
 test markup_written_on_one_line_after_a_root_is_one_statement ... ok
 test a_clause_in_a_block_is_one_clause ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.33s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.55s
 
 == the parser (compiler/pw-syntax/src/grammar.rs)
 
@@ -26,8 +26,8 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 197 filtered out; fi
 
 == the corpus and the names check (checking_source, every_name_resolves)
 
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 169.63s
-test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.35s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 198.81s
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.39s
 
 == mutation controls (scripts/statements_separated_mutations.py)
 

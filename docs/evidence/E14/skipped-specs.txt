@@ -1,8 +1,8 @@
 Train-11 - every spec an optional build can leave out runs where that build is made
 
 produced by: just e14-skipped-specs
-commit: 71987e540d75e16819b7cf196055da31024d2688
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1de391393d7364eae718a4f5715c3b1d183f0710
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 python: Python 3.12.3
 
 == the check (scripts/skipped_specs.py) and its tests (scripts/tests/test_skipped_specs.py)
@@ -13,7 +13,7 @@ test_one_recipe_that_makes_the_build_and_runs_the_spec_holds_it (scripts.tests.t
 test_the_build_and_the_run_in_two_recipes_are_named (scripts.tests.test_skipped_specs.TheCheck.test_the_build_and_the_run_in_two_recipes_are_named) ... ok
 test_every_spec_an_optional_build_can_leave_out_runs_where_that_build_is_made (scripts.tests.test_skipped_specs.TheRepository.test_every_spec_an_optional_build_can_leave_out_runs_where_that_build_is_made) ... ok
 test_the_specs_it_holds_are_the_registrys (scripts.tests.test_skipped_specs.TheRepository.test_the_specs_it_holds_are_the_registrys) ... ok
-Ran 6 tests in 0.011s
+Ran 6 tests in 0.010s
 OK
 
 == mutation controls (scripts/skipped_specs_mutations.py)

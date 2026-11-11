@@ -1,15 +1,15 @@
 ADR-0256 - an entry written with a wildcard is every entry at the rest
 
 produced by: just e14-every-entry
-commit: 71987e540d75e16819b7cf196055da31024d2688
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1de391393d7364eae718a4f5715c3b1d183f0710
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 postgres: none: PW_FEED_DATABASE_URL is not set
 
 == the checker (compiler/pw-core/tests/every_entry.rs)
 
-test a_wildcard_is_a_whole_argument ... ok
 test a_bare_entry_names_none ... ok
+test a_wildcard_is_a_whole_argument ... ok
 test an_event_is_given_a_value_at_each_parameter ... ok
 test an_entry_written_with_a_wildcard_is_every_entry_at_the_rest ... ok
 test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s
@@ -25,10 +25,10 @@ test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 test tests::every_entry::an_entry_is_named_by_the_values_given_whatever_the_rest ... ok
 test tests::feed_pg::on_postgres_an_entry_written_with_a_wildcard_is_every_entry ... ok
-test tests::every_entry::an_entry_written_with_a_wildcard_is_every_entry_at_the_rest ... ok
 test tests::every_entry::a_wildcard_may_stand_first ... ok
+test tests::every_entry::an_entry_written_with_a_wildcard_is_every_entry_at_the_rest ... ok
 test tests::every_entry::a_private_entry_is_dropped_in_every_sessions_partition ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 1042 filtered out; finished in 2.39s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 1043 filtered out; finished in 2.07s
 
 == the cache (runtime/pw-resource/tests/concurrency_regressions.rs)
 

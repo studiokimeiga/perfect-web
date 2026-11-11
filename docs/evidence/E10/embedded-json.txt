@@ -1,27 +1,27 @@
 ADR-0097 - data embedded in a page cannot end its script element
 
 produced by: just e10-embedded-json
-commit: 71987e540d75e16819b7cf196055da31024d2688
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1de391393d7364eae718a4f5715c3b1d183f0710
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the escaping matrix (runtime/pw-render/tests/security.rs)
 
 test a_record_field_in_a_hostile_position_is_escaped_the_same_way ... ok
-test a_javascript_url_is_replaced_rather_than_escaped ... ok
 test a_style_value_that_executes_is_dropped ... ok
 test a_textareas_value_is_its_text ... ok
-test ampersands_are_encoded_in_both_contexts ... ok
+test a_javascript_url_is_replaced_rather_than_escaped ... ok
 test an_attribute_breakout_stays_inside_one_attribute ... ok
-test an_unquoted_breakout_attempt_stays_inside_the_quotes ... ok
+test ampersands_are_encoded_in_both_contexts ... ok
 test an_ordinary_url_is_not_mangled ... ok
+test an_unquoted_breakout_attempt_stays_inside_the_quotes ... ok
 test lone_surrogates_cannot_reach_the_renderer ... ok
-test text_injection_becomes_inert_text ... ok
-test raw_html_requires_the_capability_and_is_not_a_flag_on_a_string ... ok
-test quotes_and_angles_are_encoded_where_they_matter ... ok
-test the_matrix_can_fail ... ok
-test unicode_passes_through_unchanged ... ok
 test embedded_json_cannot_end_its_script ... ok
+test quotes_and_angles_are_encoded_where_they_matter ... ok
+test raw_html_requires_the_capability_and_is_not_a_flag_on_a_string ... ok
+test text_injection_becomes_inert_text ... ok
+test unicode_passes_through_unchanged ... ok
+test the_matrix_can_fail ... ok
 test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
 == mutation controls (scripts/embedded_json_mutations.py)

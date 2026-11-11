@@ -1,18 +1,18 @@
 ADR-0067 - a record is built with each of its fields, once
 
 produced by: just e10-record-fields
-commit: 71987e540d75e16819b7cf196055da31024d2688
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1de391393d7364eae718a4f5715c3b1d183f0710
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == a record's fields, and an if without else (compiler/pw-core/tests/record_fields.rs)
 
-test a_field_the_type_does_not_declare_is_refused ... ok
 test a_shorthand_field_is_given ... ok
+test a_field_the_type_does_not_declare_is_refused ... ok
 test a_field_given_twice_is_refused ... ok
 test a_field_left_out_is_refused ... ok
 test an_if_without_else_is_no_value ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
 
 == mutation controls (scripts/record_field_mutations.py)
 

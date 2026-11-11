@@ -1,8 +1,8 @@
 ADR-0201 - a case written alone is the case of the type expected where it is written
 
 produced by: just e14-expected-cases
-commit: 71987e540d75e16819b7cf196055da31024d2688
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1de391393d7364eae718a4f5715c3b1d183f0710
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
@@ -17,17 +17,17 @@ test a_generic_sum_type_is_instantiated_where_it_is_used ... ok
 test a_case_its_type_does_not_declare_is_refused ... ok
 test a_pattern_through_its_type_is_a_case_not_a_binding ... ok
 test a_patterns_qualifier_must_name_the_type_matched ... ok
-test an_arms_fields_are_typed_in_its_body ... ok
 test an_options_payload_is_typed_in_its_arm ... ok
+test an_arms_fields_are_typed_in_its_body ... ok
 test a_bare_case_is_the_case_of_the_type_expected ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.65s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.66s
 
 == built (compiler/pw-conformance/tests/sum_types.rs, javascript.rs)
 
 test a_case_written_alone_is_built_as_the_type_expected ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.60s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.62s
 javascript: 3 queries over cases written alone, 600 calls, component and module agree (57 trapped in both)
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.90s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.96s
 
 == mutation controls (scripts/expected_cases_mutations.py)
 

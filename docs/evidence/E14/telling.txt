@@ -1,18 +1,18 @@
 ADR-0271 - a reader is told once per burst, and served in turn
 
 produced by: just e14-telling
-commit: 71987e540d75e16819b7cf196055da31024d2688
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1de391393d7364eae718a4f5715c3b1d183f0710
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == told once, in turn (spikes/own-renderer/server/src/main.rs)
 
 test tests::a_sessions_turns_are_served_in_the_order_asked ... ok
 test tests::a_post_reaches_every_open_timeline ... ok
-test tests::a_telling_that_panics_does_not_silence_the_reader ... ok
 test tests::a_commit_while_a_reader_is_told_is_told_after_it ... ok
+test tests::a_telling_that_panics_does_not_silence_the_reader ... ok
 test tests::a_burst_of_posts_tells_another_reader_once ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 1042 filtered out; finished in 2.53s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 1043 filtered out; finished in 1.98s
 
 == mutation controls (scripts/telling_mutations.py)
 
