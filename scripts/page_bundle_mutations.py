@@ -123,7 +123,7 @@ MUTANTS = [
         "the table names no module",
         "host",
         SERVER,
-        "                table.push_str(&format!(\"#bundle|{page}|/bundle/{page}.mjs\\n\"));\n",
+        "            table.push_str(&format!(\"#bundle|{page}|/bundle/{page}.mjs\\n\"));\n",
         "",
     ),
     (

@@ -1,8 +1,8 @@
 ADR-0064 - a label carried through a call
 
 produced by: just e10-labels
-commit: bd1aaeeb8ba8d969afb7228305df754828267487
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 71987e540d75e16819b7cf196055da31024d2688
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == labels through calls (compiler/pw-core/tests/labels_through_calls.rs)
@@ -10,11 +10,11 @@ rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 test a_fold_keeps_what_it_accumulates ... ok
 test a_method_calls_receiver_is_its_first_argument ... ok
 test a_list_mapped_keeps_what_its_function_computes ... ok
-test a_piped_argument_is_matched_to_its_parameter ... ok
 test a_programs_own_generic_function_keeps_its_arguments_labels ... ok
+test a_piped_argument_is_matched_to_its_parameter ... ok
 test the_length_of_a_list_of_secrets_carries_their_label ... ok
 test an_element_taken_out_of_a_list_keeps_its_label ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.85s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.57s
 
 == mutation controls (scripts/label_call_mutations.py)
 

@@ -1,8 +1,8 @@
 ADR-0161 - each document is its own subscriber
 
 produced by: just e14-documents
-commit: bd1aaeeb8ba8d969afb7228305df754828267487
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 71987e540d75e16819b7cf196055da31024d2688
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 playwright: Version 1.58.0
 
@@ -13,11 +13,11 @@ test tests::a_change_waiting_for_one_tab_survives_another_tab_being_served ... o
 test tests::a_change_reaches_each_page_that_reads_it_by_its_own_plan ... ok
 test tests::a_read_older_than_the_latest_is_not_applied ... ok
 test tests::a_session_is_forgotten_with_its_last_document ... ok
-test result: ok. 1028 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 623.82s
+test result: ok. 1038 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 630.27s
 
 == two tabs of one session (e2e/tabs.spec.mjs), and the keyed reads (e2e/keyed.spec.mjs), three engines
 
-  15 passed (29.9s)
+  15 passed (28.4s)
 
 == mutation controls (scripts/documents_mutations.py)
 

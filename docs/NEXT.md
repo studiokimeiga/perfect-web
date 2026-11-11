@@ -6,6 +6,49 @@
 
 # Next
 
+## After trains 20 and 21, 2026-11-11
+
+The head-to-head at `71987e54` is behind in 60 rows, each a defect until it
+is fixed or recorded as a real trade-off (the owner's order of 2026-11-09).
+In order:
+
+1. **The large list's presses**: creating, appending and replacing rows
+   within a few milliseconds of Svelte, and on either side of a frame
+   (ADR-0427's result); updating every tenth row, selecting, swapping and
+   removing, 1.5 to 2.5 ms behind to the document. Train-22, measured and
+   held back (`perf/train-22-20261110`): a signal's value a handler gives
+   back unchanged is set as the one it read, so the page finds a kept row
+   by itself (updating 3.7 to 2.5 ms, swapping 3.5 to 2.4), at 143 bytes
+   for the large list and 112 for TodoMVC; and a kept row computed again in
+   one scope for the render (selecting 3.3 to 2.3 ms, no bytes). It lands
+   with a row reused where its item is the very value at its place, or not
+   at all.
+2. **What a page alone in its build costs its first paint**: TodoMVC's,
+   warm, one or two paint intervals after Svelte's (ADR-0426's result).
+   Where the one script stands, and whether the browser paints first.
+3. **TodoMVC's add in Firefox**: the todo is in the document as soon as
+   Svelte's (2 to 4 ms), the frame after it 9 to 16 ms after the Enter, to
+   Svelte's 2 to 6. Its rows are no plan's (each holds an `{#if}`), and are
+   morphed: its toggle is 1.2 ms to the document to Svelte's 0.5.
+4. **Bytes**: the large list's page is 17,819 as sent (Svelte's 13,242) and
+   TodoMVC's 21,203 (20,821). The runtime is most of it; a page's own
+   generated code is the larger answer. Train-23, under way
+   (`perf/train-23-20261111`): what only a server's command throws and
+   what only a graph-encoded value needs folded away where no file of the
+   build has either, and the helpers each handler of a page carries shared
+   in the page's bundle, 275 bytes from TodoMVC's script and 411 from the
+   large list's. And the row counts headers: TodoMVC's document sends 830
+   bytes of them (a policy with four style hashes, a 64-digit ETag) with a
+   body of 20,373.
+5. **The store's source and its feature changes** (T03, T11), and its
+   paint rows, which the record's run moved by one paint interval and
+   neither train touched.
+6. **What a row's computed values cost in Firefox**, **TodoMVC's first
+   toggle in a cold WebKit**, as after trains 18 and 19 (below).
+7. **WebKit's cut-off test** (`e2e/connections.spec.mjs`): passed in the
+   trains' run (42919314507), as in both of train-19's; it stays here until
+   master's nightlies pass it too.
+
 ## After trains 18 and 19, 2026-11-10
 
 The head-to-head at `7ac4f20c` is behind in 70 rows, each a defect until it

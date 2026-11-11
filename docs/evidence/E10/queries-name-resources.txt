@@ -1,8 +1,8 @@
 ADR-0108 - a query names a resource that exists
 
 produced by: just e10-queries-name-resources
-commit: bd1aaeeb8ba8d969afb7228305df754828267487
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 71987e540d75e16819b7cf196055da31024d2688
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == queries name resources (compiler/pw-core/tests/queries_name_resources.rs)

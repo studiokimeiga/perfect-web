@@ -4,9 +4,10 @@ function trap(what) {
   throw new Error("trap: " + what);
 }
 
-// An Int is 64 bits, and a result that does not fit traps (ADR-0039).
+// An Int is 64 bits, and a result that does not fit traps (ADR-0039):
+// one that 64 bits wrap is not itself (ADR-0427).
 function int(v) {
-  if (v < -(2n ** 63n) || v > 2n ** 63n - 1n) trap("Int overflow");
+  if (BigInt.asIntN(64, v) !== v) trap("Int overflow");
   return v;
 }
 
@@ -46,7 +47,7 @@ function slice(xs, start, end) {
 // An Int sent to a command as a JSON number (ADR-0058): exact within
 // ±2^53, and a trap past it rather than a different number.
 function exact(v) {
-  if (v < -(2n ** 53n) || v > 2n ** 53n) trap("an Int a JavaScript number cannot carry exactly");
+  if (v < -9007199254740992n || v > 9007199254740992n) trap("an Int a JavaScript number cannot carry exactly");
   return Number(v);
 }
 

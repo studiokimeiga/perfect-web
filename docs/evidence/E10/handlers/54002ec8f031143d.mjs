@@ -11,7 +11,7 @@ function some(value) {
 // An Int sent to a command as a JSON number (ADR-0058): exact within
 // ±2^53, and a trap past it rather than a different number.
 function exact(v) {
-  if (v < -(2n ** 53n) || v > 2n ** 53n) trap("an Int a JavaScript number cannot carry exactly");
+  if (v < -9007199254740992n || v > 9007199254740992n) trap("an Int a JavaScript number cannot carry exactly");
   return Number(v);
 }
 

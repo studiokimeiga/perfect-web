@@ -1,8 +1,8 @@
 The scheduled-commands track - a command runs when the clock passes its time
 
 produced by: just e14-scheduled
-commit: bd1aaeeb8ba8d969afb7228305df754828267487
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 71987e540d75e16819b7cf196055da31024d2688
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 postgres: 18.6 (Debian 18.6-1.pgdg13+2)
 
@@ -12,45 +12,45 @@ test a_programs_own_instant_is_not_the_clocks ... ok
 test a_command_the_clock_invokes_checks_clean_and_says_so_in_its_contract ... ok
 test a_schedule_is_a_commands_statement ... ok
 test a_command_the_clock_invokes_requires_nothing_and_is_idempotent ... ok
-test a_schedule_performs_clock_schedule ... ok
 test a_runs_time_is_an_instant_or_a_duration ... ok
+test a_schedule_performs_clock_schedule ... ok
 test a_schedule_at_an_instant_or_after_a_duration_checks_clean ... ok
-test a_schedule_names_a_command_the_clock_invokes ... ok
 test a_schedule_relates_its_arguments_as_a_call ... ok
-test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.36s
+test a_schedule_names_a_command_the_clock_invokes ... ok
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s
 
 == the host's runs and the store's sweep, the store in memory (tests/store_scheduled.rs, schedules.rs)
 
-test schedules::tests::a_duration_is_counted_from_the_commit ... ok
-test schedules::tests::a_runs_key_names_the_user_whose_command_scheduled_it ... ok
 test schedules::tests::a_failed_run_waits_two_seconds_doubling_to_a_minute ... ok
+test schedules::tests::a_runs_key_names_the_user_whose_command_scheduled_it ... ok
+test schedules::tests::a_duration_is_counted_from_the_commit ... ok
 test tests::store_scheduled::a_command_that_answers_an_error_schedules_nothing ... ok
 test tests::store_scheduled::a_run_refused_runs_again_and_is_then_kept_failed ... ok
 test tests::store_scheduled::a_readers_press_of_the_sweep_is_not_a_command ... ok
 test tests::store_scheduled::a_paid_order_is_not_swept_and_a_declined_card_keeps_its_sweep ... ok
+test tests::store_scheduled::a_sweep_takes_back_only_its_own_order ... ok
 test tests::store_scheduled::a_run_runs_at_its_time_on_its_schedulers_behalf_and_once ... ok
 test tests::store_scheduled::a_run_scheduled_again_moves ... ok
 test tests::store_scheduled::an_order_no_one_pays_is_taken_back_thirty_minutes_on ... ok
-test tests::store_scheduled::a_sweep_takes_back_only_its_own_order ... ok
 test tests::store_scheduled::an_order_taken_back_by_its_reader_is_not_swept ... ok
-test tests::store_scheduled::another_readers_scheduling_moves_no_run_of_mine ... ok
 test tests::store_scheduled::an_order_swept_is_told_to_its_readers_open_page ... ok
-test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 1023 filtered out; finished in 23.30s
+test tests::store_scheduled::another_readers_scheduling_moves_no_run_of_mine ... ok
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 1033 filtered out; finished in 22.67s
 
 == the same, the store on PostgreSQL (PW_STORE_TEST_LAYER=postgres)
 
-test tests::store_scheduled::a_command_that_answers_an_error_schedules_nothing ... ok
-test tests::store_scheduled::a_readers_press_of_the_sweep_is_not_a_command ... ok
 test tests::store_scheduled::a_run_refused_runs_again_and_is_then_kept_failed ... ok
+test tests::store_scheduled::a_readers_press_of_the_sweep_is_not_a_command ... ok
+test tests::store_scheduled::a_command_that_answers_an_error_schedules_nothing ... ok
 test tests::store_scheduled::a_paid_order_is_not_swept_and_a_declined_card_keeps_its_sweep ... ok
 test tests::store_scheduled::a_run_runs_at_its_time_on_its_schedulers_behalf_and_once ... ok
 test tests::store_scheduled::a_run_scheduled_again_moves ... ok
-test tests::store_scheduled::a_sweep_takes_back_only_its_own_order ... ok
 test tests::store_scheduled::an_order_no_one_pays_is_taken_back_thirty_minutes_on ... ok
-test tests::store_scheduled::another_readers_scheduling_moves_no_run_of_mine ... ok
+test tests::store_scheduled::a_sweep_takes_back_only_its_own_order ... ok
 test tests::store_scheduled::an_order_swept_is_told_to_its_readers_open_page ... ok
+test tests::store_scheduled::another_readers_scheduling_moves_no_run_of_mine ... ok
 test tests::store_scheduled::an_order_taken_back_by_its_reader_is_not_swept ... ok
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 1026 filtered out; finished in 24.99s
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 1036 filtered out; finished in 23.12s
 
 == a run in the database: its transaction, a restart, two hosts, the feed (tests/store_pg.rs, tests/feed_pg.rs)
 
@@ -60,7 +60,7 @@ test tests::store_pg::on_postgres_a_run_is_written_by_its_commands_transaction .
 test tests::store_pg::on_postgres_a_run_kept_under_the_old_key_is_its_schedulers_after_the_upgrade ... ok
 test tests::store_pg::on_postgres_a_run_committed_and_not_removed_commits_once ... ok
 test tests::store_pg::on_postgres_two_hosts_commit_a_run_once ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 1031 filtered out; finished in 18.36s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 1041 filtered out; finished in 16.72s
 
 == mutation controls (scripts/scheduled_mutations.py)
 

@@ -1,8 +1,8 @@
 ADR-0049 - a string's escapes are the language's
 
 produced by: just e10-strings
-commit: bd1aaeeb8ba8d969afb7228305df754828267487
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 71987e540d75e16819b7cf196055da31024d2688
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the decoder (compiler/pw-syntax/src/strings.rs)
@@ -22,27 +22,27 @@ test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 javascript: 3 queries over cases written alone, 600 calls, component and module agree (57 trapped in both)
 javascript: 5 queries over trees, 1000 calls, component and module agree (155 trapped in both)
 javascript: 5 queries over values held in place, 1000 calls, component and module agree (132 trapped in both)
-javascript: 94 queries, 18800 calls, component and module agree (1243 trapped in both)
+javascript: 97 queries, 19400 calls, component and module agree (1446 trapped in both)
 
 == mutation controls (scripts/string_mutations.py)
 
-baseline: 39 passed, 0 failed
-`\n` is an `n`: KILLED (7 of 39 tests fail)
-`\t` is a `t`: KILLED (3 of 39 tests fail)
-`\r` is dropped: KILLED (2 of 39 tests fail)
-`\\` keeps both backslashes: KILLED (2 of 39 tests fail)
-`\"` is dropped: KILLED (4 of 39 tests fail)
-`\{` keeps its backslash: KILLED (6 of 39 tests fail)
-`\u{..}` names the replacement character for a surrogate: KILLED (1 of 39 tests fail)
-an escape the language does not define is kept: KILLED (3 of 39 tests fail)
-an empty hole is text: KILLED (1 of 39 tests fail)
-a triple-quoted string decodes its escapes: KILLED (2 of 39 tests fail)
-the grammar refuses no escape: KILLED (2 of 39 tests fail)
-the lowering finds holes by scanning for braces: KILLED (5 of 39 tests fail)
-the component's text keeps a line feed's escape: KILLED (1 of 39 tests fail)
-Koka is given the token: KILLED (1 of 39 tests fail)
-Marko is given the interpolation's token: KILLED (1 of 39 tests fail)
-a handler is given the token: KILLED (7 of 39 tests fail)
+baseline: 40 passed, 0 failed
+`\n` is an `n`: KILLED (7 of 40 tests fail)
+`\t` is a `t`: KILLED (3 of 40 tests fail)
+`\r` is dropped: KILLED (2 of 40 tests fail)
+`\\` keeps both backslashes: KILLED (2 of 40 tests fail)
+`\"` is dropped: KILLED (4 of 40 tests fail)
+`\{` keeps its backslash: KILLED (6 of 40 tests fail)
+`\u{..}` names the replacement character for a surrogate: KILLED (1 of 40 tests fail)
+an escape the language does not define is kept: KILLED (3 of 40 tests fail)
+an empty hole is text: KILLED (1 of 40 tests fail)
+a triple-quoted string decodes its escapes: KILLED (2 of 40 tests fail)
+the grammar refuses no escape: KILLED (2 of 40 tests fail)
+the lowering finds holes by scanning for braces: KILLED (5 of 40 tests fail)
+the component's text keeps a line feed's escape: KILLED (1 of 40 tests fail)
+Koka is given the token: KILLED (1 of 40 tests fail)
+Marko is given the interpolation's token: KILLED (1 of 40 tests fail)
+a handler is given the token: KILLED (8 of 40 tests fail)
 16 of 16 mutants killed
 memory bound: no process was stopped
 

@@ -1,31 +1,31 @@
 ADR-0310 - a name means its binding, in every analysis
 
 produced by: just e14-name-bindings
-commit: bd1aaeeb8ba8d969afb7228305df754828267487
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 71987e540d75e16819b7cf196055da31024d2688
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the checker's cases (compiler/pw-core/tests/names_mean_their_binding.rs)
 
-test a_call_through_a_local_is_labelled_as_the_local ... ok
 test a_call_through_a_local_is_not_charged_its_namesakes_row ... ok
-test a_handlers_call_through_a_local_is_no_commands_request ... ok
+test a_call_through_a_local_is_labelled_as_the_local ... ok
 test a_call_through_a_local_reads_nothing_of_its_namesakes ... ok
+test a_handlers_call_through_a_local_is_no_commands_request ... ok
 test a_labels_cause_is_what_was_read_not_a_locals_namesake ... ok
-test a_loops_name_is_the_loops_beside_a_signal_of_its_spelling ... ok
 test a_layouts_loop_is_the_same_on_every_page ... ok
+test a_loops_name_is_the_loops_beside_a_signal_of_its_spelling ... ok
 test a_stream_parts_name_is_the_answer_beside_a_page_binding_of_its_spelling ... ok
 test a_stream_parts_name_is_the_answer_not_a_namesake_function ... ok
-test a_views_loop_is_its_own_beside_a_page_binding_of_its_spelling ... ok
-test a_loops_name_is_the_loops_beside_a_page_binding_of_its_spelling ... ok
 test an_inner_loops_name_is_the_inner_loops ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.02s
+test a_loops_name_is_the_loops_beside_a_page_binding_of_its_spelling ... ok
+test a_views_loop_is_its_own_beside_a_page_binding_of_its_spelling ... ok
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 8.02s
 
 == pw-core's library and the corpus (checking_source, every_name_resolves)
 
-test result: ok. 198 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.37s
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 201.54s
-test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.40s
+test result: ok. 198 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.49s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 132.89s
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
 
 == mutation controls (scripts/name_binding_mutations.py)
 

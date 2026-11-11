@@ -31,7 +31,7 @@ async function packDeviceRuntime(directory, source) {
   for (const [flag, used] of Object.entries(uses)) {
     device = device.replace(`const ${flag} = true;`, "").replaceAll(flag, String(used));
   }
-  const { code } = await transform(device, {
+  const { code } = await transform(alone(device, false), {
     loader: "js",
     format: "esm",
     target: "es2022",
@@ -44,6 +44,58 @@ async function packDeviceRuntime(directory, source) {
   await writeFile(file, code);
   await writeFile(file + ".br", brotliCompressSync(Buffer.from(code), BR));
   await writeFile(file + ".gz", gzipSync(Buffer.from(code), { level: 9, mtime: 0 }));
+  // As folded before `PW_ALONE` is: what a page alone in its build's module
+  // is made from (`aloneModule`).
+  return device;
+}
+
+/** `source` with `PW_ALONE` the literal `is`, so that what only a page alone
+ * in its build runs, or what only every other page runs, falls away. A
+ * runtime that declares none, a test's stand-in, is as written. */
+function alone(source, is) {
+  const declared = "const PW_ALONE = false;";
+  if (!source.includes(declared)) return source;
+  return source.replace(declared, "").replaceAll("PW_ALONE", String(is));
+}
+
+/**
+ * **A page alone in its build, as one module** (ADR-0426): the
+ * device's runtime, the page's one module (ADR-0412) imported into it, and
+ * `PW_ALONE` true, so that it reads its table from the document that holds
+ * it and its code from itself. Written where the build has exactly one page,
+ * that page runs on the device (ADR-0413) and has its module; the host puts
+ * it in that page's document. `deviceSource` is the device's runtime as
+ * `packDeviceRuntime` folded it. Returns the page, or `null` for none.
+ */
+async function aloneModule(directory, deviceSource) {
+  // A runtime that declares no `PW_ALONE`, a test's stand-in, has none.
+  if (deviceSource === null || !deviceSource.includes("const PW_ALONE = false;")) return null;
+  const base = path.join(directory, "build");
+  const names = (await readdir(path.join(base, "pages")).catch(() => [])).filter((n) => n.endsWith(".json"));
+  if (names.length !== 1) return null;
+  const page = names[0].slice(0, -".json".length);
+  const plan = JSON.parse(await readFile(path.join(base, "pages", names[0]), "utf8"));
+  if (plan.prerender !== true || (plan.layout !== undefined && plan.layout !== null)) return null;
+  if ((await readIfThere(path.join(base, "bundles", `${page}.mjs`))) === null) return null;
+  const held = "let alonePage = null;";
+  if (!deviceSource.includes(held)) throw new Error("the device's runtime holds no place for a page alone in its build");
+  const contents = `import * as PW_ALONE_PAGE from ${JSON.stringify(`./bundles/${page}.mjs`)};\n` +
+    alone(deviceSource, true).replace(held, "let alonePage = PW_ALONE_PAGE;");
+  const result = await build({
+    stdin: { contents, resolveDir: base, loader: "js", sourcefile: `${page}.alone.mjs` },
+    bundle: true,
+    format: "esm",
+    target: "es2022",
+    treeShaking: true,
+    minify: true,
+    charset: "utf8",
+    legalComments: "inline",
+    write: false,
+    logLevel: "silent",
+  });
+  await mkdir(path.join(base, "alone"), { recursive: true });
+  await writeFile(path.join(base, "alone", `${page}.mjs`), result.outputFiles[0].contents);
+  return page;
 }
 
 /** A part a row's plan sets in place, as the runtime's `planned` reads it:
@@ -137,16 +189,20 @@ function serverRuntimeSource(source) {
   // `optimize-assets.test.mjs` holds the runtime's own to what falls away.
   const declared = "const PW_SERVER = true;";
   if (!source.includes(declared)) return source;
-  const server = source.replace(declared, "").replaceAll("PW_SERVER", "true");
+  // A server's page is never alone in its build (ADR-0426).
+  const server = alone(source.replace(declared, "").replaceAll("PW_SERVER", "true"), false);
   const delegated = "const DELEGATED = !true && !PW_VIEWS;";
   return server.includes(delegated) ? server.replace(delegated, "").replaceAll("DELEGATED", "false") : server;
 }
 
+/** One asset packed; the device's runtime's folded source where it was the
+ * runtime, else `null`. */
 async function packAsset(directory, entry) {
   const file = path.join(directory, entry.name);
   let body = await readFile(file);
+  let device = null;
   if (entry.name === "pw-runtime.mjs") {
-    await packDeviceRuntime(directory, body.toString("utf8"));
+    device = await packDeviceRuntime(directory, body.toString("utf8"));
     const result = await transform(serverRuntimeSource(body.toString("utf8")), {
       loader: "js",
       format: "esm",
@@ -166,6 +222,7 @@ async function packAsset(directory, entry) {
   }
   await writeFile(file + ".br", brotliCompressSync(body, BR));
   await writeFile(file + ".gz", gzipSync(body, { level: 9, mtime: 0 }));
+  return device;
 }
 
 /**
@@ -313,9 +370,11 @@ export async function optimizeAssets(directory) {
   const assets = entries.filter((entry) => entry.isFile() && ASSET.test(entry.name));
   assets.sort((a, b) => a.name.localeCompare(b.name, "en"));
   const runtime = await readFile(path.join(directory, "pw-runtime.mjs")).catch(() => null);
-  for (const asset of assets) await packAsset(directory, asset);
+  let device = null;
+  for (const asset of assets) device = (await packAsset(directory, asset)) ?? device;
   await compressModules(directory);
   await bundlePages(directory);
+  await aloneModule(directory, device);
   // What the runtime was before it was packed: the browser suite's word on
   // whether this build is of the runtime it is testing (`host-metadata.mjs`).
   const built = { ...DELIVERY, ...(runtime && { runtime: createHash("sha256").update(runtime).digest("hex") }) };

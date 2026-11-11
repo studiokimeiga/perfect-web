@@ -186,8 +186,8 @@ MUTANTS = [
     # sessions warms, now that its warm-up's overlapping admissions are each
     # answered.
     ("a host that keeps sessions does not warm (the first press's rule before the repair)", MAIN,
-     "            if server.warm {\n",
-     "            if server.warm && server.identity.principals().kept().is_none() {\n"),
+     "        if self.warm {\n",
+     "        if self.warm && self.identity.principals().kept().is_none() {\n"),
     ("a page's refused admission is not logged", MAIN,
      "            Err(why) => {\n"
      "                refused_admission(server, &why);\n"

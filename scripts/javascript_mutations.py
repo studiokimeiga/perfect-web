@@ -41,8 +41,55 @@ MUTANTS = [
     (
         "an Int does not trap on overflow",
         JS,
-        r'if (v < -(2n ** 63n) || v > 2n ** 63n - 1n) trap(\"Int overflow\");',
+        r'if (BigInt.asIntN(64, v) !== v) trap(\"Int overflow\");',
         r'if (false) trap(\"Int overflow\");',
+    ),
+    # ADR-0427: an Int's overflow found as 64 bits wrap it, and a list of
+    # literals a value of the module.
+    (
+        "an Int's overflow is that of 63 bits",
+        JS,
+        r'if (BigInt.asIntN(64, v) !== v) trap(\"Int overflow\");',
+        r'if (BigInt.asIntN(63, v) !== v) trap(\"Int overflow\");',
+    ),
+    (
+        "a list of literals is made at each call",
+        JS,
+        "                    Some(xs) if !xs.is_empty() => {\n",
+        "                    Some(xs) if false => {\n",
+    ),
+    (
+        "an empty list is a value of the module",
+        JS,
+        "                    Some(xs) if !xs.is_empty() => {\n",
+        "                    Some(xs) => {\n",
+    ),
+    (
+        "a list of literals of the module is not frozen",
+        JS,
+        '.map(|(name, items)| format!("const {name} = Object.freeze([{items}]);")),',
+        '.map(|(name, items)| format!("const {name} = [{items}];")),',
+    ),
+    (
+        "the literals a list of the module read are written",
+        JS,
+        "        self.line(&format!(\"return {};\", val(*result)));\n        self.unread_dropped();\n        Ok(())\n    }\n\n    fn line(",
+        "        self.line(&format!(\"return {};\", val(*result)));\n        Ok(())\n    }\n\n    fn line(",
+    ),
+    (
+        "a function value's lists of literals are not the module's",
+        JS,
+        "        helpers.extend(e.helpers.iter().copied());\n        constants_into(&mut constants, &e.constants).map_err(refused)?;\n        let params: Vec<String> = c.function.params",
+        "        helpers.extend(e.helpers.iter().copied());\n        let params: Vec<String> = c.function.params",
+    ),
+    # A callee's lists are the module's too; no control drops that merge, as
+    # the inliner copies each callee's first call into its caller, list and
+    # all, so no program yet has a list a callee alone holds (ADR-0427).
+    (
+        "the module's lists of literals are not given to its prelude",
+        JS,
+        "    constants_into(&mut e.constants, &constants).map_err(refused)?;\n",
+        "",
     ),
     (
         "`/` truncates toward zero, as BigInt's does",

@@ -32,6 +32,10 @@
       "dist": "dist-rows",
       "prerequisite": "rows.sh"
     },
+    "row-events": {
+      "dist": "dist-row-events",
+      "prerequisite": "row-events.sh"
+    },
     "guestbook": {
       "dist": "dist-guestbook",
       "prerequisite": "guestbook.sh"
@@ -226,6 +230,14 @@
       },
       "build": "rows"
     },
+    "row-events": {
+      "offsets": {
+        "chromium": 216,
+        "firefox": 217,
+        "webkit": 218
+      },
+      "build": "row-events"
+    },
     "store-accounts": {
       "offsets": {
         "chromium": 160,
@@ -328,6 +340,7 @@
     "KIOKUN_PORTS": "kiokun",
     "TODOMVC_PORTS": "todomvc",
     "ROWS_PORTS": "rows",
+    "ROW_EVENTS_PORTS": "row-events",
     "STORE_ACCOUNTS_PORTS": "store-accounts",
     "STORE_SEARCH_PORTS": "store-search",
     "STORE_PAYMENTS_PORTS": "payments",
@@ -684,7 +697,8 @@
     },
     "rows.spec.mjs": {
       "roles": [
-        "rows"
+        "rows",
+        "row-events"
       ]
     },
     "transport.spec.mjs": {

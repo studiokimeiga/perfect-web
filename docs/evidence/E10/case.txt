@@ -1,8 +1,8 @@
 ADR-0056 - Unicode case mapping
 
 produced by: just e10-case
-commit: bd1aaeeb8ba8d969afb7228305df754828267487
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 71987e540d75e16819b7cf196055da31024d2688
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
@@ -12,7 +12,7 @@ test the_tables_are_generated_under_unicode_17 ... ok
 test no_mapping_grows_a_string_past_its_bound ... ok
 test a_table_is_ranges_then_code_points_that_map_to_more_than_one ... ok
 test the_tables_reproduce_rusts_mapping_for_every_code_point ... ok
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.18s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.33s
 
 == the component through the host (pw-conformance/tests/case_mapping.rs)
 
@@ -21,29 +21,29 @@ test texts_that_differ_in_case_compare_equal_lowered ... ok
 test the_mapping_is_per_code_point ... ok
 test mixed_text_is_mapped_as_rust_maps_it ... ok
 test every_code_point_unicode_maps_is_mapped_as_rust_maps_it ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.56s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.94s
 
 == the module under Node, and the component against it
 
 javascript: 3 queries over cases written alone, 600 calls, component and module agree (57 trapped in both)
 javascript: 5 queries over trees, 1000 calls, component and module agree (155 trapped in both)
 javascript: 5 queries over values held in place, 1000 calls, component and module agree (132 trapped in both)
-javascript: 94 queries, 18800 calls, component and module agree (1243 trapped in both)
+javascript: 97 queries, 19400 calls, component and module agree (1446 trapped in both)
 test the_modules_case_mapping_is_rusts_for_every_code_point ... ok
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 88.88s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 108.41s
 
 == mutation controls (scripts/case_mutations.py)
 
-baseline: 17 passed, 0 failed
-a range grows over code points it does not map: KILLED (7 of 17 tests fail)
-a mapping to more than one code point is dropped: KILLED (7 of 17 tests fail)
-the multi entries are read where the ranges are: KILLED (6 of 17 tests fail)
-only the first of a multi mapping is written: KILLED (5 of 17 tests fail)
-a code point past a range's end is in it: KILLED (5 of 17 tests fail)
-a range's stride is not kept: KILLED (1 of 17 tests fail)
-a mapping's room is the input's: KILLED (5 of 17 tests fail)
-the module misses every multi entry: KILLED (2 of 17 tests fail)
-the module keeps no stride: KILLED (1 of 17 tests fail)
+baseline: 18 passed, 0 failed
+a range grows over code points it does not map: KILLED (7 of 18 tests fail)
+a mapping to more than one code point is dropped: KILLED (7 of 18 tests fail)
+the multi entries are read where the ranges are: KILLED (6 of 18 tests fail)
+only the first of a multi mapping is written: KILLED (5 of 18 tests fail)
+a code point past a range's end is in it: KILLED (5 of 18 tests fail)
+a range's stride is not kept: KILLED (1 of 18 tests fail)
+a mapping's room is the input's: KILLED (5 of 18 tests fail)
+the module misses every multi entry: KILLED (2 of 18 tests fail)
+the module keeps no stride: KILLED (1 of 18 tests fail)
 9 of 9 mutants killed
 memory bound: no process was stopped
 

@@ -1,8 +1,8 @@
 ADR-0189 - a <link> is written where HTML allows it
 
 produced by: just e14-links
-commit: bd1aaeeb8ba8d969afb7228305df754828267487
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 71987e540d75e16819b7cf196055da31024d2688
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the rule (compiler/pw-core/tests/links.rs)
@@ -19,13 +19,13 @@ rejected: 97 files
 rejected: 97/97 charter §16 categories covered
 corpus-check: OK
 test a_caught_file_conveys_every_fact_its_expect_error_lines_declare ... ok
-test every_rejected_fixture_emits_only_its_own_defect ... ok
 test every_rejected_fixtures_rule_is_a_code_its_check_reports ... ok
+test every_rejected_fixture_emits_only_its_own_defect ... ok
 test every_diagnostic_carries_what_charter_16_3_requires has been running for over 60 seconds
 test every_diagnostic_carries_what_charter_16_3_requires ... ok
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 91.21s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 129.76s
 test generality_is_reported_separately_from_conformance ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 87.29s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 126.62s
 
 == every program the repository checks
 

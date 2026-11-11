@@ -1,8 +1,8 @@
 ADR-0262 - a host binding is an operation a host provides
 
 produced by: just e14-host-bindings
-commit: bd1aaeeb8ba8d969afb7228305df754828267487
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 71987e540d75e16819b7cf196055da31024d2688
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the checker (compiler/pw-core/tests/host_bindings.rs)
@@ -10,7 +10,7 @@ rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 test the_uploads_tracks_binding_with_no_interface_is_refused_where_it_is_written ... ok
 test a_malformed_binding_stops_the_build_at_check_and_never_reaches_wit ... ok
 test each_part_of_a_binding_is_a_wit_identifier ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.28s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.89s
 
 == mutation controls (scripts/host_binding_mutations.py)
 

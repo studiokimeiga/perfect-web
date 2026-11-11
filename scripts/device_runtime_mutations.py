@@ -141,8 +141,8 @@ MUTANTS = [
      "  decide = decider(lines, PAGE);\n",
      '  decide = () => ({ attach: true, recovery: "reload", code: 0 });\n'),
     ("a device page's table is not heard", "browser", RUNTIME,
-     '  const lines = heardTable(await fetch(delivered("/pw-handlers")).then((r) => (r.ok ? r.text() : "")));\n',
-     '  const lines = (await fetch(delivered("/pw-handlers")).then((r) => (r.ok ? r.text() : ""))).split("\\n");\n'),
+     '  const lines = heardTable(\n',
+     '  const lines = ((t) => t.split("\\n"))(\n'),
     ("a device page's decision is another page's", "browser", RUNTIME,
      "  decide = decider(lines, PAGE);\n",
      '  decide = decider(lines, "another");\n'),
@@ -208,17 +208,62 @@ MUTANTS = [
      "    if (!plan || !row.holes || !old.holes) return true;\n", "    return true;\n"),
     # A row the document holds is set by its holes (ADR-0420, decision 6).
     ("a row the document holds is morphed", "rows", RUNTIME,
-     "    if (!nodes[2]) nodes[2] = holesFound(nodes, plan) ?? undefined;\n", ""),
+     "    if (found) nodes[2] = holesFound(nodes, plan) ?? undefined;\n", ""),
     ("text holding an escape is read back as written", "rows", RUNTIME,
      '  if (!/[&\\r\\0]/.test(text)) return text;\n', '  if (!/[\\r\\0]/.test(text)) return text;\n'),
     ("text holding a return is read back as written", "rows", RUNTIME,
      '  if (!/[&\\r\\0]/.test(text)) return text;\n', '  if (!/[&\\0]/.test(text)) return text;\n'),
     ("text holding a NUL is read back as written", "rows", RUNTIME,
      '  if (!/[&\\r\\0]/.test(text)) return text;\n', '  if (!/[&\\r]/.test(text)) return text;\n'),
-    ("a row's handlers' captures are set as the renderer escaped them", "rows", RUNTIME,
-     '    else node.setAttribute("data-pw-captures", raw);\n', '    else node.setAttribute("data-pw-captures", piece);\n'),
-    ("a row's handlers' captures are not set", "rows", RUNTIME,
-     '    else node.setAttribute("data-pw-captures", raw);\n', ""),
+    # What a row's handlers capture, held for the row a plan made or set
+    # (ADR-0427).
+    ("a row a plan made holds no captures for its press", "rows", RUNTIME,
+     '      if (plan.kinds[h] === "event") rowOfHandler.set(n, nodes);\n',
+     '      if (plan.kinds[h] === "event") continue;\n'),
+    ("what a row the plan set captures does not follow it", "rows", RUNTIME,
+     "    nodes[3] = row;\n", ""),
+    ("a row whose handlers capture is compared by its holes alone", "rows", RUNTIME,
+     "  if (row.capturing) return true;\n", ""),
+    ("a handler's element the plan takes over keeps its captured text", "rows", RUNTIME,
+     '  el.removeAttribute("data-pw-captures");\n', ""),
+    ("a handler's element the plan takes over holds no captures for its press", "rows", RUNTIME,
+     "  rowOfHandler.set(el, nodes);\n", ""),
+    ("a row the plan takes over is not taken over", "rows", RUNTIME,
+     '    if (found) plan.kinds.forEach((kind, h) => kind === "event" && capturesHeld(nodes[2][h], nodes));\n', ""),
+    ("a press reads no captures a plan holds", "rows", RUNTIME,
+     '      captures: JSON.parse(el.dataset.pwCaptures ?? (PW_PLANS ? heldCaptures(el) : undefined) ?? "{}"),\n',
+     '      captures: JSON.parse(el.dataset.pwCaptures ?? "{}"),\n'),
+    # A planned row's holes, found by their siblings and computed alone
+    # (ADR-0427).
+    ("a hole is found among the wrong siblings", "rows", RUNTIME,
+     "        for (let k = path[d]; k > 0; k--) n = n.nextSibling;\n",
+     "        for (let k = path[d]; k > 1; k--) n = n.nextSibling;\n"),
+    ("a row's text hole holds nothing", "rows", RUNTIME,
+     '      else if (q.part === "text") holes[h] = raws[h] = needText(env, q.value);\n',
+     '      else if (q.part === "text") holes[h] = raws[h] = "";\n'),
+    ("a row's attribute is set empty", "rows", RUNTIME,
+     "        raws[h] = [name, value];\n", '        raws[h] = [name, ""];\n'),
+    ("a row's attribute hole is the same whatever its value", "rows", RUNTIME,
+     '        holes[h] = `${name}="${value}"`;\n', "        holes[h] = name;\n"),
+    ("a row's boolean attribute is never there", "rows", RUNTIME,
+     '        raws[h] = present ? [q.name, ""] : null;\n', "        raws[h] = null;\n"),
+    ("a row's boolean hole is the same whatever its value", "rows", RUNTIME,
+     '        holes[h] = present ? q.name : "";\n', '        holes[h] = "";\n'),
+    ("an element's handlers are a hole each", "rows", RUNTIME,
+     '      while (p.body[i + 1]?.value?.part === "event" && p.body[i + 1].value.owner === c.value.owner) run.push(p.body[++i].value);\n',
+     ""),
+    ("a planned row's text is never written", "rows", RUNTIME,
+     "        return (text ??= rowText(p, { ...env, computedValues: null }, others, at));\n", '        return "";\n'),
+    ("an attribute that needs reading back is set as written", "rows", RUNTIME,
+     "  return value === null ? undefined : value === raw[1] ? raw : [raw[0], value];\n",
+     "  return value === null ? undefined : raw;\n"),
+    # A path cut once (ADR-0427).
+    ("a path's head is cut a name long", "rows", RUNTIME,
+     '        heads: segments.map((_, cut) => segments.slice(0, cut).join(".")),\n',
+     '        heads: segments.map((_, cut) => segments.slice(0, cut + 1).join(".")),\n'),
+    ("a path's tail is cut a name short", "rows", RUNTIME,
+     '        tails: segments.map((_, rest) => segments.slice(rest).join(".")),\n',
+     '        tails: segments.map((_, rest) => segments.slice(rest + 1).join(".")),\n'),
     ("what a hole escaped is set escaped", "rows", RUNTIME,
      "  return text.replace(/&(?:amp|lt|gt|quot|#39|#96);/g, (m) => ESCAPED[m])", "  return text"),
     ("a hole's line break is set as written", "rows", RUNTIME,
@@ -226,8 +271,8 @@ MUTANTS = [
     ("a hole's NUL is set", "rows", RUNTIME,
      '.replace(/\\r\\n?/g, "\\n").replaceAll("\\0", nul);\n', '.replace(/\\r\\n?/g, "\\n");\n'),
     ("a planned row's text is set as it was before it was escaped", "rows", RUNTIME,
-     '      node.data = /[\\r\\0]/.test(raw) ? raw.replace(/\\r\\n?/g, "\\n").replaceAll("\\0", "") : raw;\n',
-     '      node.data = raw;\n'),
+     '    node.data = /[\\r\\0]/.test(raw) ? raw.replace(/\\r\\n?/g, "\\n").replaceAll("\\0", "") : raw;\n',
+     '    node.data = raw;\n'),
     ("a row whose holes changed is left", "rows", RUNTIME,
      "  for (let h = 0; h < row.holes.length; h++) if (old.holes[h] !== row.holes[h]) return true;\n", ""),
     ("a field's value does not follow its plan", "rows", RUNTIME,
@@ -354,8 +399,10 @@ MUTANTS = [
      "bundled: true, device: true, inline: true }", "bundled: true, device: false, inline: true }"),
     ("a build says the runtime it packed, not what from", "packaging", PACKAGING,
      '  const runtime = await readFile(path.join(directory, "pw-runtime.mjs")).catch(() => null);\n'
-     "  for (const asset of assets) await packAsset(directory, asset);\n",
-     "  for (const asset of assets) await packAsset(directory, asset);\n"
+     "  let device = null;\n"
+     "  for (const asset of assets) device = (await packAsset(directory, asset)) ?? device;\n",
+     "  let device = null;\n"
+     "  for (const asset of assets) device = (await packAsset(directory, asset)) ?? device;\n"
      '  const runtime = await readFile(path.join(directory, "pw-runtime.mjs")).catch(() => null);\n'),
     ("a build with no runtime fails", "packaging", PACKAGING,
      '  const runtime = await readFile(path.join(directory, "pw-runtime.mjs")).catch(() => null);\n',
@@ -376,15 +423,15 @@ MUTANTS = [
      '    plan["prerender"] == true && plan.get("layout").is_none_or(|l| l.is_null())\n',
      '    plan["prerender"] == true\n'),
     ("no page runs on the device", "host", SERVER,
-     "            let document = if runs_on_device(plan) {\n", "            let document = if false && runs_on_device(plan) {\n"),
+     "                None if runs_on_device(plan) => {\n", "                None if false && runs_on_device(plan) => {\n"),
     ("each marked page runs on the device", "host", SERVER,
-     "            let document = if runs_on_device(plan) {\n", "            let document = if true || runs_on_device(plan) {\n"),
+     "                None if runs_on_device(plan) => {\n", "                None if true || runs_on_device(plan) => {\n"),
     ("a build that does not say so has one", "host", SERVER,
-     '            device: delivery_says(dist, "device") && dist.join("pw-runtime-device.mjs").is_file(),\n',
-     '            device: dist.join("pw-runtime-device.mjs").is_file(),\n'),
+     '        let device = delivery_says(dist, "device") && dist.join("pw-runtime-device.mjs").is_file();\n',
+     '        let device = dist.join("pw-runtime-device.mjs").is_file();\n'),
     ("a build with no file has one", "host", SERVER,
-     '            device: delivery_says(dist, "device") && dist.join("pw-runtime-device.mjs").is_file(),\n',
-     '            device: delivery_says(dist, "device"),\n'),
+     '        let device = delivery_says(dist, "device") && dist.join("pw-runtime-device.mjs").is_file();\n',
+     '        let device = delivery_says(dist, "device");\n'),
     ("the document starts the whole runtime", "host", SERVER,
      "            .replacen(&full, &device, 1)\n", "            .replacen(&full, &full, 1)\n"),
     ("the head preloads the whole runtime", "host", SERVER,
@@ -393,16 +440,61 @@ MUTANTS = [
     ("the head does not fetch the page's code", "host", SERVER,
      "            head.push_str(&preload(bundle));\n", "            let _ = (&preload, bundle);\n"),
     ("a page's code is named nowhere", "host", SERVER,
-     "                    self.bundles.contains(page).then_some(bundle.as_str()),\n",
-     "                    None::<&str>.or(Some(bundle.as_str()).filter(|_| false)),\n"),
+     "                        self.bundles.contains(page).then_some(bundle.as_str()),\n",
+     "                        None::<&str>.or(Some(bundle.as_str()).filter(|_| false)),\n"),
     ("a page with no module names one", "host", SERVER,
-     "                    self.bundles.contains(page).then_some(bundle.as_str()),\n",
-     "                    Some(bundle.as_str()),\n"),
+     "                        self.bundles.contains(page).then_some(bundle.as_str()),\n",
+     "                        Some(bundle.as_str()),\n"),
     ("the policy allows the whole runtime alone", "host", SERVER,
-     "        scripts.extend(device.as_deref());\n", ""),
+     "                .chain(device.as_deref())\n", ""),
     ("the policy allows the first of several", "host", CSP,
      '            scripts\n                .iter()\n                .map(|s| sha256_source(s))\n',
      '            scripts\n                .iter()\n                .take(1)\n                .map(|s| sha256_source(s))\n'),
+    # -- a page alone in its build (ADR-0426)
+    ("a build of two pages has a module alone", "packaging", PACKAGING,
+     "  if (names.length !== 1) return null;\n", "  if (names.length < 1) return null;\n"),
+    ("a page a reader decides has a module alone", "packaging", PACKAGING,
+     "  if (plan.prerender !== true || (plan.layout !== undefined && plan.layout !== null)) return null;\n", ""),
+    ("a page with no module of its own has a module alone", "packaging", PACKAGING,
+     '  if ((await readIfThere(path.join(base, "bundles", `${page}.mjs`))) === null) return null;\n', ""),
+    ("a module alone asks its server for its table", "packaging", PACKAGING,
+     '    alone(deviceSource, true).replace(held, "let alonePage = PW_ALONE_PAGE;");\n',
+     '    alone(deviceSource, false).replace(held, "let alonePage = PW_ALONE_PAGE;");\n'),
+    ("the device's runtime reads its table from its document", "packaging", PACKAGING,
+     "  const { code } = await transform(alone(device, false), {\n",
+     "  const { code } = await transform(alone(device, true), {\n"),
+    ("a server's runtime keeps what a page alone runs", "packaging", PACKAGING,
+     '  const server = alone(source.replace(declared, "").replaceAll("PW_SERVER", "true"), false);\n',
+     '  const server = source.replace(declared, "").replaceAll("PW_SERVER", "true");\n'),
+    ("a page alone reads no table", "browser", RUNTIME,
+     """    const table = JSON.parse(document.getElementById("pw-handlers")?.textContent ?? '""');\n""",
+     '    const table = "";\n'),
+    ("a page alone fetches its code", "browser", RUNTIME,
+     "(PW_ALONE ? Promise.resolve(alonePage) : import(delivered(pageBundleAt)))",
+     "(import(delivered(pageBundleAt)))"),
+    ("a module that may open a script is held", "host", SERVER,
+     '    !lower.contains("</script") && !lower.contains("<script")\n', '    !lower.contains("</script")\n'),
+    ("a module that may close its script is held", "host", SERVER,
+     '    !lower.contains("</script") && !lower.contains("<script")\n', '    !lower.contains("<script ")\n'),
+    ("a comment's opening keeps a module out", "host", SERVER,
+     '    !lower.contains("</script") && !lower.contains("<script")\n',
+     '    !lower.contains("</script") && !lower.contains("<script") && !lower.contains("<!--")\n'),
+    ("a page of a build of several is alone", "host", SERVER,
+     "                && self.plans.len() == 1\n", ""),
+    ("the one document holds no table", "host", SERVER,
+     '            "<script type=\\"application/json\\" id=\\"pw-handlers\\">{said}</script>\\n\\\n',
+     '            "<!--{said}-->\\n\\\n'),
+    ("a page alone's policy allows the runtimes it does not start", "host", SERVER,
+     "            Some(module) => vec![module],\n", "            Some(module) => vec![module, runtime.as_str()],\n"),
+    ("a build with no components is refused", "host", SERVER,
+     '            Err(_) if pages_alone && !build.join("components").exists() => BTreeMap::new(),\n', ""),
+    ("a build that lost its components is served", "host", SERVER,
+     '            .all(|c| c.exports.iter().all(|e| e.kind == "page"));\n', "            .all(|_| true);\n"),
+    ("a delivery of two modules alone has one", "host", SERVER,
+     "    found.next().is_none().then_some(one)\n", "    Some(one)\n"),
+    ("a delivery with no device's runtime has a module alone", "host", SERVER,
+     "            alone: device.then(|| alone_module(artifacts)).flatten(),\n",
+     "            alone: alone_module(artifacts),\n"),
 ]
 
 
@@ -442,7 +534,7 @@ def packaging():
 
 def host():
     total = (0, 0)
-    for name in ("tests::page_bundle::", "tests::browser_rows::"):
+    for name in ("tests::page_bundle::", "tests::browser_rows::", "tests::alone_page::"):
         out, code = bounded(["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server", name], cwd=ROOT)
         if code is None:
             return True, 0, 1
@@ -488,9 +580,10 @@ def nested():
 def rows():
     """The large list, on a production build."""
     env = {**os.environ, "PW_PRODUCTION_ASSETS": "1"}
-    _, code = bounded(["bash", "spikes/own-renderer/rows.sh"], cwd=ROOT, env=env)
-    if code != 0:
-        return False, 0, 0
+    for script in ("spikes/own-renderer/rows.sh", "spikes/own-renderer/row-events.sh"):
+        _, code = bounded(["bash", script], cwd=ROOT, env=env)
+        if code != 0:
+            return False, 0, 0
     out, code = bounded(["pnpm", "exec", "playwright", "test", "e2e/rows.spec.mjs", "--project=chromium", "--reporter=line"],
                         cwd=ROOT / "spikes/own-renderer", env=env)
     if code is None:

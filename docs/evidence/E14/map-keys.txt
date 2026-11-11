@@ -1,18 +1,18 @@
 ADR-0248 - a map's key is ordered, and refused at check where it is not
 
 produced by: just e14-map-keys
-commit: bd1aaeeb8ba8d969afb7228305df754828267487
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 71987e540d75e16819b7cf196055da31024d2688
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the checker (compiler/pw-core/tests/map_keys.rs)
 
-test a_key_inside_another_type_is_refused_too ... ok
 test a_key_is_refused_once_where_it_is_written_and_not_at_each_call ... ok
+test a_key_inside_another_type_is_refused_too ... ok
 test a_bool_and_an_opaque_type_over_an_ordered_type_are_keys ... ok
 test a_key_a_call_instantiates_is_refused_at_the_call ... ok
 test a_written_key_with_no_order_is_refused_where_it_is_written ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.45s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s
 
 == through the host, against BTreeMap (compiler/pw-conformance/tests/maps.rs)
 
@@ -23,12 +23,12 @@ test a_map_or_set_out_of_order_is_sorted_on_arrival ... ok
 test a_map_keyed_by_a_bool_or_an_opaque_type_answers_as_a_btreemap_does ... ok
 test a_map_answers_as_a_btreemap_does ... ok
 test a_set_answers_as_a_btreeset_does ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.03s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.79s
 
 == the browser's module against the component (compiler/pw-conformance/tests/javascript.rs)
 
-javascript: 94 queries, 18800 calls, component and module agree (1243 trapped in both)
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 101.42s
+javascript: 97 queries, 19400 calls, component and module agree (1446 trapped in both)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8 filtered out; finished in 75.49s
 
 == mutation controls (scripts/map_keys_mutations.py)
 

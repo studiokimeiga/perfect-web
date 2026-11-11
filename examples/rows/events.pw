@@ -6,14 +6,28 @@
 //
 // What the device's runtime has to get right where a press is heard at the
 // document and a row's text is kept: a handler that stops its event, one on an
-// element inside another, an event that stays on its target, and a row whose
-// text reads a signal of the page.
+// element inside another, an event that stays on its target, a row whose text
+// reads a signal of the page, a row whose handler captures what the row does
+// not show (ADR-0427), and a row with no handler, whose holes alone say that
+// it changed.
 
 module rows.events
 
 import List
 
 type Item = Item { id: Int, name: String }
+
+// What a tag shows, what its handler reads and the row does not show, and
+// whether it is off, which a boolean attribute shows.
+type Tag = Tag { id: Int, shown: String, unseen: String, off: Bool }
+
+fn rehidden(tags: List<Tag>) -> List<Tag> !{} {
+    List.map(tags, (t) => Tag { id: t.id, shown: t.shown, unseen: "{t.unseen}!", off: t.off })
+}
+
+fn flipped(tags: List<Tag>) -> List<Tag> !{} {
+    List.map(tags, (t) => Tag { id: t.id, shown: t.shown, unseen: t.unseen, off: !t.off })
+}
 
 fn renamed(items: List<Item>, id: Int) -> List<Item> !{} {
     List.map(items, (i) => if i.id == id {
@@ -46,6 +60,8 @@ page Events() {
     signal picked: String = ""
     signal again: Bool = true
     signal numbers: List<Int> = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    signal tags: List<Tag> = [Tag { id: 1, shown: "one", unseen: "first", off: false }, Tag { id: 2, shown: "two", unseen: "second", off: true }]
+    signal plain: List<Item> = [Item { id: 1, name: "one" }, Item { id: 2, name: "two" }]
 
     view {
         <title>Events</title>
@@ -72,6 +88,14 @@ page Events() {
                     <li><span class="name">{item.name}</span> <span class="note">{note}</span> <input class="field" aria-label="Field" value={item.name} /> <button class="pick" type="button" on:press={resumable(captures = { item }) => picked = item.name}>Pick</button></li>
                 {/each}
             </ul>
+            <button id="plain-first" type="button" on:press={() => plain = renamed(plain, 2)}>Rename a plain row</button>
+            <button id="plain-again" type="button" on:press={() => plain = named(plain, 2, "again")}>Rename it again</button>
+            <button id="plain-moved" type="button" on:press={() => plain = List.reverse(named(plain, 1, "moved"))}>Rename and move a plain row</button>
+            <ol id="plain">
+                {#each plain as item (item.id)}
+                    <li>{item.name}</li>
+                {/each}
+            </ol>
             <button id="hide-again" type="button" on:press={() => again = false}>Hide again</button>
             <button id="show-again" type="button" on:press={() => again = true}>Show again</button>
             {#if again}
@@ -81,6 +105,14 @@ page Events() {
                     {/each}
                 </ol>
             {/if}
+            <button id="add-tag" type="button" on:press={() => tags = List.concat([Tag { id: 3, shown: "three", unseen: "third", off: false }], tags)}>Add a tag</button>
+            <button id="rehide" type="button" on:press={() => tags = rehidden(tags)}>Rehide</button>
+            <button id="flip" type="button" on:press={() => tags = flipped(tags)}>Flip</button>
+            <ul id="tags">
+                {#each tags as t (t.id)}
+                    <li><span class="shown">{t.shown}</span> <button class="tag" type="button" on:press={resumable(captures = { t }) => picked = t.unseen} on:keydown={resumable(captures = { t }) => picked = t.shown}>Tag</button> <span class="on" hidden={t.off}>on</span></li>
+                {/each}
+            </ul>
         </main>
     }
 }

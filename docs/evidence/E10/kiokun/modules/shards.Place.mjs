@@ -4,9 +4,10 @@ function trap(what) {
   throw new Error("trap: " + what);
 }
 
-// An Int is 64 bits, and a result that does not fit traps (ADR-0039).
+// An Int is 64 bits, and a result that does not fit traps (ADR-0039):
+// one that 64 bits wrap is not itself (ADR-0427).
 function int(v) {
-  if (v < -(2n ** 63n) || v > 2n ** 63n - 1n) trap("Int overflow");
+  if (BigInt.asIntN(64, v) !== v) trap("Int overflow");
   return v;
 }
 

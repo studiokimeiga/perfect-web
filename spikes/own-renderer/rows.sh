@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # The large list (the head-to-head's third app) in Pleris, built for the browser
 # suite and the head-to-head into `dist-rows`: its page, its handlers and its
-# plan, from `examples/rows` and the platform's packages. The browser suite
-# serves it on hosts of its own, one per engine (ROWS_PORTS).
+# plan, from `examples/rows/app.pw` and the platform's packages. The browser
+# suite serves it on hosts of its own, one per engine (ROWS_PORTS).
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -12,7 +12,7 @@ OUT="${PW_OUT:-$SPIKE/dist-rows}"
 ROWS=(
   "$REPO_ROOT/packages/pw-std/"*.pw
   "$REPO_ROOT/packages/pw-platform-web/"*.pw
-  "$REPO_ROOT/examples/rows/"*.pw
+  "$REPO_ROOT/examples/rows/${ROWS_PAGE:-app}.pw"
 )
 
 rm -rf "$OUT"

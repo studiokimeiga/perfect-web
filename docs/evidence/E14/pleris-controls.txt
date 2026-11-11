@@ -1,8 +1,8 @@
 E14 - every task's four controls, the Pleris stack
 
 produced by: just e14-pleris-controls
-commit: bd1aaeeb8ba8d969afb7228305df754828267487
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 71987e540d75e16819b7cf196055da31024d2688
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 node: v22.21.1  pnpm: 10.15.1  rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 T01 pleris: negative ok, positive ok, unsafe ok (caught at check), harness ok

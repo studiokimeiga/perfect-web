@@ -2,10 +2,12 @@
 // the device's runtime: whatever is pressed, in any order, the page shows what
 // its rows say; a row the press did not change is left as it was; and what is
 // heard at the document acts as it would on the element.
-// `examples/rows/app.pw`, `examples/rows/events.pw`.
+// `examples/rows/app.pw`, and the fixture `examples/rows/events.pw`, which
+// is a build of its own (`row-events.sh`): the large list's is the app alone,
+// as the head-to-head measures it, and a page alone in its build (ADR-0426).
 import { test } from "@playwright/test";
 import { expect } from "../assertion-expect.mjs";
-import { ROWS_PORTS } from "../host-metadata.mjs";
+import { ROWS_PORTS, ROW_EVENTS_PORTS } from "../host-metadata.mjs";
 
 test.use({
   baseURL: async ({}, use, testInfo) => {
@@ -16,7 +18,8 @@ test.use({
 async function open(page, path = "/") {
   page.errors = [];
   page.on("pageerror", (e) => page.errors.push(String(e)));
-  await page.goto(path);
+  const events = `http://127.0.0.1:${ROW_EVENTS_PORTS[test.info().project.name]}`;
+  await page.goto(path.startsWith("/events") ? `${events}${path}` : path);
   await page.waitForFunction(() => document.documentElement.dataset.pwReady === "1");
 }
 
@@ -241,6 +244,28 @@ test("a row changed and moved shows its new text where it now is", async ({ page
   expect(await names(page)).toEqual(["two", "renamed"]);
 });
 
+/** The event page, its list of rows with no handler rendered once on the
+ * device, which writes them whole (ADR-0421, decision 4): what comes next is
+ * made by key, and a row no handler captures from changes only where one of
+ * its holes does. */
+async function plainRendered(page) {
+  await open(page, "/events");
+  await page.click("#plain-first");
+  await expect(page.locator("#plain li")).toHaveText(["one", "renamed"]);
+}
+
+test("a row with no handler shows its new text", async ({ page }) => {
+  await plainRendered(page);
+  await page.click("#plain-again");
+  await expect(page.locator("#plain li")).toHaveText(["one", "again"]);
+});
+
+test("a row with no handler, changed and moved, shows its new text where it now is", async ({ page }) => {
+  await plainRendered(page);
+  await page.click("#plain-moved");
+  await expect(page.locator("#plain li")).toHaveText(["renamed", "moved"]);
+});
+
 test("new rows before the others go before them", async ({ page }) => {
   await listRendered(page);
   await page.click("#prepend");
@@ -377,4 +402,72 @@ test("a row whose value changed is written again", async ({ page }) => {
   await page.click("#rename");
   await expect(page.locator("#items .name").nth(1)).toHaveText("renamed");
   await expect(page.locator("#items .name").nth(0)).toHaveText("one");
+});
+
+// --- what a row's handlers capture (ADR-0427) --------------------------------
+
+test("a thousand rows a plan made hold no captured text, and a press on one reaches its row", async ({ page }) => {
+  await open(page);
+  await created(page);
+  await expect(page.locator("#tbody [data-pw-captures]")).toHaveCount(0);
+  await page.locator("#tbody tr").nth(6).locator(".select").click();
+  await expect(page.locator("#tbody tr").nth(6)).toHaveClass("danger");
+  await page.locator("#tbody tr").nth(6).locator(".remove").click();
+  await counted(page, 999);
+  await expect(page.locator("#tbody tr").nth(6).locator(".id")).toHaveText("8");
+});
+
+/** The tags as the document holds them, once the list's first render on the
+ * device has morphed them whole (ADR-0421, decision 4): each change after is
+ * the plan's. */
+async function tagsRendered(page) {
+  await open(page, "/events");
+  await page.click("#flip");
+  await expect(page.locator("#tags .on").nth(0)).toHaveAttribute("hidden", "");
+}
+
+const picked = (page) => page.evaluate(() => window.__pw.signals.picked);
+
+test("what a row's handler captures follows its row where nothing the row shows changed", async ({ page }) => {
+  await tagsRendered(page);
+  await page.click("#rehide");
+  await expect.poll(() => page.evaluate(() => window.__pw.signals.tags[1].unseen)).toBe("second!");
+  await page.locator("#tags .tag").nth(1).click();
+  await expect.poll(() => picked(page)).toBe("second!");
+  await page.locator("#tags .tag").nth(0).click();
+  await expect.poll(() => picked(page)).toBe("first!");
+});
+
+test("a row the plan takes over from the document keeps no captured text", async ({ page }) => {
+  await tagsRendered(page);
+  await expect(page.locator("#tags .tag").nth(1)).toHaveAttribute("data-pw-captures", /second/);
+  await page.click("#rehide");
+  await expect.poll(() => page.evaluate(() => window.__pw.signals.tags[1].unseen)).toBe("second!");
+  await expect(page.locator("#tags .tag").nth(1)).not.toHaveAttribute("data-pw-captures");
+});
+
+test("a row a plan made is pressed with what its row holds, then and after it changes", async ({ page }) => {
+  await tagsRendered(page);
+  await page.click("#add-tag");
+  await expect(page.locator("#tags .shown").nth(0)).toHaveText("three");
+  await expect(page.locator("#tags .tag").nth(0)).not.toHaveAttribute("data-pw-captures");
+  await page.locator("#tags .tag").nth(0).click();
+  await expect.poll(() => picked(page)).toBe("third");
+  await page.click("#rehide");
+  await expect.poll(() => page.evaluate(() => window.__pw.signals.tags[0].unseen)).toBe("third!");
+  await page.locator("#tags .tag").nth(0).click();
+  await expect.poll(() => picked(page)).toBe("third!");
+});
+
+test("a row's boolean attribute follows its row, on a row a plan made and one it took over", async ({ page }) => {
+  await tagsRendered(page);
+  // Flipped once by the list's first render: the first tag is off, the second on.
+  await expect(page.locator("#tags .on").nth(1)).not.toHaveAttribute("hidden");
+  await page.click("#add-tag");
+  await expect(page.locator("#tags .shown").nth(0)).toHaveText("three");
+  await expect(page.locator("#tags .on").nth(0)).not.toHaveAttribute("hidden");
+  await page.click("#flip");
+  await expect(page.locator("#tags .on").nth(0)).toHaveAttribute("hidden", "");
+  await expect(page.locator("#tags .on").nth(1)).not.toHaveAttribute("hidden");
+  await expect(page.locator("#tags .on").nth(2)).toHaveAttribute("hidden", "");
 });
