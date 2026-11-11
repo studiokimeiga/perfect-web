@@ -39,11 +39,14 @@ test("a speculation module that does not load sends the press unspeculated, and 
   globalThis[key] = imported.promise;
   const url = `data:text/javascript,${encodeURIComponent(`await globalThis[${JSON.stringify(key)}]; export const commands = {};`)}#module`;
   const log = [];
+  // What the developer is told, as the platform tells an error nothing
+  // caught (ADR-0431).
+  const reported = [];
   const actual = vm.runInNewContext(
     `${source("let speculationModule = null;", "function current(")}${source("async function speculate(", "/** The command answered:")}
     \n({ speculate, speculations })`,
     {
-      parts: { speculation: url }, log, speculationLoaded: null, nextSpeculation: 0,
+      parts: { speculation: url }, log, reportError: (error) => reported.push(error), speculationLoaded: null, nextSpeculation: 0,
       attempted: (specifier, attempts) => (attempts === 0 ? specifier : `${specifier}${attempts}`),
       pageCode: (_piece, url) => import(url),
       within: (promise) => promise, restoreSpeculation: async () => {}, current: () => null, render: () => {},
@@ -56,6 +59,7 @@ test("a speculation module that does not load sends the press unspeculated, and 
     assert.equal((await press).length, 0);
     assert.equal(log.length, 1);
     assert.match(log[0], /^reply sent unspeculated: test-only/);
+    assert.deepEqual(reported.map((e) => e.message), ["test-only ordinary import failure"]);
   } finally {
     delete globalThis[key];
   }
