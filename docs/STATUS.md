@@ -14,8 +14,11 @@ Pleris is behind in 36 rows and ahead in 77, most of the change the run's.
 Its full verify (42969400003, at `1de39139`, train-23 with it) passed 353 of
 354 recipes and the browser suites: `e14-guide`'s controls read a refusal
 by `pw check`'s summary, which guestbook.sh no longer prints, and read
-`pw build`'s now (75 of 75 killed here); the pull request's verify runs it
-again.
+`pw build`'s now (75 of 75 killed here). The pull request's verify
+(43024928007, at `a6162437`) passed it and `e14-guide-producer`, and the
+push to master records both (ADR-0281). Its audit found six of
+train-23's functions above their ceilings: two are added and four raised,
+each to the score it landed with and one (ADR-0411's analyzers).
 
 **Train-23, 2026-11-11:** on trains 20 and 21. What a device's page holds is
 what its build reaches (ADR-0428): its runtime holds no command's refusal
