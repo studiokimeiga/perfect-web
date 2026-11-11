@@ -2,6 +2,15 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**Train-23, 2026-11-11:** on trains 20 and 21. What a device's page holds is
+what its build reaches (ADR-0428): its runtime holds no command's refusal
+and reads a graph only where a file of its build writes one; what a page's
+handlers write alike is in its module once, where each name means what it
+meant in each; and a validator is 22 characters. The head-to-head at
+`06408e2d`: Pleris is behind in 50 rows and ahead in 79, from 60 and 84.
+TodoMVC's first load is 20,668 bytes as sent, Svelte's 20,821: the row is
+Pleris's. The large list's is 17,117 (13,242).
+
 **Trains 20 and 21, 2026-11-11:** on trains 18 and 19. A page alone in its
 build is one document (ADR-0426): its runtime, its code and its build's
 handler table in the page, one request where the large list made four and

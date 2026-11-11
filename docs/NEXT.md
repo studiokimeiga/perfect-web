@@ -6,6 +6,40 @@
 
 # Next
 
+## After train-23, 2026-11-11
+
+The head-to-head at `06408e2d` is behind in 50 rows, each a defect until it
+is fixed or recorded as a real trade-off (the owner's order of 2026-11-09).
+In order:
+
+1. **Bytes as a static host compresses them, and decoded**: TodoMVC 19,830
+   (Svelte's 16,992) and 65,758 (57,354); the large list 16,497 (12,567)
+   and 50,278 (35,039). As sent, TodoMVC's row is Pleris's now and the large
+   list's is 3,875 behind. What is left is the device's runtime, a renderer
+   of every page's templates; a page's own generated code is the answer.
+2. **The large list's presses**, as after trains 20 and 21 (below): train-22
+   is held back.
+3. **TodoMVC's add, to its frame**: one Chromium trace each of the first
+   add after a load (2026-11-11) has the press's task 9.3 ms to Svelte's
+   8.0, its handler and render 2.0 to 1.6 and the layout the key's
+   `keypress` forces 5.3 to 4.7, the frame right after the task in both:
+   most of the record's gap is the frame each task's end falls in. In
+   Firefox the handler runs after the key's dispatch and takes 5 ms to
+   Svelte's 2: that is the work to cut.
+4. **Warm first paint** (TodoMVC and the store, Chromium, 32 ms to 24): one
+   trace of a warm visit each has both pages' work done by 10 to 12 ms and
+   the first paint at 36 and 38 ms. The record's medians are the browser's
+   first frame after a navigation; more runs, and Firefox's, before a change.
+5. **What a document says of itself** (ADR-0428, why not the other ways):
+   the store's style's hash in every policy, 54 bytes a device's page does
+   not need; `pw-build` and `pw-delivery` on a device's page; one inline
+   style for three.
+6. **The store's source and its feature changes** (T03, T11), and the
+   2,422 lines of the store with the server code it needs, to Next.js's 151
+   and SvelteKit's 134: the declared data layer (track `data-path`). And the
+   large list's build and configuration lines, 29 to Svelte's 27.
+7. **WebKit's cut-off test**, as after trains 20 and 21 (below).
+
 ## After trains 20 and 21, 2026-11-11
 
 The head-to-head at `71987e54` is behind in 60 rows, each a defect until it

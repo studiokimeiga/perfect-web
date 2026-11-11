@@ -1,9 +1,10 @@
 # ADR-0428: what a device's page holds is what its build reaches
 
-Status: proposed 2026-11-11, on branch `perf/train-23-20261111`, under the
-owner's delegation of 2026-10-02 and order of 2026-10-25 ("deciding by best
-judgement without asking"), and the order of 2026-11-09 that every row of the
-head-to-head Svelte wins is a defect until it is fixed or recorded.
+Status: accepted 2026-11-11, landed with train-23. Proposed 2026-11-11, on
+branch `perf/train-23-20261111`, under the owner's delegation of 2026-10-02
+and order of 2026-10-25 ("deciding by best judgement without asking"), and
+the order of 2026-11-09 that every row of the head-to-head Svelte wins is a
+defect until it is fixed or recorded.
 Milestone: E14. Builds on ADR-0205, ADR-0302, ADR-0409, ADR-0412, ADR-0413
 and ADR-0426.
 
@@ -114,7 +115,20 @@ Packed again from train-21's builds (Brotli 11): TodoMVC's one script
 module 2,086 to 1,967 and the large list's 2,006 to 1,763. Each document's
 validator 42 bytes shorter.
 
-The head-to-head's figures at this branch's commit go here when it has run.
+The head-to-head at `06408e2d`, against the record at `71987e54`
+(Svelte's in brackets): of its rows Pleris is behind in 50 and ahead in 79,
+from 60 and 84.
+
+- **Bytes as sent**: TodoMVC's first load 20,668, from 21,203 (20,821): the
+  row is Pleris's. The large list's 17,117, from 17,819 (13,242). The
+  store's 28,811, from 28,846 (SvelteKit's 35,022), its runtime's validator.
+- **Bytes decoded**: TodoMVC 65,758 from 68,898 (57,354); the large list
+  50,278 from 54,522 (35,039).
+- **As a static host compresses them** (Brotli 11): TodoMVC 19,830 from
+  20,430 (16,992); the large list 16,497 from 17,155 (12,567). What is left
+  is the runtime's.
+- The other rows that crossed moved by one to three milliseconds, either way,
+  on presses this decision does not touch.
 
 ## Consequences
 
