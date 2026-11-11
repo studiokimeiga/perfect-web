@@ -10,7 +10,14 @@ reads it; nothing the runtime does reads a report. TodoMVC's one script is
 46,090 bytes, 15,360 with Brotli, from 48,670 and 16,054; the large list's
 43,760 and 14,950, from 45,639 and 15,526; a server's page's runtime 66,522
 and 21,811, from 71,794 and 23,247. A test that reads a report is tagged
-`@report`; `e14-device-runtime` runs the rest on the builds as served.
+`@report`; `e14-device-runtime` runs the rest on the builds as served. The
+head-to-head at `afb99fe3`: TodoMVC's first load as sent 19,908 (Svelte's
+20,821), decoded 63,178 (57,354); the large list's 16,507 (13,242) and
+48,399 (35,039); the store's 27,375 (SvelteKit's 35,020). Pleris is behind
+in 56 rows and best in 90, from 36 and 77: the rows that crossed to behind
+are presses and paints the train does not touch, each stack faster in this
+run, so that spreads which overlapped before no longer do. Its full verify
+(43053690319, at `afb99fe3`, 24 shards) is the train's record.
 
 **Train-24, 2026-11-11:** on train-23, landed with it. `pw build --dist`
 builds a whole app (ADR-0429): the standard packages added, a directory

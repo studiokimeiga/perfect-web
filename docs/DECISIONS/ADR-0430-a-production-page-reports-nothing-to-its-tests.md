@@ -96,7 +96,20 @@ before this and after, as written and with Brotli at 11:
 | TodoMVC's device runtime | 41,698 / 14,324 | 39,110 / 13,622 |
 | a server's page's runtime | 71,794 / 23,247 | 66,522 / 21,811 |
 
-The head-to-head's record is the train's, after its run.
+The head-to-head at `afb99fe3`, from `1de39139`:
+
+- **Bytes as sent**: TodoMVC's first load 19,908, from 20,668 (Svelte's
+  20,821), the row Pleris's as it was; the large list's 16,507, from 17,117
+  (13,242); the store's 27,375, from 28,811 (SvelteKit's 35,020).
+- **Decoded**: TodoMVC 63,178, from 65,758 (57,354); the large list 48,399,
+  from 50,278 (35,039); the store 72,137, from 77,409 (86,952).
+- **As a static host compresses them** (Brotli 11): TodoMVC 19,111, from
+  19,830 (16,992); the large list 15,897, from 16,497 (12,567).
+- Pleris is behind in 56 rows and best in 90, from 36 and 77. The 21 rows
+  that crossed to behind are presses and paints this decision does not
+  touch: every stack was faster in this run (creating 1,000 rows in
+  Chromium, warm, 33, 33 and 30 ms, from 41, 43 and 38), so that spreads
+  which overlapped before no longer do.
 
 ## Consequences
 
