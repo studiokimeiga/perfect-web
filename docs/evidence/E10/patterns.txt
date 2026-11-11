@@ -1,18 +1,18 @@
 ADR-0060 - nested and literal patterns
 
 produced by: just e10-patterns
-commit: 71987e540d75e16819b7cf196055da31024d2688
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1de391393d7364eae718a4f5715c3b1d183f0710
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
 == the checker (compiler/pw-core/tests/patterns.rs)
 
 test a_name_alone_binds_the_whole_value ... ok
-test a_bool_is_matched_by_true_and_false ... ok
 test a_literal_of_another_type_is_refused ... ok
 test a_case_nested_in_an_option_is_analysed ... ok
 test a_name_nested_in_a_pattern_is_typed_in_its_arm ... ok
+test a_bool_is_matched_by_true_and_false ... ok
 test an_option_nested_in_a_declared_case_is_analysed ... ok
 test no_list_of_literals_is_every_int ... ok
 test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
@@ -37,7 +37,7 @@ javascript: 3 queries over cases written alone, 600 calls, component and module 
 javascript: 5 queries over trees, 1000 calls, component and module agree (155 trapped in both)
 javascript: 5 queries over values held in place, 1000 calls, component and module agree (132 trapped in both)
 javascript: 97 queries, 19400 calls, component and module agree (1446 trapped in both)
-test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 83.08s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 86.02s
 
 == mutation controls (scripts/pattern_mutations.py)
 

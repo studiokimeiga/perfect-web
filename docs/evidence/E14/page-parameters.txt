@@ -1,8 +1,8 @@
 ADR-0231 - a page's parameter is rendered on every page
 
 produced by: just e14-page-parameters
-commit: 71987e540d75e16819b7cf196055da31024d2688
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1de391393d7364eae718a4f5715c3b1d183f0710
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -17,21 +17,21 @@ test a_value_the_template_computes_is_lifted_and_planned ... ok
 test what_a_host_does_not_compute_is_refused_by_name ... ok
 test a_member_an_imported_module_lacks_does_not_resolve ... ok
 test a_view_that_contains_itself_computes_nothing_yet_and_a_speculated_value_is_computed ... ok
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.62s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.84s
 test a_parameter_is_read_where_a_value_is_and_set_again_nowhere ... ok
 test what_reads_a_parameter_where_a_host_does_not_render_is_refused_by_name ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.22s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.49s
 
 == the server (spikes/own-renderer/server/src/main.rs)
 
 test tests::a_row_a_change_renders_reads_the_pages_parameters ... ok
 test tests::a_page_that_binds_a_query_is_rendered_with_its_parameters ... ok
 test tests::a_reply_is_its_threads_to_every_reader_and_no_timelines ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 1044 filtered out; finished in 1.57s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 1045 filtered out; finished in 1.72s
 
 == the feed in three engines (e2e/feed.spec.mjs)
 
-  72 passed (51.8s)
+  72 passed (59.7s)
 
 == mutation controls (scripts/page_parameters_mutations.py)
 

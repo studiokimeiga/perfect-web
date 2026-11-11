@@ -1,89 +1,68 @@
 Check and build validate one executable program
 
 produced by: just e14-check-is-build
-commit: 71987e540d75e16819b7cf196055da31024d2688
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1de391393d7364eae718a4f5715c3b1d183f0710
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
    Compiling pw-core v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-core)
-    Finished `test` profile [unoptimized] target(s) in 0.59s
+    Finished `test` profile [unoptimized] target(s) in 13.61s
      Running tests/check_is_build.rs (target/debug/deps/check_is_build-f59a2ef86092d725)
 
 running 12 tests
 test an_unmappable_export_keeps_its_declaration_identity ... ok
-test an_unread_placeholder_remains_supported ... ok
 test a_partial_inspection_plan_cannot_be_written ... ok
 test a_bad_signal_initial_value_is_not_hidden_by_a_page_refusal ... ok
+test an_unread_placeholder_remains_supported ... ok
 test editing_a_report_cannot_turn_a_refused_plan_into_a_validated_one ... ok
 test semantic_errors_short_circuit_support_diagnostics ... ok
 test cross_module_privacy_refusals_still_stop_complete_preparation ... ok
 test syntax_errors_never_lend_a_backend_prerequisite_proof ... ok
-test semantic_library_checks_do_not_promise_executable_support ... ok
 test the_public_callback_uses_the_exact_source_units ... ok
+test semantic_library_checks_do_not_promise_executable_support ... ok
 test a_wit_failure_preserves_independent_page_refusals_and_its_own_file ... ok
 test prepared_privacy_stays_with_its_program_and_qualified_namesakes ... ok
 
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
 
-   Compiling typenum v1.20.1
-   Compiling futures-sink v0.3.33
-   Compiling futures-core v0.3.33
-   Compiling tempfile v3.27.0
-   Compiling pw-cli v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-cli)
-   Compiling futures-channel v0.3.33
-   Compiling futures-util v0.3.33
-   Compiling generic-array v0.14.7
-   Compiling crypto-common v0.1.7
-   Compiling block-buffer v0.10.4
-   Compiling digest v0.10.7
-   Compiling sha2 v0.10.9
-   Compiling cranelift-codegen v0.135.8
-   Compiling wasmtime-environ v48.0.8
-   Compiling futures v0.3.33
-   Compiling wasmtime-internal-fiber v48.0.8
-   Compiling cranelift-native v0.135.8
-   Compiling wasmtime-internal-unwinder v48.0.8
-   Compiling cranelift-frontend v0.135.8
-   Compiling wasmtime-internal-cranelift v48.0.8
-   Compiling wasmtime v48.0.8
-   Compiling pw-host v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-host)
+   Compiling pw-core v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-core)
    Compiling pw-table-memory v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-table-memory)
-    Finished `test` profile [unoptimized] target(s) in 34.45s
-     Running tests/check_is_build.rs (target/debug/deps/check_is_build-37eeea2392a1bbb2)
+   Compiling pw-cli v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-cli)
+    Finished `test` profile [unoptimized] target(s) in 13.33s
+     Running tests/check_is_build.rs (target/debug/deps/check_is_build-734151484d2e52b0)
 
 running 8 tests
-test a_pure_computed_each_head_is_refused ... ok
 test a_page_cannot_depend_on_an_unwritten_query ... ok
-test a_part_cannot_compute_from_a_signal_and_a_query ... ok
+test a_pure_computed_each_head_is_refused ... ok
 test a_part_may_compute_from_two_signals ... ok
+test a_part_cannot_compute_from_a_signal_and_a_query ... ok
 test a_signal_in_a_title_is_refused_during_check ... ok
-test a_supported_neighbor_checks_and_builds ... ok
-test syntax_refusals_keep_clean_siblings_errors_and_skip_backends ... ok
 test wit_name_collisions_are_check_refusals ... ok
+test syntax_refusals_keep_clean_siblings_errors_and_skip_backends ... ok
+test a_supported_neighbor_checks_and_builds ... ok
 
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
 
 
    Compiling pw-cli v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-cli)
-    Finished `test` profile [unoptimized] target(s) in 0.61s
-     Running tests/check_build_corpus.rs (target/debug/deps/check_build_corpus-7721cbade0b52d84)
+    Finished `test` profile [unoptimized] target(s) in 0.52s
+     Running tests/check_build_corpus.rs (target/debug/deps/check_build_corpus-e1e085c4995a3155)
 
 running 3 tests
 accepted corpus: semantic language remains accepted; complete check/build agree on exactly 9 listed backend refusals
 test accepted_corpus_has_exactly_its_known_backend_refusals ... ok
 reference program roots: 9 complete checks and builds
 test reference_program_roots_stay_executable ... ok
-test every_rejected_corpus_program_has_the_same_check_and_build_codes has been running for over 60 seconds
 check/build corpus parity: 97 rejected programs
 test every_rejected_corpus_program_has_the_same_check_and_build_codes ... ok
 
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 76.22s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 39.84s
 
 
 Complete check program census; no artifacts
-commit: 71987e540d75e16819b7cf196055da31024d2688
-binary SHA256: 5d9dab125102543c527b34858ddfac1c32fd623ff5e44d7509ee1ba5bb98cfa6
-source diff SHA256: 08068435ad254b4a6b27ae52cbcf17d5776a6003f56b07d4bea0b353f349613d
+commit: 1de391393d7364eae718a4f5715c3b1d183f0710
+binary SHA256: f4bf8a767f426e01f309e35d4ebf5d848eda017264dee99468535c8bc17bdac0
+source diff SHA256: edc9ade0536aca76f020155832bc700c6f5858bfd59c704f3158ddaa50fabfab
 accepted: new-support-refusal; 93 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
@@ -1370,7 +1349,7 @@ program census: 467 program assemblies; 647 of 647 tracked source files covered;
 ............cleanup also failed: OSError('cleanup')
 ...
 ----------------------------------------------------------------------
-Ran 15 tests in 0.413s
+Ran 15 tests in 0.266s
 
 OK
 
@@ -1430,66 +1409,65 @@ a part computed from two signals is refused again: KILLED (1 of 99 tests fail)
 
    Compiling pw-core v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-core)
    Compiling pw-cli v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-cli)
-    Finished `dev` profile [unoptimized] target(s) in 16.44s
-Tue Nov 10 23:30:50 UTC 2026
-1.81 1.70 1.56 1/257 40831
+    Finished `dev` profile [unoptimized] target(s) in 13.02s
+Wed Nov 11 06:35:41 UTC 2026
+1.67 1.58 1.42 1/252 57798
 program sources SHA256:
 ba12572060cda7184606186d82adb3e4137dc193d427031bb52bd70a1d88a4ed  -
-13e1a5857f7bf29d09848286ceda8b8aa73c8e6c826a481176d49fa55e540490  target/debug/pw
+764c8540d88bb3d260bc3b180f8e8d95ae95520e8a3737d0cdc0ed085a7df6f1  target/debug/pw
 CLI sample 1
 pw check: 57 file(s), no diagnostics
-check CLI wall=3.46 user=3.44 sys=0.02 cpu=99%
+check CLI wall=1.95 user=1.93 sys=0.02 cpu=99%
 CLI sample 2
 pw check: 57 file(s), no diagnostics
-check CLI wall=3.50 user=3.48 sys=0.01 cpu=99%
+check CLI wall=1.93 user=1.91 sys=0.01 cpu=99%
 CLI sample 3
 pw check: 57 file(s), no diagnostics
-check CLI wall=3.46 user=3.43 sys=0.02 cpu=99%
-1.68 1.68 1.56 1/258 40842
+check CLI wall=1.97 user=1.95 sys=0.01 cpu=99%
+1.62 1.57 1.42 1/252 57809
    Compiling pw-core v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-core)
-    Finished `test` profile [unoptimized] target(s) in 16.20s
+    Finished `test` profile [unoptimized] target(s) in 11.98s
      Running tests/check_latency.rs (target/debug/deps/check_latency-746e556c8fe37fd3)
 
 running 11 tests
 test a_clock_that_reads_nothing_is_refused_by_the_control ... ok
-test a_checker_made_slow_is_not_let_through_by_the_waiting ... ok
 test a_loaded_machine_is_waited_on_while_it_may_quiet_down ... ok
+test a_checker_made_slow_is_not_let_through_by_the_waiting ... ok
+test a_quiet_machine_is_asked_for_seven_checks_and_no_more ... ok
 test producing_diagnostics_is_judged_at_the_fastest_of_both ... ok
 test the_ceiling_bounds_the_fastest_check_not_the_median ... ok
-test a_quiet_machine_is_asked_for_seven_checks_and_no_more ... ok
 test the_ceiling_is_800_ms_a_thousand_lines_and_a_check_is_judged_by_it ... ok
 test the_fastest_is_of_the_threads_cpu_time_not_of_the_wall_clock ... ok
 test the_waiting_ends_with_the_window_or_the_most_checks ... ok
-check-latency reject 1670.20 ms   (cpu 1669.97 ms; clean 3109.28 ms, cpu 3109.06 ms; the fastest of 7 and 7 checks, which the ratio bounds: cpu 1667.72 ms, clean cpu 3104.28 ms)
+check-latency reject  951.21 ms   (cpu 951.10 ms; clean 1701.54 ms, cpu 1700.40 ms; the fastest of 7 and 7 checks, which the ratio bounds: cpu 918.86 ms, clean cpu 1674.16 ms)
 test a_rejected_program_is_not_measurably_slower_than_a_clean_one ... ok
-test the_whole_program_and_one_edit_are_both_measured has been running for over 60 seconds
-check-latency cold   3104.22 ms   (cpu 3104.11 ms; 6643 lines, cpu 467.27 ms a thousand lines; the fastest of 7 checks, which the ceiling bounds: cpu 3096.50 ms, 466.13 ms a thousand lines)
-check-latency edit   3105.78 ms   (cpu 3105.51 ms; 57 files, no query system: an edit costs a full check)
+check-latency cold   1715.87 ms   (cpu 1715.70 ms; 6643 lines, cpu 258.27 ms a thousand lines; the fastest of 7 checks, which the ceiling bounds: cpu 1682.80 ms, 253.32 ms a thousand lines)
+check-latency edit   1705.04 ms   (cpu 1704.85 ms; 57 files, no query system: an edit costs a full check)
 test the_whole_program_and_one_edit_are_both_measured ... ok
 
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 77.00s
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 42.81s
 
 	Command being timed: "cargo test --locked -p pw-core --test check_latency -- --nocapture"
-	User time (seconds): 102.53
-	System time (seconds): 1.79
-	Percent of CPU this job got: 111%
-	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:33.24
+	User time (seconds): 60.09
+	System time (seconds): 1.37
+	Percent of CPU this job got: 112%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:54.83
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 1367308
+	Maximum resident set size (kbytes): 1369952
 	Average resident set size (kbytes): 0
-	Major (requiring I/O) page faults: 163
-	Minor (reclaiming a frame) page faults: 584835
-	Voluntary context switches: 1448
-	Involuntary context switches: 2472
+	Major (requiring I/O) page faults: 154
+	Minor (reclaiming a frame) page faults: 584349
+	Voluntary context switches: 1365
+	Involuntary context switches: 1680
 	Swaps: 0
 	File system inputs: 0
-	File system outputs: 438816
+	File system outputs: 438800
 	Socket messages sent: 0
 	Socket messages received: 0
 	Signals delivered: 0
 	Page size (bytes): 4096
 	Exit status: 0
-1.29 1.58 1.53 1/257 40920
+1.33 1.50 1.41 1/250 57876

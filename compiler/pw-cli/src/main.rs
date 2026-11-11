@@ -1191,13 +1191,25 @@ fn build_command(
     out: &str,
     released: Option<&pw_core::tables::Schema>,
 ) -> ExitCode {
+    match build_program(paths, out, released) {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(code) => code,
+    }
+}
+
+/// [`build_command`]'s work, its failure the code it exits with.
+fn build_program(
+    paths: &[&String],
+    out: &str,
+    released: Option<&pw_core::tables::Schema>,
+) -> Result<(), ExitCode> {
     let mut sources = Vec::new();
     for path in paths {
         let src = match std::fs::read_to_string(path) {
             Ok(src) => src,
             Err(error) => {
                 eprintln!("pw: cannot read {path}: {error}");
-                return ExitCode::from(2);
+                return Err(ExitCode::from(2));
             }
         };
         sources.push((path.to_string(), src));
@@ -1206,7 +1218,7 @@ fn build_command(
         Ok(b) => b,
         Err(e) => {
             eprintln!("pw: {e}");
-            return ExitCode::FAILURE;
+            return Err(ExitCode::FAILURE);
         }
     };
     let refused = build.refusals();
@@ -1215,7 +1227,7 @@ fn build_command(
             eprintln!("pw: refused: {r}");
         }
         eprintln!("pw: {} refusal(s); nothing written", refused.len());
-        return ExitCode::FAILURE;
+        return Err(ExitCode::FAILURE);
     }
 
     let result = build.write(std::path::Path::new(out));
@@ -1223,7 +1235,7 @@ fn build_command(
         Ok(lines) => lines,
         Err(e) => {
             eprintln!("pw: cannot write the build: {e}");
-            return ExitCode::from(2);
+            return Err(ExitCode::from(2));
         }
     };
     let handlers = build.handlers.len();
@@ -1240,6 +1252,200 @@ fn build_command(
     for l in lines {
         println!("{l}");
     }
+    Ok(())
+}
+
+/// A flag's value: what follows its first use, where it has one.
+fn flag_value(args: &[String], flag: &str) -> Option<String> {
+    args.iter()
+        .position(|a| a == flag)
+        .and_then(|i| args.get(i + 1))
+        .cloned()
+}
+
+/// Each value of a flag given more than once, in order.
+fn flag_values(args: &[String], flag: &str) -> Vec<String> {
+    args.windows(2)
+        .filter(|w| w[0] == flag)
+        .map(|w| w[1].clone())
+        .collect()
+}
+
+/// The repository this `pw` was built in: its standard packages, and the
+/// runtime and the packaging a host serves an app with (ADR-0149's
+/// `program_in` finds the packages the same way).
+fn repository() -> std::path::PathBuf {
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
+}
+
+/// **A whole app's sources** (ADR-0429): the standard packages (`pw-std`,
+/// `pw-platform-web`), which every app is built with, then each path as
+/// given, a directory as each `.pw` file under it; a file named twice, as an
+/// app that names a package's files does, is one source. Each absolute, as
+/// the record of what a build was built from names it.
+fn app_sources_of(paths: &[&String]) -> Result<Vec<String>, String> {
+    if paths.is_empty() {
+        return Err("give the app's sources: its .pw files, or a directory of them".to_string());
+    }
+    let packages = repository()
+        .join("packages")
+        .canonicalize()
+        .map_err(|e| format!("the standard packages: {e}"))?;
+    let mut given = Vec::new();
+    for path in paths {
+        let path = std::path::Path::new(path.as_str());
+        if path.is_dir() {
+            let before = given.len();
+            pw_files_under(path, &mut given).map_err(|e| format!("{}: {e}", path.display()))?;
+            if given.len() == before {
+                return Err(format!("{} holds no .pw file", path.display()));
+            }
+        } else {
+            given.push(path.to_path_buf());
+        }
+    }
+    let mut given: Vec<std::path::PathBuf> = given
+        .into_iter()
+        .map(|p| {
+            p.canonicalize()
+                .map_err(|e| format!("{}: {e}", p.display()))
+        })
+        .collect::<Result<_, _>>()?;
+    let mut sources = Vec::new();
+    for package in ["pw-std", "pw-platform-web"] {
+        pw_files_under(&packages.join(package), &mut sources)
+            .map_err(|e| format!("{package}: {e}"))?;
+    }
+    sources.append(&mut given);
+    let mut seen = std::collections::BTreeSet::new();
+    Ok(sources
+        .into_iter()
+        .filter(|p| seen.insert(p.clone()))
+        .map(|p| p.display().to_string())
+        .collect())
+}
+
+/// **`pw build --dist DIR`: a whole app, built to be served** (ADR-0429):
+/// its artifacts in `DIR/build`, as `pw build --out DIR/build` writes them;
+/// the runtime its host serves it with (`DIR/pw-runtime.mjs`); each
+/// `--asset FILE=NAME` beside it as `DIR/NAME`; with `--production`, packed
+/// as a production build is (`optimize-assets.mjs`, ADR-0399); and last,
+/// what it was built from, each source by its digest (`DIR/sources.json`,
+/// ADR-0166). A build stopped part-way names no sources, and the browser
+/// suite serves no such build. `DIR` is replaced: it must be new, empty or
+/// an app's build (its artifacts and its runtime).
+fn dist_command(
+    sources: &[&String],
+    dist: &str,
+    production: bool,
+    assets: &[String],
+    released: Option<&pw_core::tables::Schema>,
+) -> ExitCode {
+    use sha2::Digest as _;
+    let fail = |what: String| {
+        eprintln!("pw build: {what}");
+        ExitCode::from(2)
+    };
+    let dir = std::path::Path::new(dist);
+    // Each asset's file and the name it is served at, read before anything
+    // is touched: a name is a file of the build's own directory.
+    let mut copies = Vec::new();
+    for asset in assets {
+        let Some((file, name)) = asset.split_once('=') else {
+            return fail(format!("--asset {asset}: give FILE=NAME"));
+        };
+        let plain = !name.is_empty()
+            && name != "."
+            && name != ".."
+            && !name.contains(['/', '\\'])
+            && !["build", "sources.json", "pw-runtime.mjs"].contains(&name);
+        if !plain {
+            return fail(format!(
+                "--asset {asset}: NAME is a file name of the build's own, not one it writes"
+            ));
+        }
+        if !std::path::Path::new(file).is_file() {
+            return fail(format!("--asset {asset}: {file} is no file"));
+        }
+        copies.push((file.to_string(), name.to_string()));
+    }
+    if dir.exists() {
+        let mut entries = match std::fs::read_dir(dir) {
+            Ok(entries) => entries,
+            Err(e) => return fail(format!("{dist}: {e}")),
+        };
+        let empty = entries.next().is_none();
+        // An app's build is replaced; nothing else is: a directory that holds
+        // a `build/` of its own is no build of this command's.
+        let built =
+            dir.join("build/templates.json").is_file() && dir.join("pw-runtime.mjs").is_file();
+        if !empty && !built {
+            return fail(format!(
+                "{dist} holds files that are no app's build; give a new or empty directory"
+            ));
+        }
+        // The record first: a build stopped from here on names no sources.
+        let _ = std::fs::remove_file(dir.join("sources.json"));
+        if let Err(e) = std::fs::remove_dir_all(dir) {
+            return fail(format!("{dist} cannot be replaced: {e}"));
+        }
+    }
+    if let Err(e) = std::fs::create_dir_all(dir) {
+        return fail(format!("{dist}: {e}"));
+    }
+    let out = dir.join("build").display().to_string();
+    if let Err(code) = build_program(sources, &out, released) {
+        return code;
+    }
+    let spike = repository().join("spikes/own-renderer");
+    if let Err(e) = std::fs::copy(
+        spike.join("public/pw-runtime.mjs"),
+        dir.join("pw-runtime.mjs"),
+    ) {
+        return fail(format!("the runtime: {e}"));
+    }
+    for (file, name) in &copies {
+        if let Err(e) = std::fs::copy(file, dir.join(name)) {
+            return fail(format!("{file}: {e}"));
+        }
+    }
+    if production {
+        let packed = std::process::Command::new("node")
+            .arg(spike.join("optimize-assets.mjs"))
+            .arg(dir)
+            .status();
+        match packed {
+            Ok(status) if status.success() => {}
+            Ok(status) => return fail(format!("its packaging failed: {status}")),
+            Err(e) => return fail(format!("its packaging needs node: {e}")),
+        }
+    }
+    let mut files = Vec::new();
+    for source in sources {
+        let bytes = match std::fs::read(source.as_str()) {
+            Ok(bytes) => bytes,
+            Err(e) => return fail(format!("{source}: {e}")),
+        };
+        let sha256: String = sha2::Sha256::digest(&bytes)
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect();
+        files.push(serde_json::json!({ "path": source.as_str(), "sha256": sha256 }));
+    }
+    let record =
+        serde_json::to_string_pretty(&serde_json::json!({ "files": files })).unwrap_or_default();
+    if let Err(e) = std::fs::write(dir.join("sources.json"), format!("{record}\n")) {
+        return fail(format!("{dist}/sources.json: {e}"));
+    }
+    println!(
+        "pw build: an app of {} source(s) -> {dist}{}",
+        sources.len(),
+        if production {
+            ", packed for production"
+        } else {
+            ""
+        }
+    );
     ExitCode::SUCCESS
 }
 
@@ -1586,6 +1792,7 @@ fn run() -> ExitCode {
     // `--out DIR` takes a value, so DIR must not also be read as a source
     // path. Without this the output directory is opened as a `.pw` file and the
     // command fails after already having written its files.
+    let app_sources: Vec<String>;
     let mut paths: Vec<&String> = Vec::new();
     let mut skip_next = false;
     for (i, a) in args.iter().enumerate().skip(1) {
@@ -1593,7 +1800,12 @@ fn run() -> ExitCode {
             skip_next = false;
             continue;
         }
-        if a == "--out" || a == "--component" || a == "--schema-lock" {
+        if a == "--out"
+            || a == "--component"
+            || a == "--schema-lock"
+            || a == "--dist"
+            || a == "--asset"
+        {
             skip_next = true;
             continue;
         }
@@ -1602,6 +1814,23 @@ fn run() -> ExitCode {
         }
         let _ = i;
         paths.push(a);
+    }
+    // **A whole app** (`pw build --dist DIR`, ADR-0429): its sources, each
+    // directory given read for its `.pw` files and the standard packages
+    // added where it names none of them, checked as `pw check` checks them
+    // and then built.
+    let dist = (cmd == "build")
+        .then(|| flag_value(&args, "--dist"))
+        .flatten();
+    if dist.is_some() {
+        app_sources = match app_sources_of(&paths) {
+            Ok(sources) => sources,
+            Err(e) => {
+                eprintln!("pw build: {e}");
+                return ExitCode::from(2);
+            }
+        };
+        paths = app_sources.iter().collect();
     }
 
     if !matches!(
@@ -1649,6 +1878,13 @@ fn run() -> ExitCode {
             "  build --out DIR          every artifact: templates, handlers, components, contracts, WIT"
         );
         eprintln!(
+            "  build --dist DIR <app>   a whole app to serve: the standard packages added, its artifacts,"
+        );
+        eprintln!(
+            "                           the runtime, each --asset FILE=NAME, and its sources' digests;"
+        );
+        eprintln!("                           --production packs it as a production build");
+        eprintln!(
             "  --schema-lock FILE       (check, build) hold the program's tables to the schema released"
         );
         return ExitCode::from(2);
@@ -1678,7 +1914,21 @@ fn run() -> ExitCode {
         None => None,
     };
 
-    if cmd == "build" {
+    // What only a whole app's build takes.
+    let production = args.iter().any(|a| a == "--production");
+    let assets = flag_values(&args, "--asset");
+    if cmd == "build" && dist.is_none() && (production || !assets.is_empty()) {
+        eprintln!("pw build: --production and --asset build a whole app: give --dist DIR");
+        return ExitCode::from(2);
+    }
+    if cmd == "build" && dist.is_some() && flag_value(&args, "--out").is_some() {
+        eprintln!(
+            "pw build: --dist DIR builds a whole app, --out DIR its artifacts alone: one of them"
+        );
+        return ExitCode::from(2);
+    }
+
+    if cmd == "build" && dist.is_none() {
         let out = args
             .iter()
             .position(|a| a == "--out")
@@ -1686,6 +1936,9 @@ fn run() -> ExitCode {
             .cloned();
         let Some(out) = out else {
             eprintln!("usage: pw build --out DIR [--schema-lock FILE] <path.pw>...");
+            eprintln!(
+                "       pw build --dist DIR [--production] [--asset FILE=NAME]... <app path>..."
+            );
             return ExitCode::from(2);
         };
         let sources: Vec<&String> = paths.iter().copied().filter(|p| **p != out).collect();
@@ -1794,6 +2047,8 @@ fn run() -> ExitCode {
         hir: Option<pw_core::hir::Hir>,
     }
     let mut inputs = Vec::new();
+    // What a whole app's build is built from once it is checked.
+    let checking = paths.clone();
     for path in paths {
         let src = match std::fs::read_to_string(path) {
             Ok(s) => s,
@@ -1913,6 +2168,18 @@ fn run() -> ExitCode {
         } else {
             println!("pw check: {files} file(s), {errors} error(s), {warnings} warning(s)");
         }
+    }
+
+    // A whole app, its sources checked as `pw check` checks them: what they
+    // say is said first, and nothing is built from a program in error.
+    if let Some(dist) = &dist {
+        if errors > 0 {
+            println!(
+                "pw build: {files} file(s), {errors} error(s), {warnings} warning(s); nothing built"
+            );
+            return ExitCode::from(1);
+        }
+        return dist_command(&checking, dist, production, &assets, released.as_ref());
     }
 
     if errors > 0 {

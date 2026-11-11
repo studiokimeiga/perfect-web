@@ -1,30 +1,30 @@
 ADR-0063 - every name means one binding
 
 produced by: just e10-lexical
-commit: 71987e540d75e16819b7cf196055da31024d2688
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1de391393d7364eae718a4f5715c3b1d183f0710
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the scopes, and what each reader makes of them (compiler/pw-core/tests/lexical_scope.rs)
 
 test a_capture_is_typed_by_the_binding_its_name_means ... ok
-test a_for_loops_name_is_an_element_of_its_list ... ok
 test a_lambda_parameter_is_not_the_let_it_shadows ... ok
+test a_for_loops_name_is_an_element_of_its_list ... ok
 test a_name_bound_twice_carries_each_bindings_label ... ok
 test a_let_binds_from_the_next_statement ... ok
 test a_names_type_is_its_bindings_where_nothing_else_types_it ... ok
-test a_record_shorthand_names_the_binding_in_scope ... ok
 test a_secret_logged_through_a_for_loops_name_is_refused ... ok
+test a_record_shorthand_names_the_binding_in_scope ... ok
 test a_secret_logged_through_a_lambdas_parameter_is_refused ... ok
 test a_secret_rendered_through_an_each_blocks_name_is_refused ... ok
-test a_secret_string_logged_through_a_for_loops_name_is_refused ... ok
 test a_secret_string_logged_through_a_lambdas_parameter_is_refused ... ok
+test a_secret_string_logged_through_a_for_loops_name_is_refused ... ok
 test an_each_blocks_name_is_an_element_of_its_collection ... ok
 test two_arms_binding_one_name_are_typed_apart ... ok
 test two_arms_binding_one_name_in_a_template_are_typed_apart ... ok
 test two_branches_binding_one_name_are_typed_apart ... ok
 test two_lambdas_binding_one_name_are_typed_apart ... ok
-test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.41s
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.03s
 
 == a match over a name an arm binds again (compiler/pw-core/tests/match_exhaustiveness.rs)
 
@@ -43,7 +43,7 @@ test the_kiokun_slices_matches_are_proven_now ... ok
 test a_type_no_pattern_takes_apart_is_matched_by_a_name_only ... ok
 test what_the_analysis_cannot_read_is_blocked_not_proven ... ok
 test exhaustive_matches_pass ... ok
-test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.40s
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.07s
 
 == what the value relations decide: the store program
 

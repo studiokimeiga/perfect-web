@@ -37,6 +37,10 @@ function loadRenderer(server = true) {
     PW_VIEWS: true,
     PW_DIALOGS: true,
     PW_PLANS: true,
+    // Each value of a type that contains itself is read as the server reads
+    // it (ADR-0205), which the agreement holds: the renderer as a build that
+    // writes graphs has it (ADR-0428).
+    PW_GRAPHS: true,
   });
 }
 const renderer = loadRenderer();

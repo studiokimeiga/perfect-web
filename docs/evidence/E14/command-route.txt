@@ -1,14 +1,14 @@
 The command route - only a command is a request's to run
 
 produced by: just e14-command-route
-commit: 71987e540d75e16819b7cf196055da31024d2688
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1de391393d7364eae718a4f5715c3b1d183f0710
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == every hosted export that is no command (tests::a_query_posted_as_a_command_is_not_found)
 
 test tests::a_query_posted_as_a_command_is_not_found ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1046 filtered out; finished in 1.95s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1047 filtered out; finished in 1.32s
 
 == mutation controls (scripts/command_route_mutations.py)
 

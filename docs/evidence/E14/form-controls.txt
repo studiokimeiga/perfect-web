@@ -1,8 +1,8 @@
 ADR-0221 - a form control's value is written where HTML reads it
 
 produced by: just e14-form-controls
-commit: 71987e540d75e16819b7cf196055da31024d2688
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1de391393d7364eae718a4f5715c3b1d183f0710
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -13,12 +13,12 @@ test the_template_refuses_what_the_check_refuses ... ok
 test the_browser_sets_a_textareas_value_in_place ... ok
 test a_textareas_value_is_written_as_its_text ... ok
 test a_value_html_does_not_read_is_refused_where_it_is_written ... ok
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.80s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.54s
 
 == the renderer's escaping matrix (runtime/pw-render/tests/security.rs)
 
-test a_record_field_in_a_hostile_position_is_escaped_the_same_way ... ok
 test a_style_value_that_executes_is_dropped ... ok
+test a_record_field_in_a_hostile_position_is_escaped_the_same_way ... ok
 test a_javascript_url_is_replaced_rather_than_escaped ... ok
 test a_textareas_value_is_its_text ... ok
 test ampersands_are_encoded_in_both_contexts ... ok
@@ -41,11 +41,11 @@ accepted: 44/44 charter §16 categories covered
 rejected: 97 files
 rejected: 97/97 charter §16 categories covered
 corpus-check: OK
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 125.41s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 85.32s
 
 == bound fields in three engines (e2e/bind.spec.mjs)
 
-  24 passed (26.7s)
+  24 passed (13.9s)
 
 == mutation controls (scripts/form_controls_mutations.py)
 

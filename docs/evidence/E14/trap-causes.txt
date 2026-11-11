@@ -1,8 +1,8 @@
 ADR-0267 - a component's trap says why it stopped
 
 produced by: just e14-trap-causes
-commit: 71987e540d75e16819b7cf196055da31024d2688
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1de391393d7364eae718a4f5715c3b1d183f0710
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
@@ -11,7 +11,7 @@ node: v22.21.1
 test the_compiler_and_the_host_name_a_trap_alike ... ok
 test wasms_own_traps_say_theirs ... ok
 test a_trap_of_the_components_own_says_its_cause ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.74s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.76s
 
 == nodes that are no tree, by name (compiler/pw-conformance/tests/recursive_types.rs)
 
@@ -20,12 +20,12 @@ test a_host_answers_with_a_tree_and_is_given_one ... ok
 test a_sum_type_that_contains_itself_crosses_both_ways ... ok
 test a_value_as_deep_as_a_host_nests_stays_within_half_a_thread_stack ... ok
 test a_tree_is_rebuilt_in_the_component ... ok
-test a_tree_is_built_and_walked_in_the_component ... ok
 test nodes_that_are_not_one_tree_in_level_order_trap ... ok
+test a_tree_is_built_and_walked_in_the_component ... ok
 test two_types_that_hold_each_other_through_a_list_compile_inside_a_component ... ok
 test a_chain_deeper_than_any_stack_crosses_both_ways ... ok
 test trees_held_by_other_types_cross_both_ways ... ok
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.92s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.54s
 
 == the browser's module and the component agree by cause (compiler/pw-conformance/tests/javascript.rs)
 
@@ -39,7 +39,7 @@ test the_modules_entry_check_is_the_components ... ok
 test money_is_rounded_as_the_program_names_it ... ok
 test every_query_agrees_with_its_component_under_node has been running for over 60 seconds
 test every_query_agrees_with_its_component_under_node ... ok
-test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 75.98s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 77.41s
 
 == mutation controls (scripts/trap_cause_mutations.py)
 

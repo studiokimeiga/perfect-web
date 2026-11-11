@@ -1,8 +1,8 @@
 ADR-0302 - a refusal is told where the press was
 
 produced by: just e14-refusal
-commit: 71987e540d75e16819b7cf196055da31024d2688
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1de391393d7364eae718a4f5715c3b1d183f0710
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -13,8 +13,8 @@ test a_predicate_is_declared_once_in_a_program ... ok
 test a_command_whose_predicates_are_declared_is_the_control ... ok
 test a_predicate_imported_from_another_module_is_declared ... ok
 test says_is_a_predicates_alone ... ok
-test a_predicate_is_given_its_parameters_by_type ... ok
 test a_predicate_the_program_does_not_declare_is_the_deployments ... ok
+test a_predicate_is_given_its_parameters_by_type ... ok
 test a_predicate_says_what_a_reader_is_told ... ok
 test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 
@@ -32,9 +32,9 @@ test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 test tests::a_signal_page_holds_its_announcer ... ok
 test tests::sign_in::a_callback_another_browser_started_is_refused ... ok
-test tests::sign_in::a_control_is_shown_where_its_commands_predicate_holds ... ok
-test tests::sign_in::a_command_from_another_origin_is_refused ... ok
 test tests::sign_in::a_documents_answers_are_its_own_for_its_life ... ok
+test tests::sign_in::a_command_from_another_origin_is_refused ... ok
+test tests::sign_in::a_control_is_shown_where_its_commands_predicate_holds ... ok
 test tests::sign_in::a_fresh_sessions_cookie_is_http_only_and_unguessable ... ok
 test tests::sign_in::a_page_holds_its_announcer_from_the_first_byte ... ok
 test tests::sign_in::a_post_and_a_reply_are_their_signed_in_authors ... ok
@@ -56,17 +56,17 @@ test tests::sign_in::only_its_author_deletes_a_post ... ok
 test tests::sign_in::signing_out_forgets_the_principal ... ok
 test tests::sign_in::the_guest_models_reader_is_its_sessions_guest ... ok
 test tests::sign_in::the_relying_party_answers_the_routes_the_compiler_knows ... ok
-test tests::sign_in::a_token_not_this_sign_ins_is_refused ... ok
 test tests::sign_in::the_development_provider_signs_up_and_in_through_the_flow ... ok
+test tests::sign_in::a_token_not_this_sign_ins_is_refused ... ok
 test tests::sign_in::two_users_pages_never_share_private_parts ... ok
-test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 1018 filtered out; finished in 11.91s
+test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 1019 filtered out; finished in 11.48s
 
 == told where the press was, in three engines (e2e/identity.spec.mjs; recovery, lazy-handler, accessibility)
 
-  21 passed (30.4s)
-  3 passed (12.8s)
+  21 passed (29.5s)
+  3 passed (12.9s)
   3 passed (10.9s)
-  6 passed (29.7s)
+  6 passed (29.5s)
 
 == mutation controls, part 1 of 2 (scripts/refusal_mutations.py --part 1/2; part 2 is e14-refusal-2's)
 

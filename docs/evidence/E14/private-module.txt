@@ -1,8 +1,8 @@
 ADR-0324 - private says a declaration is not importable, and nothing more
 
 produced by: just e14-private-module
-commit: 71987e540d75e16819b7cf196055da31024d2688
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1de391393d7364eae718a4f5715c3b1d183f0710
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the ruling (compiler/pw-core/tests/private_is_not_importable.rs, user_visibility.rs)
@@ -10,12 +10,12 @@ rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 test a_private_function_is_its_modules_and_not_the_users ... ok
 test a_private_declaration_is_not_imported ... ok
 test private_on_a_declaration_that_holds_data_is_refused ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.91s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.46s
 test user_opens_a_declaration_of_each_kind_and_lowers_as_its_visibility ... ok
 test a_name_user_is_still_a_name ... ok
 test a_user_query_is_imported_and_read_on_a_user_page ... ok
 test a_user_querys_record_is_the_users_and_no_other_manifest_holds_it ... ok
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.49s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s
 
 == a user declaration after one with no body (compiler/pw-syntax)
 

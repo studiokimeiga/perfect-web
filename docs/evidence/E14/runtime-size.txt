@@ -1,8 +1,8 @@
 ADR-0188 - a page's runtime is bounded as it is sent, in every run
 
 produced by: just e14-runtime-size
-commit: 71987e540d75e16819b7cf196055da31024d2688
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1de391393d7364eae718a4f5715c3b1d183f0710
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -10,13 +10,13 @@ playwright: Version 1.58.0
 == the sizes, as served and as sent (e2e/runtime-size.spec.mjs, Chromium)
 
 EVIDENCE static-route-script-bytes=0 wasm-bytes=0
-  ✓  1 [chromium] › e2e/runtime-size.spec.mjs:74:1 › gate 7a: the static route ships no browser runtime (625ms)
-EVIDENCE interactive-script-bytes=239796 brotli=61891
+  ✓  1 [chromium] › e2e/runtime-size.spec.mjs:74:1 › gate 7a: the static route ships no browser runtime (629ms)
+EVIDENCE interactive-script-bytes=240572 brotli=62094
 EVIDENCE interactive-wasm-bytes=0 brotli=0
-EVIDENCE  script 239796 gzip=73939 brotli=61891 http://127.0.0.1:3148/pw-runtime.mjs
+EVIDENCE  script 240572 gzip=74188 brotli=62094 http://127.0.0.1:3148/pw-runtime.mjs
   ✓  2 [chromium] › e2e/runtime-size.spec.mjs:89:1 › gate 7b: the interactive route's runtime is bounded as it is sent (2.2s)
-  ✓  3 [chromium] › e2e/runtime-size.spec.mjs:107:1 › gate 7d: a block a signal decides is rendered with what the page already holds (260ms)
-  3 passed (10.1s)
+  ✓  3 [chromium] › e2e/runtime-size.spec.mjs:107:1 › gate 7d: a block a signal decides is rendered with what the page already holds (214ms)
+  3 passed (12.5s)
 
 == controls (scripts/runtime_size_mutations.py)
 

@@ -1,14 +1,14 @@
 ADR-0250 - let _ discards a value, and an acquisition is held or refused
 
 produced by: just e14-let-discard
-commit: 71987e540d75e16819b7cf196055da31024d2688
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1de391393d7364eae718a4f5715c3b1d183f0710
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the parser (compiler/pw-syntax/src/grammar.rs)
 
-test grammar::tests::a_let_may_discard_its_value ... ok
 test grammar::tests::a_discard_is_neither_mutable_nor_a_use ... ok
+test grammar::tests::a_let_may_discard_its_value ... ok
 test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 96 filtered out; finished in 0.00s
 
 == the checker (compiler/pw-core/tests/let_discard.rs)
@@ -17,15 +17,15 @@ test a_discard_is_no_value_to_read ... ok
 test a_discard_still_holds_its_annotation ... ok
 test a_generic_results_failure_is_not_lost_through_value_constructs ... ok
 test a_binding_from_branches_is_typed_by_them ... ok
-test a_resource_given_to_a_call_that_does_not_release_it_is_refused ... ok
 test a_resource_a_statement_drops_is_refused ... ok
+test a_resource_given_to_a_call_that_does_not_release_it_is_refused ... ok
 test a_resource_a_result_carries_is_held_with_a_question_mark ... ok
 test a_result_discarded_by_let_is_handled ... ok
 test a_resources_acquire_clause_holds_its_value ... ok
-test a_resource_kept_in_a_value_or_returned_by_a_function_value_is_refused ... ok
 test a_declaration_gives_its_caller_what_it_declares ... ok
+test a_resource_kept_in_a_value_or_returned_by_a_function_value_is_refused ... ok
 test an_affine_resource_discarded_is_refused_as_never_consumed ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 8.09s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 8.99s
 
 == the Koka translation, and a handler (koka_backend.rs, handlers.rs)
 
@@ -37,7 +37,7 @@ test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 20 filtered out; fin
 
 == the generality witnesses (examples/generality/affine_not_consumed_once)
 
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 170.07s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 182.96s
 
 == mutation controls (scripts/let_discard_mutations.py)
 

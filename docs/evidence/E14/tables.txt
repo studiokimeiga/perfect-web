@@ -1,12 +1,12 @@
 D1 - a table declares an app's data
 
 produced by: just e14-tables
-commit: 71987e540d75e16819b7cf196055da31024d2688
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1de391393d7364eae718a4f5715c3b1d183f0710
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
    Compiling pw-core v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-core)
-    Finished `test` profile [unoptimized] target(s) in 0.76s
+    Finished `test` profile [unoptimized] target(s) in 0.79s
      Running tests/tables.rs (target/debug/deps/tables-c453f2b783434e8b)
 
 running 36 tests
@@ -28,8 +28,8 @@ test an_additive_change_is_planned ... ok
 test full_validation_preserves_native_migration_unit_span_and_reason ... ok
 test its_imports_are_the_platforms_and_its_program_builds ... ok
 test a_type_changed_or_a_field_added_with_no_value_is_refused_unless_backfilled ... ok
-test generic_fields_project_their_arguments_recursively_and_a_change_is_destructive ... ok
 test pw0361_a_table_is_declared_in_the_module_of_its_name ... ok
+test generic_fields_project_their_arguments_recursively_and_a_change_is_destructive ... ok
 test pw0361_a_source_name_cannot_hide_another_database ... ok
 test pw0361_a_reference_names_a_table_keyed_by_its_fields_type ... ok
 test pw0361_generated_composite_records_have_one_shape_each ... ok
@@ -40,20 +40,20 @@ test pw0361_its_order_and_indexes_name_its_rows_fields ... ok
 test pw0364_all_reads_only_a_bounded_table ... ok
 test pw0361_its_key_names_its_rows_fields_of_types_every_adapter_keys ... ok
 test pw0362_its_rows_are_reached_only_through_its_functions ... ok
+test the_control_checks_clean_and_reads_each_clause ... ok
 test pw0365_every_reference_across_sources_is_warned_and_builds ... ok
 test tables_json_states_each_table_its_functions_and_their_order ... ok
-test the_control_checks_clean_and_reads_each_clause ... ok
 test source_ambiguity_is_not_an_alternate_copy_of_the_own_module ... ok
 test the_corpus_fixtures_that_name_a_release_are_held_to_it ... ok
 test two_indexes_cannot_describe_one_ordered_field_list ... ok
 
-test result: ok. 36 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.53s
+test result: ok. 36 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.50s
 
    Compiling pw-host v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-host)
    Compiling pw-cli v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-cli)
    Compiling pw-table-memory v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-table-memory)
-    Finished `test` profile [unoptimized] target(s) in 2.92s
-     Running tests/tables.rs (target/debug/deps/tables-e24f75ac190b4f45)
+    Finished `test` profile [unoptimized] target(s) in 2.96s
+     Running tests/tables.rs (target/debug/deps/tables-11596fb66f3d1e80)
 
 running 5 tests
 test an_invalid_or_missing_release_is_an_error ... ok
@@ -62,7 +62,7 @@ test a_released_schema_does_not_skip_executable_support ... ok
 test migration_refusals_precede_unsupported_backend_diagnostics ... ok
 test check_and_build_hold_a_program_to_the_named_release ... ok
 
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.73s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.69s
 
 
 == mutation controls (scripts/tables_mutations.py)

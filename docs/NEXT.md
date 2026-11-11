@@ -6,6 +6,58 @@
 
 # Next
 
+## After train-24, 2026-11-11
+
+The head-to-head at `1de39139` is behind in 36 rows. The list is as after
+train-23 (below), less the large list's build and configuration lines, which
+are Pleris's now, and with two more, each measured and not yet decided:
+
+1. **What a production page carries for its tests**: the runtime pushes
+   about 4.3 KB of text to the log the browser suites read (73 calls in the
+   source, 56 reads in 22 specs) and about 1.7 KB of error messages. A
+   production page needs neither; the suites read the log of a production
+   build. Either the suites watch what the page does, or a build for them
+   keeps it: a decision of its own, worth perhaps 1 to 1.5 KB of Brotli, part
+   of TodoMVC's 2.8 KB to Svelte as a static host compresses them.
+2. **A dialog's open state bound to a signal** (T11, the store's
+   confirmation before clearing its cart, 23 lines changed to SvelteKit's
+   22): the `{#if}` around the dialog and its `on:close` are what a
+   `bind:open` would say.
+
+## After train-23, 2026-11-11
+
+The head-to-head at `06408e2d` is behind in 50 rows, each a defect until it
+is fixed or recorded as a real trade-off (the owner's order of 2026-11-09).
+In order:
+
+1. **Bytes as a static host compresses them, and decoded**: TodoMVC 19,830
+   (Svelte's 16,992) and 65,758 (57,354); the large list 16,497 (12,567)
+   and 50,278 (35,039). As sent, TodoMVC's row is Pleris's now and the large
+   list's is 3,875 behind. What is left is the device's runtime, a renderer
+   of every page's templates; a page's own generated code is the answer.
+2. **The large list's presses**, as after trains 20 and 21 (below): train-22
+   is held back.
+3. **TodoMVC's add, to its frame**: one Chromium trace each of the first
+   add after a load (2026-11-11) has the press's task 9.3 ms to Svelte's
+   8.0, its handler and render 2.0 to 1.6 and the layout the key's
+   `keypress` forces 5.3 to 4.7, the frame right after the task in both:
+   most of the record's gap is the frame each task's end falls in. In
+   Firefox the handler runs after the key's dispatch and takes 5 ms to
+   Svelte's 2: that is the work to cut.
+4. **Warm first paint** (TodoMVC and the store, Chromium, 32 ms to 24): one
+   trace of a warm visit each has both pages' work done by 10 to 12 ms and
+   the first paint at 36 and 38 ms. The record's medians are the browser's
+   first frame after a navigation; more runs, and Firefox's, before a change.
+5. **What a document says of itself** (ADR-0428, why not the other ways):
+   the store's style's hash in every policy, 54 bytes a device's page does
+   not need; `pw-build` and `pw-delivery` on a device's page; one inline
+   style for three.
+6. **The store's source and its feature changes** (T03, T11), and the
+   2,422 lines of the store with the server code it needs, to Next.js's 151
+   and SvelteKit's 134: the declared data layer (track `data-path`). And the
+   large list's build and configuration lines, 29 to Svelte's 27.
+7. **WebKit's cut-off test**, as after trains 20 and 21 (below).
+
 ## After trains 20 and 21, 2026-11-11
 
 The head-to-head at `71987e54` is behind in 60 rows, each a defect until it

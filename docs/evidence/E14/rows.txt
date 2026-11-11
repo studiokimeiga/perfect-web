@@ -1,23 +1,23 @@
 a template's layout is not the page
 
 produced by: just e14-rows
-commit: 71987e540d75e16819b7cf196055da31024d2688
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1de391393d7364eae718a4f5715c3b1d183f0710
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == what the compiler writes (compiler/pw-core/tests/template_layout.rs)
 
+test a_list_keeps_a_space_a_style_could_show ... ok
 test a_blank_text_outside_any_element_of_those_is_one_space ... ok
 test a_run_with_a_line_break_beside_one_without_is_only_itself_made_one ... ok
-test a_list_keeps_a_space_a_style_could_show ... ok
 test a_value_is_content_however_it_is_written ... ok
 test a_space_that_is_no_white_space_stays ... ok
 test a_line_break_and_its_indentation_is_one_space ... ok
-test where_a_cell_can_show_text_the_layout_is_one_space ... ok
 test what_preformatted_elements_hold_is_content ... ok
 test where_text_is_never_shown_words_are_still_words ... ok
-test where_text_is_never_shown_the_layout_is_nothing ... ok
+test where_a_cell_can_show_text_the_layout_is_one_space ... ok
 test white_space_with_no_line_break_is_left_as_it_is_written ... ok
+test where_text_is_never_shown_the_layout_is_nothing ... ok
 test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
 == mutation controls (scripts/template_layout_mutations.py)

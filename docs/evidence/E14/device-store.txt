@@ -1,8 +1,8 @@
 ADR-0366 - a value the reader's device keeps
 
 produced by: just e14-device-store
-commit: 71987e540d75e16819b7cf196055da31024d2688
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1de391393d7364eae718a4f5715c3b1d183f0710
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -24,7 +24,7 @@ test pw6808_the_device_provides_it ... ok
 test pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do ... ok
 test the_browser_computes_from_several_values_and_a_list_in_its_block ... ok
 test a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals ... ok
-test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.83s
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.68s
 
 == the host (tests::todomvc, tests::device_store: the document of a page that holds one, and its steps)
 
@@ -33,14 +33,14 @@ test tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_deci
 test tests::todomvc::the_document_says_what_the_device_keeps ... ok
 test tests::todomvc::no_host_holds_a_todo ... ok
 test tests::todomvc::the_page_has_the_templates_markup ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 1042 filtered out; finished in 0.87s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 1043 filtered out; finished in 0.64s
 
 == the browser in three engines (e2e/device-store.spec.mjs, e2e/todomvc.spec.mjs)
 
 EVIDENCE localStorage limit (chromium): 5242880 UTF-16 code units
 EVIDENCE localStorage limit (firefox): 5242880 UTF-16 code units
 EVIDENCE localStorage limit (webkit): 5242880 UTF-16 code units
-  210 passed (2.0m)
+  210 passed (1.9m)
 
 == mutation controls (scripts/device_store_mutations.py)
 
@@ -51,26 +51,26 @@ baseline (todomvc): 54 passed, 0 failed
 
 running 15 tests
 test a_value_the_device_keeps_checks_and_its_page_holds_it ... ok
-test a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name ... ok
 test a_value_computed_in_a_browser_rows_is_each_rows ... ok
+test a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name ... ok
 test generic_reverse_keeps_a_device_rows_type_and_privacy ... FAILED
-test pw6801_no_command_is_given_what_the_device_keeps ... FAILED
 test pw6802_no_query_is_keyed_by_what_the_device_keeps ... FAILED
+test pw6801_no_command_is_given_what_the_device_keeps ... FAILED
 test pw6803_nothing_the_browser_sends_holds_it ... FAILED
 test pw6805_privacy_other_than_the_devices_is_a_later_versions ... ok
 test pw6804_the_device_keeps_its_own ... ok
 test pw6807_a_form_the_device_can_hold ... ok
 test pw6808_the_device_provides_it ... ok
 test pw6806_a_pure_step_for_each_earlier_version ... ok
-test pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do ... ok
 test the_browser_computes_from_several_values_and_a_list_in_its_block ... ok
+test pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do ... ok
 test a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals ... ok
 
 failures:
 
 ---- generic_reverse_keeps_a_device_rows_type_and_privacy stdout ----
 
-thread 'generic_reverse_keeps_a_device_rows_type_and_privacy' (150958) panicked at compiler/pw-core/tests/device_store.rs:69:5:
+thread 'generic_reverse_keeps_a_device_rows_type_and_privacy' (135485) panicked at compiler/pw-core/tests/device_store.rs:69:5:
 PW6801 `sent` expected of
 module t
 
@@ -111,61 +111,9 @@ page P() {
 got []
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
----- pw6801_no_command_is_given_what_the_device_keeps stdout ----
-
-thread 'pw6801_no_command_is_given_what_the_device_keeps' (150959) panicked at compiler/pw-core/tests/device_store.rs:69:5:
-PW6801 ``word` is kept on this device, and `send`'s argument is sent to the server` expected of
-module t
-
-import List
-import String
-import events.{ KeyEvent }
-
-type Note = Note { id: Int, text: String }
-
-signal word: String = ""
-    storage  device "t-word"
-    privacy  Device
-    conflict last_write_wins
-
-fn first_text(notes: List<Note>) -> String !{} {
-    match List.get(notes, 0) {
-        Some(n) => n.text,
-        None => "",
-    }
-}
-
-command send(text: String) -> Result<String, String>
-    requires Anyone
-    idempotent_by Press
-{
-    Ok(text)
-}
-
-opaque type Press = String
-
-page P() {
-    route "/"
-    cache private
-
-    signal draft: String = ""
-
-    view {
-        <title>t</title>
-        <main>
-            <button type="button" on:press={() => match send(word) {
-                Ok(_) => draft = "",
-                Err(_) => draft = "",
-            }}>Send</button>
-        </main>
-    }
-}
-
-got []
-
 ---- pw6802_no_query_is_keyed_by_what_the_device_keeps stdout ----
 
-thread 'pw6802_no_query_is_keyed_by_what_the_device_keeps' (150960) panicked at compiler/pw-core/tests/device_store.rs:69:5:
+thread 'pw6802_no_query_is_keyed_by_what_the_device_keeps' (135487) panicked at compiler/pw-core/tests/device_store.rs:69:5:
 PW6802 ``shown` holds what this device keeps, and a query's key is sent to the server` expected of
 module t
 
@@ -213,9 +161,61 @@ page P() {
 
 got []
 
+---- pw6801_no_command_is_given_what_the_device_keeps stdout ----
+
+thread 'pw6801_no_command_is_given_what_the_device_keeps' (135486) panicked at compiler/pw-core/tests/device_store.rs:69:5:
+PW6801 ``word` is kept on this device, and `send`'s argument is sent to the server` expected of
+module t
+
+import List
+import String
+import events.{ KeyEvent }
+
+type Note = Note { id: Int, text: String }
+
+signal word: String = ""
+    storage  device "t-word"
+    privacy  Device
+    conflict last_write_wins
+
+fn first_text(notes: List<Note>) -> String !{} {
+    match List.get(notes, 0) {
+        Some(n) => n.text,
+        None => "",
+    }
+}
+
+command send(text: String) -> Result<String, String>
+    requires Anyone
+    idempotent_by Press
+{
+    Ok(text)
+}
+
+opaque type Press = String
+
+page P() {
+    route "/"
+    cache private
+
+    signal draft: String = ""
+
+    view {
+        <title>t</title>
+        <main>
+            <button type="button" on:press={() => match send(word) {
+                Ok(_) => draft = "",
+                Err(_) => draft = "",
+            }}>Send</button>
+        </main>
+    }
+}
+
+got []
+
 ---- pw6803_nothing_the_browser_sends_holds_it stdout ----
 
-thread 'pw6803_nothing_the_browser_sends_holds_it' (150961) panicked at compiler/pw-core/tests/device_store.rs:69:5:
+thread 'pw6803_nothing_the_browser_sends_holds_it' (135488) panicked at compiler/pw-core/tests/device_store.rs:69:5:
 PW6803 ``href` is an address, which the browser sends` expected of
 module t
 
@@ -263,7 +263,7 @@ failures:
     pw6802_no_query_is_keyed_by_what_the_device_keeps
     pw6803_nothing_the_browser_sends_holds_it
 
-test result: FAILED. 11 passed; 4 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.51s
+test result: FAILED. 11 passed; 4 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.46s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -282,15 +282,15 @@ test pw6803_nothing_the_browser_sends_holds_it ... ok
 test pw6807_a_form_the_device_can_hold ... ok
 test pw6808_the_device_provides_it ... ok
 test pw6806_a_pure_step_for_each_earlier_version ... ok
-test pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do ... ok
 test the_browser_computes_from_several_values_and_a_list_in_its_block ... ok
+test pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do ... ok
 test a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals ... ok
 
 failures:
 
 ---- generic_reverse_keeps_a_device_rows_type_and_privacy stdout ----
 
-thread 'generic_reverse_keeps_a_device_rows_type_and_privacy' (151341) panicked at compiler/pw-core/tests/device_store.rs:69:5:
+thread 'generic_reverse_keeps_a_device_rows_type_and_privacy' (135868) panicked at compiler/pw-core/tests/device_store.rs:69:5:
 PW6801 `sent` expected of
 module t
 
@@ -333,7 +333,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- pw6801_no_command_is_given_what_the_device_keeps stdout ----
 
-thread 'pw6801_no_command_is_given_what_the_device_keeps' (151343) panicked at compiler/pw-core/tests/device_store.rs:69:5:
+thread 'pw6801_no_command_is_given_what_the_device_keeps' (135869) panicked at compiler/pw-core/tests/device_store.rs:69:5:
 PW6801 ``word` is kept on this device, and `send`'s argument is sent to the server` expected of
 module t
 
@@ -388,7 +388,7 @@ failures:
     generic_reverse_keeps_a_device_rows_type_and_privacy
     pw6801_no_command_is_given_what_the_device_keeps
 
-test result: FAILED. 13 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.52s
+test result: FAILED. 13 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.51s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -401,8 +401,8 @@ test a_value_computed_in_a_browser_rows_is_each_rows ... ok
 test pw6802_no_query_is_keyed_by_what_the_device_keeps ... ok
 test generic_reverse_keeps_a_device_rows_type_and_privacy ... ok
 test pw6804_the_device_keeps_its_own ... ok
-test pw6803_nothing_the_browser_sends_holds_it ... ok
 test pw6805_privacy_other_than_the_devices_is_a_later_versions ... ok
+test pw6803_nothing_the_browser_sends_holds_it ... ok
 test pw6801_no_command_is_given_what_the_device_keeps ... FAILED
 test pw6807_a_form_the_device_can_hold ... ok
 test pw6808_the_device_provides_it ... ok
@@ -415,7 +415,7 @@ failures:
 
 ---- pw6801_no_command_is_given_what_the_device_keeps stdout ----
 
-thread 'pw6801_no_command_is_given_what_the_device_keeps' (151729) panicked at compiler/pw-core/tests/device_store.rs:69:5:
+thread 'pw6801_no_command_is_given_what_the_device_keeps' (136253) panicked at compiler/pw-core/tests/device_store.rs:69:5:
 PW6801 `whether `send` is sent is decided by `notes`` expected of
 module t
 
@@ -472,7 +472,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     pw6801_no_command_is_given_what_the_device_keeps
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.71s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.62s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -499,7 +499,7 @@ failures:
 
 ---- pw6802_no_query_is_keyed_by_what_the_device_keeps stdout ----
 
-thread 'pw6802_no_query_is_keyed_by_what_the_device_keeps' (152114) panicked at compiler/pw-core/tests/device_store.rs:69:5:
+thread 'pw6802_no_query_is_keyed_by_what_the_device_keeps' (136638) panicked at compiler/pw-core/tests/device_store.rs:69:5:
 PW6802 ``shown` holds what this device keeps, and a query's key is sent to the server` expected of
 module t
 
@@ -552,7 +552,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     pw6802_no_query_is_keyed_by_what_the_device_keeps
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.74s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.60s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -560,26 +560,26 @@ a query's key is not asked [core]: KILLED (1 of 15 tests fail)
 
 running 15 tests
 test a_value_the_device_keeps_checks_and_its_page_holds_it ... ok
-test a_value_computed_in_a_browser_rows_is_each_rows ... ok
 test a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name ... ok
+test a_value_computed_in_a_browser_rows_is_each_rows ... ok
 test pw6802_no_query_is_keyed_by_what_the_device_keeps ... ok
-test pw6803_nothing_the_browser_sends_holds_it ... FAILED
 test generic_reverse_keeps_a_device_rows_type_and_privacy ... ok
+test pw6803_nothing_the_browser_sends_holds_it ... FAILED
 test pw6805_privacy_other_than_the_devices_is_a_later_versions ... ok
 test pw6804_the_device_keeps_its_own ... ok
-test pw6801_no_command_is_given_what_the_device_keeps ... ok
-test pw6807_a_form_the_device_can_hold ... ok
 test pw6806_a_pure_step_for_each_earlier_version ... ok
-test pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do ... ok
+test pw6801_no_command_is_given_what_the_device_keeps ... ok
 test pw6808_the_device_provides_it ... ok
+test pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do ... ok
 test the_browser_computes_from_several_values_and_a_list_in_its_block ... ok
+test pw6807_a_form_the_device_can_hold ... ok
 test a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals ... ok
 
 failures:
 
 ---- pw6803_nothing_the_browser_sends_holds_it stdout ----
 
-thread 'pw6803_nothing_the_browser_sends_holds_it' (152499) panicked at compiler/pw-core/tests/device_store.rs:69:5:
+thread 'pw6803_nothing_the_browser_sends_holds_it' (137023) panicked at compiler/pw-core/tests/device_store.rs:69:5:
 PW6803 ``href` is an address, which the browser sends` expected of
 module t
 
@@ -625,7 +625,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     pw6803_nothing_the_browser_sends_holds_it
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.72s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.90s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -637,13 +637,13 @@ test a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name .
 test a_value_computed_in_a_browser_rows_is_each_rows ... ok
 test pw6802_no_query_is_keyed_by_what_the_device_keeps ... ok
 test generic_reverse_keeps_a_device_rows_type_and_privacy ... ok
-test pw6803_nothing_the_browser_sends_holds_it ... FAILED
 test pw6804_the_device_keeps_its_own ... ok
+test pw6803_nothing_the_browser_sends_holds_it ... FAILED
 test pw6805_privacy_other_than_the_devices_is_a_later_versions ... ok
 test pw6801_no_command_is_given_what_the_device_keeps ... ok
 test pw6807_a_form_the_device_can_hold ... ok
-test pw6808_the_device_provides_it ... ok
 test pw6806_a_pure_step_for_each_earlier_version ... ok
+test pw6808_the_device_provides_it ... ok
 test pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do ... ok
 test the_browser_computes_from_several_values_and_a_list_in_its_block ... ok
 test a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals ... ok
@@ -652,7 +652,7 @@ failures:
 
 ---- pw6803_nothing_the_browser_sends_holds_it stdout ----
 
-thread 'pw6803_nothing_the_browser_sends_holds_it' (152882) panicked at compiler/pw-core/tests/device_store.rs:69:5:
+thread 'pw6803_nothing_the_browser_sends_holds_it' (137406) panicked at compiler/pw-core/tests/device_store.rs:69:5:
 PW6803 `is inside a `<form>`, which sends its controls' values` expected of
 module t
 
@@ -692,7 +692,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     pw6803_nothing_the_browser_sends_holds_it
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.77s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.61s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -700,8 +700,8 @@ a form's control is not asked [core]: KILLED (1 of 15 tests fail)
 
 running 15 tests
 test a_value_the_device_keeps_checks_and_its_page_holds_it ... ok
-test a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name ... ok
 test a_value_computed_in_a_browser_rows_is_each_rows ... ok
+test a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name ... ok
 test pw6802_no_query_is_keyed_by_what_the_device_keeps ... ok
 test generic_reverse_keeps_a_device_rows_type_and_privacy ... ok
 test pw6804_the_device_keeps_its_own ... FAILED
@@ -719,7 +719,7 @@ failures:
 
 ---- pw6804_the_device_keeps_its_own stdout ----
 
-thread 'pw6804_the_device_keeps_its_own' (153266) panicked at compiler/pw-core/tests/device_store.rs:69:5:
+thread 'pw6804_the_device_keeps_its_own' (137790) panicked at compiler/pw-core/tests/device_store.rs:69:5:
 PW6804 ``word` is kept on this device, and this value is Session` expected of
 module t
 
@@ -773,7 +773,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     pw6804_the_device_keeps_its_own
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.92s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.57s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -792,15 +792,15 @@ test pw6801_no_command_is_given_what_the_device_keeps ... ok
 test pw6807_a_form_the_device_can_hold ... ok
 test pw6806_a_pure_step_for_each_earlier_version ... ok
 test pw6808_the_device_provides_it ... FAILED
-test the_browser_computes_from_several_values_and_a_list_in_its_block ... ok
 test pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do ... ok
+test the_browser_computes_from_several_values_and_a_list_in_its_block ... ok
 test a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals ... ok
 
 failures:
 
 ---- pw6808_the_device_provides_it stdout ----
 
-thread 'pw6808_the_device_provides_it' (153657) panicked at compiler/pw-core/tests/device_store.rs:69:5:
+thread 'pw6808_the_device_provides_it' (138178) panicked at compiler/pw-core/tests/device_store.rs:69:5:
 PW6808 `is kept by the device, and this gives it a value of its own` expected of
 module t
 
@@ -838,7 +838,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     pw6808_the_device_provides_it
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.95s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.63s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -846,8 +846,8 @@ a provide of one is not refused [core]: KILLED (1 of 15 tests fail)
 
 running 15 tests
 test a_value_the_device_keeps_checks_and_its_page_holds_it ... ok
-test a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name ... ok
 test a_value_computed_in_a_browser_rows_is_each_rows ... ok
+test a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name ... ok
 test pw6802_no_query_is_keyed_by_what_the_device_keeps ... FAILED
 test generic_reverse_keeps_a_device_rows_type_and_privacy ... ok
 test pw6804_the_device_keeps_its_own ... ok
@@ -865,7 +865,7 @@ failures:
 
 ---- pw6802_no_query_is_keyed_by_what_the_device_keeps stdout ----
 
-thread 'pw6802_no_query_is_keyed_by_what_the_device_keeps' (154034) panicked at compiler/pw-core/tests/device_store.rs:69:5:
+thread 'pw6802_no_query_is_keyed_by_what_the_device_keeps' (138554) panicked at compiler/pw-core/tests/device_store.rs:69:5:
 PW6802 ``shown` holds what this device keeps, and a query's key is sent to the server` expected of
 module t
 
@@ -918,7 +918,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- pw6801_no_command_is_given_what_the_device_keeps stdout ----
 
-thread 'pw6801_no_command_is_given_what_the_device_keeps' (154033) panicked at compiler/pw-core/tests/device_store.rs:69:5:
+thread 'pw6801_no_command_is_given_what_the_device_keeps' (138553) panicked at compiler/pw-core/tests/device_store.rs:69:5:
 PW6801 ``draft` holds what this device keeps, and `send`'s argument is sent to the server` expected of
 module t
 
@@ -976,7 +976,7 @@ failures:
     pw6801_no_command_is_given_what_the_device_keeps
     pw6802_no_query_is_keyed_by_what_the_device_keeps
 
-test result: FAILED. 13 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.68s
+test result: FAILED. 13 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.59s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -994,16 +994,16 @@ test pw6804_the_device_keeps_its_own ... ok
 test pw6803_nothing_the_browser_sends_holds_it ... ok
 test pw6807_a_form_the_device_can_hold ... ok
 test pw6808_the_device_provides_it ... ok
+test pw6806_a_pure_step_for_each_earlier_version ... ok
 test pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do ... ok
 test the_browser_computes_from_several_values_and_a_list_in_its_block ... ok
-test pw6806_a_pure_step_for_each_earlier_version ... ok
 test a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals ... ok
 
 failures:
 
 ---- generic_reverse_keeps_a_device_rows_type_and_privacy stdout ----
 
-thread 'generic_reverse_keeps_a_device_rows_type_and_privacy' (154415) panicked at compiler/pw-core/tests/device_store.rs:774:5:
+thread 'generic_reverse_keeps_a_device_rows_type_and_privacy' (138936) panicked at compiler/pw-core/tests/device_store.rs:774:5:
 module t
 
 import List
@@ -1044,7 +1044,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- pw6801_no_command_is_given_what_the_device_keeps stdout ----
 
-thread 'pw6801_no_command_is_given_what_the_device_keeps' (154416) panicked at compiler/pw-core/tests/device_store.rs:373:5:
+thread 'pw6801_no_command_is_given_what_the_device_keeps' (138937) panicked at compiler/pw-core/tests/device_store.rs:373:5:
 assertion `left == right` failed: module t
 
 import List
@@ -1099,7 +1099,7 @@ failures:
     generic_reverse_keeps_a_device_rows_type_and_privacy
     pw6801_no_command_is_given_what_the_device_keeps
 
-test result: FAILED. 13 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.77s
+test result: FAILED. 13 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.51s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -1126,7 +1126,7 @@ failures:
 
 ---- pw6801_no_command_is_given_what_the_device_keeps stdout ----
 
-thread 'pw6801_no_command_is_given_what_the_device_keeps' (154799) panicked at compiler/pw-core/tests/device_store.rs:373:5:
+thread 'pw6801_no_command_is_given_what_the_device_keeps' (139321) panicked at compiler/pw-core/tests/device_store.rs:373:5:
 assertion `left == right` failed: module t
 
 import List
@@ -1181,7 +1181,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     pw6801_no_command_is_given_what_the_device_keeps
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.73s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.54s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -1200,15 +1200,15 @@ test pw6801_no_command_is_given_what_the_device_keeps ... ok
 test pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do ... FAILED
 test pw6808_the_device_provides_it ... ok
 test pw6807_a_form_the_device_can_hold ... ok
-test pw6806_a_pure_step_for_each_earlier_version ... ok
 test the_browser_computes_from_several_values_and_a_list_in_its_block ... ok
+test pw6806_a_pure_step_for_each_earlier_version ... ok
 test a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals ... ok
 
 failures:
 
 ---- pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do stdout ----
 
-thread 'pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do' (155188) panicked at compiler/pw-core/tests/device_store.rs:69:5:
+thread 'pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do' (139709) panicked at compiler/pw-core/tests/device_store.rs:69:5:
 PW6805 `under no name` expected of
 module t
 
@@ -1248,7 +1248,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.75s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.59s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -1261,21 +1261,21 @@ test a_value_computed_in_a_browser_rows_is_each_rows ... ok
 test pw6802_no_query_is_keyed_by_what_the_device_keeps ... ok
 test generic_reverse_keeps_a_device_rows_type_and_privacy ... ok
 test pw6804_the_device_keeps_its_own ... ok
-test pw6803_nothing_the_browser_sends_holds_it ... ok
 test pw6805_privacy_other_than_the_devices_is_a_later_versions ... ok
+test pw6803_nothing_the_browser_sends_holds_it ... ok
 test pw6801_no_command_is_given_what_the_device_keeps ... ok
-test pw6807_a_form_the_device_can_hold ... ok
 test pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do ... FAILED
 test pw6808_the_device_provides_it ... ok
-test the_browser_computes_from_several_values_and_a_list_in_its_block ... ok
+test pw6807_a_form_the_device_can_hold ... ok
 test pw6806_a_pure_step_for_each_earlier_version ... ok
+test the_browser_computes_from_several_values_and_a_list_in_its_block ... ok
 test a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals ... ok
 
 failures:
 
 ---- pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do stdout ----
 
-thread 'pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do' (155571) panicked at compiler/pw-core/tests/device_store.rs:69:5:
+thread 'pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do' (140092) panicked at compiler/pw-core/tests/device_store.rs:69:5:
 PW6805 `a name is of letters, digits` expected of
 module t
 
@@ -1313,7 +1313,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.99s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.58s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -1340,7 +1340,7 @@ failures:
 
 ---- pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do stdout ----
 
-thread 'pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do' (155954) panicked at compiler/pw-core/tests/device_store.rs:69:5:
+thread 'pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do' (140478) panicked at compiler/pw-core/tests/device_store.rs:69:5:
 PW6805 `which `notes` is kept under too` expected of
 module t
 
@@ -1383,7 +1383,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.73s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.56s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -1410,17 +1410,17 @@ test pw6805_privacy_other_than_the_devices_is_a_later_versions ... FAILED
 test pw6803_nothing_the_browser_sends_holds_it ... ok
 test pw6801_no_command_is_given_what_the_device_keeps ... ok
 test pw6807_a_form_the_device_can_hold ... ok
-test pw6808_the_device_provides_it ... ok
 test pw6806_a_pure_step_for_each_earlier_version ... ok
-test the_browser_computes_from_several_values_and_a_list_in_its_block ... ok
+test pw6808_the_device_provides_it ... ok
 test pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do ... ok
+test the_browser_computes_from_several_values_and_a_list_in_its_block ... ok
 test a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals ... ok
 
 failures:
 
 ---- pw6805_privacy_other_than_the_devices_is_a_later_versions stdout ----
 
-thread 'pw6805_privacy_other_than_the_devices_is_a_later_versions' (156338) panicked at compiler/pw-core/tests/device_store.rs:69:5:
+thread 'pw6805_privacy_other_than_the_devices_is_a_later_versions' (140860) panicked at compiler/pw-core/tests/device_store.rs:69:5:
 PW6805 `keeps only the device's own` expected of
 module t
 
@@ -1458,7 +1458,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     pw6805_privacy_other_than_the_devices_is_a_later_versions
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.83s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.57s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -1478,24 +1478,24 @@ running 15 tests
 test a_value_the_device_keeps_checks_and_its_page_holds_it ... ok
 test a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name ... ok
 test a_value_computed_in_a_browser_rows_is_each_rows ... ok
-test pw6802_no_query_is_keyed_by_what_the_device_keeps ... ok
 test generic_reverse_keeps_a_device_rows_type_and_privacy ... ok
-test pw6803_nothing_the_browser_sends_holds_it ... ok
+test pw6802_no_query_is_keyed_by_what_the_device_keeps ... ok
 test pw6804_the_device_keeps_its_own ... ok
+test pw6803_nothing_the_browser_sends_holds_it ... ok
 test pw6805_privacy_other_than_the_devices_is_a_later_versions ... ok
 test pw6801_no_command_is_given_what_the_device_keeps ... ok
 test pw6807_a_form_the_device_can_hold ... ok
+test pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do ... FAILED
 test pw6808_the_device_provides_it ... ok
 test pw6806_a_pure_step_for_each_earlier_version ... ok
 test the_browser_computes_from_several_values_and_a_list_in_its_block ... ok
-test pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do ... FAILED
 test a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals ... ok
 
 failures:
 
 ---- pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do stdout ----
 
-thread 'pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do' (156724) panicked at compiler/pw-core/tests/device_store.rs:69:5:
+thread 'pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do' (141244) panicked at compiler/pw-core/tests/device_store.rs:69:5:
 PW6805 `offers `last_write_wins` alone` expected of
 module t
 
@@ -1533,7 +1533,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.12s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.97s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -1560,7 +1560,7 @@ failures:
 
 ---- pw6806_a_pure_step_for_each_earlier_version stdout ----
 
-thread 'pw6806_a_pure_step_for_each_earlier_version' (157108) panicked at compiler/pw-core/tests/device_store.rs:69:5:
+thread 'pw6806_a_pure_step_for_each_earlier_version' (141628) panicked at compiler/pw-core/tests/device_store.rs:69:5:
 PW6806 `names 0 migrations where it needs 1` expected of
 module t
 
@@ -1599,7 +1599,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     pw6806_a_pure_step_for_each_earlier_version
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.78s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.58s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -1626,7 +1626,7 @@ failures:
 
 ---- pw6806_a_pure_step_for_each_earlier_version stdout ----
 
-thread 'pw6806_a_pure_step_for_each_earlier_version' (157491) panicked at compiler/pw-core/tests/device_store.rs:69:5:
+thread 'pw6806_a_pure_step_for_each_earlier_version' (142012) panicked at compiler/pw-core/tests/device_store.rs:69:5:
 PW6806 `does not say it performs nothing` expected of
 module t
 
@@ -1670,7 +1670,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     pw6806_a_pure_step_for_each_earlier_version
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.80s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.61s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -1683,21 +1683,21 @@ test a_value_computed_in_a_browser_rows_is_each_rows ... ok
 test pw6802_no_query_is_keyed_by_what_the_device_keeps ... ok
 test generic_reverse_keeps_a_device_rows_type_and_privacy ... ok
 test pw6804_the_device_keeps_its_own ... ok
-test pw6803_nothing_the_browser_sends_holds_it ... ok
 test pw6805_privacy_other_than_the_devices_is_a_later_versions ... ok
+test pw6803_nothing_the_browser_sends_holds_it ... ok
 test pw6801_no_command_is_given_what_the_device_keeps ... ok
 test pw6807_a_form_the_device_can_hold ... ok
-test pw6806_a_pure_step_for_each_earlier_version ... FAILED
 test pw6808_the_device_provides_it ... ok
-test pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do ... ok
 test the_browser_computes_from_several_values_and_a_list_in_its_block ... ok
+test pw6806_a_pure_step_for_each_earlier_version ... FAILED
+test pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do ... ok
 test a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals ... ok
 
 failures:
 
 ---- pw6806_a_pure_step_for_each_earlier_version stdout ----
 
-thread 'pw6806_a_pure_step_for_each_earlier_version' (157880) panicked at compiler/pw-core/tests/device_store.rs:69:5:
+thread 'pw6806_a_pure_step_for_each_earlier_version' (142396) panicked at compiler/pw-core/tests/device_store.rs:69:5:
 PW6806 ``from_1` makes a `List<Note>`, and `from_2`, the next step, takes a `List<NoteV1>`` expected of
 module t
 
@@ -1745,7 +1745,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     pw6806_a_pure_step_for_each_earlier_version
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.79s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.74s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -1753,17 +1753,17 @@ steps need not chain [core]: KILLED (1 of 15 tests fail)
 
 running 15 tests
 test a_value_the_device_keeps_checks_and_its_page_holds_it ... ok
-test a_value_computed_in_a_browser_rows_is_each_rows ... ok
 test a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name ... ok
+test a_value_computed_in_a_browser_rows_is_each_rows ... ok
 test pw6802_no_query_is_keyed_by_what_the_device_keeps ... ok
 test generic_reverse_keeps_a_device_rows_type_and_privacy ... ok
 test pw6804_the_device_keeps_its_own ... ok
 test pw6805_privacy_other_than_the_devices_is_a_later_versions ... ok
 test pw6803_nothing_the_browser_sends_holds_it ... ok
 test pw6801_no_command_is_given_what_the_device_keeps ... ok
+test pw6806_a_pure_step_for_each_earlier_version ... FAILED
 test pw6807_a_form_the_device_can_hold ... ok
 test pw6808_the_device_provides_it ... ok
-test pw6806_a_pure_step_for_each_earlier_version ... FAILED
 test pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do ... ok
 test the_browser_computes_from_several_values_and_a_list_in_its_block ... ok
 test a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals ... ok
@@ -1772,7 +1772,7 @@ failures:
 
 ---- pw6806_a_pure_step_for_each_earlier_version stdout ----
 
-thread 'pw6806_a_pure_step_for_each_earlier_version' (158263) panicked at compiler/pw-core/tests/device_store.rs:69:5:
+thread 'pw6806_a_pure_step_for_each_earlier_version' (142779) panicked at compiler/pw-core/tests/device_store.rs:69:5:
 PW6806 `makes a `List<NoteV1>`, and `notes` is a `List<Note>`` expected of
 module t
 
@@ -1816,7 +1816,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     pw6806_a_pure_step_for_each_earlier_version
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.23s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.63s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -1843,7 +1843,7 @@ failures:
 
 ---- pw6807_a_form_the_device_can_hold stdout ----
 
-thread 'pw6807_a_form_the_device_can_hold' (158648) panicked at compiler/pw-core/tests/device_store.rs:69:5:
+thread 'pw6807_a_form_the_device_can_hold' (143163) panicked at compiler/pw-core/tests/device_store.rs:69:5:
 PW6807 `is not kept by the first version` expected of
 module t
 
@@ -1881,7 +1881,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     pw6807_a_form_the_device_can_hold
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.84s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.58s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -1908,7 +1908,7 @@ failures:
 
 ---- pw6807_a_form_the_device_can_hold stdout ----
 
-thread 'pw6807_a_form_the_device_can_hold' (159032) panicked at compiler/pw-core/tests/device_store.rs:69:5:
+thread 'pw6807_a_form_the_device_can_hold' (143546) panicked at compiler/pw-core/tests/device_store.rs:69:5:
 PW6807 `holds a `where`` expected of
 module t
 
@@ -1946,71 +1946,34 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     pw6807_a_form_the_device_can_hold
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.90s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.56s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
 an opaque type with a where is kept [core]: KILLED (1 of 15 tests fail)
 
 running 15 tests
-test a_value_the_device_keeps_checks_and_its_page_holds_it ... FAILED
 test a_value_computed_in_a_browser_rows_is_each_rows ... FAILED
+test a_value_the_device_keeps_checks_and_its_page_holds_it ... FAILED
 test a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name ... FAILED
 test a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals ... FAILED
 test generic_reverse_keeps_a_device_rows_type_and_privacy ... FAILED
-test pw6801_no_command_is_given_what_the_device_keeps ... FAILED
 test pw6802_no_query_is_keyed_by_what_the_device_keeps ... FAILED
 test pw6803_nothing_the_browser_sends_holds_it ... FAILED
-test pw6804_the_device_keeps_its_own ... FAILED
+test pw6801_no_command_is_given_what_the_device_keeps ... FAILED
 test pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do ... FAILED
-test pw6806_a_pure_step_for_each_earlier_version ... FAILED
 test pw6805_privacy_other_than_the_devices_is_a_later_versions ... FAILED
-test pw6808_the_device_provides_it ... ok
+test pw6804_the_device_keeps_its_own ... FAILED
+test pw6806_a_pure_step_for_each_earlier_version ... FAILED
 test pw6807_a_form_the_device_can_hold ... FAILED
+test pw6808_the_device_provides_it ... ok
 test the_browser_computes_from_several_values_and_a_list_in_its_block ... FAILED
 
 failures:
 
----- a_value_the_device_keeps_checks_and_its_page_holds_it stdout ----
-
-thread 'a_value_the_device_keeps_checks_and_its_page_holds_it' (159407) panicked at compiler/pw-core/tests/device_store.rs:63:5:
-assertion `left == right` failed: module t
-
-import List
-import String
-import events.{ KeyEvent }
-
-type Note = Note { id: Int, text: String }
-
-signal notes: List<Note> = []
-    storage  device "t-notes"
-    privacy  Device
-    conflict last_write_wins
-
-
-
-page P() {
-    route "/"
-    cache private
-
-    signal draft: String = ""
-
-    view {
-        <title>t</title>
-        <main>
-            <p id="count">{List.length(notes)}</p>
-            <button type="button" on:press={() => notes = List.concat(notes, [Note { id: 1, text: "a" }])}>Add</button>
-        </main>
-    }
-}
-
-  left: ["PW5305 nothing provides `t.notes` to `P`, and `P` reads it here"]
- right: []
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-
 ---- a_value_computed_in_a_browser_rows_is_each_rows stdout ----
 
-thread 'a_value_computed_in_a_browser_rows_is_each_rows' (159406) panicked at compiler/pw-core/tests/device_store.rs:63:5:
+thread 'a_value_computed_in_a_browser_rows_is_each_rows' (143920) panicked at compiler/pw-core/tests/device_store.rs:63:5:
 assertion `left == right` failed: module t
 
 import List
@@ -2048,10 +2011,47 @@ page P() {
 
   left: ["PW5305 nothing provides `t.notes` to `P`, and `P` reads it here"]
  right: []
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- a_value_the_device_keeps_checks_and_its_page_holds_it stdout ----
+
+thread 'a_value_the_device_keeps_checks_and_its_page_holds_it' (143921) panicked at compiler/pw-core/tests/device_store.rs:63:5:
+assertion `left == right` failed: module t
+
+import List
+import String
+import events.{ KeyEvent }
+
+type Note = Note { id: Int, text: String }
+
+signal notes: List<Note> = []
+    storage  device "t-notes"
+    privacy  Device
+    conflict last_write_wins
+
+
+
+page P() {
+    route "/"
+    cache private
+
+    signal draft: String = ""
+
+    view {
+        <title>t</title>
+        <main>
+            <p id="count">{List.length(notes)}</p>
+            <button type="button" on:press={() => notes = List.concat(notes, [Note { id: 1, text: "a" }])}>Add</button>
+        </main>
+    }
+}
+
+  left: ["PW5305 nothing provides `t.notes` to `P`, and `P` reads it here"]
+ right: []
 
 ---- a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name stdout ----
 
-thread 'a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name' (159405) panicked at compiler/pw-core/tests/device_store.rs:63:5:
+thread 'a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name' (143919) panicked at compiler/pw-core/tests/device_store.rs:63:5:
 assertion `left == right` failed: module t
 
 import List
@@ -2097,7 +2097,7 @@ page P() {
 
 ---- a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals stdout ----
 
-thread 'a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals' (159404) panicked at compiler/pw-core/tests/device_store.rs:63:5:
+thread 'a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals' (143918) panicked at compiler/pw-core/tests/device_store.rs:63:5:
 assertion `left == right` failed: module t
 
 import List
@@ -2177,7 +2177,7 @@ page P() {
 
 ---- generic_reverse_keeps_a_device_rows_type_and_privacy stdout ----
 
-thread 'generic_reverse_keeps_a_device_rows_type_and_privacy' (159408) panicked at compiler/pw-core/tests/device_store.rs:63:5:
+thread 'generic_reverse_keeps_a_device_rows_type_and_privacy' (143922) panicked at compiler/pw-core/tests/device_store.rs:63:5:
 assertion `left == right` failed: module t
 
 import List
@@ -2210,64 +2210,9 @@ page P() {
   left: ["PW5305 nothing provides `t.notes` to `P`, and `P` reads it here"]
  right: []
 
----- pw6801_no_command_is_given_what_the_device_keeps stdout ----
-
-thread 'pw6801_no_command_is_given_what_the_device_keeps' (159409) panicked at compiler/pw-core/tests/device_store.rs:73:5:
-only PW6801 expected of
-module t
-
-import List
-import String
-import events.{ KeyEvent }
-
-type Note = Note { id: Int, text: String }
-
-signal word: String = ""
-    storage  device "t-word"
-    privacy  Device
-    conflict last_write_wins
-
-fn first_text(notes: List<Note>) -> String !{} {
-    match List.get(notes, 0) {
-        Some(n) => n.text,
-        None => "",
-    }
-}
-
-command send(text: String) -> Result<String, String>
-    requires Anyone
-    idempotent_by Press
-{
-    Ok(text)
-}
-
-opaque type Press = String
-
-page P() {
-    route "/"
-    cache private
-
-    signal draft: String = ""
-
-    view {
-        <title>t</title>
-        <main>
-            <button type="button" on:press={() => match send(word) {
-                Ok(_) => draft = "",
-                Err(_) => draft = "",
-            }}>Send</button>
-        </main>
-    }
-}
-
-got [
-    "PW6801 `word` is kept on this device, and `send`'s argument is sent to the server",
-    "PW5305 nothing provides `t.word` to `P`, and `P` reads it here",
-]
-
 ---- pw6802_no_query_is_keyed_by_what_the_device_keeps stdout ----
 
-thread 'pw6802_no_query_is_keyed_by_what_the_device_keeps' (159410) panicked at compiler/pw-core/tests/device_store.rs:73:5:
+thread 'pw6802_no_query_is_keyed_by_what_the_device_keeps' (143924) panicked at compiler/pw-core/tests/device_store.rs:73:5:
 only PW6802 expected of
 module t
 
@@ -2320,7 +2265,7 @@ got [
 
 ---- pw6803_nothing_the_browser_sends_holds_it stdout ----
 
-thread 'pw6803_nothing_the_browser_sends_holds_it' (159411) panicked at compiler/pw-core/tests/device_store.rs:73:5:
+thread 'pw6803_nothing_the_browser_sends_holds_it' (143925) panicked at compiler/pw-core/tests/device_store.rs:73:5:
 only PW6803 expected of
 module t
 
@@ -2364,9 +2309,139 @@ got [
     "PW5305 nothing provides `t.word` to `P`, and `P` reads it here",
 ]
 
+---- pw6801_no_command_is_given_what_the_device_keeps stdout ----
+
+thread 'pw6801_no_command_is_given_what_the_device_keeps' (143923) panicked at compiler/pw-core/tests/device_store.rs:73:5:
+only PW6801 expected of
+module t
+
+import List
+import String
+import events.{ KeyEvent }
+
+type Note = Note { id: Int, text: String }
+
+signal word: String = ""
+    storage  device "t-word"
+    privacy  Device
+    conflict last_write_wins
+
+fn first_text(notes: List<Note>) -> String !{} {
+    match List.get(notes, 0) {
+        Some(n) => n.text,
+        None => "",
+    }
+}
+
+command send(text: String) -> Result<String, String>
+    requires Anyone
+    idempotent_by Press
+{
+    Ok(text)
+}
+
+opaque type Press = String
+
+page P() {
+    route "/"
+    cache private
+
+    signal draft: String = ""
+
+    view {
+        <title>t</title>
+        <main>
+            <button type="button" on:press={() => match send(word) {
+                Ok(_) => draft = "",
+                Err(_) => draft = "",
+            }}>Send</button>
+        </main>
+    }
+}
+
+got [
+    "PW6801 `word` is kept on this device, and `send`'s argument is sent to the server",
+    "PW5305 nothing provides `t.word` to `P`, and `P` reads it here",
+]
+
+---- pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do stdout ----
+
+thread 'pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do' (143928) panicked at compiler/pw-core/tests/device_store.rs:73:5:
+only PW6805 expected of
+module t
+
+import List
+import String
+import events.{ KeyEvent }
+
+type Note = Note { id: Int, text: String }
+
+signal notes: List<Note> = []
+    privacy  Device
+    conflict last_write_wins
+
+
+
+page P() {
+    route "/"
+    cache private
+
+    
+
+    view {
+        <title>t</title>
+        <main>
+            <p id="count">{List.length(notes)}</p>
+        </main>
+    }
+}
+
+got [
+    "PW6805 `notes` has a value, and says nowhere to keep it",
+    "PW5305 nothing provides `t.notes` to `P`, and `P` reads it here",
+]
+
+---- pw6805_privacy_other_than_the_devices_is_a_later_versions stdout ----
+
+thread 'pw6805_privacy_other_than_the_devices_is_a_later_versions' (143927) panicked at compiler/pw-core/tests/device_store.rs:73:5:
+only PW6805 expected of
+module t
+
+import List
+import String
+import events.{ KeyEvent }
+
+type Note = Note { id: Int, text: String }
+
+signal notes: List<Note> = []
+    storage  device "t-notes"
+    privacy  Public
+    conflict last_write_wins
+
+
+
+page P() {
+    route "/"
+    cache private
+
+    
+
+    view {
+        <title>t</title>
+        <main>
+            <p id="count">{List.length(notes)}</p>
+        </main>
+    }
+}
+
+got [
+    "PW6805 `notes` is `privacy Public`, and the first version keeps only the device's own: `privacy Device`",
+    "PW5305 nothing provides `t.notes` to `P`, and `P` reads it here",
+]
+
 ---- pw6804_the_device_keeps_its_own stdout ----
 
-thread 'pw6804_the_device_keeps_its_own' (159412) panicked at compiler/pw-core/tests/device_store.rs:73:5:
+thread 'pw6804_the_device_keeps_its_own' (143926) panicked at compiler/pw-core/tests/device_store.rs:73:5:
 only PW6804 expected of
 module t
 
@@ -2418,46 +2493,9 @@ got [
     "PW6804 `word` is kept on this device, and this value is Session<SessionId>",
 ]
 
----- pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do stdout ----
-
-thread 'pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do' (159414) panicked at compiler/pw-core/tests/device_store.rs:73:5:
-only PW6805 expected of
-module t
-
-import List
-import String
-import events.{ KeyEvent }
-
-type Note = Note { id: Int, text: String }
-
-signal notes: List<Note> = []
-    privacy  Device
-    conflict last_write_wins
-
-
-
-page P() {
-    route "/"
-    cache private
-
-    
-
-    view {
-        <title>t</title>
-        <main>
-            <p id="count">{List.length(notes)}</p>
-        </main>
-    }
-}
-
-got [
-    "PW6805 `notes` has a value, and says nowhere to keep it",
-    "PW5305 nothing provides `t.notes` to `P`, and `P` reads it here",
-]
-
 ---- pw6806_a_pure_step_for_each_earlier_version stdout ----
 
-thread 'pw6806_a_pure_step_for_each_earlier_version' (159415) panicked at compiler/pw-core/tests/device_store.rs:63:5:
+thread 'pw6806_a_pure_step_for_each_earlier_version' (143929) panicked at compiler/pw-core/tests/device_store.rs:63:5:
 assertion `left == right` failed: module t
 
 import List
@@ -2496,47 +2534,9 @@ page P() {
   left: ["PW5305 nothing provides `t.notes` to `P`, and `P` reads it here"]
  right: []
 
----- pw6805_privacy_other_than_the_devices_is_a_later_versions stdout ----
-
-thread 'pw6805_privacy_other_than_the_devices_is_a_later_versions' (159413) panicked at compiler/pw-core/tests/device_store.rs:73:5:
-only PW6805 expected of
-module t
-
-import List
-import String
-import events.{ KeyEvent }
-
-type Note = Note { id: Int, text: String }
-
-signal notes: List<Note> = []
-    storage  device "t-notes"
-    privacy  Public
-    conflict last_write_wins
-
-
-
-page P() {
-    route "/"
-    cache private
-
-    
-
-    view {
-        <title>t</title>
-        <main>
-            <p id="count">{List.length(notes)}</p>
-        </main>
-    }
-}
-
-got [
-    "PW6805 `notes` is `privacy Public`, and the first version keeps only the device's own: `privacy Device`",
-    "PW5305 nothing provides `t.notes` to `P`, and `P` reads it here",
-]
-
 ---- pw6807_a_form_the_device_can_hold stdout ----
 
-thread 'pw6807_a_form_the_device_can_hold' (159416) panicked at compiler/pw-core/tests/device_store.rs:73:5:
+thread 'pw6807_a_form_the_device_can_hold' (143930) panicked at compiler/pw-core/tests/device_store.rs:73:5:
 only PW6807 expected of
 module t
 
@@ -2574,7 +2574,7 @@ got [
 
 ---- the_browser_computes_from_several_values_and_a_list_in_its_block stdout ----
 
-thread 'the_browser_computes_from_several_values_and_a_list_in_its_block' (159418) panicked at compiler/pw-core/tests/device_store.rs:63:5:
+thread 'the_browser_computes_from_several_values_and_a_list_in_its_block' (143932) panicked at compiler/pw-core/tests/device_store.rs:63:5:
 assertion `left == right` failed: module t
 
 import List
@@ -2641,7 +2641,7 @@ failures:
     pw6807_a_form_the_device_can_hold
     the_browser_computes_from_several_values_and_a_list_in_its_block
 
-test result: FAILED. 1 passed; 14 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.76s
+test result: FAILED. 1 passed; 14 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.50s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -2668,7 +2668,7 @@ failures:
 
 ---- pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do stdout ----
 
-thread 'pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do' (159797) panicked at compiler/pw-core/tests/device_store.rs:73:5:
+thread 'pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do' (144311) panicked at compiler/pw-core/tests/device_store.rs:73:5:
 only PW6805 expected of
 module t
 
@@ -2708,7 +2708,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.67s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.47s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -2721,8 +2721,8 @@ test a_value_the_device_keeps_checks_and_its_page_holds_it ... FAILED
 test a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name ... FAILED
 test pw6802_no_query_is_keyed_by_what_the_device_keeps ... ok
 test pw6804_the_device_keeps_its_own ... ok
-test pw6803_nothing_the_browser_sends_holds_it ... ok
 test pw6805_privacy_other_than_the_devices_is_a_later_versions ... ok
+test pw6803_nothing_the_browser_sends_holds_it ... ok
 test pw6806_a_pure_step_for_each_earlier_version ... FAILED
 test pw6801_no_command_is_given_what_the_device_keeps ... ok
 test pw6808_the_device_provides_it ... ok
@@ -2735,7 +2735,7 @@ failures:
 
 ---- a_value_computed_in_a_browser_rows_is_each_rows stdout ----
 
-thread 'a_value_computed_in_a_browser_rows_is_each_rows' (160173) panicked at compiler/pw-core/tests/device_store.rs:63:5:
+thread 'a_value_computed_in_a_browser_rows_is_each_rows' (144686) panicked at compiler/pw-core/tests/device_store.rs:63:5:
 assertion `left == right` failed: module t
 
 import List
@@ -2777,7 +2777,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- generic_reverse_keeps_a_device_rows_type_and_privacy stdout ----
 
-thread 'generic_reverse_keeps_a_device_rows_type_and_privacy' (160175) panicked at compiler/pw-core/tests/device_store.rs:63:5:
+thread 'generic_reverse_keeps_a_device_rows_type_and_privacy' (144688) panicked at compiler/pw-core/tests/device_store.rs:63:5:
 assertion `left == right` failed: module t
 
 import List
@@ -2812,12 +2812,12 @@ page P() {
 
 ---- a_value_the_device_keeps_checks_and_its_page_holds_it stdout ----
 
-thread 'a_value_the_device_keeps_checks_and_its_page_holds_it' (160174) panicked at compiler/pw-core/tests/device_store.rs:92:5:
+thread 'a_value_the_device_keeps_checks_and_its_page_holds_it' (144687) panicked at compiler/pw-core/tests/device_store.rs:92:5:
 it builds: Some("the program does not check, so nothing is compiled: t.pw: [PW6601] `t.P~ui`'s signals: `notes`'s type resolves to nothing; t.pw: [PW6601] a handler in `t.P~ui`: `a signal whose type the backend cannot lower` does not encode: `notes`'s declared type; t.pw: [PW6601] `t.P~ui`'s values: part 0's `notes` has no type")
 
 ---- a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name stdout ----
 
-thread 'a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name' (160172) panicked at compiler/pw-core/tests/device_store.rs:671:5:
+thread 'a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name' (144685) panicked at compiler/pw-core/tests/device_store.rs:671:5:
 assertion `left == right` failed: module t
 
 import List
@@ -2863,7 +2863,7 @@ page P() {
 
 ---- pw6806_a_pure_step_for_each_earlier_version stdout ----
 
-thread 'pw6806_a_pure_step_for_each_earlier_version' (160182) panicked at compiler/pw-core/tests/device_store.rs:69:5:
+thread 'pw6806_a_pure_step_for_each_earlier_version' (144695) panicked at compiler/pw-core/tests/device_store.rs:69:5:
 PW6806 `names 0 migrations where it needs 1` expected of
 module t
 
@@ -2899,12 +2899,12 @@ got []
 
 ---- the_browser_computes_from_several_values_and_a_list_in_its_block stdout ----
 
-thread 'the_browser_computes_from_several_values_and_a_list_in_its_block' (160185) panicked at compiler/pw-core/tests/device_store.rs:92:5:
+thread 'the_browser_computes_from_several_values_and_a_list_in_its_block' (144698) panicked at compiler/pw-core/tests/device_store.rs:92:5:
 it builds: Some("the program does not check, so nothing is compiled: t.pw: [PW6601] `t.P~ui`'s signals: `notes`'s type resolves to nothing; t.pw: [PW6601] `t.P~ui`'s values: part 0's `notes` has no type")
 
 ---- a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals stdout ----
 
-thread 'a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals' (160171) panicked at compiler/pw-core/tests/device_store.rs:761:9:
+thread 'a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals' (144684) panicked at compiler/pw-core/tests/device_store.rs:761:9:
 assertion `left == right` failed: <p id="left">{left(notes, shown)}</p>
   left: "the program does not check, so nothing is compiled: t.pw: [PW6601] `t.P~ui`'s signals: `notes`'s type resolves to nothing; t.pw: [PW6601] `t.P~ui`'s values: part 0's `notes` has no type"
  right: ""
@@ -2919,7 +2919,7 @@ failures:
     pw6806_a_pure_step_for_each_earlier_version
     the_browser_computes_from_several_values_and_a_list_in_its_block
 
-test result: FAILED. 8 passed; 7 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.04s
+test result: FAILED. 8 passed; 7 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.00s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -2931,45 +2931,45 @@ test a_value_computed_in_a_browser_rows_is_each_rows ... FAILED
 test a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name ... FAILED
 test a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals ... FAILED
 test pw6802_no_query_is_keyed_by_what_the_device_keeps ... ok
-test pw6804_the_device_keeps_its_own ... ok
 test generic_reverse_keeps_a_device_rows_type_and_privacy ... ok
+test pw6804_the_device_keeps_its_own ... ok
 test pw6803_nothing_the_browser_sends_holds_it ... ok
 test pw6805_privacy_other_than_the_devices_is_a_later_versions ... ok
 test pw6807_a_form_the_device_can_hold ... ok
-test pw6808_the_device_provides_it ... ok
 test pw6801_no_command_is_given_what_the_device_keeps ... ok
-test the_browser_computes_from_several_values_and_a_list_in_its_block ... FAILED
+test pw6808_the_device_provides_it ... ok
 test pw6806_a_pure_step_for_each_earlier_version ... ok
+test the_browser_computes_from_several_values_and_a_list_in_its_block ... FAILED
 test pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do ... ok
 
 failures:
 
 ---- a_value_the_device_keeps_checks_and_its_page_holds_it stdout ----
 
-thread 'a_value_the_device_keeps_checks_and_its_page_holds_it' (160557) panicked at compiler/pw-core/tests/device_store.rs:132:5:
+thread 'a_value_the_device_keeps_checks_and_its_page_holds_it' (145071) panicked at compiler/pw-core/tests/device_store.rs:132:5:
 a valid device page retains its executable plan
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- a_value_computed_in_a_browser_rows_is_each_rows stdout ----
 
-thread 'a_value_computed_in_a_browser_rows_is_each_rows' (160556) panicked at compiler/pw-core/tests/device_store.rs:602:5:
+thread 'a_value_computed_in_a_browser_rows_is_each_rows' (145070) panicked at compiler/pw-core/tests/device_store.rs:602:5:
 assertion `left == right` failed
   left: "`t.P~ui`'s values: part 2 computes a value in a row of `n`, a list no query gives, which no host computes yet (ruling 0073-a)"
  right: ""
 
 ---- a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name stdout ----
 
-thread 'a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name' (160555) panicked at compiler/pw-core/tests/device_store.rs:657:5:
+thread 'a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name' (145069) panicked at compiler/pw-core/tests/device_store.rs:657:5:
 `t.P~ui`'s values: part 1 computes a value from the signal `shown` inside a block a value other than a signal decides, which the browser does not render again (ruling 0073-a)
 
 ---- a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals stdout ----
 
-thread 'a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals' (160554) panicked at compiler/pw-core/tests/device_store.rs:746:9:
+thread 'a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals' (145068) panicked at compiler/pw-core/tests/device_store.rs:746:9:
 <p id="total">{total(notes, likes)}</p>: 
 
 ---- the_browser_computes_from_several_values_and_a_list_in_its_block stdout ----
 
-thread 'the_browser_computes_from_several_values_and_a_list_in_its_block' (160568) panicked at compiler/pw-core/tests/device_store.rs:544:5:
+thread 'the_browser_computes_from_several_values_and_a_list_in_its_block' (145083) panicked at compiler/pw-core/tests/device_store.rs:544:5:
 ["`t.P~ui`'s values: part 2 computes a value from the signal `shown` inside a block a value other than a signal decides, which the browser does not render again (ruling 0073-a)"]
 
 
@@ -2980,7 +2980,7 @@ failures:
     a_value_the_device_keeps_checks_and_its_page_holds_it
     the_browser_computes_from_several_values_and_a_list_in_its_block
 
-test result: FAILED. 10 passed; 5 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.69s
+test result: FAILED. 10 passed; 5 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.68s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -2988,8 +2988,8 @@ a page holds no instance of it [core]: KILLED (5 of 15 tests fail)
 
 running 15 tests
 test a_value_the_device_keeps_checks_and_its_page_holds_it ... FAILED
-test a_value_computed_in_a_browser_rows_is_each_rows ... ok
 test a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name ... ok
+test a_value_computed_in_a_browser_rows_is_each_rows ... ok
 test pw6802_no_query_is_keyed_by_what_the_device_keeps ... ok
 test generic_reverse_keeps_a_device_rows_type_and_privacy ... ok
 test pw6804_the_device_keeps_its_own ... ok
@@ -2999,15 +2999,15 @@ test pw6801_no_command_is_given_what_the_device_keeps ... ok
 test pw6807_a_form_the_device_can_hold ... ok
 test pw6806_a_pure_step_for_each_earlier_version ... ok
 test pw6808_the_device_provides_it ... ok
-test the_browser_computes_from_several_values_and_a_list_in_its_block ... ok
 test pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do ... ok
+test the_browser_computes_from_several_values_and_a_list_in_its_block ... ok
 test a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals ... ok
 
 failures:
 
 ---- a_value_the_device_keeps_checks_and_its_page_holds_it stdout ----
 
-thread 'a_value_the_device_keeps_checks_and_its_page_holds_it' (160940) panicked at compiler/pw-core/tests/device_store.rs:156:5:
+thread 'a_value_the_device_keeps_checks_and_its_page_holds_it' (145455) panicked at compiler/pw-core/tests/device_store.rs:156:5:
 [{"path":"t.P~ui","name":"P","params":[],"schema":"dc458c71163d757f","chunks":[{"chunk":"static","value":"<main> <p id=\"count\">"},{"chunk":"dynamic","value":{"part":"text","id":0,"value":"#t.P~ui~0","context":"text"}},{"chunk":"static","value":"</p> <button data-pw=\"0\" type=\"button\""},{"chunk":"dynamic","value":{"part":"event","id":1,"owner":0,"event":"press","handler":"2c280190d273f7ff","name":""}},{"chunk":"static","value":">Add</button> </main>"},{"chunk":"dynamic","value":{"part":"title","id":2,"pieces":[{"piece":"text","value":"t"}]}}]}]
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -3015,7 +3015,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_value_the_device_keeps_checks_and_its_page_holds_it
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.93s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.63s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -3042,7 +3042,7 @@ failures:
 
 ---- a_value_the_device_keeps_checks_and_its_page_holds_it stdout ----
 
-thread 'a_value_the_device_keeps_checks_and_its_page_holds_it' (161324) panicked at compiler/pw-core/tests/device_store.rs:138:5:
+thread 'a_value_the_device_keeps_checks_and_its_page_holds_it' (145839) panicked at compiler/pw-core/tests/device_store.rs:138:5:
 assertion `left == right` failed
   left: Array []
  right: Array [Object {"conflict": String("last_write_wins"), "name": String("t-notes"), "schemas": Array [Object {"of": Object {"fields": Array [Array [String("id"), Object {"t": String("int")}], Array [String("text"), Object {"t": String("string")}]], "t": String("record")}, "t": String("list")}], "signal": String("notes"), "version": Number(1)}]
@@ -3052,7 +3052,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_value_the_device_keeps_checks_and_its_page_holds_it
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.80s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.63s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -3069,31 +3069,31 @@ warning: function `written_by_its_device` is never used
 running 5 tests
 test tests::device_store::a_page_whose_one_computing_is_a_step_between_versions_is_served_its_steps ... ok
 test tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides ... FAILED
-test tests::todomvc::no_host_holds_a_todo ... FAILED
 test tests::todomvc::the_document_says_what_the_device_keeps ... FAILED
+test tests::todomvc::no_host_holds_a_todo ... FAILED
 test tests::todomvc::the_page_has_the_templates_markup ... FAILED
 
 failures:
 
 ---- tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides stdout ----
 
-thread 'tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides' (162006) panicked at spikes/own-renderer/server/src/tests/todomvc.rs:46:5:
+thread 'tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides' (146528) panicked at spikes/own-renderer/server/src/tests/todomvc.rs:46:5:
 the valid TodoMVC program builds: Some("the program does not check, so nothing is compiled: /home/runner/work/perfect-web/perfect-web/spikes/own-renderer/server/../../../examples/todomvc/app.pw: [PW5007] resume manifest for `Todos` would contain a `Device` value; /home/runner/work/perfect-web/perfect-web/spikes/own-renderer/server/../../../examples/todomvc/app.pw: [PW5007] resume manifest for `Todos` would contain a `Device` value; /home/runner/work/perfect-web/perfect-web/spikes/own-renderer/server/../../../examples/todomvc/app.pw: [PW5007] resume manifest for `Todos` would contain a `Device` value")
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
----- tests::todomvc::no_host_holds_a_todo stdout ----
-
-thread 'tests::todomvc::no_host_holds_a_todo' (162004) panicked at spikes/own-renderer/server/src/tests/todomvc.rs:46:5:
-the valid TodoMVC program builds: Some("the program does not check, so nothing is compiled: /home/runner/work/perfect-web/perfect-web/spikes/own-renderer/server/../../../examples/todomvc/app.pw: [PW5007] resume manifest for `Todos` would contain a `Device` value; /home/runner/work/perfect-web/perfect-web/spikes/own-renderer/server/../../../examples/todomvc/app.pw: [PW5007] resume manifest for `Todos` would contain a `Device` value; /home/runner/work/perfect-web/perfect-web/spikes/own-renderer/server/../../../examples/todomvc/app.pw: [PW5007] resume manifest for `Todos` would contain a `Device` value")
-
 ---- tests::todomvc::the_document_says_what_the_device_keeps stdout ----
 
-thread 'tests::todomvc::the_document_says_what_the_device_keeps' (162005) panicked at spikes/own-renderer/server/src/tests/todomvc.rs:46:5:
+thread 'tests::todomvc::the_document_says_what_the_device_keeps' (146527) panicked at spikes/own-renderer/server/src/tests/todomvc.rs:46:5:
+the valid TodoMVC program builds: Some("the program does not check, so nothing is compiled: /home/runner/work/perfect-web/perfect-web/spikes/own-renderer/server/../../../examples/todomvc/app.pw: [PW5007] resume manifest for `Todos` would contain a `Device` value; /home/runner/work/perfect-web/perfect-web/spikes/own-renderer/server/../../../examples/todomvc/app.pw: [PW5007] resume manifest for `Todos` would contain a `Device` value; /home/runner/work/perfect-web/perfect-web/spikes/own-renderer/server/../../../examples/todomvc/app.pw: [PW5007] resume manifest for `Todos` would contain a `Device` value")
+
+---- tests::todomvc::no_host_holds_a_todo stdout ----
+
+thread 'tests::todomvc::no_host_holds_a_todo' (146526) panicked at spikes/own-renderer/server/src/tests/todomvc.rs:46:5:
 the valid TodoMVC program builds: Some("the program does not check, so nothing is compiled: /home/runner/work/perfect-web/perfect-web/spikes/own-renderer/server/../../../examples/todomvc/app.pw: [PW5007] resume manifest for `Todos` would contain a `Device` value; /home/runner/work/perfect-web/perfect-web/spikes/own-renderer/server/../../../examples/todomvc/app.pw: [PW5007] resume manifest for `Todos` would contain a `Device` value; /home/runner/work/perfect-web/perfect-web/spikes/own-renderer/server/../../../examples/todomvc/app.pw: [PW5007] resume manifest for `Todos` would contain a `Device` value")
 
 ---- tests::todomvc::the_page_has_the_templates_markup stdout ----
 
-thread 'tests::todomvc::the_page_has_the_templates_markup' (162039) panicked at spikes/own-renderer/server/src/tests/todomvc.rs:46:5:
+thread 'tests::todomvc::the_page_has_the_templates_markup' (146535) panicked at spikes/own-renderer/server/src/tests/todomvc.rs:46:5:
 the valid TodoMVC program builds: Some("the program does not check, so nothing is compiled: /home/runner/work/perfect-web/perfect-web/spikes/own-renderer/server/../../../examples/todomvc/app.pw: [PW5007] resume manifest for `Todos` would contain a `Device` value; /home/runner/work/perfect-web/perfect-web/spikes/own-renderer/server/../../../examples/todomvc/app.pw: [PW5007] resume manifest for `Todos` would contain a `Device` value; /home/runner/work/perfect-web/perfect-web/spikes/own-renderer/server/../../../examples/todomvc/app.pw: [PW5007] resume manifest for `Todos` would contain a `Device` value")
 
 
@@ -3103,7 +3103,7 @@ failures:
     tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides
     tests::todomvc::the_page_has_the_templates_markup
 
-test result: FAILED. 1 passed; 4 failed; 0 ignored; 0 measured; 1042 filtered out; finished in 0.57s
+test result: FAILED. 1 passed; 4 failed; 0 ignored; 0 measured; 1043 filtered out; finished in 0.37s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -3120,17 +3120,17 @@ test pw6805_privacy_other_than_the_devices_is_a_later_versions ... ok
 test pw6803_nothing_the_browser_sends_holds_it ... ok
 test pw6801_no_command_is_given_what_the_device_keeps ... ok
 test pw6807_a_form_the_device_can_hold ... ok
-test pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do ... ok
 test pw6806_a_pure_step_for_each_earlier_version ... ok
 test pw6808_the_device_provides_it ... ok
-test a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals ... FAILED
 test the_browser_computes_from_several_values_and_a_list_in_its_block ... FAILED
+test pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do ... ok
+test a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals ... FAILED
 
 failures:
 
 ---- a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name stdout ----
 
-thread 'a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name' (162442) panicked at compiler/pw-core/tests/device_store.rs:671:5:
+thread 'a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name' (146906) panicked at compiler/pw-core/tests/device_store.rs:671:5:
 assertion `left == right` failed: module t
 
 import List
@@ -3175,17 +3175,17 @@ page P() {
  right: ""
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
+---- the_browser_computes_from_several_values_and_a_list_in_its_block stdout ----
+
+thread 'the_browser_computes_from_several_values_and_a_list_in_its_block' (146919) panicked at compiler/pw-core/tests/device_store.rs:544:5:
+["`t.P~ui`'s values: part 0 computes a value from `notes` and `shown`, and a host computes one from one value (ruling 0073-a)"]
+
 ---- a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals stdout ----
 
-thread 'a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals' (162441) panicked at compiler/pw-core/tests/device_store.rs:761:9:
+thread 'a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals' (146905) panicked at compiler/pw-core/tests/device_store.rs:761:9:
 assertion `left == right` failed: <p id="left">{left(notes, shown)}</p>
   left: "`t.P~ui`'s values: part 0 computes a value from `notes` and `shown`, and a host computes one from one value (ruling 0073-a)"
  right: ""
-
----- the_browser_computes_from_several_values_and_a_list_in_its_block stdout ----
-
-thread 'the_browser_computes_from_several_values_and_a_list_in_its_block' (162455) panicked at compiler/pw-core/tests/device_store.rs:544:5:
-["`t.P~ui`'s values: part 0 computes a value from `notes` and `shown`, and a host computes one from one value (ruling 0073-a)"]
 
 
 failures:
@@ -3193,7 +3193,7 @@ failures:
     a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name
     the_browser_computes_from_several_values_and_a_list_in_its_block
 
-test result: FAILED. 12 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.59s
+test result: FAILED. 12 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.18s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -3201,8 +3201,8 @@ a value from several of the browser's is refused [core]: KILLED (3 of 15 tests f
 
 running 15 tests
 test a_value_the_device_keeps_checks_and_its_page_holds_it ... ok
-test a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name ... ok
 test a_value_computed_in_a_browser_rows_is_each_rows ... ok
+test a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name ... ok
 test pw6802_no_query_is_keyed_by_what_the_device_keeps ... ok
 test generic_reverse_keeps_a_device_rows_type_and_privacy ... ok
 test pw6804_the_device_keeps_its_own ... ok
@@ -3220,13 +3220,13 @@ failures:
 
 ---- the_browser_computes_from_several_values_and_a_list_in_its_block stdout ----
 
-thread 'the_browser_computes_from_several_values_and_a_list_in_its_block' (162838) panicked at compiler/pw-core/tests/device_store.rs:92:5:
+thread 'the_browser_computes_from_several_values_and_a_list_in_its_block' (147302) panicked at compiler/pw-core/tests/device_store.rs:92:5:
 it builds: Some("the program does not check, so nothing is compiled: t.pw: [PW6601] a template part the renderer cannot render: t.P~ui: `{#each visible(notes, shown) as n (n.id)}`: `{#each}` reads its list by path, and `visible(notes, shown)` is computed")
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals stdout ----
 
-thread 'a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals' (162824) panicked at compiler/pw-core/tests/device_store.rs:761:9:
+thread 'a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals' (147288) panicked at compiler/pw-core/tests/device_store.rs:761:9:
 assertion `left == right` failed: {#if List.length(notes) > 0}<ul>{#each visible(notes, shown) as n (n.id)}<li>{n.text}</li>{/each}</ul>{/if}
   left: "the program does not check, so nothing is compiled: t.pw: [PW6601] a template part the renderer cannot render: t.P~ui: `{#each visible(notes, shown) as n (n.id)}`: `{#each}` reads its list by path, and `visible(notes, shown)` is computed"
  right: ""
@@ -3236,7 +3236,7 @@ failures:
     a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals
     the_browser_computes_from_several_values_and_a_list_in_its_block
 
-test result: FAILED. 13 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.86s
+test result: FAILED. 13 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.62s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -3244,8 +3244,8 @@ a computed list is refused [core]: KILLED (2 of 15 tests fail)
 
 running 15 tests
 test a_value_the_device_keeps_checks_and_its_page_holds_it ... ok
-test a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name ... ok
 test a_value_computed_in_a_browser_rows_is_each_rows ... ok
+test a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name ... ok
 test pw6802_no_query_is_keyed_by_what_the_device_keeps ... ok
 test generic_reverse_keeps_a_device_rows_type_and_privacy ... ok
 test pw6804_the_device_keeps_its_own ... ok
@@ -3263,7 +3263,7 @@ failures:
 
 ---- the_browser_computes_from_several_values_and_a_list_in_its_block stdout ----
 
-thread 'the_browser_computes_from_several_values_and_a_list_in_its_block' (163223) panicked at compiler/pw-core/tests/device_store.rs:572:5:
+thread 'the_browser_computes_from_several_values_and_a_list_in_its_block' (147686) panicked at compiler/pw-core/tests/device_store.rs:572:5:
 [
   {
     "derived": "t.P~ui.derived_0",
@@ -3312,15 +3312,15 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     the_browser_computes_from_several_values_and_a_list_in_its_block
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.76s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.63s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
 a block is not rendered again for what a value computed in it reads [core]: KILLED (1 of 15 tests fail)
 
 running 15 tests
-test a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name ... FAILED
 test a_value_the_device_keeps_checks_and_its_page_holds_it ... ok
+test a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name ... FAILED
 test a_value_computed_in_a_browser_rows_is_each_rows ... ok
 test pw6802_no_query_is_keyed_by_what_the_device_keeps ... ok
 test generic_reverse_keeps_a_device_rows_type_and_privacy ... ok
@@ -3331,15 +3331,15 @@ test pw6801_no_command_is_given_what_the_device_keeps ... ok
 test pw6807_a_form_the_device_can_hold ... ok
 test pw6808_the_device_provides_it ... ok
 test pw6806_a_pure_step_for_each_earlier_version ... ok
-test the_browser_computes_from_several_values_and_a_list_in_its_block ... ok
 test pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do ... ok
+test the_browser_computes_from_several_values_and_a_list_in_its_block ... ok
 test a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals ... ok
 
 failures:
 
 ---- a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name stdout ----
 
-thread 'a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name' (163594) panicked at compiler/pw-core/tests/device_store.rs:657:5:
+thread 'a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name' (148056) panicked at compiler/pw-core/tests/device_store.rs:657:5:
 
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -3347,15 +3347,15 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.83s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.63s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
 a value computed from the signals inside a host's block is built [core]: KILLED (1 of 15 tests fail)
 
 running 15 tests
-test a_value_the_device_keeps_checks_and_its_page_holds_it ... ok
 test a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name ... FAILED
+test a_value_the_device_keeps_checks_and_its_page_holds_it ... ok
 test a_value_computed_in_a_browser_rows_is_each_rows ... ok
 test pw6802_no_query_is_keyed_by_what_the_device_keeps ... ok
 test generic_reverse_keeps_a_device_rows_type_and_privacy ... ok
@@ -3365,16 +3365,16 @@ test pw6803_nothing_the_browser_sends_holds_it ... ok
 test pw6801_no_command_is_given_what_the_device_keeps ... ok
 test pw6807_a_form_the_device_can_hold ... ok
 test pw6808_the_device_provides_it ... ok
-test the_browser_computes_from_several_values_and_a_list_in_its_block ... ok
-test pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do ... ok
 test pw6806_a_pure_step_for_each_earlier_version ... ok
+test pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do ... ok
+test the_browser_computes_from_several_values_and_a_list_in_its_block ... ok
 test a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals ... ok
 
 failures:
 
 ---- a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name stdout ----
 
-thread 'a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name' (163978) panicked at compiler/pw-core/tests/device_store.rs:657:5:
+thread 'a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name' (148440) panicked at compiler/pw-core/tests/device_store.rs:657:5:
 `t.P~ui`'s values: part 1 computes a value from the signal `#t` inside a block a value other than a signal decides, which the browser does not render again (ruling 0073-a)
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -3382,7 +3382,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.20s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.56s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -3390,8 +3390,8 @@ a refusal names one of the signals a value is computed from [core]: KILLED (1 of
 
 running 15 tests
 test a_value_the_device_keeps_checks_and_its_page_holds_it ... ok
-test a_value_computed_in_a_browser_rows_is_each_rows ... ok
 test a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name ... ok
+test a_value_computed_in_a_browser_rows_is_each_rows ... ok
 test pw6802_no_query_is_keyed_by_what_the_device_keeps ... ok
 test generic_reverse_keeps_a_device_rows_type_and_privacy ... ok
 test pw6804_the_device_keeps_its_own ... ok
@@ -3409,7 +3409,7 @@ failures:
 
 ---- the_browser_computes_from_several_values_and_a_list_in_its_block stdout ----
 
-thread 'the_browser_computes_from_several_values_and_a_list_in_its_block' (164374) panicked at compiler/pw-core/tests/device_store.rs:586:5:
+thread 'the_browser_computes_from_several_values_and_a_list_in_its_block' (148836) panicked at compiler/pw-core/tests/device_store.rs:586:5:
 // Generated by pw: what `t.P~ui` computes from its signals (ADR-0227). Do not edit.
 
 const f0 = (() => {
@@ -3464,7 +3464,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     the_browser_computes_from_several_values_and_a_list_in_its_block
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.79s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.63s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -3483,15 +3483,15 @@ test pw6804_the_device_keeps_its_own ... ok
 test pw6807_a_form_the_device_can_hold ... ok
 test pw6801_no_command_is_given_what_the_device_keeps ... ok
 test pw6808_the_device_provides_it ... ok
-test pw6806_a_pure_step_for_each_earlier_version ... ok
 test the_browser_computes_from_several_values_and_a_list_in_its_block ... ok
+test pw6806_a_pure_step_for_each_earlier_version ... ok
 test pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do ... ok
 
 failures:
 
 ---- a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals stdout ----
 
-thread 'a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals' (164744) panicked at compiler/pw-core/tests/device_store.rs:746:9:
+thread 'a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals' (149205) panicked at compiler/pw-core/tests/device_store.rs:746:9:
 <p id="total">{total(notes, likes)}</p>: 
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -3499,7 +3499,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.72s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.81s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -3515,8 +3515,8 @@ test a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals .
 test pw6804_the_device_keeps_its_own ... ok
 test pw6805_privacy_other_than_the_devices_is_a_later_versions ... ok
 test pw6803_nothing_the_browser_sends_holds_it ... ok
-test pw6807_a_form_the_device_can_hold ... ok
 test pw6801_no_command_is_given_what_the_device_keeps ... ok
+test pw6807_a_form_the_device_can_hold ... ok
 test pw6808_the_device_provides_it ... ok
 test pw6806_a_pure_step_for_each_earlier_version ... ok
 test the_browser_computes_from_several_values_and_a_list_in_its_block ... ok
@@ -3526,7 +3526,7 @@ failures:
 
 ---- a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals stdout ----
 
-thread 'a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals' (165129) panicked at compiler/pw-core/tests/device_store.rs:746:9:
+thread 'a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals' (149588) panicked at compiler/pw-core/tests/device_store.rs:746:9:
 {#if List.length(notes) > 0}<p id="total">{total(notes, likes)}</p>{/if}: `t.P~ui`'s values: part 1 reads `#t.P~ui~1` inside a block a signal decides, and the browser renders that block again from the page's signals alone (ADR-0137)
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -3534,7 +3534,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.16s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.93s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -3561,7 +3561,7 @@ failures:
 
 ---- a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals stdout ----
 
-thread 'a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals' (165513) panicked at compiler/pw-core/tests/device_store.rs:746:9:
+thread 'a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals' (149972) panicked at compiler/pw-core/tests/device_store.rs:746:9:
 {#if List.length(notes) > 0}<ul>{#each merged(notes, pinned) as n (n.id)}<li>{n.text}</li>{/each}</ul>{/if}: `t.P~ui`'s values: part 1 computes a value inside a block a signal decides, and the browser, which renders that block again, computes none yet (ruling 0073-a)
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -3569,7 +3569,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.09s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.06s
 
 error: test failed, to rerun pass `-p pw-core --test device_store`
 
@@ -3577,16 +3577,16 @@ a list computed from a host's value is built as the browser's [core]: KILLED (1 
 
 running 5 tests
 test tests::device_store::a_page_whose_one_computing_is_a_step_between_versions_is_served_its_steps ... ok
+test tests::todomvc::the_page_has_the_templates_markup ... ok
 test tests::todomvc::the_document_says_what_the_device_keeps ... ok
 test tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides ... FAILED
 test tests::todomvc::no_host_holds_a_todo ... ok
-test tests::todomvc::the_page_has_the_templates_markup ... ok
 
 failures:
 
 ---- tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides stdout ----
 
-thread 'tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides' (166192) panicked at spikes/own-renderer/server/src/tests/todomvc.rs:101:5:
+thread 'tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides' (150652) panicked at spikes/own-renderer/server/src/tests/todomvc.rs:101:5:
 HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 9790
@@ -3622,7 +3622,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides
 
-test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 1042 filtered out; finished in 0.86s
+test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 1043 filtered out; finished in 0.64s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -3630,8 +3630,8 @@ the root does not say it is reading the device [host]: KILLED (1 of 5 tests fail
 
 running 5 tests
 test tests::device_store::a_page_whose_one_computing_is_a_step_between_versions_is_served_its_steps ... ok
-test tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides ... FAILED
 test tests::todomvc::the_document_says_what_the_device_keeps ... ok
+test tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides ... FAILED
 test tests::todomvc::no_host_holds_a_todo ... ok
 test tests::todomvc::the_page_has_the_templates_markup ... ok
 
@@ -3639,7 +3639,7 @@ failures:
 
 ---- tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides stdout ----
 
-thread 'tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides' (166488) panicked at spikes/own-renderer/server/src/tests/todomvc.rs:105:5:
+thread 'tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides' (150947) panicked at spikes/own-renderer/server/src/tests/todomvc.rs:105:5:
 HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 9735
@@ -3674,7 +3674,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides
 
-test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 1042 filtered out; finished in 0.91s
+test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 1043 filtered out; finished in 0.64s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -3682,16 +3682,16 @@ the head holds no style hiding what the device decides [host]: KILLED (1 of 5 te
 
 running 5 tests
 test tests::device_store::a_page_whose_one_computing_is_a_step_between_versions_is_served_its_steps ... ok
-test tests::todomvc::the_document_says_what_the_device_keeps ... ok
 test tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides ... FAILED
-test tests::todomvc::the_page_has_the_templates_markup ... ok
+test tests::todomvc::the_document_says_what_the_device_keeps ... ok
 test tests::todomvc::no_host_holds_a_todo ... ok
+test tests::todomvc::the_page_has_the_templates_markup ... ok
 
 failures:
 
 ---- tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides stdout ----
 
-thread 'tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides' (166784) panicked at spikes/own-renderer/server/src/tests/todomvc.rs:118:9:
+thread 'tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides' (151242) panicked at spikes/own-renderer/server/src/tests/todomvc.rs:118:9:
 'sha256-hJ66mWLqVtq8EKxzKNPujjAVwmVE+PKsDyFNUOusFD4=' in content-security-policy: default-src 'none'; script-src 'self' 'sha256-v8jCs+poUKnEHV7piaB+l4LlDvig0qQ2jqYEal4D2VY='; style-src 'self' 'sha256-PsoNDNr2FXKmBWScmALXJCtS6SI8vayZA8mDCwXDMYE=' 'sha256-lOjBrcnONAXa9IkfySWUyxuaJ58G+9Ma0I9EQI0GJuk='; img-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -3699,7 +3699,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides
 
-test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 1042 filtered out; finished in 0.82s
+test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 1043 filtered out; finished in 0.65s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -3716,7 +3716,7 @@ failures:
 
 ---- tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides stdout ----
 
-thread 'tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides' (167080) panicked at spikes/own-renderer/server/src/tests/todomvc.rs:118:9:
+thread 'tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides' (151538) panicked at spikes/own-renderer/server/src/tests/todomvc.rs:118:9:
 'sha256-lOjBrcnONAXa9IkfySWUyxuaJ58G+9Ma0I9EQI0GJuk=' in content-security-policy: default-src 'none'; script-src 'self' 'sha256-v8jCs+poUKnEHV7piaB+l4LlDvig0qQ2jqYEal4D2VY='; style-src 'self' 'sha256-PsoNDNr2FXKmBWScmALXJCtS6SI8vayZA8mDCwXDMYE=' 'sha256-hJ66mWLqVtq8EKxzKNPujjAVwmVE+PKsDyFNUOusFD4='; img-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -3724,7 +3724,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides
 
-test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 1042 filtered out; finished in 0.85s
+test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 1043 filtered out; finished in 0.64s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -3732,16 +3732,16 @@ the policy does not allow the style shown with scripts off [host]: KILLED (1 of 
 
 running 5 tests
 test tests::device_store::a_page_whose_one_computing_is_a_step_between_versions_is_served_its_steps ... FAILED
+test tests::todomvc::the_page_has_the_templates_markup ... ok
 test tests::todomvc::the_document_says_what_the_device_keeps ... FAILED
 test tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides ... ok
-test tests::todomvc::the_page_has_the_templates_markup ... ok
 test tests::todomvc::no_host_holds_a_todo ... ok
 
 failures:
 
 ---- tests::device_store::a_page_whose_one_computing_is_a_step_between_versions_is_served_its_steps stdout ----
 
-thread 'tests::device_store::a_page_whose_one_computing_is_a_step_between_versions_is_served_its_steps' (167372) panicked at spikes/own-renderer/server/src/tests/device_store.rs:77:5:
+thread 'tests::device_store::a_page_whose_one_computing_is_a_step_between_versions_is_served_its_steps' (151832) panicked at spikes/own-renderer/server/src/tests/device_store.rs:77:5:
 assertion `left == right` failed: {
   "blocks": {},
   "computed": "/computed/t.P~ui.mjs",
@@ -3798,7 +3798,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::todomvc::the_document_says_what_the_device_keeps stdout ----
 
-thread 'tests::todomvc::the_document_says_what_the_device_keeps' (167374) panicked at spikes/own-renderer/server/src/tests/todomvc.rs:151:5:
+thread 'tests::todomvc::the_document_says_what_the_device_keeps' (151834) panicked at spikes/own-renderer/server/src/tests/todomvc.rs:151:5:
 assertion `left == right` failed
   left: Null
  right: Array [Object {"conflict": String("last_write_wins"), "name": String("todos-pleris"), "schemas": Array [Object {"of": Object {"fields": Array [Array [String("id"), Object {"t": String("int")}], Array [String("title"), Object {"t": String("string")}], Array [String("completed"), Object {"t": String("bool")}]], "t": String("record")}, "t": String("list")}], "signal": String("todos"), "version": Number(1)}]
@@ -3808,7 +3808,7 @@ failures:
     tests::device_store::a_page_whose_one_computing_is_a_step_between_versions_is_served_its_steps
     tests::todomvc::the_document_says_what_the_device_keeps
 
-test result: FAILED. 3 passed; 2 failed; 0 ignored; 0 measured; 1042 filtered out; finished in 0.91s
+test result: FAILED. 3 passed; 2 failed; 0 ignored; 0 measured; 1043 filtered out; finished in 0.64s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -3817,15 +3817,15 @@ the manifest carries nothing of the device [host]: KILLED (2 of 5 tests fail)
 running 5 tests
 test tests::device_store::a_page_whose_one_computing_is_a_step_between_versions_is_served_its_steps ... ok
 test tests::todomvc::no_host_holds_a_todo ... FAILED
-test tests::todomvc::the_document_says_what_the_device_keeps ... FAILED
 test tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides ... FAILED
+test tests::todomvc::the_document_says_what_the_device_keeps ... FAILED
 test tests::todomvc::the_page_has_the_templates_markup ... FAILED
 
 failures:
 
 ---- tests::todomvc::no_host_holds_a_todo stdout ----
 
-thread 'tests::todomvc::no_host_holds_a_todo' (167667) panicked at spikes/own-renderer/server/src/tests/todomvc.rs:65:5:
+thread 'tests::todomvc::no_host_holds_a_todo' (152129) panicked at spikes/own-renderer/server/src/tests/todomvc.rs:65:5:
 HTTP/1.1 404 Not Found
 content-type: text/plain; charset=utf-8
 content-length: 90
@@ -3837,9 +3837,9 @@ keep-alive: timeout=75
 `pw:app/todomvc-app-todosui-derived-6-api@0.1.0#derived6` takes 2 argument(s); 1 were sent
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
----- tests::todomvc::the_document_says_what_the_device_keeps stdout ----
+---- tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides stdout ----
 
-thread 'tests::todomvc::the_document_says_what_the_device_keeps' (167668) panicked at spikes/own-renderer/server/src/tests/todomvc.rs:65:5:
+thread 'tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides' (152131) panicked at spikes/own-renderer/server/src/tests/todomvc.rs:65:5:
 HTTP/1.1 404 Not Found
 content-type: text/plain; charset=utf-8
 content-length: 90
@@ -3850,9 +3850,9 @@ keep-alive: timeout=75
 
 `pw:app/todomvc-app-todosui-derived-6-api@0.1.0#derived6` takes 2 argument(s); 1 were sent
 
----- tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides stdout ----
+---- tests::todomvc::the_document_says_what_the_device_keeps stdout ----
 
-thread 'tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides' (167669) panicked at spikes/own-renderer/server/src/tests/todomvc.rs:65:5:
+thread 'tests::todomvc::the_document_says_what_the_device_keeps' (152130) panicked at spikes/own-renderer/server/src/tests/todomvc.rs:65:5:
 HTTP/1.1 404 Not Found
 content-type: text/plain; charset=utf-8
 content-length: 90
@@ -3865,7 +3865,7 @@ keep-alive: timeout=75
 
 ---- tests::todomvc::the_page_has_the_templates_markup stdout ----
 
-thread 'tests::todomvc::the_page_has_the_templates_markup' (167676) panicked at spikes/own-renderer/server/src/tests/todomvc.rs:65:5:
+thread 'tests::todomvc::the_page_has_the_templates_markup' (152138) panicked at spikes/own-renderer/server/src/tests/todomvc.rs:65:5:
 HTTP/1.1 404 Not Found
 content-type: text/plain; charset=utf-8
 content-length: 90
@@ -3883,7 +3883,7 @@ failures:
     tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides
     tests::todomvc::the_page_has_the_templates_markup
 
-test result: FAILED. 1 passed; 4 failed; 0 ignored; 0 measured; 1042 filtered out; finished in 0.84s
+test result: FAILED. 1 passed; 4 failed; 0 ignored; 0 measured; 1043 filtered out; finished in 0.62s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -3891,8 +3891,8 @@ the host computes a first value from its first input alone [host]: KILLED (4 of 
 
 running 5 tests
 test tests::device_store::a_page_whose_one_computing_is_a_step_between_versions_is_served_its_steps ... FAILED
-test tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides ... ok
 test tests::todomvc::the_document_says_what_the_device_keeps ... ok
+test tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides ... ok
 test tests::todomvc::no_host_holds_a_todo ... ok
 test tests::todomvc::the_page_has_the_templates_markup ... ok
 
@@ -3900,7 +3900,7 @@ failures:
 
 ---- tests::device_store::a_page_whose_one_computing_is_a_step_between_versions_is_served_its_steps stdout ----
 
-thread 'tests::device_store::a_page_whose_one_computing_is_a_step_between_versions_is_served_its_steps' (167961) panicked at spikes/own-renderer/server/src/tests/device_store.rs:80:5:
+thread 'tests::device_store::a_page_whose_one_computing_is_a_step_between_versions_is_served_its_steps' (152423) panicked at spikes/own-renderer/server/src/tests/device_store.rs:80:5:
 the migration module is named: {
   "blocks": {},
   "cursor": 1,
@@ -3972,7 +3972,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::device_store::a_page_whose_one_computing_is_a_step_between_versions_is_served_its_steps
 
-test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 1042 filtered out; finished in 0.91s
+test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 1043 filtered out; finished in 0.64s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -3980,7 +3980,7 @@ the steps between versions are not served [host]: KILLED (1 of 5 tests fail)
   1) [chromium] › e2e/device-store.spec.mjs:121:1 › what the device decides stays hidden until it is rendered at the device's value 
     Error: Expected: true
     Received: false
-    [cause]: Error: PW_ASSERTION:bc0a59d0852e69f0f877784af4a5cb0f9c19bc6b464ef41aad91aba9b9ee7ee0
+    [cause]: Error: PW_ASSERTION:2e37304cdab2df63808292640a09fab6fbafac8969740f93bb4b638cbfbbd732
   2) [chromium] › e2e/device-store.spec.mjs:97:1 › nothing the device decides is shown before the device is read, and the page's own is 
     Error: expect(locator).toHaveText(expected) failed
     Expected: "41"
@@ -3988,7 +3988,7 @@ the steps between versions are not served [host]: KILLED (1 of 5 tests fail)
       - Expect "toHaveText" with timeout 5000ms
       - waiting for locator('#presses')
           - unexpected value "0"
-    [cause]: Error: PW_ASSERTION:bc0a59d0852e69f0f877784af4a5cb0f9c19bc6b464ef41aad91aba9b9ee7ee0
+    [cause]: Error: PW_ASSERTION:2e37304cdab2df63808292640a09fab6fbafac8969740f93bb4b638cbfbbd732
   3) [chromium] › e2e/device-store.spec.mjs:164:1 › a value kept survives a reload, under its name and version 
     Error: expect(received).toEqual(expected) // deep equality
     - Expected  - 4
@@ -3996,17 +3996,17 @@ the steps between versions are not served [host]: KILLED (1 of 5 tests fail)
     -   "notes": "default",
     -   "presses": "default",
     - }
-    [cause]: Error: PW_ASSERTION:bc0a59d0852e69f0f877784af4a5cb0f9c19bc6b464ef41aad91aba9b9ee7ee0
+    [cause]: Error: PW_ASSERTION:2e37304cdab2df63808292640a09fab6fbafac8969740f93bb4b638cbfbbd732
   4) [chromium] › e2e/device-store.spec.mjs:239:1 › version 1's notes are taken to version 2, and the old key goes 
     Error: expect(received).toBe(expected) // Object.is equality
     Expected: "migrated"
     Received: undefined
-    [cause]: Error: PW_ASSERTION:bc0a59d0852e69f0f877784af4a5cb0f9c19bc6b464ef41aad91aba9b9ee7ee0
+    [cause]: Error: PW_ASSERTION:2e37304cdab2df63808292640a09fab6fbafac8969740f93bb4b638cbfbbd732
   5) [chromium] › e2e/device-store.spec.mjs:262:1 › a page that finds a newer version writes nothing more, and says so 
     Error: expect(received).toBe(expected) // Object.is equality
     Expected: "stale"
     Received: undefined
-    [cause]: Error: PW_ASSERTION:bc0a59d0852e69f0f877784af4a5cb0f9c19bc6b464ef41aad91aba9b9ee7ee0
+    [cause]: Error: PW_ASSERTION:2e37304cdab2df63808292640a09fab6fbafac8969740f93bb4b638cbfbbd732
   6) [chromium] › e2e/device-store.spec.mjs:296:1 › an unreadable value is refused, never used, and kept aside before it is replaced 
     Error: expect(received).toEqual(expected) // deep equality
     - Expected  - 4
@@ -4014,7 +4014,7 @@ the steps between versions are not served [host]: KILLED (1 of 5 tests fail)
     -   "notes": "unreadable",
     -   "presses": "unreadable",
     - }
-    [cause]: Error: PW_ASSERTION:bc0a59d0852e69f0f877784af4a5cb0f9c19bc6b464ef41aad91aba9b9ee7ee0
+    [cause]: Error: PW_ASSERTION:2e37304cdab2df63808292640a09fab6fbafac8969740f93bb4b638cbfbbd732
   7) [chromium] › e2e/device-store.spec.mjs:324:1 › a write the store refuses is said where it was made, and what was kept stays 
     Error: expect(locator).toHaveText(expected) failed
     Expected: "5"
@@ -4022,20 +4022,20 @@ the steps between versions are not served [host]: KILLED (1 of 5 tests fail)
       - Expect "toHaveText" with timeout 5000ms
       - waiting for locator('#presses')
           - unexpected value "0"
-    [cause]: Error: PW_ASSERTION:bc0a59d0852e69f0f877784af4a5cb0f9c19bc6b464ef41aad91aba9b9ee7ee0
+    [cause]: Error: PW_ASSERTION:2e37304cdab2df63808292640a09fab6fbafac8969740f93bb4b638cbfbbd732
 EVIDENCE localStorage limit (chromium): 5242880 UTF-16 code units
   8) [chromium] › e2e/device-store.spec.mjs:380:1 › no request carries what the device keeps ───────
     Error: expect(locator).toHaveText(expected) failed
     - Expected  - 3
     - Array [
-    -   "marker-1794359519507",
+    -   "marker-1794383284258",
     - ]
       - Expect "toHaveText" with timeout 5000ms
       - waiting for locator('#notes li')
-    [cause]: Error: PW_ASSERTION:bc0a59d0852e69f0f877784af4a5cb0f9c19bc6b464ef41aad91aba9b9ee7ee0
+    [cause]: Error: PW_ASSERTION:2e37304cdab2df63808292640a09fab6fbafac8969740f93bb4b638cbfbbd732
   8 failed
-  8 passed (30.4s)
-  run_suite: kept 9 of 9 entries of its output (254.3 KiB) in kept-traces/e14-device-store/20261111T011131Z-168744/run-1
+  8 passed (26.9s)
+  run_suite: kept 9 of 9 entries of its output (247.4 KiB) in kept-traces/e14-device-store/20261111T074740Z-153209/run-1
   run_suite: exit 1
 
 nothing is read at start [browser]: KILLED (8 of 16 tests fail)
@@ -4043,7 +4043,7 @@ nothing is read at start [browser]: KILLED (8 of 16 tests fail)
     Error: demo-notes@2 is stored as text
     Expected: "string"
     Received: "undefined"
-    [cause]: Error: PW_ASSERTION:5ff4c2ad819fef49a2b47c18f60567a2df49518e3319670b7360d103329542cf
+    [cause]: Error: PW_ASSERTION:f115a43d45cd712344b38c34aa5f0ca4d5c45933d113204c8d582e9783508036
   2) [chromium] › e2e/device-store.spec.mjs:194:1 › two tabs agree: each shows the other's writes and writes nothing back 
     Error: expect(locator).toHaveText(expected) failed
     - Expected  - 3
@@ -4052,7 +4052,7 @@ nothing is read at start [browser]: KILLED (8 of 16 tests fail)
     - ]
       - Expect "toHaveText" with timeout 5000ms
       - waiting for locator('#notes li')
-    [cause]: Error: PW_ASSERTION:5ff4c2ad819fef49a2b47c18f60567a2df49518e3319670b7360d103329542cf
+    [cause]: Error: PW_ASSERTION:f115a43d45cd712344b38c34aa5f0ca4d5c45933d113204c8d582e9783508036
   3) [chromium] › e2e/device-store.spec.mjs:212:1 › a burst of writes from another tab is heard once, and what is held then is shown 
     Error: expect(locator).toHaveText(expected) failed
     - Expected  - 3
@@ -4061,28 +4061,28 @@ nothing is read at start [browser]: KILLED (8 of 16 tests fail)
     - ]
       - Expect "toHaveText" with timeout 5000ms
       - waiting for locator('#notes li')
-    [cause]: Error: PW_ASSERTION:5ff4c2ad819fef49a2b47c18f60567a2df49518e3319670b7360d103329542cf
+    [cause]: Error: PW_ASSERTION:f115a43d45cd712344b38c34aa5f0ca4d5c45933d113204c8d582e9783508036
   4) [chromium] › e2e/device-store.spec.mjs:262:1 › a page that finds a newer version writes nothing more, and says so 
     Error: expect(received).toBe(expected) // Object.is equality
     Expected: "1"
     Received: undefined
-    [cause]: Error: PW_ASSERTION:5ff4c2ad819fef49a2b47c18f60567a2df49518e3319670b7360d103329542cf
+    [cause]: Error: PW_ASSERTION:f115a43d45cd712344b38c34aa5f0ca4d5c45933d113204c8d582e9783508036
   5) [chromium] › e2e/device-store.spec.mjs:281:1 › a newer version kept by another tab stops this one writing 
     Error: demo-notes@2 is stored as text
     Expected: "string"
     Received: "undefined"
-    [cause]: Error: PW_ASSERTION:5ff4c2ad819fef49a2b47c18f60567a2df49518e3319670b7360d103329542cf
+    [cause]: Error: PW_ASSERTION:f115a43d45cd712344b38c34aa5f0ca4d5c45933d113204c8d582e9783508036
   6) [chromium] › e2e/device-store.spec.mjs:296:1 › an unreadable value is refused, never used, and kept aside before it is replaced 
     Error: expect(received).toEqual(expected) // deep equality
     - Expected  - 2
     -     "id": "0-a new start",
     -     "text": "a new start",
-    [cause]: Error: PW_ASSERTION:5ff4c2ad819fef49a2b47c18f60567a2df49518e3319670b7360d103329542cf
+    [cause]: Error: PW_ASSERTION:f115a43d45cd712344b38c34aa5f0ca4d5c45933d113204c8d582e9783508036
   7) [chromium] › e2e/device-store.spec.mjs:380:1 › no request carries what the device keeps ───────
     Error: demo-notes@2 is stored as text
     Expected: "string"
     Received: "undefined"
-    [cause]: Error: PW_ASSERTION:5ff4c2ad819fef49a2b47c18f60567a2df49518e3319670b7360d103329542cf
+    [cause]: Error: PW_ASSERTION:f115a43d45cd712344b38c34aa5f0ca4d5c45933d113204c8d582e9783508036
 EVIDENCE localStorage limit (chromium): 5242880 UTF-16 code units
   8) [chromium] › e2e/device-store.spec.mjs:324:1 › a write the store refuses is said where it was made, and what was kept stays 
     Error: expect(locator).toHaveText(expected) failed
@@ -4090,10 +4090,10 @@ EVIDENCE localStorage limit (chromium): 5242880 UTF-16 code units
     Error: element(s) not found
       - Expect "toHaveText" with timeout 5000ms
       - waiting for locator('.pw-refusal')
-    [cause]: Error: PW_ASSERTION:5ff4c2ad819fef49a2b47c18f60567a2df49518e3319670b7360d103329542cf
+    [cause]: Error: PW_ASSERTION:f115a43d45cd712344b38c34aa5f0ca4d5c45933d113204c8d582e9783508036
   8 failed
-  8 passed (26.9s)
-  run_suite: kept 9 of 9 entries of its output (526.5 KiB) in kept-traces/e14-device-store/20261111T011211Z-169686/run-1
+  8 passed (23.8s)
+  run_suite: kept 9 of 9 entries of its output (526.7 KiB) in kept-traces/e14-device-store/20261111T074815Z-154113/run-1
   run_suite: exit 1
 
 a change is not written [browser]: KILLED (8 of 16 tests fail)
@@ -4106,10 +4106,10 @@ EVIDENCE localStorage limit (chromium): 5242880 UTF-16 code units
     -   "c",
       - Expect "toHaveText" with timeout 5000ms
       - waiting for locator('#notes li')
-    [cause]: Error: PW_ASSERTION:1aa1c61f66ddcafe88875481a9d024a0d6fb9230810054ab5d4aa85c7c32b115
+    [cause]: Error: PW_ASSERTION:712f062b0c0c4be6a471575182f21c14a1fa85647626ab0272b6f149fedcf504
   1 failed
-  15 passed (17.0s)
-  run_suite: kept 2 of 2 entries of its output (113.9 KiB) in kept-traces/e14-device-store/20261111T011247Z-170607/run-1
+  15 passed (14.3s)
+  run_suite: kept 2 of 2 entries of its output (114.6 KiB) in kept-traces/e14-device-store/20261111T074846Z-155009/run-1
   run_suite: exit 1
 
 another tab's write is shown as it said, not as it is held [browser]: KILLED (1 of 16 tests fail)
@@ -4117,11 +4117,11 @@ another tab's write is shown as it said, not as it is held [browser]: KILLED (1 
     Error: expect(received).toBe(expected) // Object.is equality
     Expected: 1
     Received: 3
-    [cause]: Error: PW_ASSERTION:2d11c172f537d5a5424025ce9a45163991229fadc9e63ed6529913ff91059942
+    [cause]: Error: PW_ASSERTION:53448f45d6fc16eacd7a41889800c52b72b82ab5667b2bc216c8d35e02780aa4
 EVIDENCE localStorage limit (chromium): 5242880 UTF-16 code units
   1 failed
-  15 passed (14.4s)
-  run_suite: kept 2 of 2 entries of its output (66.0 KiB) in kept-traces/e14-device-store/20261111T011313Z-171114/run-1
+  15 passed (11.7s)
+  run_suite: kept 2 of 2 entries of its output (65.9 KiB) in kept-traces/e14-device-store/20261111T074908Z-155502/run-1
   run_suite: exit 1
 
 a burst of writes is heard once each [browser]: KILLED (1 of 16 tests fail)
@@ -4133,7 +4133,7 @@ a burst of writes is heard once each [browser]: KILLED (1 of 16 tests fail)
     - ]
       - Expect "toHaveText" with timeout 5000ms
       - waiting for locator('#notes li')
-    [cause]: Error: PW_ASSERTION:bcdcf021b936076dc928d5b8ae5483ef70063907ee8111845d8acb57baa328b6
+    [cause]: Error: PW_ASSERTION:093b81cdc20e00616a34f5caaea2b9cf6617ec81fef541d985ce10a48d0cc6ba
   2) [chromium] › e2e/device-store.spec.mjs:212:1 › a burst of writes from another tab is heard once, and what is held then is shown 
     Error: expect(locator).toHaveText(expected) failed
     - Expected  - 3
@@ -4142,15 +4142,15 @@ a burst of writes is heard once each [browser]: KILLED (1 of 16 tests fail)
     - ]
       - Expect "toHaveText" with timeout 5000ms
       - waiting for locator('#notes li')
-    [cause]: Error: PW_ASSERTION:bcdcf021b936076dc928d5b8ae5483ef70063907ee8111845d8acb57baa328b6
+    [cause]: Error: PW_ASSERTION:093b81cdc20e00616a34f5caaea2b9cf6617ec81fef541d985ce10a48d0cc6ba
 EVIDENCE localStorage limit (chromium): 5242880 UTF-16 code units
   3) [chromium] › e2e/device-store.spec.mjs:281:1 › a newer version kept by another tab stops this one writing 
     Error: Expected: "stale"
     Received: "read"
-    [cause]: Error: PW_ASSERTION:bcdcf021b936076dc928d5b8ae5483ef70063907ee8111845d8acb57baa328b6
+    [cause]: Error: PW_ASSERTION:093b81cdc20e00616a34f5caaea2b9cf6617ec81fef541d985ce10a48d0cc6ba
   3 failed
-  13 passed (23.2s)
-  run_suite: kept 4 of 4 entries of its output (304.8 KiB) in kept-traces/e14-device-store/20261111T011337Z-171688/run-1
+  13 passed (20.9s)
+  run_suite: kept 4 of 4 entries of its output (303.3 KiB) in kept-traces/e14-device-store/20261111T074928Z-156046/run-1
   run_suite: exit 1
 
 another tab's write is not heard [browser]: KILLED (3 of 16 tests fail)
@@ -4161,10 +4161,10 @@ another tab's write is not heard [browser]: KILLED (3 of 16 tests fail)
     -   "feed the cat",
       - Expect "toHaveText" with timeout 5000ms
       - waiting for locator('.todo-list li')
-    [cause]: Error: PW_ASSERTION:aa811cf5fbaf07fb4ec806e8db4bf3177bb5eaec9619516eaa4ec9fcac78d305
+    [cause]: Error: PW_ASSERTION:a36b5e4c807763f4d426678d54b44b7df13cbde5c4a520ca379657876874d648
   1 failed
-  53 passed (20.5s)
-  run_suite: kept 2 of 2 entries of its output (181.6 KiB) in kept-traces/e14-device-store/20261111T011410Z-172311/run-1
+  53 passed (19.5s)
+  run_suite: kept 2 of 2 entries of its output (181.4 KiB) in kept-traces/e14-device-store/20261111T074956Z-156650/run-1
   run_suite: exit 1
 
 a page the back-forward cache brings back reads nothing [todomvc]: KILLED (1 of 54 tests fail)
@@ -4172,11 +4172,11 @@ a page the back-forward cache brings back reads nothing [todomvc]: KILLED (1 of 
     Error: expect(received).toBe(expected) // Object.is equality
     Expected: 1
     Received: 2
-    [cause]: Error: PW_ASSERTION:6969a8cd5d8d46ec93f64f0942047fea6ae2b50e5e5d92b0cae5c6bf8ba04c73
+    [cause]: Error: PW_ASSERTION:ba978ae398d7bb046024a4a9babacacd916af05304daea3bcc81fc8fcaebf5d3
 EVIDENCE localStorage limit (chromium): 5242880 UTF-16 code units
   1 failed
-  15 passed (14.4s)
-  run_suite: kept 2 of 2 entries of its output (79.1 KiB) in kept-traces/e14-device-store/20261111T011439Z-173457/run-1
+  15 passed (11.7s)
+  run_suite: kept 2 of 2 entries of its output (82.5 KiB) in kept-traces/e14-device-store/20261111T075024Z-157793/run-1
   run_suite: exit 1
 
 another tab's write is written back [browser]: KILLED (1 of 16 tests fail)
@@ -4184,11 +4184,11 @@ another tab's write is written back [browser]: KILLED (1 of 16 tests fail)
     Error: expect(received).toEqual(expected) // deep equality
     - Expected  - 1
     -   "notes": "unreadable",
-    [cause]: Error: PW_ASSERTION:b1d7b60f64cb7edb8b11a813a725d350a24872f89179f42950db62f717fa560e
+    [cause]: Error: PW_ASSERTION:09776ebfe73219dea180bfe9cb574b8af14474588c708faafd5aec1b69fb3652
 EVIDENCE localStorage limit (chromium): 5242880 UTF-16 code units
   1 failed
-  15 passed (14.4s)
-  run_suite: kept 2 of 2 entries of its output (30.6 KiB) in kept-traces/e14-device-store/20261111T011503Z-174029/run-1
+  15 passed (11.9s)
+  run_suite: kept 2 of 2 entries of its output (22.9 KiB) in kept-traces/e14-device-store/20261111T075043Z-158349/run-1
   run_suite: exit 1
 
 what is read is used undecoded [browser]: KILLED (1 of 16 tests fail)
@@ -4196,11 +4196,11 @@ what is read is used undecoded [browser]: KILLED (1 of 16 tests fail)
     Error: expect(received).toBe(expected) // Object.is equality
     Expected: "migrated"
     Received: "default"
-    [cause]: Error: PW_ASSERTION:fd32431b19fffdc01f24809d64bdeaf53d2e877780711b45e04fe98a241f3c32
+    [cause]: Error: PW_ASSERTION:5ef5b04b96456aa097ebaa5194be038c108c24448cf524bbb95d92c6bae42066
 EVIDENCE localStorage limit (chromium): 5242880 UTF-16 code units
   1 failed
-  15 passed (14.3s)
-  run_suite: kept 2 of 2 entries of its output (26.1 KiB) in kept-traces/e14-device-store/20261111T011526Z-174598/run-1
+  15 passed (11.7s)
+  run_suite: kept 2 of 2 entries of its output (22.4 KiB) in kept-traces/e14-device-store/20261111T075103Z-158900/run-1
   run_suite: exit 1
 
 an earlier version is not migrated [browser]: KILLED (1 of 16 tests fail)
@@ -4208,11 +4208,11 @@ an earlier version is not migrated [browser]: KILLED (1 of 16 tests fail)
     Error: expect(received).toBe(expected) // Object.is equality
     Expected: undefined
     Received: "[{\"text\":\"old\"},{\"text\":\"older\"}]"
-    [cause]: Error: PW_ASSERTION:e9341702ae50d641e6bf2ed658d851ea5d8dddb3b53cdfe8d37b1ce3b9e3f2ef
+    [cause]: Error: PW_ASSERTION:6dfc34916b431c408614faf59d8531484cb05c593e9e04e0a72408a53d8be534
 EVIDENCE localStorage limit (chromium): 5242880 UTF-16 code units
   1 failed
-  15 passed (14.2s)
-  run_suite: kept 2 of 2 entries of its output (28.0 KiB) in kept-traces/e14-device-store/20261111T011550Z-175163/run-1
+  15 passed (11.7s)
+  run_suite: kept 2 of 2 entries of its output (32.2 KiB) in kept-traces/e14-device-store/20261111T075122Z-159447/run-1
   run_suite: exit 1
 
 the old key stays after a migration [browser]: KILLED (1 of 16 tests fail)
@@ -4220,11 +4220,11 @@ the old key stays after a migration [browser]: KILLED (1 of 16 tests fail)
     Error: expect(received).toBe(expected) // Object.is equality
     Expected: "stale"
     Received: "default"
-    [cause]: Error: PW_ASSERTION:30fb0e6b952994fe7ac5ce200d7e18121dcd2c203ef0bff0865c1d5c362f3210
+    [cause]: Error: PW_ASSERTION:e4c89b8d0828e081bfc38ce7761ab280a375e31a6b32a89e59c5742ff6ef94f2
 EVIDENCE localStorage limit (chromium): 5242880 UTF-16 code units
   1 failed
-  15 passed (14.2s)
-  run_suite: kept 2 of 2 entries of its output (22.4 KiB) in kept-traces/e14-device-store/20261111T011613Z-175731/run-1
+  15 passed (11.8s)
+  run_suite: kept 2 of 2 entries of its output (26.1 KiB) in kept-traces/e14-device-store/20261111T075141Z-159993/run-1
   run_suite: exit 1
 
 a newer version does not stop the writes [browser]: KILLED (1 of 16 tests fail)
@@ -4232,11 +4232,11 @@ a newer version does not stop the writes [browser]: KILLED (1 of 16 tests fail)
     Error: demo-notes@2!unreadable is stored as text
     Expected: "string"
     Received: "undefined"
-    [cause]: Error: PW_ASSERTION:9fc93c2b256ed2a15a7e752e212b8e4ee374fcab9db7269fc5a160c714c72900
+    [cause]: Error: PW_ASSERTION:bc39c6f0fa4cd5658a278d22bb3294bcac5103efa12115f8f0db321391883457
 EVIDENCE localStorage limit (chromium): 5242880 UTF-16 code units
   1 failed
-  15 passed (14.4s)
-  run_suite: kept 2 of 2 entries of its output (44.3 KiB) in kept-traces/e14-device-store/20261111T011637Z-176298/run-1
+  15 passed (11.8s)
+  run_suite: kept 2 of 2 entries of its output (43.1 KiB) in kept-traces/e14-device-store/20261111T075201Z-160540/run-1
   run_suite: exit 1
 
 an unreadable value is not kept aside [browser]: KILLED (1 of 16 tests fail)
@@ -4247,10 +4247,10 @@ EVIDENCE localStorage limit (chromium): 5242880 UTF-16 code units
     Error: element(s) not found
       - Expect "toHaveText" with timeout 5000ms
       - waiting for locator('.pw-refusal')
-    [cause]: Error: PW_ASSERTION:8a9fa8dfad802bf4a8d8ff33733a5ac70e0ff5f713a32b8af5bf9363167760c3
+    [cause]: Error: PW_ASSERTION:bf8e492af44b5ca703e476c0b1c402214e197df77ae210d2fd6e71b33ec25d4e
   1 failed
-  15 passed (17.6s)
-  run_suite: kept 2 of 2 entries of its output (39.0 KiB) in kept-traces/e14-device-store/20261111T011700Z-176866/run-1
+  15 passed (15.2s)
+  run_suite: kept 2 of 2 entries of its output (35.2 KiB) in kept-traces/e14-device-store/20261111T075221Z-161097/run-1
   run_suite: exit 1
 
 a refused write is not said [browser]: KILLED (1 of 16 tests fail)
@@ -4262,10 +4262,10 @@ EVIDENCE localStorage limit (chromium): 5242880 UTF-16 code units
       - Expect "toBeHidden" with timeout 5000ms
       - waiting for locator('#count')
           - unexpected value "visible"
-    [cause]: Error: PW_ASSERTION:1e68a12e41526714806790c33942ffdfbdeb5fa7b9373cb79192d03791fb6bae
+    [cause]: Error: PW_ASSERTION:4179cd2afaae48933d64062a54d9cada78aee661a98058487b78b951b7e02395
   1 failed
-  15 passed (14.9s)
-  run_suite: kept 2 of 2 entries of its output (31.0 KiB) in kept-traces/e14-device-store/20261111T011727Z-177386/run-1
+  15 passed (12.8s)
+  run_suite: kept 2 of 2 entries of its output (31.1 KiB) in kept-traces/e14-device-store/20261111T075244Z-161579/run-1
   run_suite: exit 1
 
 each value is set as it is read, and the mark waits for the last one's render alone [browser]: KILLED (1 of 16 tests fail)
@@ -4276,11 +4276,11 @@ each value is set as it is read, and the mark waits for the last one's render al
       - Expect "toBeHidden" with timeout 5000ms
       - waiting for locator('#count')
           - unexpected value "visible"
-    [cause]: Error: PW_ASSERTION:19e8745cfe3d4b81c2e79360aa49b9c4c574f97ed917786e4173f1e9f97b56f2
+    [cause]: Error: PW_ASSERTION:4ff8edc680ebde4af1a941cc31dbafae083e9d8e381e0657ffa587098190378e
 EVIDENCE localStorage limit (chromium): 5242880 UTF-16 code units
   1 failed
-  15 passed (15.0s)
-  run_suite: kept 2 of 2 entries of its output (31.0 KiB) in kept-traces/e14-device-store/20261111T011751Z-177888/run-1
+  15 passed (14.1s)
+  run_suite: kept 2 of 2 entries of its output (30.9 KiB) in kept-traces/e14-device-store/20261111T075304Z-162065/run-1
   run_suite: exit 1
 
 the mark is taken away before what the device decides is rendered [browser]: KILLED (1 of 16 tests fail)
@@ -4288,22 +4288,22 @@ the mark is taken away before what the device decides is rendered [browser]: KIL
     Error: expect(received).toBe(expected) // Object.is equality
     Expected: true
     Received: false
-    [cause]: Error: PW_ASSERTION:a8b8cccf9410213a36ebc97b6e4b39a4cd67b4af22fe93479776335d58a1db39
+    [cause]: Error: PW_ASSERTION:f5924bbe636d08509b591e8650ecde0f14bed035995da7d34f2fb9552409782f
   1 failed
-  53 passed (18.0s)
-  run_suite: kept 2 of 2 entries of its output (154.5 KiB) in kept-traces/e14-device-store/20261111T011815Z-178397/run-1
+  53 passed (17.1s)
+  run_suite: kept 2 of 2 entries of its output (146.7 KiB) in kept-traces/e14-device-store/20261111T075326Z-162610/run-1
   run_suite: exit 1
 
 a block rendered again is replaced, not morphed [todomvc]: KILLED (1 of 54 tests fail)
-EVIDENCE localStorage limit (chromium): 5242880 UTF-16 code units
   1) [chromium] › e2e/device-store.spec.mjs:363:1 › a row keeps its element as its list is reordered, matched by its note's key 
     Error: expect(received).toBe(expected) // Object.is equality
     Expected: true
     Received: false
-    [cause]: Error: PW_ASSERTION:44ade7c66fafe6dafa56ef3b992e767abf4190751e70ebb9cbbc8fe15cf82f8f
+    [cause]: Error: PW_ASSERTION:63b59fea081590c22ea4e70fad38180cf56b3a9a888a8fe44f48ea2b96688f78
+EVIDENCE localStorage limit (chromium): 5242880 UTF-16 code units
   1 failed
-  15 passed (13.3s)
-  run_suite: kept 2 of 2 entries of its output (81.8 KiB) in kept-traces/e14-device-store/20261111T011842Z-179550/run-1
+  15 passed (12.2s)
+  run_suite: kept 2 of 2 entries of its output (77.8 KiB) in kept-traces/e14-device-store/20261111T075351Z-163740/run-1
   run_suite: exit 1
 
 rows are matched by their place, not their key [browser]: KILLED (1 of 16 tests fail)
@@ -4314,7 +4314,7 @@ rows are matched by their place, not their key [browser]: KILLED (1 of 16 tests 
       - Expect "not toBeChecked" with timeout 5000ms
       - waiting for locator('.todo-list li').first().locator('.toggle')
           - unexpected value "checked"
-    [cause]: Error: PW_ASSERTION:4118d0bda61950efe15a08c516169bbe02765772d4be3a635ddcbd1c8a4d5ebe
+    [cause]: Error: PW_ASSERTION:f23ec23131e4e28b439dff803dd687283b1c02d2f0d869ff25b2add3390b87b9
   2) [chromium] › e2e/todomvc.spec.mjs:576:1 › a todo's row is one element across each change, matched by its key 
     Error: expect(locator).not.toBeChecked() failed
     Expected: not checked
@@ -4322,10 +4322,10 @@ rows are matched by their place, not their key [browser]: KILLED (1 of 16 tests 
       - Expect "not toBeChecked" with timeout 5000ms
       - waiting for locator('.todo-list li').first().locator('.toggle')
           - unexpected value "checked"
-    [cause]: Error: PW_ASSERTION:4118d0bda61950efe15a08c516169bbe02765772d4be3a635ddcbd1c8a4d5ebe
+    [cause]: Error: PW_ASSERTION:f23ec23131e4e28b439dff803dd687283b1c02d2f0d869ff25b2add3390b87b9
   2 failed
-  52 passed (23.8s)
-  run_suite: kept 3 of 3 entries of its output (1.3 MiB) in kept-traces/e14-device-store/20261111T011905Z-180059/run-1
+  52 passed (22.8s)
+  run_suite: kept 3 of 3 entries of its output (1.2 MiB) in kept-traces/e14-device-store/20261111T075411Z-164289/run-1
   run_suite: exit 1
 
 a box's state does not follow the rendering [todomvc]: KILLED (2 of 54 tests fail)
@@ -4336,7 +4336,7 @@ a box's state does not follow the rendering [todomvc]: KILLED (2 of 54 tests fai
     -   "book a doctors appointment",
       - Expect "toHaveText" with timeout 5000ms
       - waiting for locator('.todo-list li')
-    [cause]: Error: PW_ASSERTION:eb8f582557046f3a5afc128ddbcb7080ff9e053762fa7c0e3b820658dd9edb26
+    [cause]: Error: PW_ASSERTION:fee1759376c93e7f4cb716683cff01093a44ab6726498d4f26aec690cf2ebb98
   2) [chromium] › e2e/todomvc.spec.mjs:720:1 › the counter counts every todo whatever the filter shows 
     Error: expect(locator).toHaveCount(expected) failed
     Expected: 1
@@ -4344,7 +4344,7 @@ a box's state does not follow the rendering [todomvc]: KILLED (2 of 54 tests fai
       - Expect "toHaveCount" with timeout 5000ms
       - waiting for locator('.todo-list li')
           - unexpected value "3"
-    [cause]: Error: PW_ASSERTION:eb8f582557046f3a5afc128ddbcb7080ff9e053762fa7c0e3b820658dd9edb26
+    [cause]: Error: PW_ASSERTION:fee1759376c93e7f4cb716683cff01093a44ab6726498d4f26aec690cf2ebb98
   3) [chromium] › e2e/todomvc.spec.mjs:730:1 › an item updated while filtered is updated accordingly 
     Error: expect(locator).toHaveText(expected) failed
     - Expected  - 2
@@ -4352,7 +4352,7 @@ a box's state does not follow the rendering [todomvc]: KILLED (2 of 54 tests fai
     -   "book a doctors appointment",
       - Expect "toHaveText" with timeout 5000ms
       - waiting for locator('.todo-list li')
-    [cause]: Error: PW_ASSERTION:eb8f582557046f3a5afc128ddbcb7080ff9e053762fa7c0e3b820658dd9edb26
+    [cause]: Error: PW_ASSERTION:fee1759376c93e7f4cb716683cff01093a44ab6726498d4f26aec690cf2ebb98
   4) [chromium] › e2e/todomvc.spec.mjs:759:1 › a todo added under a filter that shows it appears, and under one that does not, does not 
     Error: expect(locator).toHaveCount(expected) failed
     Expected: 0
@@ -4360,7 +4360,7 @@ a box's state does not follow the rendering [todomvc]: KILLED (2 of 54 tests fai
       - Expect "toHaveCount" with timeout 5000ms
       - waiting for locator('.todo-list li')
           - unexpected value "2"
-    [cause]: Error: PW_ASSERTION:eb8f582557046f3a5afc128ddbcb7080ff9e053762fa7c0e3b820658dd9edb26
+    [cause]: Error: PW_ASSERTION:fee1759376c93e7f4cb716683cff01093a44ab6726498d4f26aec690cf2ebb98
   5) [chromium] › e2e/todomvc.spec.mjs:781:1 › the back button respects the routes ─────────────────
     Error: expect(locator).toHaveCount(expected) failed
     Expected: 2
@@ -4368,17 +4368,17 @@ a box's state does not follow the rendering [todomvc]: KILLED (2 of 54 tests fai
       - Expect "toHaveCount" with timeout 5000ms
       - waiting for locator('.todo-list li')
           - unexpected value "3"
-    [cause]: Error: PW_ASSERTION:eb8f582557046f3a5afc128ddbcb7080ff9e053762fa7c0e3b820658dd9edb26
+    [cause]: Error: PW_ASSERTION:fee1759376c93e7f4cb716683cff01093a44ab6726498d4f26aec690cf2ebb98
   6) [chromium] › e2e/todomvc.spec.mjs:801:1 › a page opened at a route shows it, and the route is kept on reload 
     Error: expect(locator).toHaveText(expected) failed
     - Expected  - 1
     -   "buy some cheese",
       - Expect "toHaveText" with timeout 5000ms
       - waiting for locator('.todo-list li')
-    [cause]: Error: PW_ASSERTION:eb8f582557046f3a5afc128ddbcb7080ff9e053762fa7c0e3b820658dd9edb26
+    [cause]: Error: PW_ASSERTION:fee1759376c93e7f4cb716683cff01093a44ab6726498d4f26aec690cf2ebb98
   6 failed
-  48 passed (37.3s)
-  run_suite: kept 7 of 7 entries of its output (2.1 MiB) in kept-traces/e14-device-store/20261111T011937Z-181278/run-1
+  48 passed (35.7s)
+  run_suite: kept 7 of 7 entries of its output (2.2 MiB) in kept-traces/e14-device-store/20261111T075441Z-165483/run-1
   run_suite: exit 1
 
 a computed part is given its first value alone [todomvc]: KILLED (6 of 54 tests fail)
@@ -4390,10 +4390,10 @@ EVIDENCE localStorage limit (chromium): 5242880 UTF-16 code units
       - Expect "toHaveText" with timeout 5000ms
       - waiting for locator('#summary')
           - unexpected value "0 notes"
-    [cause]: Error: PW_ASSERTION:468f64fa7cd9b503885a0de0148aa3f041ca333ec39dc46c29ccc04771469ac8
+    [cause]: Error: PW_ASSERTION:a44ecc10278e377539cb3eaefdf6e380313229d2112ec9d99df4978c087439ef
   1 failed
-  15 passed (17.4s)
-  run_suite: kept 2 of 2 entries of its output (70.7 KiB) in kept-traces/e14-device-store/20261111T012024Z-182734/run-1
+  15 passed (15.3s)
+  run_suite: kept 2 of 2 entries of its output (78.3 KiB) in kept-traces/e14-device-store/20261111T075525Z-166925/run-1
   run_suite: exit 1
 
 a computed part is computed again for its first value alone [browser]: KILLED (1 of 16 tests fail)

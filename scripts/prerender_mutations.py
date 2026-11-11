@@ -81,6 +81,7 @@ HOST_NAMES = [
     "tests::prerender::it_says_what_a_document_says_of_itself",
     "tests::prerender::nothing_is_one_document_until_it_is_rendered",
     "tests::prerender::the_address_that_still_renders_is_as_it_was",
+    "tests::prerender::a_validator_is_the_first_128_bits_of_its_digest",
     "tests::prerender::what_it_says_of_itself_is_part_of_its_validator",
     "tests::prerender::todomvc_is_one_document",
 ]
@@ -220,6 +221,9 @@ MUTANTS = [
     ("a validator does not name what the document says of itself", HOST,
      '        let tag = strong_tag(&[bytes.as_slice(), says.as_bytes()].concat());\n',
      '        let tag = strong_tag(&bytes);\n'),
+    ("a validator is its whole digest", HOST,
+     '        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(&digest[..16])\n',
+     '        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(&digest[..])\n'),
     ("Brotli is not offered", HOST,
      '        if accepts("br") {\n',
      '        if false && accepts("br") {\n'),

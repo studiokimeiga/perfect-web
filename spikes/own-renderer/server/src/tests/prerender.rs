@@ -285,6 +285,29 @@ fn a_browser_that_holds_a_representation_is_told_so() {
     }
 }
 
+/// **A validator is 22 characters** (train-23): the first 128 bits of its
+/// representation's SHA-256, in base64url, where the whole digest in
+/// hexadecimal was 64. A response's head is counted with its body in what
+/// a page sends, and a validator need only differ where the bytes do.
+#[test]
+fn a_validator_is_the_first_128_bits_of_its_digest() {
+    assert_eq!(
+        crate::prerender::strong_tag(b"abc"),
+        "\"ungWv48Bz-pBQUDeXa4iIw\""
+    );
+    let s = home();
+    let (head, _) = get(&s, "/", "Accept-Encoding: br\r\n");
+    assert!(header(&head, "etag").is_some(), "a validator: {head}");
+    let tag = header(&head, "etag").unwrap_or_default();
+    assert_eq!(tag.len(), 24, "{tag}");
+    assert!(
+        tag[1..23]
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_'),
+        "{tag}"
+    );
+}
+
 /// A validator names what a document says of itself too: a deployment that
 /// changes its policy, the page's bytes the same, is a document a browser
 /// must be sent again, not told it holds (the independent review's third).

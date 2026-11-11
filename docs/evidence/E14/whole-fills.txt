@@ -1,8 +1,8 @@
 ADR-0223 - a streamed region is filled when its whole arm has arrived
 
 produced by: just e14-whole-fills
-commit: 71987e540d75e16819b7cf196055da31024d2688
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1de391393d7364eae718a4f5715c3b1d183f0710
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -17,7 +17,7 @@ test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 == the slots in three engines (e2e/slots.spec.mjs)
 
-  21 passed (40.5s)
+  21 passed (28.3s)
 
 == mutation controls (scripts/whole_fills_mutations.py)
 

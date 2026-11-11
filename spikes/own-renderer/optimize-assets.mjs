@@ -157,12 +157,12 @@ function featuresIn(chunks, templates, out, seen) {
  * that cannot be read keeps everything.
  */
 async function deviceFeatures(directory) {
-  const everything = { PW_LINKS: true, PW_MATCH: true, PW_VIEWS: true, PW_DIALOGS: true, PW_KEPT: true, PW_FRAGMENT: true, PW_AUTOFOCUS: true, PW_PLANS: true };
+  const everything = { PW_LINKS: true, PW_MATCH: true, PW_VIEWS: true, PW_DIALOGS: true, PW_KEPT: true, PW_FRAGMENT: true, PW_AUTOFOCUS: true, PW_PLANS: true, PW_GRAPHS: true };
   const base = path.join(directory, "build");
   const text = await readIfThere(path.join(base, "templates.json"));
   if (text === null) return everything;
   const templates = JSON.parse(text);
-  const out = { PW_LINKS: false, PW_MATCH: false, PW_VIEWS: false, PW_DIALOGS: false, PW_KEPT: false, PW_FRAGMENT: false, PW_AUTOFOCUS: false, PW_PLANS: false };
+  const out = { PW_LINKS: false, PW_MATCH: false, PW_VIEWS: false, PW_DIALOGS: false, PW_KEPT: false, PW_FRAGMENT: false, PW_AUTOFOCUS: false, PW_PLANS: false, PW_GRAPHS: false };
   for (const name of await readdir(path.join(base, "pages")).catch(() => [])) {
     if (!name.endsWith(".json")) continue;
     const plan = JSON.parse(await readFile(path.join(base, "pages", name), "utf8"));
@@ -173,7 +173,29 @@ async function deviceFeatures(directory) {
     if (!template) return everything;
     featuresIn(template.chunks, templates, out, new Set());
   }
+  out.PW_GRAPHS = await writesGraphs(base);
   return out;
+}
+
+/** **Whether a build writes a value of a type that contains itself**
+ * (ADR-0428): as its nodes, `$graph`, which the compiler writes into what
+ * writes such a value, a page's first value, a handler, a computed module or
+ * a component the host runs as it renders. A build none of whose files holds
+ * the word holds none, and its device's runtime reads none. Every file is
+ * read, whatever its kind: one this does not know of keeps the reading. What
+ * the packaging writes is made from the rest and the runtime, which holds the
+ * word, and is not read, so a build packed again is packed alike. */
+const PACKED = new Set(["alone", "bundles"]);
+async function writesGraphs(base, dir = base) {
+  for (const entry of await readdir(dir, { withFileTypes: true }).catch(() => [])) {
+    const file = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (!(dir === base && PACKED.has(entry.name)) && (await writesGraphs(base, file))) return true;
+    } else if (!/\.(br|gz)$/.test(entry.name) && (await readFile(file)).includes("$graph")) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -301,6 +323,113 @@ async function readIfThere(file) {
   }
 }
 
+/** A prelude's paragraph that declares one name a page's handlers can
+ * share: a helper, a case table or a list of literals, its comment before
+ * it. A function compiled beside one handler is named by its place in it
+ * (`callee0`, `closure0`), and another's of that name is another. */
+const SHAREABLE = /^((?:\/\/[^\n]*\n)*)(function|const)\s+([A-Za-z_$][\w$]*)/;
+const PLACED = /^(?:callee|closure)\d+$/;
+const IDENTIFIER = /[A-Za-z_$][\w$]*/g;
+/** **A line of a prelude in the compiler's form** (js_pure's `prelude`):
+ * what is inside a declaration indented, and at the margin only a comment,
+ * the close of what a line above opened, or a declaration of one name. */
+const IN_FORM = /^(?:$|\s|\/\/|[}\])]|function [A-Za-z_$][\w$]*\(|const [A-Za-z_$][\w$]* = )/;
+const AT_MARGIN = /^(?:function|const) ([A-Za-z_$][\w$]*)/gm;
+// A second name a `const` at the margin declares.
+const SECOND = /^const [^\n]*,\s*[A-Za-z_$][\w$]*\s*=/m;
+
+/** **What a page's handlers write alike, written once** (ADR-0428): each
+ * compiled handler's prelude, what precedes its `name`, is its declarations,
+ * a paragraph each, or a paragraph for two where one is the other's alone
+ * (`WHITE` and `trim`); one that two or more of them hold word for word is
+ * a shared module's, each of its names exported, which each imports, so the
+ * page's module holds it once where esbuild would hold a copy for each.
+ *
+ * Each name in what is shared means what it meant in each handler that
+ * imports it. A handler's names are those it declares at its prelude's
+ * margin, as the compiler writes every prelude; one whose prelude is in
+ * another form imports nothing. A shared paragraph says no name a handler
+ * declares that is not shared too, every word of it counted, a comment's
+ * too; and a handler imports what it holds of them only where it holds each
+ * one what it imports says, or nothing: one whose `trap` is its own keeps
+ * the `int` that reads it. A paragraph fewer than two handlers import is
+ * shared with none. `null` where nothing is shared. `texts`: each handler's
+ * file, by its path. */
+export function sharedPreludes(texts) {
+  const words = (p) => [...p.matchAll(IDENTIFIER)].map(([w]) => w);
+  const handlers = [];
+  // Every name a handler declares.
+  const named = new Set();
+  for (const [file, text] of texts) {
+    const at = text.indexOf("\nexport const name = ");
+    if (at < 0) continue;
+    // The last paragraph as any other, without the line that ends it.
+    const head = text.slice(0, at).replace(/\n+$/, "").split("\n\n");
+    if (!head.every((p) => p.split("\n").every((line) => IN_FORM.test(line)) && !SECOND.test(p))) continue;
+    for (const p of head) for (const [, name] of p.matchAll(AT_MARGIN)) named.add(name);
+    handlers.push({ file, text, at, head });
+  }
+  // Each paragraph a handler could share, and the names it declares.
+  const counts = new Map();
+  const nameOf = new Map();
+  for (const { head } of handlers) {
+    for (const p of new Set(head)) {
+      const declared = [...p.matchAll(AT_MARGIN)].map(([, name]) => name);
+      if (!SHAREABLE.test(p) || declared.some((name) => PLACED.test(name))) continue;
+      counts.set(p, (counts.get(p) ?? 0) + 1);
+      nameOf.set(p, declared);
+    }
+  }
+  const held = [...counts].filter(([, n]) => n > 1).map(([p]) => p);
+  // A name two paragraphs declare otherwise is shared by neither.
+  const declaring = new Map();
+  for (const p of held) for (const name of nameOf.get(p)) declaring.set(name, (declaring.get(name) ?? 0) + 1);
+  let shared = held.filter((p) => nameOf.get(p).every((name) => declaring.get(name) === 1));
+  let names;
+  let imported;
+  for (;;) {
+    let closed = shared;
+    for (;;) {
+      names = new Map(closed.flatMap((p) => nameOf.get(p).map((name) => [name, p])));
+      const next = closed.filter((p) => words(p).every((w) => !named.has(w) || names.has(w)));
+      if (next.length === closed.length) break;
+      closed = next;
+    }
+    imported = handlers.map(({ head }) => {
+      const mine = new Set(head.filter((p) => closed.includes(p)));
+      return [...mine].every((p) => words(p).every((w) => !names.has(w) || mine.has(names.get(w)))) ? mine : new Set();
+    });
+    const next = closed.filter((p) => imported.filter((mine) => mine.has(p)).length > 1);
+    if (next.length === shared.length) break;
+    shared = next;
+  }
+  if (shared.length === 0) return null;
+  const rewritten = new Map();
+  handlers.forEach(({ file, text, at, head }, i) => {
+    const mine = imported[i];
+    if (mine.size === 0) return;
+    const kept = head.filter((p) => !mine.has(p));
+    const imports = `import { ${head.filter((p) => mine.has(p)).flatMap((p) => nameOf.get(p)).join(", ")} } from "pw:shared";`;
+    rewritten.set(file, `${imports}\n\n${kept.join("\n\n")}\n${text.slice(at)}`);
+  });
+  // Each declaration at a shared paragraph's margin, exported.
+  const module = shared.map((p) => p.replace(/^(function|const) /gm, "export $1 ")).join("\n\n");
+  return { module, rewritten };
+}
+
+/** The esbuild plugin that reads each handler as `shared` rewrote it, and
+ * `pw:shared` as the module it shares. */
+function sharing(shared) {
+  return {
+    name: "pw-shared-preludes",
+    setup(b) {
+      b.onResolve({ filter: /^pw:shared$/ }, () => ({ path: "shared", namespace: "pw-shared" }));
+      b.onLoad({ filter: /.*/, namespace: "pw-shared" }, () => ({ contents: shared.module, loader: "js" }));
+      b.onLoad({ filter: /\.mjs$/ }, (args) => (shared.rewritten.has(args.path) ? { contents: shared.rewritten.get(args.path), loader: "js" } : undefined));
+    },
+  };
+}
+
 /**
  * **Each page's code in one module** (ADR-0412): its handlers,
  * its computed values and its speculations, which a production page warms
@@ -341,6 +470,12 @@ export async function bundlePages(directory) {
       lines.push(`export * as speculation from "./speculations/${page}.mjs";`);
     }
     if (lines.length === 0) continue;
+    const texts = new Map();
+    for (const id of handlers) {
+      const file = path.join(base, "handlers", `${id}.mjs`);
+      texts.set(file, await readFile(file, "utf8"));
+    }
+    const shared = sharedPreludes(texts);
     const result = await build({
       stdin: { contents: lines.join("\n"), resolveDir: base, loader: "js", sourcefile: `${page}.entry.mjs` },
       bundle: true,
@@ -351,6 +486,7 @@ export async function bundlePages(directory) {
       legalComments: "none",
       write: false,
       logLevel: "silent",
+      plugins: shared ? [sharing(shared)] : [],
     });
     const body = result.outputFiles[0].contents;
     const file = path.join(base, "bundles", `${page}.mjs`);

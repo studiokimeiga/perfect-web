@@ -1,8 +1,8 @@
 ADR-0233 - a speculation on a value of a type that contains itself
 
 produced by: just e14-speculated-graphs
-commit: 71987e540d75e16819b7cf196055da31024d2688
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1de391393d7364eae718a4f5715c3b1d183f0710
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
@@ -20,12 +20,12 @@ test a_hosts_graphs_inside_another_value_are_each_its_own ... ok
 test what_is_not_a_graph_is_refused_by_the_host ... ok
 test a_browsers_graph_is_the_tree_its_nodes_make ... ok
 test a_chain_as_deep_as_its_data_crosses_from_a_browser ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.50s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.48s
 
 == the server (spikes/own-renderer/server/src/main.rs)
 
 test tests::a_value_that_contains_itself_is_written_as_its_nodes ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1046 filtered out; finished in 1.70s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1047 filtered out; finished in 1.67s
 
 == mutation controls (scripts/speculated_graphs_mutations.py)
 

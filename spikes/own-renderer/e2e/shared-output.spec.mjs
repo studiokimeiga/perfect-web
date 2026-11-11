@@ -47,7 +47,7 @@ test("a shared build asset revalidates without persisting or disclosing a sessio
     expect(first.headers()["cache-control"]).toBe("public, no-cache");
     expect(first.headers()["set-cookie"]).toBeUndefined();
     const etag = first.headers().etag;
-    expect(etag).toMatch(/^"[0-9a-f]{64}"$/);
+    expect(etag).toMatch(/^"[A-Za-z0-9_-]{22}"$/);
     const original = await first.body();
     expect(original.length).toBeGreaterThan(0);
     const second = await client.get("/pw-runtime.mjs", {

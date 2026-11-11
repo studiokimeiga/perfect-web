@@ -1,8 +1,8 @@
 ADR-0140 - a page that reads queries holds signals too
 
 produced by: just e14-store-signals
-commit: 71987e540d75e16819b7cf196055da31024d2688
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1de391393d7364eae718a4f5715c3b1d183f0710
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the server (spikes/own-renderer/server)
@@ -14,18 +14,18 @@ test tests::store_pg::on_postgres_nothing_the_store_keeps_holds_a_session_cookie
 test tests::store_pg::on_postgres_the_database_provides_what_the_store_states ... ok
 test tests::store_pg::on_postgres_the_stores_schema_is_its_own_beside_the_feeds ... ok
 test tests::a_line_records_the_stores_name_and_price_not_the_requests ... ok
-test tests::store_search::a_search_lists_the_stores_and_dishes_that_match ... ok
 test tests::argument_invariants::a_label_the_stores_type_refuses_never_reaches_its_data_layer ... ok
+test tests::store_search::a_search_lists_the_stores_and_dishes_that_match ... ok
 test tests::store_search::a_menu_change_tells_the_stores_page_once ... ok
 test tests::store_hours::a_special_date_closes_the_store ... ok
 test tests::the_store_renders_its_signals_at_their_first_values ... ok
 test tests::the_store_s_document_carries_its_signals ... ok
+test tests::the_store_moving_an_order_along_reaches_its_open_page ... ok
 test tests::the_store_and_each_item_say_what_they_are ... ok
 test tests::store_search::a_search_lists_the_stores_that_reach_the_chosen_address ... ok
-test tests::the_store_moving_an_order_along_reaches_its_open_page ... ok
 test tests::the_store_sends_its_slots_after_its_own_content ... ok
 test tests::the_stores_are_the_home_page ... ok
-test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 1029 filtered out; finished in 18.46s
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 1030 filtered out; finished in 13.90s
 
 == mutation controls (scripts/store_signals_mutations.py)
 

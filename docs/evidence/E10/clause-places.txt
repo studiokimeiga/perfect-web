@@ -1,17 +1,17 @@
 ADR-0092 - a dependency-graph clause belongs to a declaration that can mean it
 
 produced by: just e10-clause-places
-commit: 71987e540d75e16819b7cf196055da31024d2688
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1de391393d7364eae718a4f5715c3b1d183f0710
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == clause places (compiler/pw-core/tests/clause_places.rs)
 
-test a_materialization_depends ... ok
 test a_clause_word_in_a_functions_body_is_a_name ... ok
+test a_materialization_depends ... ok
 test every_head_the_grammar_knows_has_a_place ... ok
-test a_resource_listens ... ok
 test a_head_on_a_declaration_that_does_not_read_it_is_refused ... ok
+test a_resource_listens ... ok
 test a_command_emits_and_invalidates ... ok
 test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 
