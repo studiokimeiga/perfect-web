@@ -382,10 +382,10 @@ MUTANTS = [
      "  if (PW_AUTOFOCUS) followAutofocus();\n", "  followAutofocus();\n"),
     ("a build that cannot be read keeps nothing", "packaging", PACKAGING,
      "  if (text === null) return everything;\n",
-     '  if (text === null) return { PW_LINKS: false, PW_MATCH: false, PW_VIEWS: false, PW_DIALOGS: false, PW_KEPT: false, PW_FRAGMENT: false, PW_AUTOFOCUS: false, PW_PLANS: false };\n'),
+     '  if (text === null) return { PW_LINKS: false, PW_MATCH: false, PW_VIEWS: false, PW_DIALOGS: false, PW_KEPT: false, PW_FRAGMENT: false, PW_AUTOFOCUS: false, PW_PLANS: false, PW_GRAPHS: false };\n'),
     ("every feature is always kept", "packaging", PACKAGING,
      "  const uses = await deviceFeatures(directory);\n",
-     "  const uses = { PW_LINKS: true, PW_MATCH: true, PW_VIEWS: true, PW_DIALOGS: true, PW_KEPT: true, PW_FRAGMENT: true, PW_AUTOFOCUS: true, PW_PLANS: true };\n"),
+     "  const uses = { PW_LINKS: true, PW_MATCH: true, PW_VIEWS: true, PW_DIALOGS: true, PW_KEPT: true, PW_FRAGMENT: true, PW_AUTOFOCUS: true, PW_PLANS: true, PW_GRAPHS: true };\n"),
     # -- the packaging
     ("the flag is not replaced", "packaging", PACKAGING,
      '.replaceAll("PW_SERVER", "false")', '.replaceAll("PW_SERVER", "true")'),
