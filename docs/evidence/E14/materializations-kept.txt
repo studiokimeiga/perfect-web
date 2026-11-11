@@ -1,8 +1,8 @@
 ADR-0277 - a materialization is kept, and a page reads it
 
 produced by: just e14-materializations-kept
-commit: bd1aaeeb8ba8d969afb7228305df754828267487
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 71987e540d75e16819b7cf196055da31024d2688
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -15,11 +15,11 @@ test a_page_reads_a_public_one_the_host_keeps ... ok
 test one_that_derives_its_value_reads_another_and_a_cycle_of_reads_is_refused ... ok
 test what_it_depends_on_is_stated_once_by_reading_it ... ok
 test a_body_begins_where_the_clauses_end_whatever_it_begins_with ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.32s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.35s
 test each_read_is_the_platforms_and_names_what_it_reads ... ok
-test a_page_that_reads_one_depends_on_it_and_binds_it ... ok
 test one_that_derives_its_value_is_a_component_that_imports_its_reads ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.32s
+test a_page_that_reads_one_depends_on_it_and_binds_it ... ok
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.26s
 
 == the chain's order (runtime/pw-materialize/tests/chain_order.rs)
 
@@ -38,11 +38,11 @@ test tests::materializations::a_change_makes_the_chain_again_in_its_order_and_te
 test tests::materializations::a_document_that_reads_another_key_is_told_nothing ... ok
 test tests::tables::closed_tables_refuse_fresh_and_last_known_good_materializations ... ok
 test tests::materializations::what_could_not_be_made_again_is_served_its_last_good_value ... ok
-test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 1028 filtered out; finished in 14.71s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 1038 filtered out; finished in 14.90s
 
 == the store's chain in three engines (e2e/materialized.spec.mjs)
 
-  6 passed (33.2s)
+  6 passed (32.6s)
 
 == mutation controls (scripts/materializations_kept_mutations.py)
 

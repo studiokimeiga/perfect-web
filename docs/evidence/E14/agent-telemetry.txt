@@ -1,8 +1,8 @@
 ADR-0391 - an agent's usage is measured apart from its grade
 
 produced by: just e14-agent-telemetry
-commit: bd1aaeeb8ba8d969afb7228305df754828267487
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 71987e540d75e16819b7cf196055da31024d2688
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 node: v22.21.1
 
 == the harness's tests (benchmarks/harness/test/agent-telemetry.test.mjs)
@@ -27,37 +27,37 @@ TAP version 13
 # Subtest: provider usage is kept without converting missing counters to zeros
 ok 1 - provider usage is kept without converting missing counters to zeros
   ---
-  duration_ms: 2.118985
+  duration_ms: 2.11349
   type: 'test'
   ...
 # Subtest: usage is optional when an adapter has not supplied a measurement
 ok 2 - usage is optional when an adapter has not supplied a measurement
   ---
-  duration_ms: 5.632106
+  duration_ms: 5.09999
   type: 'test'
   ...
 # Subtest: invalid measurements are refused instead of becoming benchmark evidence
 ok 3 - invalid measurements are refused instead of becoming benchmark evidence
   ---
-  duration_ms: 2.107208
+  duration_ms: 2.054479
   type: 'test'
   ...
 # Subtest: usage symlinks are refused even if they point to a valid record
 ok 4 - usage symlinks are refused even if they point to a valid record
   ---
-  duration_ms: 0.385508
+  duration_ms: 0.409074
   type: 'test'
   ...
 # Subtest: a real stub adapter writes usage outside the graded app
 ok 5 - a real stub adapter writes usage outside the graded app
   ---
-  duration_ms: 23.935915
+  duration_ms: 23.022706
   type: 'test'
   ...
 # Subtest: a refused sidecar is a refused measurement, never a changed grade
 not ok 6 - a refused sidecar is a refused measurement, never a changed grade
   ---
-  duration_ms: 4.565072
+  duration_ms: 4.140638
   type: 'test'
   location: '/home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/agent-telemetry.test.mjs:72:1'
   failureType: 'testCodeFailure'
@@ -83,19 +83,19 @@ not ok 6 - a refused sidecar is a refused measurement, never a changed grade
 # Subtest: an ordinary failure and a timeout score 0, and only infrastructure is ungraded
 ok 7 - an ordinary failure and a timeout score 0, and only infrastructure is ungraded
   ---
-  duration_ms: 6.91689
+  duration_ms: 5.962222
   type: 'test'
   ...
 # Subtest: an agent that outlives its budget is scored 0 as a timeout
 ok 8 - an agent that outlives its budget is scored 0 as a timeout
   ---
-  duration_ms: 1002.105862
+  duration_ms: 1001.655726
   type: 'test'
   ...
 # Subtest: successful agent work needs real, passing grading stages
 ok 9 - successful agent work needs real, passing grading stages
   ---
-  duration_ms: 0.597761
+  duration_ms: 0.426868
   type: 'test'
   ...
 1..9
@@ -106,50 +106,50 @@ ok 9 - successful agent work needs real, passing grading stages
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 1118.293726
+# duration_ms 1112.441449
 
 a refused sidecar makes the run ungraded: KILLED (by an assertion of its test; 1 of 9 tests fail)
 TAP version 13
 # Subtest: provider usage is kept without converting missing counters to zeros
 ok 1 - provider usage is kept without converting missing counters to zeros
   ---
-  duration_ms: 2.111915
+  duration_ms: 2.334643
   type: 'test'
   ...
 # Subtest: usage is optional when an adapter has not supplied a measurement
 ok 2 - usage is optional when an adapter has not supplied a measurement
   ---
-  duration_ms: 5.441806
+  duration_ms: 5.301577
   type: 'test'
   ...
 # Subtest: invalid measurements are refused instead of becoming benchmark evidence
 ok 3 - invalid measurements are refused instead of becoming benchmark evidence
   ---
-  duration_ms: 2.11581
+  duration_ms: 2.026688
   type: 'test'
   ...
 # Subtest: usage symlinks are refused even if they point to a valid record
 ok 4 - usage symlinks are refused even if they point to a valid record
   ---
-  duration_ms: 0.412729
+  duration_ms: 0.361175
   type: 'test'
   ...
 # Subtest: a real stub adapter writes usage outside the graded app
 ok 5 - a real stub adapter writes usage outside the graded app
   ---
-  duration_ms: 24.42145
+  duration_ms: 23.06729
   type: 'test'
   ...
 # Subtest: a refused sidecar is a refused measurement, never a changed grade
 ok 6 - a refused sidecar is a refused measurement, never a changed grade
   ---
-  duration_ms: 7.604329
+  duration_ms: 6.936553
   type: 'test'
   ...
 # Subtest: an ordinary failure and a timeout score 0, and only infrastructure is ungraded
 not ok 7 - an ordinary failure and a timeout score 0, and only infrastructure is ungraded
   ---
-  duration_ms: 1.076026
+  duration_ms: 0.998526
   type: 'test'
   location: '/home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/agent-telemetry.test.mjs:86:1'
   failureType: 'testCodeFailure'
@@ -175,7 +175,7 @@ not ok 7 - an ordinary failure and a timeout score 0, and only infrastructure is
 # Subtest: an agent that outlives its budget is scored 0 as a timeout
 not ok 8 - an agent that outlives its budget is scored 0 as a timeout
   ---
-  duration_ms: 1002.949594
+  duration_ms: 1002.237139
   type: 'test'
   location: '/home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/agent-telemetry.test.mjs:99:1'
   failureType: 'testCodeFailure'
@@ -201,7 +201,7 @@ not ok 8 - an agent that outlives its budget is scored 0 as a timeout
 # Subtest: successful agent work needs real, passing grading stages
 ok 9 - successful agent work needs real, passing grading stages
   ---
-  duration_ms: 0.604772
+  duration_ms: 0.493141
   type: 'test'
   ...
 1..9
@@ -212,56 +212,56 @@ ok 9 - successful agent work needs real, passing grading stages
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 1116.128364
+# duration_ms 1112.510883
 
 a timeout is ungraded infrastructure: KILLED (by an assertion of its test; 2 of 9 tests fail)
 TAP version 13
 # Subtest: provider usage is kept without converting missing counters to zeros
 ok 1 - provider usage is kept without converting missing counters to zeros
   ---
-  duration_ms: 2.229067
+  duration_ms: 2.100796
   type: 'test'
   ...
 # Subtest: usage is optional when an adapter has not supplied a measurement
 ok 2 - usage is optional when an adapter has not supplied a measurement
   ---
-  duration_ms: 5.788336
+  duration_ms: 5.180661
   type: 'test'
   ...
 # Subtest: invalid measurements are refused instead of becoming benchmark evidence
 ok 3 - invalid measurements are refused instead of becoming benchmark evidence
   ---
-  duration_ms: 2.188999
+  duration_ms: 2.050642
   type: 'test'
   ...
 # Subtest: usage symlinks are refused even if they point to a valid record
 ok 4 - usage symlinks are refused even if they point to a valid record
   ---
-  duration_ms: 0.38037
+  duration_ms: 0.362748
   type: 'test'
   ...
 # Subtest: a real stub adapter writes usage outside the graded app
 ok 5 - a real stub adapter writes usage outside the graded app
   ---
-  duration_ms: 24.905169
+  duration_ms: 22.780707
   type: 'test'
   ...
 # Subtest: a refused sidecar is a refused measurement, never a changed grade
 ok 6 - a refused sidecar is a refused measurement, never a changed grade
   ---
-  duration_ms: 8.111122
+  duration_ms: 6.788269
   type: 'test'
   ...
 # Subtest: an ordinary failure and a timeout score 0, and only infrastructure is ungraded
 ok 7 - an ordinary failure and a timeout score 0, and only infrastructure is ungraded
   ---
-  duration_ms: 5.773244
+  duration_ms: 5.413747
   type: 'test'
   ...
 # Subtest: an agent that outlives its budget is scored 0 as a timeout
 not ok 8 - an agent that outlives its budget is scored 0 as a timeout
   ---
-  duration_ms: 1004.363653
+  duration_ms: 1004.489993
   type: 'test'
   location: '/home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/agent-telemetry.test.mjs:99:1'
   failureType: 'testCodeFailure'
@@ -296,7 +296,7 @@ not ok 8 - an agent that outlives its budget is scored 0 as a timeout
 # Subtest: successful agent work needs real, passing grading stages
 ok 9 - successful agent work needs real, passing grading stages
   ---
-  duration_ms: 0.384717
+  duration_ms: 0.36906
   type: 'test'
   ...
 1..9
@@ -307,50 +307,50 @@ ok 9 - successful agent work needs real, passing grading stages
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 1124.270175
+# duration_ms 1117.294545
 
 a timeout is told as the agent's ordinary failure: KILLED (by an assertion of its test; 1 of 9 tests fail)
 TAP version 13
 # Subtest: provider usage is kept without converting missing counters to zeros
 ok 1 - provider usage is kept without converting missing counters to zeros
   ---
-  duration_ms: 2.089912
+  duration_ms: 2.111556
   type: 'test'
   ...
 # Subtest: usage is optional when an adapter has not supplied a measurement
 ok 2 - usage is optional when an adapter has not supplied a measurement
   ---
-  duration_ms: 5.708419
+  duration_ms: 4.967633
   type: 'test'
   ...
 # Subtest: invalid measurements are refused instead of becoming benchmark evidence
 ok 3 - invalid measurements are refused instead of becoming benchmark evidence
   ---
-  duration_ms: 2.165724
+  duration_ms: 2.071923
   type: 'test'
   ...
 # Subtest: usage symlinks are refused even if they point to a valid record
 ok 4 - usage symlinks are refused even if they point to a valid record
   ---
-  duration_ms: 0.394291
+  duration_ms: 0.35874
   type: 'test'
   ...
 # Subtest: a real stub adapter writes usage outside the graded app
 ok 5 - a real stub adapter writes usage outside the graded app
   ---
-  duration_ms: 24.837133
+  duration_ms: 22.883804
   type: 'test'
   ...
 # Subtest: a refused sidecar is a refused measurement, never a changed grade
 ok 6 - a refused sidecar is a refused measurement, never a changed grade
   ---
-  duration_ms: 7.389478
+  duration_ms: 6.90291
   type: 'test'
   ...
 # Subtest: an ordinary failure and a timeout score 0, and only infrastructure is ungraded
 not ok 7 - an ordinary failure and a timeout score 0, and only infrastructure is ungraded
   ---
-  duration_ms: 1.053454
+  duration_ms: 1.004137
   type: 'test'
   location: '/home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/agent-telemetry.test.mjs:86:1'
   failureType: 'testCodeFailure'
@@ -376,13 +376,13 @@ not ok 7 - an ordinary failure and a timeout score 0, and only infrastructure is
 # Subtest: an agent that outlives its budget is scored 0 as a timeout
 ok 8 - an agent that outlives its budget is scored 0 as a timeout
   ---
-  duration_ms: 1002.047693
+  duration_ms: 1001.2246
   type: 'test'
   ...
 # Subtest: successful agent work needs real, passing grading stages
 ok 9 - successful agent work needs real, passing grading stages
   ---
-  duration_ms: 0.467059
+  duration_ms: 0.479126
   type: 'test'
   ...
 1..9
@@ -393,20 +393,20 @@ ok 9 - successful agent work needs real, passing grading stages
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 1115.220509
+# duration_ms 1109.478383
 
 an adapter's temporary failure is scored as the agent's: KILLED (by an assertion of its test; 1 of 9 tests fail)
 TAP version 13
 # Subtest: provider usage is kept without converting missing counters to zeros
 ok 1 - provider usage is kept without converting missing counters to zeros
   ---
-  duration_ms: 2.157772
+  duration_ms: 2.134309
   type: 'test'
   ...
 # Subtest: usage is optional when an adapter has not supplied a measurement
 not ok 2 - usage is optional when an adapter has not supplied a measurement
   ---
-  duration_ms: 1.384482
+  duration_ms: 1.34275
   type: 'test'
   location: '/home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/agent-telemetry.test.mjs:39:1'
   failureType: 'testCodeFailure'
@@ -439,43 +439,43 @@ not ok 2 - usage is optional when an adapter has not supplied a measurement
 # Subtest: invalid measurements are refused instead of becoming benchmark evidence
 ok 3 - invalid measurements are refused instead of becoming benchmark evidence
   ---
-  duration_ms: 2.768263
+  duration_ms: 2.839055
   type: 'test'
   ...
 # Subtest: usage symlinks are refused even if they point to a valid record
 ok 4 - usage symlinks are refused even if they point to a valid record
   ---
-  duration_ms: 0.44103
+  duration_ms: 0.442948
   type: 'test'
   ...
 # Subtest: a real stub adapter writes usage outside the graded app
 ok 5 - a real stub adapter writes usage outside the graded app
   ---
-  duration_ms: 26.170845
+  duration_ms: 24.262654
   type: 'test'
   ...
 # Subtest: a refused sidecar is a refused measurement, never a changed grade
 ok 6 - a refused sidecar is a refused measurement, never a changed grade
   ---
-  duration_ms: 7.250327
+  duration_ms: 6.709034
   type: 'test'
   ...
 # Subtest: an ordinary failure and a timeout score 0, and only infrastructure is ungraded
 ok 7 - an ordinary failure and a timeout score 0, and only infrastructure is ungraded
   ---
-  duration_ms: 5.967781
+  duration_ms: 5.436029
   type: 'test'
   ...
 # Subtest: an agent that outlives its budget is scored 0 as a timeout
 ok 8 - an agent that outlives its budget is scored 0 as a timeout
   ---
-  duration_ms: 1002.370013
+  duration_ms: 1002.232896
   type: 'test'
   ...
 # Subtest: successful agent work needs real, passing grading stages
 ok 9 - successful agent work needs real, passing grading stages
   ---
-  duration_ms: 0.441762
+  duration_ms: 0.4336
   type: 'test'
   ...
 1..9
@@ -486,32 +486,32 @@ ok 9 - successful agent work needs real, passing grading stages
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 1122.058924
+# duration_ms 1113.96324
 
 an unwritten sidecar is a fabricated zero: KILLED (by an assertion of its test; 1 of 9 tests fail)
 TAP version 13
 # Subtest: provider usage is kept without converting missing counters to zeros
 ok 1 - provider usage is kept without converting missing counters to zeros
   ---
-  duration_ms: 2.094048
+  duration_ms: 2.090937
   type: 'test'
   ...
 # Subtest: usage is optional when an adapter has not supplied a measurement
 ok 2 - usage is optional when an adapter has not supplied a measurement
   ---
-  duration_ms: 5.718283
+  duration_ms: 5.049507
   type: 'test'
   ...
 # Subtest: invalid measurements are refused instead of becoming benchmark evidence
 ok 3 - invalid measurements are refused instead of becoming benchmark evidence
   ---
-  duration_ms: 2.155178
+  duration_ms: 2.058256
   type: 'test'
   ...
 # Subtest: usage symlinks are refused even if they point to a valid record
 not ok 4 - usage symlinks are refused even if they point to a valid record
   ---
-  duration_ms: 0.809244
+  duration_ms: 0.793252
   type: 'test'
   location: '/home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/agent-telemetry.test.mjs:54:1'
   failureType: 'testCodeFailure'
@@ -532,31 +532,31 @@ not ok 4 - usage symlinks are refused even if they point to a valid record
 # Subtest: a real stub adapter writes usage outside the graded app
 ok 5 - a real stub adapter writes usage outside the graded app
   ---
-  duration_ms: 23.913166
+  duration_ms: 23.276801
   type: 'test'
   ...
 # Subtest: a refused sidecar is a refused measurement, never a changed grade
 ok 6 - a refused sidecar is a refused measurement, never a changed grade
   ---
-  duration_ms: 7.3842
+  duration_ms: 6.804226
   type: 'test'
   ...
 # Subtest: an ordinary failure and a timeout score 0, and only infrastructure is ungraded
 ok 7 - an ordinary failure and a timeout score 0, and only infrastructure is ungraded
   ---
-  duration_ms: 5.855796
+  duration_ms: 5.39925
   type: 'test'
   ...
 # Subtest: an agent that outlives its budget is scored 0 as a timeout
 ok 8 - an agent that outlives its budget is scored 0 as a timeout
   ---
-  duration_ms: 1001.688072
+  duration_ms: 1002.354722
   type: 'test'
   ...
 # Subtest: successful agent work needs real, passing grading stages
 ok 9 - successful agent work needs real, passing grading stages
   ---
-  duration_ms: 0.459398
+  duration_ms: 0.440814
   type: 'test'
   ...
 1..9
@@ -567,26 +567,26 @@ ok 9 - successful agent work needs real, passing grading stages
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 1122.663842
+# duration_ms 1116.5166
 
 a linked sidecar is followed: KILLED (by an assertion of its test; 1 of 9 tests fail)
 TAP version 13
 # Subtest: provider usage is kept without converting missing counters to zeros
 ok 1 - provider usage is kept without converting missing counters to zeros
   ---
-  duration_ms: 2.037315
+  duration_ms: 2.087962
   type: 'test'
   ...
 # Subtest: usage is optional when an adapter has not supplied a measurement
 ok 2 - usage is optional when an adapter has not supplied a measurement
   ---
-  duration_ms: 5.597835
+  duration_ms: 4.956362
   type: 'test'
   ...
 # Subtest: invalid measurements are refused instead of becoming benchmark evidence
 not ok 3 - invalid measurements are refused instead of becoming benchmark evidence
   ---
-  duration_ms: 1.590195
+  duration_ms: 1.461932
   type: 'test'
   location: '/home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/agent-telemetry.test.mjs:47:1'
   failureType: 'testCodeFailure'
@@ -607,37 +607,37 @@ not ok 3 - invalid measurements are refused instead of becoming benchmark eviden
 # Subtest: usage symlinks are refused even if they point to a valid record
 ok 4 - usage symlinks are refused even if they point to a valid record
   ---
-  duration_ms: 0.326442
+  duration_ms: 0.340165
   type: 'test'
   ...
 # Subtest: a real stub adapter writes usage outside the graded app
 ok 5 - a real stub adapter writes usage outside the graded app
   ---
-  duration_ms: 24.051461
+  duration_ms: 23.446174
   type: 'test'
   ...
 # Subtest: a refused sidecar is a refused measurement, never a changed grade
 ok 6 - a refused sidecar is a refused measurement, never a changed grade
   ---
-  duration_ms: 6.75771
+  duration_ms: 6.330187
   type: 'test'
   ...
 # Subtest: an ordinary failure and a timeout score 0, and only infrastructure is ungraded
 ok 7 - an ordinary failure and a timeout score 0, and only infrastructure is ungraded
   ---
-  duration_ms: 6.75723
+  duration_ms: 6.286399
   type: 'test'
   ...
 # Subtest: an agent that outlives its budget is scored 0 as a timeout
 ok 8 - an agent that outlives its budget is scored 0 as a timeout
   ---
-  duration_ms: 1001.594804
+  duration_ms: 1002.505455
   type: 'test'
   ...
 # Subtest: successful agent work needs real, passing grading stages
 ok 9 - successful agent work needs real, passing grading stages
   ---
-  duration_ms: 0.445777
+  duration_ms: 0.475048
   type: 'test'
   ...
 1..9
@@ -648,38 +648,38 @@ ok 9 - successful agent work needs real, passing grading stages
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 1117.893791
+# duration_ms 1117.77415
 
 a sidecar without its token counts is taken: KILLED (by an assertion of its test; 1 of 9 tests fail)
 TAP version 13
 # Subtest: provider usage is kept without converting missing counters to zeros
 ok 1 - provider usage is kept without converting missing counters to zeros
   ---
-  duration_ms: 2.076552
+  duration_ms: 2.102966
   type: 'test'
   ...
 # Subtest: usage is optional when an adapter has not supplied a measurement
 ok 2 - usage is optional when an adapter has not supplied a measurement
   ---
-  duration_ms: 5.435586
+  duration_ms: 5.164652
   type: 'test'
   ...
 # Subtest: invalid measurements are refused instead of becoming benchmark evidence
 ok 3 - invalid measurements are refused instead of becoming benchmark evidence
   ---
-  duration_ms: 2.341252
+  duration_ms: 2.04637
   type: 'test'
   ...
 # Subtest: usage symlinks are refused even if they point to a valid record
 ok 4 - usage symlinks are refused even if they point to a valid record
   ---
-  duration_ms: 0.480829
+  duration_ms: 0.365031
   type: 'test'
   ...
 # Subtest: a real stub adapter writes usage outside the graded app
 not ok 5 - a real stub adapter writes usage outside the graded app
   ---
-  duration_ms: 28.680276
+  duration_ms: 26.444621
   type: 'test'
   location: '/home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/agent-telemetry.test.mjs:61:1'
   failureType: 'testCodeFailure'
@@ -705,25 +705,25 @@ not ok 5 - a real stub adapter writes usage outside the graded app
 # Subtest: a refused sidecar is a refused measurement, never a changed grade
 ok 6 - a refused sidecar is a refused measurement, never a changed grade
   ---
-  duration_ms: 8.409522
+  duration_ms: 7.467952
   type: 'test'
   ...
 # Subtest: an ordinary failure and a timeout score 0, and only infrastructure is ungraded
 ok 7 - an ordinary failure and a timeout score 0, and only infrastructure is ungraded
   ---
-  duration_ms: 5.911588
+  duration_ms: 5.612728
   type: 'test'
   ...
 # Subtest: an agent that outlives its budget is scored 0 as a timeout
 ok 8 - an agent that outlives its budget is scored 0 as a timeout
   ---
-  duration_ms: 1000.94493
+  duration_ms: 1002.61119
   type: 'test'
   ...
 # Subtest: successful agent work needs real, passing grading stages
 ok 9 - successful agent work needs real, passing grading stages
   ---
-  duration_ms: 0.465075
+  duration_ms: 0.45544
   type: 'test'
   ...
 1..9
@@ -734,62 +734,62 @@ ok 9 - successful agent work needs real, passing grading stages
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 1127.968425
+# duration_ms 1121.682852
 
 the sidecar is written inside the graded app: KILLED (by an assertion of its test; 1 of 9 tests fail)
 TAP version 13
 # Subtest: provider usage is kept without converting missing counters to zeros
 ok 1 - provider usage is kept without converting missing counters to zeros
   ---
-  duration_ms: 2.114629
+  duration_ms: 2.086676
   type: 'test'
   ...
 # Subtest: usage is optional when an adapter has not supplied a measurement
 ok 2 - usage is optional when an adapter has not supplied a measurement
   ---
-  duration_ms: 5.583324
+  duration_ms: 5.268005
   type: 'test'
   ...
 # Subtest: invalid measurements are refused instead of becoming benchmark evidence
 ok 3 - invalid measurements are refused instead of becoming benchmark evidence
   ---
-  duration_ms: 2.166044
+  duration_ms: 2.079813
   type: 'test'
   ...
 # Subtest: usage symlinks are refused even if they point to a valid record
 ok 4 - usage symlinks are refused even if they point to a valid record
   ---
-  duration_ms: 0.385688
+  duration_ms: 0.361896
   type: 'test'
   ...
 # Subtest: a real stub adapter writes usage outside the graded app
 ok 5 - a real stub adapter writes usage outside the graded app
   ---
-  duration_ms: 24.807805
+  duration_ms: 22.415469
   type: 'test'
   ...
 # Subtest: a refused sidecar is a refused measurement, never a changed grade
 ok 6 - a refused sidecar is a refused measurement, never a changed grade
   ---
-  duration_ms: 7.656958
+  duration_ms: 7.109061
   type: 'test'
   ...
 # Subtest: an ordinary failure and a timeout score 0, and only infrastructure is ungraded
 ok 7 - an ordinary failure and a timeout score 0, and only infrastructure is ungraded
   ---
-  duration_ms: 6.052245
+  duration_ms: 5.419157
   type: 'test'
   ...
 # Subtest: an agent that outlives its budget is scored 0 as a timeout
 ok 8 - an agent that outlives its budget is scored 0 as a timeout
   ---
-  duration_ms: 1001.856544
+  duration_ms: 1001.389418
   type: 'test'
   ...
 # Subtest: successful agent work needs real, passing grading stages
 not ok 9 - successful agent work needs real, passing grading stages
   ---
-  duration_ms: 1.725755
+  duration_ms: 1.645062
   type: 'test'
   location: '/home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/agent-telemetry.test.mjs:115:1'
   failureType: 'testCodeFailure'
@@ -830,7 +830,7 @@ not ok 9 - successful agent work needs real, passing grading stages
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 1121.053422
+# duration_ms 1115.09593
 
 a run with no grading stages is scored: KILLED (by an assertion of its test; 1 of 9 tests fail)
 9 of 9 mutants killed; 0 refused; 0 survived

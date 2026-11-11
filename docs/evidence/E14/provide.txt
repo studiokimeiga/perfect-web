@@ -1,8 +1,8 @@
 ADR-0144 - a view's own signals, and a signal a page provides
 
 produced by: just e14-provide
-commit: bd1aaeeb8ba8d969afb7228305df754828267487
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 71987e540d75e16819b7cf196055da31024d2688
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 playwright: Version 1.58.0
 
@@ -16,15 +16,15 @@ test a_block_owns_the_signals_its_arms_hold ... ok
 test a_provided_signal_reaches_sibling_views ... ok
 test a_provide_is_checked_against_the_signal_s_type ... ok
 test the_marko_adapter_refuses_what_it_does_not_model ... ok
-test a_view_that_holds_a_signal_is_not_used_in_a_row ... ok
 test binding_and_dialogs_read_a_module_signal ... ok
+test a_view_that_holds_a_signal_is_not_used_in_a_row ... ok
 test each_use_of_a_view_holds_its_own_signal ... ok
 test what_nothing_provides_is_refused ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.63s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.76s
 
 == the browser (spikes/own-renderer/e2e/provide.spec.mjs), three engines
 
-  18 passed (20.3s)
+  18 passed (20.8s)
 
 == mutation controls (scripts/provide_mutations.py)
 

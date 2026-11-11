@@ -1,8 +1,8 @@
 Train-11 - every component the store's build emits is committed current
 
 produced by: just e14-committed-components
-commit: bd1aaeeb8ba8d969afb7228305df754828267487
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 71987e540d75e16819b7cf196055da31024d2688
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the committed evidence (compiler/pw-core/tests/evidence_is_current.rs)
@@ -15,7 +15,7 @@ test the_committed_components_are_what_the_compiler_builds_now ... ok
 test a_component_the_build_adds_fails_the_check_until_it_is_committed_current ... ok
 test the_committed_wit_is_what_the_compiler_emits_now ... ok
 test the_committed_page_plan_is_what_the_compiler_plans_now ... ok
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.78s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.76s
 
 == mutation controls (scripts/committed_components_mutations.py)
 

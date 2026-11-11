@@ -2,8 +2,8 @@ ADR-0055 - slicing, and the standard library's placeholders computed
 ADR-0422 - the numbers from one to another are a list
 
 produced by: just e10-slices
-commit: bd1aaeeb8ba8d969afb7228305df754828267487
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 71987e540d75e16819b7cf196055da31024d2688
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
@@ -19,43 +19,43 @@ test sum_and_maximum_compute ... ok
 test slices_drops_and_reversals_agree_with_vec_and_str ... ok
 test swaps_agree_with_vec_and_a_place_outside_leaves_the_list ... ok
 test string_operations_agree_with_str ... ok
-test list_operations_agree_with_vec ... ok
 test text_is_rebuilt_from_code_points_and_bad_ones_trap ... ok
+test list_operations_agree_with_vec ... ok
 test what_stays_outside_is_refused_by_name ... ok
-test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.72s
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.75s
 
 == the component and the JavaScript module, on the same arguments
 
 javascript: 3 queries over cases written alone, 600 calls, component and module agree (57 trapped in both)
 javascript: 5 queries over trees, 1000 calls, component and module agree (155 trapped in both)
 javascript: 5 queries over values held in place, 1000 calls, component and module agree (132 trapped in both)
-javascript: 94 queries, 18800 calls, component and module agree (1243 trapped in both)
+javascript: 97 queries, 19400 calls, component and module agree (1446 trapped in both)
 
 == mutation controls (scripts/slice_mutations.py)
 
-baseline: 21 passed, 0 failed
-a slice starts at the list's first element: KILLED (2 of 21 tests fail)
-an end before the start is kept: KILLED (2 of 21 tests fail)
-a reversal copies in order: KILLED (2 of 21 tests fail)
-a string's slice ignores its end: KILLED (2 of 21 tests fail)
-a string's negative start is not zero: KILLED (2 of 21 tests fail)
-the module clamps no negative bound: KILLED (1 of 21 tests fail)
-the module's reversal is the list: KILLED (1 of 21 tests fail)
-sum adds nothing: KILLED (1 of 21 tests fail)
-maximum keeps the first element: KILLED (1 of 21 tests fail)
-maximum passes a NaN over: KILLED (1 of 21 tests fail)
-a range's bound reads a wrapped difference as signed: KILLED (2 of 21 tests fail)
-a range too long for a list traps for no cause: KILLED (2 of 21 tests fail)
-a range too long for a list traps for another cause: KILLED (2 of 21 tests fail)
-an empty range's count is its difference: KILLED (2 of 21 tests fail)
-a range's numbers start at zero: KILLED (2 of 21 tests fail)
-the module's range traps for another cause: KILLED (1 of 21 tests fail)
-the module's range starts at zero: KILLED (1 of 21 tests fail)
-a swap moves one element: KILLED (2 of 21 tests fail)
-a swap copies only the two it moves: KILLED (2 of 21 tests fail)
-a place past the end is a place to swap: KILLED (2 of 21 tests fail)
-the module swaps the list it was given: KILLED (1 of 21 tests fail)
-the module takes a negative place: KILLED (1 of 21 tests fail)
+baseline: 22 passed, 0 failed
+a slice starts at the list's first element: KILLED (2 of 22 tests fail)
+an end before the start is kept: KILLED (2 of 22 tests fail)
+a reversal copies in order: KILLED (2 of 22 tests fail)
+a string's slice ignores its end: KILLED (2 of 22 tests fail)
+a string's negative start is not zero: KILLED (2 of 22 tests fail)
+the module clamps no negative bound: KILLED (1 of 22 tests fail)
+the module's reversal is the list: KILLED (1 of 22 tests fail)
+sum adds nothing: KILLED (1 of 22 tests fail)
+maximum keeps the first element: KILLED (1 of 22 tests fail)
+maximum passes a NaN over: KILLED (1 of 22 tests fail)
+a range's bound reads a wrapped difference as signed: KILLED (2 of 22 tests fail)
+a range too long for a list traps for no cause: KILLED (2 of 22 tests fail)
+a range too long for a list traps for another cause: KILLED (2 of 22 tests fail)
+an empty range's count is its difference: KILLED (2 of 22 tests fail)
+a range's numbers start at zero: KILLED (2 of 22 tests fail)
+the module's range traps for another cause: KILLED (1 of 22 tests fail)
+the module's range starts at zero: KILLED (1 of 22 tests fail)
+a swap moves one element: KILLED (2 of 22 tests fail)
+a swap copies only the two it moves: KILLED (2 of 22 tests fail)
+a place past the end is a place to swap: KILLED (2 of 22 tests fail)
+the module swaps the list it was given: KILLED (1 of 22 tests fail)
+the module takes a negative place: KILLED (1 of 22 tests fail)
 22 of 22 mutants killed
 memory bound: no process was stopped
 

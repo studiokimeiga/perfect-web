@@ -2,6 +2,24 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**Trains 20 and 21, 2026-11-11:** on trains 18 and 19. A page alone in its
+build is one document (ADR-0426): its runtime, its code and its build's
+handler table in the page, one request where the large list made four and
+TodoMVC four. A row a plan makes is computed (ADR-0427): each hole alone,
+its markup only when read, its nodes by their siblings, and what its
+handlers capture read as one is pressed; the browser's module finds an
+`Int`'s overflow as 64 bits wrap it and holds a list of literals once. The
+head-to-head at `71987e54`: of 264 rows, Pleris is ahead in 84 and behind
+in 60, from 77 and 70. Creating a thousand rows is behind Svelte by 2 to 9
+ms in each engine, where it was 13 to 27; ready to use is Pleris's or level
+in Chromium and Firefox for both apps. Bytes: the large list 17,819 (Svelte's
+13,242), TodoMVC 21,203 (20,821). Their full verify (42919314507) passed 352
+of 353 recipes: in `e14-device-runtime`, two controls survived, coverage the
+trains had taken away, and both are killed (ADR-0426's and ADR-0427's
+consequences); the recipe runs again in the pull request's verify. WebKit's
+cut-off test passed in the trains' run, as in both of train-19's; it stays
+in NEXT until master's nightlies pass it too.
+
 **Trains 18 and 19, 2026-11-10:** on train-17. A planned row is written
 when it is read (ADR-0420); a list a signal holds is a block of its own
 (ADR-0421); a row of such a list computes what it shows from its item and

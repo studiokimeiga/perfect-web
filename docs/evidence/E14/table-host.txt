@@ -1,25 +1,28 @@
 D2 - a compiled component reads its tables through the table gate
 
 produced by: just e14-table-host
-commit: bd1aaeeb8ba8d969afb7228305df754828267487
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 71987e540d75e16819b7cf196055da31024d2688
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
+   Compiling pw-syntax v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-syntax)
+   Compiling pw-host v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-host)
+   Compiling pw-core v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-core)
    Compiling pw-table-memory v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-table-memory)
-    Finished `test` profile [unoptimized] target(s) in 6.91s
+    Finished `test` profile [unoptimized] target(s) in 19.07s
      Running unittests src/lib.rs (target/debug/deps/pw_table_memory-e5bc81eee9f77f37)
 
 running 12 tests
 test failure_tests::a_prepared_command_dropped_unpublished_releases_its_turn_and_rows ... ok
 test failure_tests::a_poisoned_published_lock_cannot_report_a_successful_commit ... ok
-test failure_tests::a_poisoned_working_lock_cannot_report_a_successful_commit ... ok
 test failure_tests::a_replaced_observer_capture_may_register_another_observer ... ok
+test failure_tests::a_poisoned_working_lock_cannot_report_a_successful_commit ... ok
 test failure_tests::a_prepared_publish_refuses_each_poisoned_storage_lock ... ok
 test failure_tests::a_wait_observer_may_read_and_replace_itself_without_lock_reentry ... ok
 test failure_tests::an_observer_can_end_the_owner_before_the_waiter_starts_waiting ... ok
 test failure_tests::an_observer_panic_does_not_poison_the_database ... ok
-test failure_tests::replacing_an_observer_drops_its_capture_outside_the_registration_lock ... ok
 test failure_tests::internal_working_poison_wakes_every_existing_waiter ... ok
+test failure_tests::replacing_an_observer_drops_its_capture_outside_the_registration_lock ... ok
 test failure_tests::an_outer_caller_panic_rolls_back_without_poisoning_storage ... ok
 test failure_tests::a_terminal_failure_is_synchronized_with_the_check_to_wait_window ... ok
 
@@ -28,55 +31,55 @@ test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fin
      Running tests/compiled_app.rs (target/debug/deps/compiled_app-667f989249ed3927)
 
 running 10 tests
-test a_command_that_stops_after_a_write_publishes_nothing ... ok
-test a_commands_index_read_sees_its_own_puts ... ok
 test a_command_reads_its_own_writes_before_it_commits ... ok
+test a_commands_index_read_sees_its_own_puts ... ok
+test a_command_that_stops_after_a_write_publishes_nothing ... ok
+test a_commands_writes_are_invisible_until_it_commits ... ok
 test drop_item_and_clear_list_delete_by_key_and_by_prefix ... ok
 test a_command_not_committed_publishes_none_of_its_writes ... ok
-test a_commands_writes_are_invisible_until_it_commits ... ok
 test a_write_that_invalidates_no_reader_of_its_table_does_not_build ... ok
+test make_list_inserts_or_answers_the_row_that_holds_its_key_or_slug ... ok
 test every_query_reads_its_tables_through_the_gate_in_d1s_order ... ok
 test keep_item_puts_whole_rows_and_keeps_the_index ... ok
-test make_list_inserts_or_answers_the_row_that_holds_its_key_or_slug ... ok
 
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.25s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.85s
 
      Running tests/compiled_gate.rs (target/debug/deps/compiled_gate-80fd5cb55fc6b525)
 
 running 6 tests
-test a_write_answering_what_tables_json_says_it_does_not_is_refused ... ok
 test a_put_refusal_must_hold_a_unique_value_for_another_key ... ok
+test a_write_answering_what_tables_json_says_it_does_not_is_refused ... ok
 test a_forged_or_ungranted_write_is_refused ... ok
 test a_write_links_only_into_a_command ... ok
 test a_writes_answer_that_is_not_its_own_is_refused ... ok
 test a_write_typed_otherwise_than_tables_json_is_refused_when_linking ... ok
 
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.81s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.57s
 
      Running tests/compiled_guarded.rs (target/debug/deps/compiled_guarded-caff36338a93162e)
 
 running 3 tests
 test a_guarded_tables_command_runs_only_answered_and_through_the_gate ... ok
-test a_refused_predicate_runs_nothing_and_writes_nothing ... ok
 test a_guarded_command_writes_through_the_gate_once_its_predicate_holds ... ok
+test a_refused_predicate_runs_nothing_and_writes_nothing ... ok
 
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
 
      Running tests/compiled_reader.rs (target/debug/deps/compiled_reader-6cdb523e2859b397)
 
 running 10 tests
 test a_forged_table_capability_is_refused_when_linking ... ok
 test a_manifest_import_outside_its_tables_interface_is_refused ... ok
-test a_table_import_typed_otherwise_than_tables_json_is_refused_when_linking ... ok
 test a_manifest_that_is_not_whole_is_refused_where_it_is_read ... ok
-test an_adapters_answer_is_held_to_its_read_whoever_wrote_it ... ok
-test compiled_get_reads_present_and_missing_rows_from_the_memory_adapter ... ok
-test no_other_call_or_instantiation_links_a_table_import ... ok
+test a_table_import_typed_otherwise_than_tables_json_is_refused_when_linking ... ok
 test compiled_get_many_answers_the_declared_order_once_per_present_key ... ok
-test the_hosts_wit_names_are_the_compilers ... ok
+test compiled_get_reads_present_and_missing_rows_from_the_memory_adapter ... ok
+test an_adapters_answer_is_held_to_its_read_whoever_wrote_it ... ok
+test no_other_call_or_instantiation_links_a_table_import ... ok
 test no_table_host_function_without_the_tables_read_grant ... ok
+test the_hosts_wit_names_are_the_compilers ... ok
 
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.74s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.51s
 
      Running tests/compiled_reader_abi.rs (target/debug/deps/compiled_reader_abi-128aaf28f3500935)
 
@@ -85,16 +88,16 @@ test a_granted_get_with_no_callback_is_refused_not_stubbed ... ok
 test a_missing_key_answers_none_through_the_exact_callback ... ok
 test a_get_answering_another_keys_row_is_refused ... ok
 test a_get_many_answer_out_of_order_twice_or_unasked_is_refused ... ok
-test a_mistyped_get_answer_is_refused_for_its_type_and_a_valid_one_still_works ... ok
 test a_node_without_the_read_grant_refuses_admission ... ok
-test a_present_row_round_trips_typed ... ok
 test a_row_with_a_field_more_or_less_is_refused_not_projected ... ok
+test a_present_row_round_trips_typed ... ok
+test a_mistyped_get_answer_is_refused_for_its_type_and_a_valid_one_still_works ... ok
 test a_siblings_import_is_undeclared_for_a_reader ... ok
 test admission_links_only_each_readers_own_read ... ok
 test each_reader_imports_exactly_its_manifest_declared_read ... ok
 test get_many_forwards_its_keys_and_answers_canonical_rows_once ... ok
 
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.83s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.57s
 
      Running tests/compiled_reads.rs (target/debug/deps/compiled_reads-7f63988735cd052c)
 
@@ -103,7 +106,7 @@ test a_manifest_is_whole_for_every_primitive ... ok
 test a_read_typed_otherwise_than_tables_json_is_refused_when_linking ... ok
 test an_answer_not_its_reads_is_refused ... ok
 
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.52s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.38s
 
      Running tests/compiled_snapshot.rs (target/debug/deps/compiled_snapshot-41d3b8adfc9258b5)
 
@@ -111,7 +114,7 @@ running 2 tests
 test a_snapshot_another_adapter_took_reads_none_of_these_tables ... ok
 test a_snapshot_reads_the_tables_as_it_found_them_though_a_commit_follows ... ok
 
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
 
      Running tests/memory.rs (target/debug/deps/memory-d2f9600f7c70d4d0)
 
@@ -122,13 +125,13 @@ test compiler_manifest_drives_reads_without_app_specific_storage ... ok
 test invalid_rows_and_schema_hash_fail_closed ... ok
 test rejected_and_abandoned_writes_do_not_publish ... ok
 test set_queries_deduplicate_and_sort_not_by_input_order ... ok
+test table_host_refuses_ungranted_or_misclassified_read_and_manifest_mismatch ... ok
 test table_host_refuses_wrong_table_capability_even_when_admitted ... ok
 test table_host_refuses_unknown_writes_and_wildcard_imports ... ok
-test table_host_refuses_ungranted_or_misclassified_read_and_manifest_mismatch ... ok
 test unused_imports_and_wrong_selectors_are_rejected ... ok
 test transactions_serialize_concurrent_writers ... ok
 
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
      Running tests/read_selector_types.rs (target/debug/deps/read_selector_types-4e0d67543d1ebaee)
 
@@ -145,16 +148,16 @@ test a_command_that_writes_nothing_reports_no_table ... ok
 test a_command_waits_its_turn ... ok
 test a_dropped_command_is_undone_whole_its_maps_too ... ok
 test a_commands_reads_see_its_writes_and_no_other_read_does ... ok
-test a_refused_write_changes_nothing_and_the_command_goes_on ... ok
 test a_unique_value_is_held_by_one_row_through_any_writes ... ok
 test an_ended_command_writes_nothing ... ok
-test a_growth_write_is_refused_at_the_bound_without_changing_staging ... ok
+test a_refused_write_changes_nothing_and_the_command_goes_on ... ok
 test an_option_of_an_option_is_refused_where_the_adapter_is_made ... ok
 test changing_only_a_floats_zero_sign_is_published_and_rolled_back_exactly ... ok
+test a_growth_write_is_refused_at_the_bound_without_changing_staging ... ok
+test an_option_of_unit_is_refused_before_some_and_none_can_merge ... ok
 test every_index_is_kept_on_every_write ... ok
 test integer_changes_above_float_precision_are_not_lost ... ok
 test references_are_held_at_commit_both_ways ... ok
-test an_option_of_unit_is_refused_before_some_and_none_can_merge ... ok
 test staged_callbacks_require_one_explicit_command_export ... ok
 
 test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
@@ -166,7 +169,7 @@ running 0 tests
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
    Compiling pw-host v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-host)
-    Finished `test` profile [unoptimized] target(s) in 1.81s
+    Finished `test` profile [unoptimized] target(s) in 1.50s
      Running unittests src/lib.rs (target/debug/deps/pw_host-41cb5365f7c4c582)
 
 running 25 tests
@@ -174,38 +177,38 @@ test engine::table_link::tests::a_composite_get_answers_its_own_key_or_none ... 
 test engine::table_link::tests::a_prefix_answers_its_own_prefix_once_by_the_tables_order ... ok
 test engine::table_link::tests::a_composite_get_many_answers_asked_keys_once_in_order ... ok
 test engine::table_link::tests::a_writes_refusal_is_the_row_that_holds_what_it_would_write ... ok
-test engine::table_link::tests::values_hold_their_stored_type_and_bounds ... ok
 test engine::table_link::tests::index_and_all_answers_hold_their_values_and_bound ... ok
-test engine::table_read_host::tests::get_many_preserves_adapter_order_and_empty_reads ... ok
-test engine::table_read_host::tests::get_passes_typed_selectors_and_returns_wit_some_or_none ... ok
+test engine::table_link::tests::values_hold_their_stored_type_and_bounds ... ok
 test engine::table_read_host::tests::adapter_errors_and_unsupported_rows_are_refusals ... ok
+test engine::table_read_host::tests::get_passes_typed_selectors_and_returns_wit_some_or_none ... ok
+test engine::table_read_host::tests::get_many_preserves_adapter_order_and_empty_reads ... ok
 test engine::table_read_host::tests::malformed_or_mistyped_arguments_never_reach_the_adapter ... ok
 test engine::table_results::tests::a_row_with_more_or_fewer_fields_than_declared_is_refused ... ok
 test engine::table_results::tests::a_writes_answer_is_ok_the_refusing_row_or_nothing ... ok
 test engine::table_results::tests::get_many_preserves_bounded_adapter_order_and_empty_lists ... ok
-test engine::table_results::tests::get_preserves_present_and_missing_option_rows ... ok
 test engine::table_results::tests::rows_are_records_in_their_declared_order ... ok
+test engine::table_results::tests::get_preserves_present_and_missing_option_rows ... ok
 test engine::table_results::tests::unsupported_and_wrong_result_shapes_fail_closed ... ok
 test engine::table_selectors::tests::all_takes_nothing_and_a_prefix_its_fields ... ok
+test engine::table_selectors::tests::get_keeps_scalar_key_values_and_types ... ok
 test engine::table_selectors::tests::a_written_row_is_exactly_its_tables_or_refused ... ok
 test engine::table_selectors::tests::get_many_keeps_composite_records_by_the_keys_own_names ... ok
-test engine::table_selectors::tests::get_keeps_scalar_key_values_and_types ... ok
 test engine::table_selectors::tests::refuses_a_key_of_other_arity_or_field_names ... ok
 test engine::table_selectors::tests::refuses_keys_of_another_declared_type_or_out_of_bounds ... ok
 test engine::table_selectors::tests::refuses_unsupported_key_shapes_without_defaults_or_coercion ... ok
-test engine::table_write_host::tests::a_malformed_row_never_reaches_the_adapter ... ok
 test engine::table_write_host::tests::a_write_passes_its_row_and_answers_its_wit_type ... ok
+test engine::table_write_host::tests::a_malformed_row_never_reaches_the_adapter ... ok
 
 test result: ok. 25 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
    Compiling pw-core v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-core)
-    Finished `test` profile [unoptimized] target(s) in 16.70s
+    Finished `test` profile [unoptimized] target(s) in 13.60s
      Running tests/table_host_reader_fixture.rs (target/debug/deps/table_host_reader_fixture-1659a7a428cdf197)
 
 running 1 test
 test compiled_table_readers_have_exact_manifest_and_contract_imports ... ok
 
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
 
 
 == mutation controls (scripts/table_host_mutations.py)

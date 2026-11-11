@@ -1,8 +1,8 @@
 ADR-0160 - a page's route
 
 produced by: just e14-routes
-commit: bd1aaeeb8ba8d969afb7228305df754828267487
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42869095436 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 71987e540d75e16819b7cf196055da31024d2688
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42919314507 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the tests (compiler/pw-core/tests/routes.rs)
@@ -14,8 +14,8 @@ test a_route_is_slash_and_segments ... ok
 test a_routes_parameter_is_text ... ok
 test the_plan_carries_the_route ... ok
 test a_route_that_names_its_parameters_is_the_control ... ok
-test two_pages_of_one_name_are_told_apart_by_their_modules ... ok
 test one_route_is_one_pages ... ok
+test two_pages_of_one_name_are_told_apart_by_their_modules ... ok
 test two_routes_that_differ_in_their_query_are_one ... ok
 test an_address_gives_only_what_its_route_names ... ok
 test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
