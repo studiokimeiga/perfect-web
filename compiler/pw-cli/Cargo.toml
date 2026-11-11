@@ -17,6 +17,7 @@ pw-core = { path = "../pw-core" }
 pw-syntax = { path = "../pw-syntax" }
 annotate-snippets.workspace = true
 serde_json.workspace = true
+sha2.workspace = true
 
 [dev-dependencies]
 pw-table-memory = { path = "../../runtime/pw-table-memory" }

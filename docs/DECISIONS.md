@@ -3400,3 +3400,6 @@ A row a plan makes is computed, and holds what its handlers capture: each hole c
 
 [ADR-0428](DECISIONS/ADR-0428-what-a-device-page-holds-is-what-its-build-reaches.md):
 What a device's page holds is what its build reaches: its runtime holds no command's refusal, and reads a graph only where a file of its build writes one; what a page's handlers write alike is in its module once, where each name means what it meant in each; a validator is the first 128 bits of its digest.
+
+[ADR-0429](DECISIONS/ADR-0429-pw-build-builds-a-whole-app.md):
+`pw build --dist` builds a whole app: the standard packages added, a directory read for its `.pw` files, checked as `pw check` checks, its artifacts, its runtime and each asset written, packed for production on asking, and last its sources by their digests; only an app's build is replaced. Each app's build script is one command.

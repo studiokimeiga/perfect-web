@@ -551,10 +551,17 @@ Build the app for the browser and start the development server with
 accounts:
 
 ```sh
-bash spikes/own-renderer/guestbook.sh
+target/debug/pw build --dist spikes/own-renderer/dist-guestbook examples/guestbook
 cd spikes/own-renderer
 PORT=7741 PW_IDENTITY=dev-accounts ../../target/debug/pw-dev-server dist-guestbook
 ```
+
+`pw build --dist` builds a whole app from its directory: it checks it as
+`pw check` does, adds the platform's packages, and writes the app's build,
+the runtime the server serves it with, and last `sources.json`, each source
+it was built from by its digest, so a build stopped part-way names none.
+With `--production` it packs the app as a production build is packed. It
+replaces a build it made before, and nothing else.
 
 The build writes `tables.json` beside the app: its tables, their fields,
 keys and functions, which the server serves them from. Open

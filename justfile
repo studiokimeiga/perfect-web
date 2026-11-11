@@ -1523,6 +1523,22 @@ e10-same-name:
      } > docs/evidence/E10/same-name.txt
     @grep -E "^test result|mutants killed|^---- |panicked at" docs/evidence/E10/same-name.txt
 
+# ADR-0429: `pw build --dist DIR` builds a whole app, what each app's build
+# script did by hand. Its tests, run against the binary, and the mutation
+# controls.
+e14-whole-app:
+    @mkdir -p docs/evidence/E14
+    @{ echo "ADR-0429 - pw build --dist builds a whole app"; echo; \
+       echo "produced by: just e14-whole-app"; \
+       echo "commit: $(git rev-parse HEAD)$(git diff --quiet HEAD -- . ':(exclude)docs/evidence' || echo ' + uncommitted changes')"; \
+       echo "rust: $(rustc --version)"; echo; \
+       echo "== a whole app's build (compiler/pw-cli/tests/whole_app.rs)"; echo; \
+       cargo test --locked -p pw-cli --test whole_app 2>&1 | grep -E '^(test |test result)|panicked at'; \
+       echo; echo "== mutation controls (scripts/whole_app_mutations.py)"; echo; \
+       python3 scripts/whole_app_mutations.py; \
+     } > docs/evidence/E14/whole-app.txt
+    @grep -E "^test result|mutants killed|^---- |panicked at" docs/evidence/E14/whole-app.txt
+
 # ADR-0107: a cache key names each parameter its entry depends on. Its
 # tests, and the mutation controls.
 e10-keys-cover-reads:
