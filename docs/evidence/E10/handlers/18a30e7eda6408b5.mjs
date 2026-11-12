@@ -93,29 +93,22 @@ export async function run(context) {
   const v2 = trim(v0);
   const v3 = codepoints(v2);
   const v4 = 0;
-  const v5 = v4 >= 0 && v4 < v3.length ? some(v3[v4]) : none;
   let v12;
-  switch (v5.$case) {
-    case "some": {
-      const v6 = v5.value;
-      const v9 = 36;
-      const v10 = v6 === v9;
-      let v11;
-      if (v10) {
-        const v7 = 1;
-        const v8 = slice(v3, v7, v3.length);
-        v11 = v8;
-      } else {
-        v11 = v3;
-      }
-      v12 = v11;
-      break;
+  if (v4 >= 0 && v4 < v3.length) {
+    const v6 = v3[v4];
+    const v9 = 36;
+    const v10 = v6 === v9;
+    let v11;
+    if (v10) {
+      const v7 = 1;
+      const v8 = slice(v3, v7, v3.length);
+      v11 = v8;
+    } else {
+      v11 = v3;
     }
-    case "none": {
-      v12 = v3;
-      break;
-    }
-    default: trap("no arm takes this case");
+    v12 = v11;
+  } else {
+    v12 = v3;
   }
   const v13 = 0;
   const v14 = 1;
