@@ -42,8 +42,8 @@ e14-durable-tables:
        cargo test --locked -p pw-table-postgres --test compiled_owned; \
        echo "== the adapter's runs, sessions and fence (runtime/pw-table-postgres/tests/platform.rs)"; echo; \
        cargo test --locked -p pw-table-postgres --test platform 2>&1 | grep -E '^(test |test result)|panicked at'; \
-       echo; echo "== the server on PostgreSQL (tests::tables_pg::), the conformance suite over it"; echo; \
-       cargo test --locked -p pw-dev-server --bin pw-dev-server -- tests::tables_pg:: --nocapture 2>&1 | grep -E '^(test |test result)|panicked at|^conformance'; \
+       echo; echo "== the server on PostgreSQL (tests::tables_pg::), the conformance suite over it, and a clock run its scheduling reader's (tests::owned_clock::, ADR-0395)"; echo; \
+       cargo test --locked -p pw-dev-server --bin pw-dev-server -- tests::tables_pg:: tests::owned_clock:: --nocapture 2>&1 | grep -E '^(test |test result)|panicked at|^conformance'; \
        echo; echo "== and in memory (tests::tables::, tests::guestbook::, tests::conformance::)"; echo; \
        cargo test --locked -p pw-dev-server --bin pw-dev-server -- tests::tables:: tests::guestbook:: tests::conformance:: --nocapture 2>&1 | grep -E '^(test |test result)|panicked at|^conformance'; \
        echo; echo "== the server as a process, killed and stopped (spikes/own-renderer/server/tests/durable_tables.rs)"; echo; \

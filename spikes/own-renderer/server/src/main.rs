@@ -19030,6 +19030,8 @@ public query Store(",
     // Track `row-ownership` (ADR-0384's H2): a query that requires a
     // predicate, read per reader and by a page's binding alone.
     mod required_queries;
+    // L2 (ADR-0395): a clock run is its scheduling reader's, on owned rows.
+    mod owned_clock;
 
     /// **A second program is served by the same host** (ADR-0218): the
     /// feed's timeline from its data layer, and a post committed and sent

@@ -444,7 +444,7 @@ fn a_signing_reaches_every_other_open_page_on_postgresql() {
 /// trigger copies each row the outbox takes into `outbox_seen`, with the
 /// transaction that wrote it (the host forgets its own rows once it has
 /// delivered them, so the outbox itself keeps none for a test to read).
-fn audit_outbox(schema: &Schema) {
+pub(super) fn audit_outbox(schema: &Schema) {
     let s = crate::feed_pg::ident(&schema.name);
     schema
         .sql(&format!(
