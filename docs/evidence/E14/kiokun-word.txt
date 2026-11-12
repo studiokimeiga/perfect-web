@@ -1,8 +1,8 @@
 kiokun.com's word page, served by the development server
 
 produced by: just e14-kiokun-word
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -35,10 +35,10 @@ test tests::kiokun::a_stubs_card_heads_the_page_it_names ... ok
 test tests::kiokun::a_stubs_page_shows_its_targets_forms_and_its_own ... ok
 test tests::kiokun::a_stubs_redirect_is_followed_to_the_entry_it_names ... ok
 test tests::kiokun::a_page_with_edrdg_data_acknowledges_the_group ... ok
-test tests::kiokun::a_word_too_long_to_be_a_file_name_is_not_found ... ok
+test tests::kiokun::a_word_kiokun_lacks_is_not_found ... ok
 test tests::kiokun::an_app_without_its_label_table_is_refused ... ok
 test tests::kiokun::an_equivalent_forms_words_are_shown_on_the_canonical_page ... ok
-test tests::kiokun::a_word_kiokun_lacks_is_not_found ... ok
+test tests::kiokun::a_word_too_long_to_be_a_file_name_is_not_found ... ok
 test tests::kiokun::an_equivalent_simplified_form_is_moved_to_its_traditional_page ... ok
 test tests::kiokun::appears_in_ranks_each_languages_words_ten_at_a_time ... ok
 test tests::kiokun::an_inflected_word_shows_the_dictionary_form_it_is ... ok
@@ -76,11 +76,11 @@ test tests::kiokun::a_unit_test_server_uses_the_sample_despite_deployment_paths 
 test tests::kiokun::the_page_head_matches_kiokuns_answers_for_the_sample ... ok
 test tests::kiokun::deinflection_matches_kiokuns_answers_for_the_sample has been running for over 60 seconds
 test tests::kiokun::deinflection_matches_kiokuns_answers_for_the_sample ... ok
-test result: ok. 56 passed; 0 failed; 9 ignored; 0 measured; 983 filtered out; finished in 135.74s
+test result: ok. 56 passed; 0 failed; 9 ignored; 0 measured; 983 filtered out; finished in 97.99s
 
 == the browser in three engines (e2e/kiokun-site.spec.mjs)
 
-  15 passed (1.3m)
+  15 passed (58.1s)
 
 == mutation controls (scripts/kiokun_word_mutations.py)
 

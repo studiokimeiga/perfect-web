@@ -1,8 +1,8 @@
 ADR-0305 - a page's commands run in the order it sent them
 
 produced by: just e14-command-order
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -21,13 +21,13 @@ test tests::a_session_forgotten_takes_its_commands_order ... ok
 test tests::a_pages_command_whose_first_never_comes_is_answered_early_and_runs_nothing ... ok
 test tests::a_pages_command_here_before_the_one_it_follows_runs_after_it ... ok
 test tests::a_pages_command_after_one_closed_unrun_waits_for_it_sent_again ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 1036 filtered out; finished in 9.60s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 1036 filtered out; finished in 9.65s
 
 == in three engines (e2e/command-order.spec.mjs; optimistic.spec, navigate.spec)
 
-  12 passed (34.8s)
+  12 passed (35.7s)
   2 skipped
-  43 passed (50.5s)
+  43 passed (49.5s)
 
 == mutation controls (scripts/command_order_mutations.py)
 
@@ -36,7 +36,7 @@ baseline (browser): 4 passed, 0 failed
 a command is run without waiting for the one it names [server]: KILLED (3 of 12 tests fail)
 one whose named one never came runs, past the wait [server]: KILLED (6 of 12 tests fail)
 one whose named one was answered early runs [server]: KILLED (2 of 12 tests fail)
-one whose named one is still running runs [server]: KILLED (2 of 12 tests fail)
+one whose named one is still running runs [server]: KILLED (4 of 12 tests fail)
 the wait for the named one is not waited [server]: KILLED (5 of 12 tests fail)
 the wait for the named one has no end [server]: KILLED (1 of 12 tests fail)
 a command answered early is taken for one that ran [server]: KILLED (1 of 12 tests fail)

@@ -1,8 +1,8 @@
 ADR-0309 - a page's query parameters are typed, and a GET form makes them
 
 produced by: just e14-query-params
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -16,13 +16,13 @@ test a_route_is_slash_and_segments ... ok
 test a_routes_parameter_is_text ... ok
 test the_plan_carries_the_route ... ok
 test a_route_that_names_its_parameters_is_the_control ... ok
-test two_pages_of_one_name_are_told_apart_by_their_modules ... ok
 test one_route_is_one_pages ... ok
+test two_pages_of_one_name_are_told_apart_by_their_modules ... ok
 test two_routes_that_differ_in_their_query_are_one ... ok
 test an_address_gives_only_what_its_route_names ... ok
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
-test an_upload_that_states_its_limits_checks ... ok
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
 test a_build_writes_each_upload_for_its_host ... ok
+test an_upload_that_states_its_limits_checks ... ok
 test its_clauses_are_an_uploads_alone ... ok
 test a_form_that_sends_a_file_posts_it_to_an_upload ... ok
 test a_limit_is_a_literal_count ... ok
@@ -31,17 +31,17 @@ test every_clause_is_stated ... ok
 test its_types_are_a_closed_set ... ok
 test two_uploads_are_at_two_paths ... ok
 test its_paths_are_no_pages ... ok
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.87s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.29s
 
 == the host reads a query as a browser's form writes it, and moves a page by its path
 
 test tests::a_query_is_read_as_a_browsers_form_writes_it ... ok
 test tests::redirects::a_route_with_a_query_part_is_moved_by_its_path ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1046 filtered out; finished in 23.39s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1046 filtered out; finished in 16.56s
 
 == the demo's search, in three engines (e2e/query.spec.mjs)
 
-  18 passed (19.5s)
+  18 passed (15.9s)
 
 == mutation controls (scripts/query_params_mutations.py)
 

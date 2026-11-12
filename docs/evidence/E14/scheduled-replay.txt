@@ -1,7 +1,7 @@
 ADR0388 - scheduled generation consumed with its authoritative commit
 produced by: just e14-scheduled-replay
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 test_a_product_assertion_in_the_mixed_runtime_module_is_invalid (scripts.tests.test_scheduled_replay_results.Results.test_a_product_assertion_in_the_mixed_runtime_module_is_invalid) ... ok
 test_build_missing_zero_duplicate_skipped_and_contradictory_results_are_invalid (scripts.tests.test_scheduled_replay_results.Results.test_build_missing_zero_duplicate_skipped_and_contradictory_results_are_invalid) ... ok
@@ -21,7 +21,7 @@ test_setup_product_worker_and_io_panics_are_invalid (scripts.tests.test_schedule
 test_timeout_and_cancellation_preserve_owned_schema_names_in_the_log (scripts.tests.test_scheduled_replay_results.Results.test_timeout_and_cancellation_preserve_owned_schema_names_in_the_log) ... ok
 
 ----------------------------------------------------------------------
-Ran 14 tests in 0.038s
+Ran 14 tests in 0.030s
 
 OK
 baseline: 31 passed, 0 failed

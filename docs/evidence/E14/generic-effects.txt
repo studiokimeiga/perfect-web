@@ -1,12 +1,13 @@
 ADR-0351 - generic/member effects
 
 produced by: just e14-generic-effects
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
+   Compiling pw-syntax v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-syntax)
    Compiling pw-core v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-core)
-    Finished `test` profile [unoptimized] target(s) in 17.29s
+    Finished `test` profile [unoptimized] target(s) in 13.81s
      Running tests/checking_source.rs (target/debug/deps/checking_source-9896f9848e9a206d)
 
 running 20 tests
@@ -15,25 +16,25 @@ test a_match_whose_scrutinee_type_is_unknown_is_not_reported ... ok
 test an_unmodelled_capability_family_never_manufactures_a_placement_error ... ok
 test a_nullary_constructor_is_not_read_as_a_binding ... ok
 test constructor_arity_is_respected ... ok
-test a_caught_file_conveys_every_fact_its_expect_error_lines_declare ... ok
 test every_body_level_rejection_matches_its_declared_rule ... ok
+test a_caught_file_conveys_every_fact_its_expect_error_lines_declare ... ok
 test corpus_enforcement_is_reported_as_three_numbers_not_one ... ok
 test a_fixtures_declared_symbol_matches_the_symbol_it_is_caught_by has been running for over 60 seconds
-test a_fixtures_declared_symbol_matches_the_symbol_it_is_caught_by ... ok
 test every_rejected_fixture_emits_only_its_own_defect ... ok
-test no_accepted_corpus_file_reports_a_body_level_error ... ok
 test every_rejected_fixtures_rule_is_a_code_its_check_reports ... ok
+test no_accepted_corpus_file_reports_a_body_level_error ... ok
+test a_fixtures_declared_symbol_matches_the_symbol_it_is_caught_by ... ok
 test every_diagnostic_carries_what_charter_16_3_requires has been running for over 60 seconds
 test no_diagnostic_restates_its_invariant_in_its_own_words ... ok
 test the_environment_spans_every_file_checked_together ... ok
 test semantic_coverage_of_the_rejected_corpus_does_not_regress ... ok
 test the_committed_enforcement_table_is_what_the_corpus_checks_now ... ok
 test the_unhandled_variant_case_is_caught_at_its_real_span ... ok
-test the_privacy_and_placement_rules_catch_their_corpus_cases ... ok
-test every_diagnostic_carries_what_charter_16_3_requires ... ok
 test the_structured_concurrency_rules_run_on_real_bodies ... ok
+test every_diagnostic_carries_what_charter_16_3_requires ... ok
+test the_privacy_and_placement_rules_catch_their_corpus_cases ... ok
 
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 199.78s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 117.97s
 
      Running tests/generality.rs (target/debug/deps/generality-29fbffbb867065d1)
 
@@ -44,11 +45,11 @@ test generality_is_reported_separately_from_conformance ... ok
 test a_general_witness_is_caught_and_a_narrow_one_is_not has been running for over 60 seconds
 test a_witness_is_valid_except_for_the_invariant_it_is_about has been running for over 60 seconds
 test every_witness_is_valid_evidence has been running for over 60 seconds
+test a_general_witness_is_caught_and_a_narrow_one_is_not ... ok
 test a_witness_is_valid_except_for_the_invariant_it_is_about ... ok
 test every_witness_is_valid_evidence ... ok
-test a_general_witness_is_caught_and_a_narrow_one_is_not ... ok
 
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 178.48s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 115.38s
 
      Running tests/generic_effects.rs (target/debug/deps/generic_effects-d77cda332aa42f08)
 
@@ -58,8 +59,8 @@ test a_computed_receiver_keeps_its_member_call_and_never_becomes_a_partial_path 
 test a_draw_binder_has_the_platforms_declared_context_and_arguments ... ok
 test a_function_named_as_a_member_receiver_performs_its_effects ... ok
 test a_function_receiver_keeps_its_capability_and_privacy ... ok
-test a_generic_each_header_keeps_its_members_privacy_in_key_and_body ... ok
 test a_local_receiver_never_borrows_a_type_qualified_constructor ... ok
+test a_generic_each_header_keeps_its_members_privacy_in_key_and_body ... ok
 test a_member_read_on_a_rigid_type_parameter_is_refused ... ok
 test a_generic_each_header_types_members_in_both_its_key_and_body ... ok
 test a_member_read_in_a_match_arm_over_a_generic_result_is_seen ... ok
@@ -72,8 +73,8 @@ test a_member_with_additional_parameters_is_a_function_value_not_its_result ... 
 test a_module_path_prefix_is_never_charged_as_a_function_value ... ok
 test a_member_read_whose_receivers_type_nothing_states_is_refused ... ok
 test a_member_read_through_a_nested_generic_is_seen ... ok
-test a_querys_contract_requires_what_a_member_of_a_generic_result_reads ... ok
 test a_member_with_no_row_is_charged_what_its_body_performs ... ok
+test a_querys_contract_requires_what_a_member_of_a_generic_result_reads ... ok
 test a_nested_function_instantiates_an_enclosing_generics_result ... ok
 test an_interface_term_local_call_never_calls_a_namesake_global ... ok
 test an_interfaces_term_roots_refuse_untyped_member_receivers ... ok
@@ -81,11 +82,11 @@ test a_recursive_call_instantiates_its_own_generic_result ... ok
 test member_invocations_have_one_typed_callee_and_their_actual_effects ... ok
 test a_secret_read_through_a_generic_result_is_refused_in_markup ... ok
 test solved_loop_binders_are_available_to_every_type_reader ... ok
-test member_and_local_function_callees_keep_their_actual_result_type ... ok
 test rooted_effect_inference_sees_member_reads_and_function_values ... ok
+test member_and_local_function_callees_keep_their_actual_result_type ... ok
 test every_generic_function_of_the_standard_packages_passes_its_element_types_through ... ok
 
-test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.16s
+test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.11s
 
 baseline: 58 passed, 0 failed
 a generic call returns its declared parameter even recursively: KILLED (2 of 58 tests fail)

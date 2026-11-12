@@ -1,8 +1,8 @@
 NEXT 4c - one render's identical calls made once, in one snapshot, in a bounded few seats
 
 produced by: just e14-render-merge
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 postgres: 18.6 (Debian 18.6-1.pgdg13+2)
 
@@ -14,8 +14,8 @@ test render_merge::tests::a_renders_calls_with_other_arguments_are_each_made ...
 test render_merge::tests::a_render_begun_inside_another_is_that_one_whatever_its_session ... ok
 test render_merge::tests::a_render_reads_one_snapshot_and_keeps_nothing_past_it ... ok
 test render_merge::tests::a_renders_failed_call_is_made_again ... ok
-test render_merge::tests::a_renders_snapshot_is_taken_where_it_begins ... ok
 test render_merge::tests::a_renders_identical_calls_are_made_once ... ok
+test render_merge::tests::a_renders_snapshot_is_taken_where_it_begins ... ok
 test tests::render_merge::a_deployment_states_its_renders_seats_or_its_host_is_refused ... ok
 test tests::render_merge::a_feed_sessions_documents_are_read_in_one_render_each_identical_call_once ... ok
 test tests::render_merge::a_renders_queries_each_note_what_the_clock_holds_them_until ... ok
@@ -24,10 +24,10 @@ test tests::render_merge::a_render_reads_alone_what_a_commit_invalidated_since_i
 test tests::render_merge::on_postgres_a_drains_render_never_holds_its_seat_waiting_for_the_table ... ok
 test tests::render_merge::on_postgres_a_deployments_seats_bound_its_renders_and_their_wait ... ok
 test tests::render_merge::on_postgres_a_feed_renders_bindings_read_one_snapshot ... ok
-test tests::render_merge::a_session_whose_count_could_not_be_read_is_said_so_after_its_render ... ok
 test tests::render_merge::a_commits_documents_are_read_in_one_render_each_identical_call_once ... ok
 test tests::render_merge::on_postgres_a_feed_renders_failed_read_ends_its_transaction ... ok
 test tests::render_merge::on_postgres_a_render_past_the_bound_waits_for_a_seat ... ok
+test tests::render_merge::a_session_whose_count_could_not_be_read_is_said_so_after_its_render ... ok
 test tests::render_merge::on_postgres_a_feeds_two_renders_straddle_a_commit_between_them ... ok
 test tests::render_merge::on_postgres_a_render_waiting_past_its_limit_fails_saying_so ... ok
 test tests::render_merge::on_postgres_a_render_reads_in_a_seat_with_the_commands_bound_held ... ok
@@ -40,7 +40,7 @@ test tests::render_merge::on_postgres_the_feeds_snapshot_is_a_renders_read_trans
 test tests::render_merge::on_postgres_a_feed_renders_never_hold_their_seats_waiting_for_the_table ... ok
 test tests::render_merge::two_bindings_of_one_render_read_one_snapshot ... ok
 test tests::render_merge::two_renders_straddle_a_commit_between_them ... ok
-test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 1016 filtered out; finished in 17.51s
+test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 1016 filtered out; finished in 17.47s
 
 == the same, the store on PostgreSQL, and NEXT 4b's counts as re-pinned (PW_STORE_TEST_LAYER=postgres)
 
@@ -114,6 +114,7 @@ rate_order: read store:data/user-estimates#for-stores: 1 calls, 0 statements
 rate_order: read store:data/user-orders#charged: 1 calls, 2 statements
 rate_order: read store:data/user-orders#current: 1 calls, 2 statements
 test tests::bounded_statements::each_page_and_command_is_a_bounded_number_of_statements ... ok
+test tests::bounded_statements::placing_and_settling_where_payments_are_taken_is_bounded ... ok
 test tests::render_merge::a_document_that_could_not_be_read_is_said_so_after_its_render ... ok
 test tests::render_merge::a_commits_documents_are_read_in_one_render_each_identical_call_once ... ok
 test tests::render_merge::a_feed_sessions_documents_are_read_in_one_render_each_identical_call_once ... ok
@@ -132,12 +133,12 @@ test tests::render_merge::on_postgres_a_feed_renders_never_hold_their_seats_wait
 test tests::render_merge::on_postgres_the_feeds_snapshot_is_a_renders_read_transaction ... ok
 test tests::render_merge::the_memory_feeds_snapshot_is_the_feed_as_a_render_first_read_it ... ok
 test tests::render_merge::the_memory_stores_snapshot_is_the_store_as_a_render_first_read_it ... ok
-test tests::render_merge::on_postgres_a_drains_render_never_holds_its_seat_waiting_for_the_table ... ok
 test tests::render_merge::on_postgres_the_stores_snapshot_is_a_renders_read_transaction ... ok
-test tests::render_merge::on_postgres_the_renders_bound_holds_under_many_renders_at_once ... ok
+test tests::render_merge::on_postgres_a_drains_render_never_holds_its_seat_waiting_for_the_table ... ok
 test tests::render_merge::two_renders_straddle_a_commit_between_them ... ok
+test tests::render_merge::on_postgres_the_renders_bound_holds_under_many_renders_at_once ... ok
 test tests::render_merge::two_bindings_of_one_render_read_one_snapshot ... ok
-test result: ok. 42 passed; 0 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 32.51s
+test result: ok. 42 passed; 0 failed; 0 ignored; 0 measured; 1006 filtered out; finished in 31.96s
 
 == pw-resource: a read as of an epoch (tests/read_as_of.rs)
 

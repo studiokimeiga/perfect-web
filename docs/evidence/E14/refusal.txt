@@ -1,8 +1,8 @@
 ADR-0302 - a refusal is told where the press was
 
 produced by: just e14-refusal
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -23,9 +23,9 @@ test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 test a_title_is_text_as_a_browser_reads_it ... ok
 test a_title_is_the_page_s_text_and_values_and_nothing_in_its_body ... ok
 test a_title_reads_what_the_page_is_given_or_is_refused ... ok
-test a_page_with_a_runtime_holds_the_announcer_from_its_first_byte ... ok
 test a_page_s_document_is_titled_as_the_page_states_and_a_view_s_by_its_name ... ok
 test a_static_page_that_states_its_title_ships_no_runtime ... ok
+test a_page_with_a_runtime_holds_the_announcer_from_its_first_byte ... ok
 test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
 == the host answers a refusal with its words, kept with its press; a page holds its announcer
@@ -33,14 +33,14 @@ test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 test tests::a_signal_page_holds_its_announcer ... ok
 test tests::sign_in::a_callback_another_browser_started_is_refused ... ok
 test tests::sign_in::a_command_from_another_origin_is_refused ... ok
-test tests::sign_in::a_control_is_shown_where_its_commands_predicate_holds ... ok
 test tests::sign_in::a_documents_answers_are_its_own_for_its_life ... ok
+test tests::sign_in::a_control_is_shown_where_its_commands_predicate_holds ... ok
+test tests::sign_in::a_fresh_sessions_cookie_is_http_only_and_unguessable ... ok
 test tests::sign_in::a_page_holds_its_announcer_from_the_first_byte ... ok
 test tests::sign_in::a_post_and_a_reply_are_their_signed_in_authors ... ok
-test tests::sign_in::a_fresh_sessions_cookie_is_http_only_and_unguessable ... ok
-test tests::sign_in::a_predicate_the_deployment_cannot_evaluate_is_refused_at_start ... ok
-test tests::sign_in::a_refusal_says_the_programs_words_for_its_predicate ... ok
 test tests::sign_in::a_refused_press_sent_again_is_refused_again ... ok
+test tests::sign_in::a_refusal_says_the_programs_words_for_its_predicate ... ok
+test tests::sign_in::a_predicate_the_deployment_cannot_evaluate_is_refused_at_start ... ok
 test tests::sign_in::a_refusal_the_program_gives_no_words_is_told_in_the_deployments ... ok
 test tests::sign_in::a_session_is_no_one_until_a_provider_vouches_for_it ... ok
 test tests::sign_in::an_answer_is_read_by_the_compilers_name_for_it ... ok
@@ -59,14 +59,14 @@ test tests::sign_in::the_relying_party_answers_the_routes_the_compiler_knows ...
 test tests::sign_in::the_development_provider_signs_up_and_in_through_the_flow ... ok
 test tests::sign_in::a_token_not_this_sign_ins_is_refused ... ok
 test tests::sign_in::two_users_pages_never_share_private_parts ... ok
-test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 1019 filtered out; finished in 11.80s
+test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 1019 filtered out; finished in 12.83s
 
 == told where the press was, in three engines (e2e/identity.spec.mjs; recovery, lazy-handler, accessibility)
 
-  21 passed (25.9s)
-  3 passed (11.5s)
-  3 passed (9.6s)
-  6 passed (26.3s)
+  21 passed (30.2s)
+  3 passed (13.0s)
+  3 passed (10.8s)
+  6 passed (29.5s)
 
 == mutation controls, part 1 of 2 (scripts/refusal_mutations.py --part 1/2; part 2 is e14-refusal-2's)
 

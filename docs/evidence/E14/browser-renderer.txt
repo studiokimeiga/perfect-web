@@ -1,33 +1,33 @@
 the browser renders with a page of JavaScript, held to the server's renderer
 
 produced by: just e14-browser-renderer
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
 
 == the two renderers, asked the same (renderer-agreement.test.mjs)
 
-✔ the two renderers agree over generated templates of every part and context (10777.422552ms)
-✔ a block kept in pieces is the text the renderer writes, the second time too (1518.729997ms)
-✔ a row is written again when what it reads changes, and not otherwise (1.297645ms)
-✔ a row is written again when what a block around it bound changes (0.951154ms)
-✔ the two renderers agree over the compiler's own templates (5428.801718ms)
-✔ each escaping agrees on every code point (3462.68381ms)
-✔ an address agrees on every code point inside and around a scheme (1131.510501ms)
-✔ keys sort as the server's do, by code point (6.379562ms)
-✔ a view inside itself stops where the server's does (1445.094329ms)
-✔ a graph that is no tree is refused where it is read (6.308884ms)
-✔ what has been an exploit agrees in every context (91.829069ms)
-✔ a path reads a record's fields and nothing else's (6.221615ms)
-✔ each element's handlers write one attribute of their own (4.803647ms)
-✔ an instance reads its parameters and none of the page's values (8.300149ms)
-✔ what changed in a row agrees on a block, a case and a list inside it (6.583749ms)
-✔ a list inside a row is refused, not walked, when its keys repeat or are missing (5.215834ms)
-✔ an item of a list inside a row is refused as rendering it would be (16.853485ms)
-✔ a change in a row is what the server says it is (4.703089ms)
-✔ the renderer is small (50.203264ms)
+✔ the two renderers agree over generated templates of every part and context (11718.2026ms)
+✔ a block kept in pieces is the text the renderer writes, the second time too (1512.473664ms)
+✔ a row is written again when what it reads changes, and not otherwise (1.28004ms)
+✔ a row is written again when what a block around it bound changes (0.898776ms)
+✔ the two renderers agree over the compiler's own templates (5918.441037ms)
+✔ each escaping agrees on every code point (3569.245735ms)
+✔ an address agrees on every code point inside and around a scheme (1208.03ms)
+✔ keys sort as the server's do, by code point (8.671988ms)
+✔ a view inside itself stops where the server's does (1696.131434ms)
+✔ a graph that is no tree is refused where it is read (8.51417ms)
+✔ what has been an exploit agrees in every context (90.898157ms)
+✔ a path reads a record's fields and nothing else's (9.389651ms)
+✔ each element's handlers write one attribute of their own (7.059896ms)
+✔ an instance reads its parameters and none of the page's values (12.357756ms)
+✔ what changed in a row agrees on a block, a case and a list inside it (8.996307ms)
+✔ a list inside a row is refused, not walked, when its keys repeat or are missing (7.329083ms)
+✔ an item of a list inside a row is refused as rendering it would be (25.894139ms)
+✔ a change in a row is what the server says it is (6.625071ms)
+✔ the renderer is small (51.547415ms)
 ℹ tests 19
 ℹ suites 0
 ℹ pass 19
@@ -35,7 +35,7 @@ playwright: Version 1.58.0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 24052.658106
+ℹ duration_ms 25965.033539
 
 == the server's renderer on the address that panicked it (escape.rs)
 
@@ -63,11 +63,11 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; fini
 == what a page renders through it, in three engines
 
 EVIDENCE static-route-script-bytes=0 wasm-bytes=0
-EVIDENCE interactive-script-bytes=242664 brotli=62489
+EVIDENCE interactive-script-bytes=244791 brotli=63111
 EVIDENCE interactive-wasm-bytes=0 brotli=0
-EVIDENCE  script 242664 gzip=74669 brotli=62489 http://127.0.0.1:3148/pw-runtime.mjs
+EVIDENCE  script 244791 gzip=75368 brotli=63111 http://127.0.0.1:3148/pw-runtime.mjs
   6 skipped
-  120 passed (1.7m)
+  120 passed (2.0m)
 
 == mutation controls (scripts/browser_renderer_mutations.py)
 
@@ -116,6 +116,7 @@ raw HTML is written: KILLED (1 of 19 tests fail)
 a blocked part writes nothing: KILLED (1 of 19 tests fail)
 a loop's missing key is rendered: KILLED (2 of 19 tests fail)
 a loop's duplicate key is rendered: KILLED (2 of 19 tests fail)
+a loop's key is not noted: KILLED (2 of 19 tests fail)
 a row is kept whatever a block around it bound: KILLED (1 of 19 tests fail)
 a loop that is no list renders nothing: KILLED (2 of 19 tests fail)
 a nested instance may pass what a browser nests: KILLED (1 of 19 tests fail)
@@ -153,5 +154,5 @@ the server lets a data: address through: KILLED (2 of 19 tests fail)
 the server's false boolean attribute leaves its space: KILLED (1 of 19 tests fail)
 the server takes a new list's repeated key: KILLED (2 of 19 tests fail)
 the server's duplicate key is rendered: KILLED (1 of 19 tests fail)
-81 of 81 mutants killed
+82 of 82 mutants killed
 memory bound: no process was stopped

@@ -175,6 +175,7 @@ NAMES = {
         "what_a_host_does_not_compute_is_refused_by_name",
     },
     "signals": {
+        "a_signal_the_wire_holds_otherwise_is_decoded_for_its_function",
         "a_value_computed_from_a_signal_is_the_browsers_and_its_first_the_hosts",
         "an_attribute_and_a_views_field_of_a_signal_are_computed_as_well",
         "standalone_and_prepared_signal_modules_are_byte_identical",

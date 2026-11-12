@@ -1,8 +1,8 @@
 ADR-0239 - every code the compiler writes is registered, once
 
 produced by: just e14-registered-codes
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the registry (compiler/pw-core/src/codes.rs)
@@ -19,13 +19,13 @@ test codes::tests::every_retired_code_says_why_and_what_replaced_it ... ok
 test codes::tests::every_corpus_rule_is_registered_or_an_owned_known_gap ... ok
 test codes::tests::every_code_a_checker_writes_is_registered ... ok
 test codes::tests::every_registered_code_is_one_a_checker_can_emit ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 186 filtered out; finished in 4.10s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 186 filtered out; finished in 4.11s
 
 == the checker (compiler/pw-core/tests/registered_codes.rs)
 
 test each_code_has_one_meaning ... ok
 test a_readers_value_in_a_shared_cache_is_one_error ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
 
 == the corpus (corpus-check, checking_source.rs)
 
@@ -34,7 +34,7 @@ accepted: 44/44 charter §16 categories covered
 rejected: 97 files
 rejected: 97/97 charter §16 categories covered
 corpus-check: OK
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 201.63s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 200.82s
 
 == mutation controls (scripts/registered_codes_mutations.py)
 
