@@ -59,8 +59,8 @@ export const OWN_EDITS = [
   ["const planned = !PW_PLANS ? null : ", "const planned = !PW_PLANS || !PW_UNOWNED ? null : "],
   ["rowText(row.of, { ...row.env, computedValues: null }, row.others, row.key)", "rowText(row.of, { ...scopeOf(row), computedValues: null }, row.others, row.key)"],
   ["return capturedText(parts[h], row.env);", "return capturedText(parts[h], scopeOf(row));"],
-  ["    const holes = new Array(plan.paths.length);\n", "    const holes = plan.walk ? plan.walk(first) : new Array(plan.paths.length);\n"],
-  ["      let n = first;\n      const path = plan.paths[h];\n", "      let n = plan.walk ? holes[h] : first;\n      const path = plan.walk ? NO_STEPS : plan.paths[h];\n"],
+  ["    const holes = new Array(plan.paths.length);\n", "    const holes = plan.walk ? plan.walk(clone) : new Array(plan.paths.length);\n"],
+  ["      let n = clone;\n      const path = plan.paths[h];\n", "      let n = plan.walk ? holes[h] : clone;\n      const path = plan.walk ? NO_STEPS : plan.paths[h];\n"],
 ];
 
 const q = (s) => JSON.stringify(s);
@@ -535,13 +535,13 @@ export function rowPaths(body) {
   });
 }
 
-/** **A walk to each path** from a row's first node `r`, written out: each
- * node reached once, from its parent's first child or the nearest sibling
- * before it already reached. The first node is the row's clone where the row
- * is its own anchor (ADR-0438), and the first child of the clone's fragment
- * otherwise: one walk for either. */
+/** **A walk to each path** from a row's clone `c`, written out: each node
+ * reached once, from its parent's first child or the nearest sibling before
+ * it already reached. A row that is its own anchor is its element's clone,
+ * its paths from it (ADR-0438): one whose holes are all on its element takes
+ * no step. */
 export function walkSource(paths) {
-  const known = new Map([["0", "r"]]);
+  const known = new Map([["", "c"]]);
   const lines = [];
   const reach = (path) => {
     const key = path.join(",");
@@ -563,8 +563,8 @@ export function walkSource(paths) {
     return name;
   };
   const holes = paths.map(reach);
-  if (lines.length === 0) return `(r) => [${holes.join(", ")}]`;
-  return `(r) => {\n        const ${lines.join(",\n          ")};\n        return [${holes.join(", ")}];\n      }`;
+  if (lines.length === 0) return `(c) => [${holes.join(", ")}]`;
+  return `(c) => {\n        const ${lines.join(",\n          ")};\n        return [${holes.join(", ")}];\n      }`;
 }
 
 // --- a build's own lists ---------------------------------------------------
@@ -599,7 +599,10 @@ export function ownRows(entries) {
     const paths = rowPaths(list.body);
     if (paths === null) continue;
     if (!walks.has(template)) walks.set(template, []);
-    walks.get(template).push(`    ${list.id}: {\n      paths: ${q(paths.map((p) => p.join(",")).join("|"))},\n      walk: ${walkSource(paths)},\n    }`);
+    // A row that is its own anchor is walked from its element (ADR-0438), as
+    // its plan's paths are.
+    const from = list.row_anchor === "element" ? paths.map((p) => p.slice(1)) : paths;
+    walks.get(template).push(`    ${list.id}: {\n      paths: ${q(from.map((p) => p.join(",")).join("|"))},\n      walk: ${walkSource(from)},\n    }`);
   }
   const table = (by) => `{\n${[...by].map(([template, items]) => `  ${q(template)}: {\n${items.join(",\n")},\n  }`).join(",\n")},\n}[parts.template]`;
   if (written.length > 0) uses.add("scopeOf").add("ownFunctions");

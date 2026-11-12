@@ -136,9 +136,10 @@ MUTANTS = [
     ("the server takes a new list's repeated key", SERVER, """        if !seen.insert(raw.clone()) {\n""", """        if !seen.insert(raw.clone()) && false {\n"""),
     ("the server's duplicate key is rendered", SERVER, """                        if seen.insert(raw.clone(), raw.clone()).is_some() {\n""", """                        if false && seen.insert(raw.clone(), raw.clone()).is_some() {\n"""),
     # --- a planned row that is one element is its own anchor (ADR-0438) --------
-    ("a row its own anchor is written between comments", RUNTIME, """    if (p.row_anchor === "element") {\n      const [head, rest, tail] = rowHead(p);\n""", """    if (false) {\n      const [head, rest, tail] = rowHead(p);\n"""),
-    ("a row's key is written before its element's name", RUNTIME, """      out.html.push(head, ` data-pw-row="${at}"`, rest);\n""", """      out.html.push(` data-pw-row="${at}"`, head, rest);\n"""),
-    ("a tag's name ends at a space alone", RUNTIME, "/^<[A-Za-z][^\\t\\n\\f\\r />]*/", "/^<[A-Za-z][^ />]*/"),
+    ("a block's row its own anchor is written between comments", RUNTIME, """      if (p.row_anchor === "element") {\n        rowOwn(""", """      if (false) {\n        rowOwn("""),
+    ("a row's text its own anchor is written between comments", RUNTIME, """      if (p.row_anchor === "element") return rowOwn(p, at, env, others, out);\n""", """      if (false) return rowOwn(p, at, env, others, out);\n"""),
+    ("an instance its own anchor is written between comments", RUNTIME, """        if (p.row_anchor === "element") return rowOwn(""", """        if (false) return rowOwn("""),
+    ("a row's key is written before its element's name", RUNTIME, """    out.html.push(cut[0], ` data-pw-row="${at}"`, cut[1]);\n""", """    out.html.push(` data-pw-row="${at}"`, cut[0], cut[1]);\n"""),    ("a tag's name ends at a space alone", RUNTIME, "/^<[A-Za-z][^\\t\\n\\f\\r />]*/", "/^<[A-Za-z][^ />]*/"),
     ("a row that begins with no element is written", RUNTIME, """      if (!name) throw unrepresented("a row that is its own anchor begins with no element");\n""", ""),
     ("the server writes a row its own anchor between comments", SERVER, """    if anchor == RowAnchor::Comments {\n""", """    if anchor != RowAnchor::Comments || true {\n"""),
     ("the server writes a row's key before its element's name", SERVER, """    out.push_str(&first[..at]);\n    out.push_str(&format!(" data-pw-row=\\"{id}@{token}\\""));\n""", """    out.push_str(&format!(" data-pw-row=\\"{id}@{token}\\""));\n    out.push_str(&first[..at]);\n"""),

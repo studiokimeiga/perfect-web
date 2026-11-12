@@ -922,16 +922,19 @@ test("the walk written to a row's holes reaches the node at each path", () => {
   const root = tree([[[[]], [[[]]], [[]], []], [], [[], [[], [[]]]]]);
   const paths = [[0], [0, 0, 0], [0, 1, 0], [0, 1, 0, 0], [0, 2, 0], [2, 1, 1, 0], [1], [2]];
   const walk = new Function(`return ${walkSource(paths)}`)();
-  // From the row's first node (ADR-0438): its clone where the row is its own
-  // anchor, the first child of its fragment's otherwise.
-  assert.deepEqual(walk(root.firstChild), paths.map((p) => at(root, p)));
-  // Each node once: the large list's five holes in seven steps, its row's
-  // element the first node itself.
-  assert.equal((walkSource([[0], [0, 0, 0], [0, 1, 0], [0, 1, 0, 0], [0, 2, 0]]).match(/\.(firstChild|nextSibling)/g) ?? []).length, 7);
-  // A row all of whose holes are on its first node takes no step.
-  const none = walkSource([[0], [0]]);
-  assert.equal(none, "(r) => [r, r]");
-  assert.deepEqual(new Function(`return ${none}`)()(root.firstChild), [root.firstChild, root.firstChild]);
+  assert.deepEqual(walk(root), paths.map((p) => at(root, p)));
+  // Each node once: the large list's five holes in eight steps.
+  assert.equal((walkSource([[0], [0, 0, 0], [0, 1, 0], [0, 1, 0, 0], [0, 2, 0]]).match(/\.(firstChild|nextSibling)/g) ?? []).length, 8);
+  // A row that is its own anchor is walked from its element, its paths from
+  // it (ADR-0438): the large list's in seven, the element itself the clone.
+  const element = root.firstChild;
+  const fromIt = paths.slice(0, 5).map((p) => p.slice(1));
+  assert.deepEqual(new Function(`return ${walkSource(fromIt)}`)()(element), fromIt.map((p) => at(element, p)));
+  assert.equal((walkSource(fromIt).match(/\.(firstChild|nextSibling)/g) ?? []).length, 7);
+  // One all of whose holes are on its element takes no step.
+  const none = walkSource([[], []]);
+  assert.equal(none, "(c) => [c, c]");
+  assert.deepEqual(new Function(`return ${none}`)()(element), [element, element]);
 });
 
 test("the runtime holds one place for a page's own lists, and once what the packaging writes otherwise there", async () => {
@@ -956,7 +959,8 @@ const LARGE_HANDLERS = { "handlers/h.mjs": handlerModule("h", "select"), "handle
 test("a build of the large list keeps its rows by its own code, and holds none of the general code that would", async () => {
   const runtime = await deviceRuntimeOf([dynamic(keyedList(6, LARGE_ROW))], LARGE_PLAN, LARGE_HANDLERS);
   assert.ok(runtime.includes("is kept by no code of its page"), "its own lists' keeping");
-  assert.ok(runtime.includes('paths:"0|0,0,0|0,1,0|0,1,0,0|0,2,0"'), "its walk");
+  // Its walk, from its row's element: the row is its own anchor (ADR-0438).
+  assert.ok(runtime.includes('paths:"|0,0|1,0|1,0,0|2,0"'), "its walk");
   for (const word of OWN_WORDS.slice(1)) assert.ok(!runtime.includes(word), `no ${word} left unminified`);
   // The general test of whether a list is planned, which only the general
   // code's making of a row asks: its parts' kinds, written once.
@@ -1185,12 +1189,14 @@ test("a build whose presses are not heard at its documents says no row is its ow
 
 test("the runtime marks each line only a row its own anchor needs", async () => {
   const source = await readFile(RUNTIME_SOURCE, "utf8");
-  // The key's symbol and reading, the index, the renderer's writing and its
-  // cut, the plan, its rows, the rows shown (two), morphed and parsed, and
-  // the morph's items and keeping.
-  assert.equal(source.match(ELEMENT_LINES).length, 12);
+  // The key's symbol and reading, the index, the renderer's writing and the
+  // three places it writes a keyed row, the plan, its rows, the holes found
+  // in a row it did not make, the rows shown (two), morphed and parsed, and
+  // the morph's items and keeping. Cut, each place is as it was before there
+  // were any: a build none of whose rows is one is sent the bytes it was.
+  assert.equal(source.match(ELEMENT_LINES).length, 15);
   const cut = source.replace(ELEMENT_LINES, "");
-  for (const word of [...ELEMENT_WORDS, "row_anchor", "ROW_KEY", "rowKeyOf", "rowHead", "// element rows", "// :element rows"]) {
+  for (const word of [...ELEMENT_WORDS, "row_anchor", "ROW_KEY", "rowKeyOf", "rowOwn", "plan.root", "// element rows", "// :element rows"]) {
     assert.ok(!cut.includes(word), `no ${word} left where the lines are cut`);
   }
 });
