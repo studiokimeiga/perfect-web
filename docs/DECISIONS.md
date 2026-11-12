@@ -3418,3 +3418,6 @@ An `Int` is a number within ±2^53 in a browser's module and a `BigInt` past it,
 
 [ADR-0434](DECISIONS/ADR-0434-a-pages-own-code-renders-its-templates.md):
 Proposed: the packaging writes each page's own renderer, the general one partially evaluated over the page's template IR, offering the calls the runtime makes of it; the general renderer kept where a template is not generated, folded away where every one is; the three renderers held to one semantics by the agreement test; built in steps (planned rows, a block's markup, the general renderer folded away), each measured by the builds visited in turn.
+
+[ADR-0435](DECISIONS/ADR-0435-a-planned-rows-handlers-are-noted-on-their-element.md):
+A planned row's handlers are noted on their element, under a symbol of the runtime's own, not in a weak map: what a handler on a row a plan made captures is read from the element pressed.

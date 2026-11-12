@@ -19,7 +19,11 @@ heavier with Brotli and 74 decoded. The head-to-head at `8096c4e7`: Pleris
 behind in 31 rows and best in 80 (52 and 86 at `87446c10`), the large list's
 presses behind in 11 where they were in 29; most of the rows no longer
 losses are so because this run's spreads overlap, the other stacks slower in
-it too, not because Pleris passed them (ADR-0433's result).
+it too, not because Pleris passed them (ADR-0433's result). Train-30 with
+them, after their full verify: a planned row's handlers are noted on their
+element, not in a weak map (ADR-0435), the runtime 48 bytes lighter with
+Brotli and "create 1,000 rows" 3.4 ms quicker cold in Chromium. A page's own
+code rendering its templates is proposed (ADR-0434), nothing of it built.
 
 **Train-26, 2026-11-11:** on train-25. A failure the runtime recovers from is
 told the developer (ADR-0431), as the platform tells an error nothing
