@@ -1,8 +1,8 @@
 ADR-0356 - the browser host map: a run starts only the hosts its selected tests need
 
 produced by: just e14-browser-host-map
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 node: v22.21.1
 playwright: Version 1.58.0
 
@@ -62,7 +62,7 @@ ok 17 - native a runner killed outright leaves none of its hosts listening
 
 == a spec on the shared host, one on a mutating suite's, one on the feed's, in three engines
 
-  117 passed (1.7m)
+  117 passed (2.1m)
 
 == mutation controls (scripts/browser_host_map_mutations.py)
 

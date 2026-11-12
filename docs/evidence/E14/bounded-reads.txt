@@ -1,8 +1,8 @@
 4c - a read is bounded by construction (PW0405, PW0406, PW0407)
 
 produced by: just e14-bounded-reads
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the rules (compiler/pw-core/tests/bounded_reads.rs, and bounded's own)
@@ -25,8 +25,8 @@ test a_set_names_a_function_of_the_same_source_given_and_answering_lists ... ok
 test a_set_pair_can_keep_each_keys_exact_result ... ok
 test a_set_pairs_key_field_is_named_as_the_key_parameter ... ok
 test a_set_reads_cost_is_what_its_source_states ... ok
-test a_set_read_on_a_source_that_cannot_batch_is_warned ... ok
 test a_set_that_does_not_fit_is_the_pairs_own_rule_and_a_bad_sets_value_is_a_policys ... ok
+test a_set_read_on_a_source_that_cannot_batch_is_warned ... ok
 test a_set_read_on_a_source_that_batches_is_not_warned ... ok
 test a_sources_sets_is_one_call_chunked_or_per_key ... ok
 test set_and_sets_head_a_clause_only_where_a_name_follows ... ok
@@ -35,11 +35,11 @@ test the_ledger_reads_its_lines_together_and_checks ... ok
 test every_combinator_that_applies_its_callback_to_elements_is_a_loop ... ok
 test the_feed_reads_nothing_per_element ... ok
 test the_store_reads_nothing_per_element ... ok
-test kiokun_reads_per_element_where_it_is_known_to_and_nowhere_else ... ok
 test the_stores_loop_is_seen_and_refused_where_it_reads_per_element ... ok
 test what_is_no_read_per_element_is_accepted ... ok
+test kiokun_reads_per_element_where_it_is_known_to_and_nowhere_else ... ok
 test the_stores_pairs_and_source_cost_are_declared_together ... ok
-test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.89s
+test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.03s
 test a_generated_read_named_as_the_callback_has_the_same_matching_row_repair ... ok
 test a_generated_read_in_a_generic_result_callback_remains_a_read_per_row ... ok
 test a_generated_many_read_before_the_loop_selects_each_turns_matching_rows ... ok
@@ -48,14 +48,14 @@ test generated_many_reads_accept_one_call_and_chunked_sources ... ok
 test generated_many_reads_warn_for_default_and_per_key_sources ... ok
 test generated_key_prefix_and_index_repairs_name_the_matching_many_read ... ok
 test a_generated_read_through_a_member_stays_a_read_per_row ... ok
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.16s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.18s
 test bounded::tests::a_component_is_a_cycle_or_a_call_of_itself ... ok
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 197 filtered out; finished in 0.00s
 
 == the corpus: each fixture its own defect, and the generality witnesses (checking_source.rs, generality.rs)
 
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 194.85s
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 177.40s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 199.93s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 176.22s
 
 == the reference programs: the store, the accepted corpus, the feed, kiokun-site
 

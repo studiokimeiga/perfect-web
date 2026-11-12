@@ -1,8 +1,8 @@
 ADR-0140 - a page that reads queries holds signals too
 
 produced by: just e14-store-signals
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the server (spikes/own-renderer/server)
@@ -14,18 +14,18 @@ test tests::store_pg::on_postgres_nothing_the_store_keeps_holds_a_session_cookie
 test tests::store_pg::on_postgres_the_database_provides_what_the_store_states ... ok
 test tests::store_pg::on_postgres_the_stores_schema_is_its_own_beside_the_feeds ... ok
 test tests::a_line_records_the_stores_name_and_price_not_the_requests ... ok
-test tests::argument_invariants::a_label_the_stores_type_refuses_never_reaches_its_data_layer ... ok
 test tests::store_search::a_search_lists_the_stores_and_dishes_that_match ... ok
+test tests::argument_invariants::a_label_the_stores_type_refuses_never_reaches_its_data_layer ... ok
 test tests::store_search::a_menu_change_tells_the_stores_page_once ... ok
-test tests::store_hours::a_special_date_closes_the_store ... ok
+test tests::the_store_and_each_item_say_what_they_are ... ok
 test tests::the_store_renders_its_signals_at_their_first_values ... ok
 test tests::the_store_s_document_carries_its_signals ... ok
+test tests::store_hours::a_special_date_closes_the_store ... ok
 test tests::store_search::a_search_lists_the_stores_that_reach_the_chosen_address ... ok
 test tests::the_store_moving_an_order_along_reaches_its_open_page ... ok
-test tests::the_store_and_each_item_say_what_they_are ... ok
-test tests::the_stores_are_the_home_page ... ok
 test tests::the_store_sends_its_slots_after_its_own_content ... ok
-test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 1030 filtered out; finished in 11.01s
+test tests::the_stores_are_the_home_page ... ok
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 1030 filtered out; finished in 10.11s
 
 == mutation controls (scripts/store_signals_mutations.py)
 

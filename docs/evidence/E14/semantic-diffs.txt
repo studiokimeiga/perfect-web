@@ -1,20 +1,20 @@
 ADR-0149 - pw diff, what a change means, for review
 
 produced by: just e14-diffs
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the tests (compiler/pw-core/tests/semantic_diff.rs)
 
-test a_comment_or_a_reflow_changes_nothing ... ok
 test a_new_query_brings_its_effects_capabilities_and_policies ... ok
+test a_comment_or_a_reflow_changes_nothing ... ok
 test a_freshness_change_is_a_cache_change ... ok
 test a_new_case_is_a_domain_change ... ok
 test a_program_that_does_not_check_has_no_model ... ok
 test the_same_program_changes_nothing ... ok
 test a_streamed_region_is_a_page_change ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.94s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.26s
 
 == each task's Pleris patches (scripts/semantic_diffs.py)
 
@@ -45,8 +45,8 @@ Pages
 - none
 
 Client impact
-- added the speculation of `store.page.StorePage~ui`, 2592 bytes
-- the browser's compiled code: 4662 bytes, was 2070
+- added the speculation of `store.page.StorePage~ui`, 3652 bytes
+- the browser's compiled code: 5718 bytes, was 2066
 
 Server components
 - none
@@ -341,9 +341,9 @@ Pages
 
 Client impact
 - added the handler a5e94305 in `store.page.StorePage~ui`, 1051 bytes
-- added the handler f9efa45e in `store.page.StorePage~ui`, 335 bytes
-- the speculation of `store.page.StorePage~ui`: 2593 bytes, was 2592
-- the browser's compiled code: 6049 bytes, was 4662
+- added the handler f9efa45e in `store.page.StorePage~ui`, 299 bytes
+- the speculation of `store.page.StorePage~ui`: 3653 bytes, was 3652
+- the browser's compiled code: 7069 bytes, was 5718
 
 Server components
 - none
@@ -675,7 +675,7 @@ Client impact
 - added the handler 2148f1ab in `store.page.StorePage~ui`, 266 bytes
 - added the handler 6cc02212 in `store.page.StorePage~ui`, 265 bytes
 - the handler `clear_cart` in `store.page.StorePage~ui` changed: 891 bytes, was 814
-- the browser's compiled code: 5270 bytes, was 4662
+- the browser's compiled code: 6326 bytes, was 5718
 
 Server components
 - none

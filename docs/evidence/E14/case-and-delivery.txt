@@ -1,8 +1,8 @@
 ADR-0153, ADR-0154 - a case tested with {#match}, a command a page sends declared idempotent
 
 produced by: just e14-case-and-delivery
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the tests (compiler/pw-core/tests/case_and_delivery.rs)
@@ -13,7 +13,7 @@ test an_idempotent_command_and_one_no_handler_calls_are_the_controls ... ok
 test every_case_named_by_a_match_is_the_control ... ok
 test a_case_of_another_type_spelled_alike_is_not_this_ones ... ok
 test a_template_tests_a_case_with_match ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.81s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.55s
 
 == the store, the accepted corpus and the demos check as before
 
@@ -28,8 +28,8 @@ baseline: 6 passed, 0 failed
 running 6 tests
 test a_template_tests_a_case_with_match ... FAILED
 test a_command_a_page_handler_calls_declares_idempotent_by ... ok
-test an_idempotent_command_and_one_no_handler_calls_are_the_controls ... ok
 test a_value_compared_with_a_computed_one_is_not_a_case_test ... ok
+test an_idempotent_command_and_one_no_handler_calls_are_the_controls ... ok
 test every_case_named_by_a_match_is_the_control ... ok
 test a_case_of_another_type_spelled_alike_is_not_this_ones ... ok
 
@@ -37,7 +37,7 @@ failures:
 
 ---- a_template_tests_a_case_with_match stdout ----
 
-thread 'a_template_tests_a_case_with_match' (58545) panicked at compiler/pw-core/tests/case_and_delivery.rs:76:9:
+thread 'a_template_tests_a_case_with_match' (18371) panicked at compiler/pw-core/tests/case_and_delivery.rs:76:9:
 {#if status == Placed}<p>placed</p>{/if}: []
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -45,7 +45,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_template_tests_a_case_with_match
 
-test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.46s
+test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.30s
 
 error: test failed, to rerun pass `-p pw-core --test case_and_delivery`
 
@@ -63,7 +63,7 @@ failures:
 
 ---- a_template_tests_a_case_with_match stdout ----
 
-thread 'a_template_tests_a_case_with_match' (58887) panicked at compiler/pw-core/tests/case_and_delivery.rs:76:9:
+thread 'a_template_tests_a_case_with_match' (18714) panicked at compiler/pw-core/tests/case_and_delivery.rs:76:9:
 {#if ready}<p>a</p>{:else if status == Placed}<p>b</p>{/if}: []
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -71,7 +71,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_template_tests_a_case_with_match
 
-test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.81s
+test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.54s
 
 error: test failed, to rerun pass `-p pw-core --test case_and_delivery`
 
@@ -89,7 +89,7 @@ failures:
 
 ---- a_template_tests_a_case_with_match stdout ----
 
-thread 'a_template_tests_a_case_with_match' (59229) panicked at compiler/pw-core/tests/case_and_delivery.rs:76:9:
+thread 'a_template_tests_a_case_with_match' (19056) panicked at compiler/pw-core/tests/case_and_delivery.rs:76:9:
 {#if Placed == status}<p>placed</p>{/if}: []
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -97,7 +97,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_template_tests_a_case_with_match
 
-test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.46s
+test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s
 
 error: test failed, to rerun pass `-p pw-core --test case_and_delivery`
 
@@ -107,15 +107,15 @@ running 6 tests
 test a_case_of_another_type_spelled_alike_is_not_this_ones ... FAILED
 test a_command_a_page_handler_calls_declares_idempotent_by ... ok
 test a_value_compared_with_a_computed_one_is_not_a_case_test ... ok
-test every_case_named_by_a_match_is_the_control ... ok
 test an_idempotent_command_and_one_no_handler_calls_are_the_controls ... ok
+test every_case_named_by_a_match_is_the_control ... ok
 test a_template_tests_a_case_with_match ... ok
 
 failures:
 
 ---- a_case_of_another_type_spelled_alike_is_not_this_ones stdout ----
 
-thread 'a_case_of_another_type_spelled_alike_is_not_this_ones' (59569) panicked at compiler/pw-core/tests/case_and_delivery.rs:114:9:
+thread 'a_case_of_another_type_spelled_alike_is_not_this_ones' (19396) panicked at compiler/pw-core/tests/case_and_delivery.rs:114:9:
 assertion `left == right` failed: status == Other.Placed: ["PW0337", "PW0609"]
   left: ["PW0337", "PW0609"]
  right: ["PW0609"]
@@ -125,7 +125,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_case_of_another_type_spelled_alike_is_not_this_ones
 
-test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.80s
+test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.52s
 
 error: test failed, to rerun pass `-p pw-core --test case_and_delivery`
 
@@ -143,7 +143,7 @@ failures:
 
 ---- a_command_a_page_handler_calls_declares_idempotent_by stdout ----
 
-thread 'a_command_a_page_handler_calls_declares_idempotent_by' (59912) panicked at compiler/pw-core/tests/case_and_delivery.rs:154:5:
+thread 'a_command_a_page_handler_calls_declares_idempotent_by' (19740) panicked at compiler/pw-core/tests/case_and_delivery.rs:154:5:
 assertion `left == right` failed: ["PW5048 this control sends `add`, which `requires SignedIn`, and is shown where the page does not ask `SignedIn`", "PW0618 this handler gives the runtime its `Result<Unit, String>`, which the runtime drops, and its failure with it"]
   left: []
  right: ["PW0338 `add` is called by a page's handler, and declares no `idempotent_by`"]
@@ -153,7 +153,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_command_a_page_handler_calls_declares_idempotent_by
 
-test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.76s
+test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.55s
 
 error: test failed, to rerun pass `-p pw-core --test case_and_delivery`
 
@@ -171,7 +171,7 @@ failures:
 
 ---- a_command_a_page_handler_calls_declares_idempotent_by stdout ----
 
-thread 'a_command_a_page_handler_calls_declares_idempotent_by' (60259) panicked at compiler/pw-core/tests/case_and_delivery.rs:154:5:
+thread 'a_command_a_page_handler_calls_declares_idempotent_by' (20082) panicked at compiler/pw-core/tests/case_and_delivery.rs:154:5:
 assertion `left == right` failed: ["PW5048 this control sends `add`, which `requires SignedIn`, and is shown where the page does not ask `SignedIn`", "PW0618 this handler gives the runtime its `Result<Unit, String>`, which the runtime drops, and its failure with it"]
   left: []
  right: ["PW0338 `add` is called by a page's handler, and declares no `idempotent_by`"]
@@ -179,7 +179,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- an_idempotent_command_and_one_no_handler_calls_are_the_controls stdout ----
 
-thread 'an_idempotent_command_and_one_no_handler_calls_are_the_controls' (60262) panicked at compiler/pw-core/tests/case_and_delivery.rs:164:5:
+thread 'an_idempotent_command_and_one_no_handler_calls_are_the_controls' (20085) panicked at compiler/pw-core/tests/case_and_delivery.rs:164:5:
 ["PW0338 `add` is called by a page's handler, and declares no `idempotent_by`", "PW5048 this control sends `add`, which `requires SignedIn`, and is shown where the page does not ask `SignedIn`", "PW0618 this handler gives the runtime its `Result<Unit, String>`, which the runtime drops, and its failure with it"]
 
 
@@ -187,7 +187,7 @@ failures:
     a_command_a_page_handler_calls_declares_idempotent_by
     an_idempotent_command_and_one_no_handler_calls_are_the_controls
 
-test result: FAILED. 4 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.82s
+test result: FAILED. 4 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.55s
 
 error: test failed, to rerun pass `-p pw-core --test case_and_delivery`
 

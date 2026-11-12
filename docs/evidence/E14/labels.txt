@@ -1,8 +1,8 @@
 ADR-0143 - what names a form control
 
 produced by: just e14-labels
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the rule (compiler/pw-core/tests/labels.rs)
@@ -10,8 +10,8 @@ rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 test a_button_input_with_no_value_has_no_label ... ok
 test a_button_is_refused_with_the_repair_a_button_takes ... ok
 test a_blank_aria_label_names_nothing ... ok
-test a_button_whose_value_is_blank_has_no_label ... ok
 test a_button_is_named_by_its_value ... ok
+test a_button_whose_value_is_blank_has_no_label ... ok
 test a_hidden_input_is_no_control ... ok
 test a_button_with_no_label_of_its_own_is_named_as_any_control_is ... ok
 test a_control_and_what_names_it_are_read_whatever_their_case ... ok
@@ -25,9 +25,9 @@ test a_label_that_wraps_its_control_names_it ... ok
 test an_image_button_is_named_by_its_alt_and_reported_once ... ok
 test an_id_names_nothing_by_itself ... ok
 test only_an_input_has_a_type ... ok
-test which_control_a_label_names_must_not_depend_on_what_renders ... ok
 test aria_labelledby_must_reach_an_element_with_text ... ok
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.02s
+test which_control_a_label_names_must_not_depend_on_what_renders ... ok
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.29s
 
 == each witness (examples/generality/control_without_label)
 
@@ -42,7 +42,7 @@ wrapped.pw               NEIGHBOUR  no diagnostics
 
 == the generality suite (compiler/pw-core/tests/generality.rs)
 
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 116.12s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 125.05s
 
 == mutation controls (scripts/labels_mutations.py)
 

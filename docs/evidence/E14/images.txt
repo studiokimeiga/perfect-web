@@ -1,8 +1,8 @@
 ADR-0404 - an image says what it shows; ADR-0405 - an image button's alt
 
 produced by: just e14-images
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == an image and an image button (compiler/pw-core/tests/images.rs, generality.rs)
@@ -14,27 +14,27 @@ test a_general_witness_is_caught_and_a_narrow_one_is_not has been running for ov
 test a_witness_is_valid_except_for_the_invariant_it_is_about has been running for over 60 seconds
 test every_witness_is_valid_evidence has been running for over 60 seconds
 test a_witness_is_valid_except_for_the_invariant_it_is_about ... ok
-test a_general_witness_is_caught_and_a_narrow_one_is_not ... ok
 test every_witness_is_valid_evidence ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 166.54s
+test a_general_witness_is_caught_and_a_narrow_one_is_not ... ok
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 177.69s
 test an_alt_says_what_the_image_shows_as_text_or_as_a_value ... ok
 test an_empty_alt_says_the_image_shows_nothing_a_reader_needs ... ok
 test a_title_an_aria_label_or_a_role_is_not_an_alt ... ok
 test an_image_a_loop_renders_is_read_once_where_it_is_written ... ok
 test an_aria_label_a_title_or_a_label_is_not_an_image_button_s_alt ... ok
-test an_image_and_its_alt_are_read_whatever_their_case ... ok
 test an_image_button_is_refused_with_its_own_repair ... ok
+test an_image_and_its_alt_are_read_whatever_their_case ... ok
 test an_image_button_and_its_alt_are_read_whatever_their_case ... ok
-test an_image_button_with_no_alt_is_refused ... ok
 test an_image_button_s_alt_says_what_it_does_as_text_or_as_a_value ... ok
+test an_image_button_with_no_alt_is_refused ... ok
 test an_image_button_s_alt_is_its_label_and_never_blank ... ok
 test each_image_button_is_reported_where_it_is ... ok
-test each_image_is_reported_where_it_is ... ok
 test an_image_with_no_alt_is_refused ... ok
+test each_image_is_reported_where_it_is ... ok
 test only_an_input_in_the_image_state_is_held_to_its_alt ... ok
 test only_an_img_is_held_to_it ... ok
 test only_an_input_is_an_image_button ... ok
-test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.63s
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.83s
 
 == mutation controls (scripts/images_mutations.py)
 
