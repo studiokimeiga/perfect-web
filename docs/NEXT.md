@@ -16,14 +16,18 @@ the rounds' spread in Firefox (create −5.0 ms, replace −4.0, every press −
 and under Slow 4G (create −15.2 cold, append −44.6 warm), and every press of a
 warm visit −7.9 in Chromium. What is left, each measured, none decided:
 
-1. **A cold append, slower to its frame**: +6.4 ms in Chromium (3.5..8.6) and
-   +25.8 under Slow 4G, its change in the document sooner in every round. The
-   head-to-head's own visit traced holds V8's incremental marking and a
-   mark-compact in its frame in four of six visits, where train-31's holds a
-   scavenge; its own work is less (ADR-0437's result). Where a visit's major
-   collection falls moved with what it keeps: whether what a row keeps (the
-   block's values, which a row's scope is made from) can be held so that none
-   falls in a press is not found; with item 2 after trains 27 and 28.
+1. **A cold append, slower to its frame**: +6.4 ms in Chromium (3.5..8.6) on
+   a quiet machine, +4.9 (1.6..7.4) with the final code under load; train-32
+   waits to land on it. Found (ADR-0437's result): this build keeps less (a
+   row 3,016 B against 3,326) and allocates less in every press, so its
+   scavenges' average survival is 39.6 % against 48.7 %; V8 shrinks its
+   initial global limit by that ratio after each scavenge until its first
+   mark-compact, to 43 to 49 MB against 68 to 75, and the append's DOM and
+   layout reach it inside the press in every round. Not ours to cut without
+   keeping more. What would move it: a scavenge fewer before the append (2
+   to 4 MB less garbage, most of it the general renderer's block generators
+   and maps, about 3 MB the harness's own), or fewer nodes a row (item 2).
+   The warm replace, slower past its spread under load, is not traced.
 2. **Two comments a row** (item 4 after trains 27 and 28): the next step of
    ADR-0434's rows, two of every three nodes a thousand rows insert, and
    Firefox's layout of them, where its cold create, append and replace are
