@@ -6,6 +6,67 @@
 
 # Next
 
+## After trains 27 and 28, 2026-11-12
+
+A list's rows are made as they changed, and a planned row is a plain object
+(ADR-0432); an `Int` is a number in a browser's module, as on its wire, and a
+value the page holds is read as it is (ADR-0433). The large list's presses do
+less; their record is the head-to-head their full verify is recorded with.
+What is left, each measured, none decided:
+
+1. **An `Option` made only to be matched.** `match List.get(xs, i) { Some(w)
+   => w, None => "" }` makes `{ $case: "some", value }` and switches on it at
+   once: three objects a row of the large list, and every `List.get`,
+   `Map.get` and `List.find` the same. A match on a value the same function
+   made from a case could take the case's arm with its payload, and the
+   object never be made: the compiler's lowering or its JavaScript backend.
+2. **A warm append's frame, later in some rounds.** With trains 27 and 28
+   a warm "append 1,000 rows" reaches the document sooner in every round
+   (under Slow 4G 29.6 to 33.9 ms after the click, to 34.4 to 40.7) and its
+   frame comes later in some (148 to 224 ms, to 155 to 188): 3.7 ms later
+   to its frame in Chromium (3.1..10.8) and 38.3 under Slow 4G (30.9..55.4),
+   the median of eleven rounds' pairs. Chromium's trace of five rounds
+   (the CPU slowed from the load on, the network not shaped) found the
+   frame sooner each time and no collection in it (ADR-0433's result). What
+   the record's shaped visit does between the change and the frame is not
+   found: a trace of that visit itself, the network shaped as the
+   instrument shapes it.
+3. **The record cannot tell a millisecond apart.** Each visit makes each
+   press once, timed to the frame after its change, so a time carries up to
+   a frame of waiting, and a median of seven moves by more than a
+   millisecond from one record to the next on the same build: at `edf97795`
+   Svelte's own create was 3 ms slower than at `87446c10`. Two builds visited
+   in turn, round after round, by the head-to-head's own visit
+   (`measureOnce`), and each press's paired difference, told train-27's cost
+   and its fix apart (ADR-0432) and train-28's gain (ADR-0433); a tool of the
+   head-to-head's that does so, tested as the instrument is, would let each
+   change be judged before its record. Where a collection falls in a warm
+   visit moves with what the visit before it allocated (ADR-0432's result).
+4. **Two comments a row.** A planned row is its element between two
+   comment anchors (`pw:s…`, `pw:e…`): two of every three nodes a thousand
+   rows insert, `createComment` and two of every three appends to the
+   fragment (about 0.7 ms of 6.6 in Chromium), and, measured in a probe on
+   2026-11-11, about 2 ms of layout a thousand rows in Firefox and 1 to 2 in
+   WebKit. A row that is one element could be its own anchor; the host
+   writes the anchors, and the page's index, `rowsShown`, `holesFound` and
+   the moves read them: a change to both renderers and their agreement.
+5. **A development build of the large list runs the runtime that morphs its
+   rows** (`PW_SERVER` is on in the runtime a development build serves), so
+   eight of `rows.spec.mjs`'s tests fail on it in each engine, as at
+   `c0bc24fe`: those that count what a plan parses or read the list's log.
+   Its header says a development build reports; only a production one built
+   `--report` runs them, in `e14-device-runtime`. Either a development build
+   of a page alone runs the device's runtime, as production does, or the
+   header says what runs them.
+6. **Each row's handlers are noted in a weak map** (`rowOfHandler`), two
+   entries a row; a property of the element would be one store each.
+7. **kiokun's whole-shard test counts 17,597 entries**
+   (`spikes/kiokun/server/src/main.rs`), and the kiokun-data checkout it
+   reads on this PC holds 17,688 now: `just e10-kiokun` with `KIOKUN_DATA`
+   set fails there, as it did before train-28. CI sets no `KIOKUN_DATA` and
+   skips it. The count is the data's, not the code's: read from the shard's
+   manifest, or the test says which checkout it was written against.
+
 ## After train-26, 2026-11-11
 
 A failure the runtime recovers from is told the developer (ADR-0431), so

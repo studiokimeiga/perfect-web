@@ -3409,3 +3409,9 @@ A production page reports nothing to its tests: each thing the runtime tells the
 
 [ADR-0431](DECISIONS/ADR-0431-a-failure-the-runtime-recovers-from-is-told-the-developer.md):
 A failure the runtime recovers from is told the developer as the platform tells an error nothing caught (`reportError`): a press that failed, the page's or a speculation's module that did not load, a rollback that could not render, a navigation that could not be finished, a boot that failed; a refusal, no answer and a full store, which the reader is told by name, are not.
+
+[ADR-0432](DECISIONS/ADR-0432-a-lists-rows-are-made-as-they-changed-and-a-planned-row-is-of-one-shape.md):
+A list's rows are made as they changed: where the old rows are the first of the new, in their order, they are changed in place and the new ones go in after them as one; where none stays, every row goes at once; otherwise they are placed as before. A planned row is a plain object of plain fields, its text written when first read, and the map of rows a render makes refuses a repeated key.
+
+[ADR-0433](DECISIONS/ADR-0433-an-int-is-a-number-in-a-browsers-module-and-a-value-is-read-as-it-is.md):
+An `Int` is a number within ±2^53 in a browser's module and a `BigInt` past it, one form for each value, each operation exact; a value the page holds is read as it is and given to the wire as it is, its `Int`s checked, so nothing is copied and a row a handler leaves alone is the very object it read; a command's answer is read case by case.
