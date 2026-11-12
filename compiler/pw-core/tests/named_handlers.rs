@@ -265,10 +265,10 @@ fn a_named_handler_is_given_its_event() {
     assert_eq!(reported(&src("rename")), Vec::<String>::new());
     let named = module_of(&src("rename"));
     assert_eq!(named, module_of(&src("(e) => rename(e)")));
+    // The event as the listener read it, sent as it is: its form is the
+    // wire's, and it holds no `Int` (ADR-0433).
     assert!(
-        named.contains(
-            "context.command(\"t.rename\", [((o) => ({ \"value\": o[\"value\"] }))(v0)])"
-        ),
+        named.contains("context.command(\"t.rename\", [v0])"),
         "{named}"
     );
     let b = pw_core::build::build(&units(&src("rename"))).expect("builds");

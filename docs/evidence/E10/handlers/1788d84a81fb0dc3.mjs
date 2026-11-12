@@ -4,18 +4,19 @@ function trap(what) {
   throw new Error("trap: " + what);
 }
 
-// An Int sent to a command as a JSON number (ADR-0058): exact within
-// ±2^53, and a trap past it rather than a different number.
+// An Int as JSON carries it (ADR-0058, ADR-0433): a number already within
+// ±2^53, and a trap past it, where it is a BigInt, rather than a
+// different number.
 function exact(v) {
-  if (v < -9007199254740992n || v > 9007199254740992n) trap("an Int a JavaScript number cannot carry exactly");
-  return Number(v);
+  if (typeof v === "bigint") trap("an Int a JavaScript number cannot carry exactly");
+  return v;
 }
 
 export const name = "choose_tip";
 export const handler = "1788d84a81fb0dc3";
 export async function run(context) {
   const v0 = { $case: "fifteen" };
-  const v1_answer = await context.command("store.page.choose_tip", [((c) => { switch (c.$case) { case "no-tip": return { $case: "no-tip" }; case "fifteen": return { $case: "fifteen" }; case "eighteen": return { $case: "eighteen" }; case "twenty": return { $case: "twenty" }; case "tip-amount": return { $case: "tip-amount", value: exact(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(v0)], { retry: { max: 2, jitter: true } });
+  const v1_answer = await context.command("store.page.choose_tip", [((w) => { if (w.$case === "tip-amount") { exact(w.value); } return w; })(v0)], { retry: { max: 2, jitter: true } });
   const v1 = ((c) => { switch (c.$case) { case "ok": return { $case: "ok", value: undefined }; case "err": return { $case: "err", value: ((c) => { switch (c.$case) { case "negative-tip": return { $case: "negative-tip" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(v1_answer);
   let v8;
   switch (v1.$case) {

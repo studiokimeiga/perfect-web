@@ -1,8 +1,8 @@
 ADR-0254 - a member names the declaration its module sees
 
 produced by: just e14-member-resolution
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the checker (compiler/pw-core/tests/member_resolution.rs)
@@ -10,15 +10,15 @@ rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 test a_member_two_imported_modules_declare_is_refused ... ok
 test a_member_of_modules_none_imported_is_refused ... ok
 test a_member_declared_beside_its_type_is_seen_without_an_import ... ok
+test a_member_two_modules_declare_is_the_one_imported ... ok
 test a_members_effects_are_the_imported_ones ... ok
 test an_ambiguous_member_is_no_function_value ... ok
-test a_member_two_modules_declare_is_the_one_imported ... ok
 test a_members_type_is_the_imported_ones ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.93s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.08s
 
 == the member table (compiler/pw-core/src/signatures.rs)
 
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 191 filtered out; finished in 0.10s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 191 filtered out; finished in 0.11s
 
 == mutation controls (scripts/member_resolution_mutations.py)
 

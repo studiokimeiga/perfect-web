@@ -1,8 +1,8 @@
 Changed tests reach the verification that consumes them
 
 produced by: just e14-ci-test-reach
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 test_bound_controls_require_a_complete_actual_intended_assertion (scripts.tests.test_ci_scripts.BoundEvidence.test_bound_controls_require_a_complete_actual_intended_assertion) ... ok
 test_exact_no_stop_and_absent_guard_remain_valid (scripts.tests.test_ci_scripts.BoundEvidence.test_exact_no_stop_and_absent_guard_remain_valid) ... ok
 test_fetch_excludes_all_outputs_and_completed_timing_of_stopped_recipe (scripts.tests.test_ci_scripts.BoundEvidence.test_fetch_excludes_all_outputs_and_completed_timing_of_stopped_recipe) ... ok
@@ -104,7 +104,7 @@ test_the_runs_are_read_through_gh_by_their_commit (scripts.tests.test_ci_scripts
 test_where_no_run_passed_master_plans_from_the_commit_before (scripts.tests.test_ci_scripts.VerifiedBase.test_where_no_run_passed_master_plans_from_the_commit_before) ... ok
 
 ----------------------------------------------------------------------
-Ran 96 tests in 24.244s
+Ran 96 tests in 24.899s
 
 OK
   not copied, its recipe failed: docs/evidence/E14/stopped.txt

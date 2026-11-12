@@ -1,28 +1,28 @@
 ADR-0236 - a speculation on the entry a page's parameter keys
 
 produced by: just e14-speculated-routes
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
 
 == the build (compiler/pw-core/tests/speculated_routes.rs)
 
-test the_thread_page_speculates_on_the_thread_its_parameter_keys ... ok
 test a_region_a_speculation_renders_reads_the_pages_parameter ... ok
+test the_thread_page_speculates_on_the_thread_its_parameter_keys ... ok
 test any_other_flow_to_the_key_is_refused_by_name ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.47s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.74s
 
 == the server (spikes/own-renderer/server/src/main.rs)
 
 test tests::a_speculating_document_carries_its_parameters ... ok
 test tests::a_speculated_thread_is_named_by_its_page_parameter ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1046 filtered out; finished in 2.46s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1046 filtered out; finished in 1.95s
 
 == the feed in three engines (e2e/feed.spec.mjs)
 
-  72 passed (1.3m)
+  72 passed (1.0m)
 
 == mutation controls (scripts/speculated_routes_mutations.py)
 

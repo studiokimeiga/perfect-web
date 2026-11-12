@@ -239,10 +239,12 @@ fn the_stores_handlers_compile_to_the_calls_their_bodies_make() {
     assert_eq!(add.commands, ["store.page.add_to_cart"]);
     // Sent again where no answer came, as `retry transport_only(max = 2,
     // jitter = true)` says (ADR-0173).
+    // The item is sent as it is, its one `Int` checked (ADR-0433).
     assert!(
-        add.source
-            .contains("await context.command(\"store.page.add_to_cart\", [((o) => ({ \"id\"")
-            && add.source.contains(RESEND),
+        add.source.contains(
+            "await context.command(\"store.page.add_to_cart\", \
+             [((w) => { exact(w[\"price\"]); return w; })(v0), exact(v2)]"
+        ) && add.source.contains(RESEND),
         "the item and the quantity, then how it is sent again"
     );
     assert!(
@@ -250,15 +252,12 @@ fn the_stores_handlers_compile_to_the_calls_their_bodies_make() {
             "export const name = \"add_to_cart\";\n\
              export const handler = \"{id}\";\n\
              export async function run(context) {{\n\
-             \x20 const v0 = ((o) => ({{ \"id\": o[\"id\"], \"store_id\": o[\"store_id\"], \
-             \"name\": o[\"name\"], \"description\": o[\"description\"], \"price\": \
-             BigInt(o[\"price\"]), \"available\": o[\"available\"], \"category\": ((o) => ({{ \"id\": o[\"id\"], \"name\": o[\"name\"] \
-             }}))(o[\"category\"]) }}))(context.captures[\"item\"]);\n",
+             \x20 const v0 = context.captures[\"item\"];\n",
             id = add.identity
         )),
-        "the captured item, read whole, field by field, its `Int` as a BigInt \
-         (ADR-0172), with whether it is available (ADR-0178), its store and its \
-         category (ADR-0181)"
+        "the captured item, read as it is: its form is the wire's, its `Int` a \
+         number (ADR-0433), whole, as the page showed it (ADR-0172), with whether \
+         it is available (ADR-0178), its store and its category (ADR-0181)"
     );
     let item = r#"{"item":{"id":"espresso","store_id":"47","name":"Espresso","description":"Short.","price":350,"available":true,"category":{"id":"coffee","name":"Coffee"}}}"#;
     // Answered `Ok`, without the cart (ADR-0157): the notice is cleared. The
@@ -635,7 +634,8 @@ fn a_handler_computes_what_it_sends() {
         sent(&sends("Buy(item.id, Qty(1 + 1))")),
         &serde_json::json!([["shop.ui.Buy", ["a", 2]]])
     );
-    // The captured `Int` is read as a `BigInt`, and sent as a number.
+    // The captured `Int` is read as the number it is, and sent as one
+    // (ADR-0433).
     assert_eq!(
         sent(&sends("Buy(item.id, Qty(helper(item.stock) * 2))")),
         &serde_json::json!([["shop.ui.Buy", ["a", 10]]])

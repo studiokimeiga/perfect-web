@@ -1,8 +1,8 @@
 ADR-0401 - a host keeps a connection for its next request
 
 produced by: just e14-keep-alive
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == a connection kept, its requests framed, and closed (tests::keep_alive::, and the upload's)
@@ -14,18 +14,18 @@ test tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed
 test tests::keep_alive::a_connection_is_kept_for_its_next_request ... ok
 test tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept ... ok
 test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
-test tests::keep_alive::a_commits_answer_waits_on_no_reader ... ok
 test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
-test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... ok
+test tests::keep_alive::a_commits_answer_waits_on_no_reader ... ok
 test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
+test tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it ... ok
 test tests::keep_alive::a_head_request_is_answered_with_no_body_and_closed ... ok
-test tests::keep_alive::a_kept_connection_is_closed_after_its_idle_wait ... ok
 test tests::keep_alive::a_kept_connections_answers_wait_on_no_acknowledgement ... ok
+test tests::keep_alive::a_kept_connection_is_closed_after_its_idle_wait ... ok
 test tests::keep_alive::a_second_answer_to_one_request_closes_its_connection ... ok
 test tests::keep_alive::a_request_answered_with_nothing_closes_its_connection ... ok
+test tests::keep_alive::a_request_that_asks_to_close_is_answered_and_closed ... ok
 test tests::keep_alive::a_streams_connection_is_closed_with_it ... ok
 test tests::keep_alive::a_head_that_trickles_past_its_deadline_is_refused_and_closed ... ok
-test tests::keep_alive::a_request_that_asks_to_close_is_answered_and_closed ... ok
 test tests::keep_alive::an_answer_before_its_body_is_read_closes_the_connection ... ok
 test tests::keep_alive::an_http_1_0_request_is_answered_and_closed ... ok
 test tests::keep_alive::the_accept_loop_backs_off_after_a_failure ... ok
@@ -39,7 +39,7 @@ test tests::keep_alive::while_a_dropped_command_is_armed_no_answer_keeps_its_con
 test tests::uploads::an_uploads_connection_is_closed_after_its_answer ... ok
 test tests::keep_alive::whitespace_before_a_headers_colon_is_refused_and_closed ... ok
 test tests::keep_alive::the_next_request_waits_on_no_telling ... ok
-test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 1016 filtered out; finished in 11.41s
+test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 1016 filtered out; finished in 10.26s
 
 == mutation controls (scripts/keep_alive_mutations.py)
 
@@ -77,7 +77,7 @@ test tests::keep_alive::while_a_dropped_command_is_armed_no_answer_keeps_its_con
 test tests::keep_alive::whitespace_before_a_headers_colon_is_refused_and_closed ... ok
 test tests::uploads::an_uploads_connection_is_closed_after_its_answer ... ok
 
-test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 28.68s
+test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 24.47s
 
 
 
@@ -118,7 +118,7 @@ failures:
 
 ---- tests::keep_alive::transfer_encoding_is_refused_and_its_connection_closed stdout ----
 
-thread 'tests::keep_alive::transfer_encoding_is_refused_and_its_connection_closed' (82226) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:229:5:
+thread 'tests::keep_alive::transfer_encoding_is_refused_and_its_connection_closed' (55868) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:229:5:
 HTTP/1.1 400 Bad Request
 content-type: application/json; charset=utf-8
 content-length: 104
@@ -134,7 +134,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::transfer_encoding_is_refused_and_its_connection_closed
 
-test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 28.56s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 24.66s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -177,7 +177,7 @@ failures:
 
 ---- tests::keep_alive::two_content_lengths_are_refused_and_closed stdout ----
 
-thread 'tests::keep_alive::two_content_lengths_are_refused_and_closed' (82588) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:255:5:
+thread 'tests::keep_alive::two_content_lengths_are_refused_and_closed' (56222) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:255:5:
 assertion `left == right` failed
   left: "{\"committed\":false,\"error\":\"the body is not a JSON array: EOF while parsing a value at line 1 column 0\"}"
  right: "more than one content-length"
@@ -187,7 +187,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::two_content_lengths_are_refused_and_closed
 
-test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 38.97s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 34.95s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -230,7 +230,7 @@ failures:
 
 ---- tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed stdout ----
 
-thread 'tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed' (82891) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:267:5:
+thread 'tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed' (56524) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:267:5:
 assertion `left == right` failed
   left: "{\"committed\":false,\"error\":\"the body is not a JSON array: EOF while parsing a value at line 1 column 0\"}"
  right: "content-length is not a number"
@@ -240,7 +240,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::a_content_length_that_is_no_number_is_refused_and_closed
 
-test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 39.19s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 35.34s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -283,12 +283,12 @@ failures:
 
 ---- tests::keep_alive::a_folded_header_is_refused_and_closed stdout ----
 
-thread 'tests::keep_alive::a_folded_header_is_refused_and_closed' (83254) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:276:5:
+thread 'tests::keep_alive::a_folded_header_is_refused_and_closed' (56892) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:276:5:
 HTTP/1.1 200 OK
 content-type: text/plain; charset=utf-8
 content-length: 825
 x-content-type-options: nosniff
-pw-build: b83517e76aeee06e3
+pw-build: bc71fb34e7b7505f8
 connection: keep-alive
 keep-alive: timeout=75
 
@@ -299,7 +299,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::a_folded_header_is_refused_and_closed
 
-test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 38.88s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 34.65s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -342,7 +342,7 @@ failures:
 
 ---- tests::keep_alive::whitespace_before_a_headers_colon_is_refused_and_closed stdout ----
 
-thread 'tests::keep_alive::whitespace_before_a_headers_colon_is_refused_and_closed' (83654) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:288:5:
+thread 'tests::keep_alive::whitespace_before_a_headers_colon_is_refused_and_closed' (57291) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:288:5:
 assertion `left == right` failed
   left: "{\"committed\":false,\"error\":\"the body is not a JSON array: EOF while parsing a value at line 1 column 0\"}"
  right: "whitespace before a header's colon"
@@ -352,7 +352,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::whitespace_before_a_headers_colon_is_refused_and_closed
 
-test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 38.63s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 33.55s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -403,12 +403,12 @@ failures:
 
 ---- tests::keep_alive::a_request_that_asks_to_close_is_answered_and_closed stdout ----
 
-thread 'tests::keep_alive::a_request_that_asks_to_close_is_answered_and_closed' (83976) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:171:5:
+thread 'tests::keep_alive::a_request_that_asks_to_close_is_answered_and_closed' (57618) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:171:5:
 HTTP/1.1 200 OK
 content-type: text/plain; charset=utf-8
 content-length: 825
 x-content-type-options: nosniff
-pw-build: b83517e76aeee06e3
+pw-build: bc71fb34e7b7505f8
 connection: keep-alive
 keep-alive: timeout=75
 
@@ -419,7 +419,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::a_request_that_asks_to_close_is_answered_and_closed
 
-test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 39.96s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 34.96s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -462,12 +462,12 @@ failures:
 
 ---- tests::keep_alive::an_http_1_0_request_is_answered_and_closed stdout ----
 
-thread 'tests::keep_alive::an_http_1_0_request_is_answered_and_closed' (84341) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:187:5:
+thread 'tests::keep_alive::an_http_1_0_request_is_answered_and_closed' (57980) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:187:5:
 HTTP/1.1 200 OK
 content-type: text/plain; charset=utf-8
 content-length: 825
 x-content-type-options: nosniff
-pw-build: b83517e76aeee06e3
+pw-build: bc71fb34e7b7505f8
 connection: keep-alive
 keep-alive: timeout=75
 
@@ -478,7 +478,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::an_http_1_0_request_is_answered_and_closed
 
-test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 39.14s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 35.32s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -521,7 +521,7 @@ failures:
 
 ---- tests::keep_alive::an_answer_before_its_body_is_read_closes_the_connection stdout ----
 
-thread 'tests::keep_alive::an_answer_before_its_body_is_read_closes_the_connection' (84690) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:298:5:
+thread 'tests::keep_alive::an_answer_before_its_body_is_read_closes_the_connection' (58335) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:298:5:
 HTTP/1.1 413 Content Too Large
 content-type: text/plain; charset=utf-8
 content-length: 22
@@ -537,7 +537,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::an_answer_before_its_body_is_read_closes_the_connection
 
-test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 39.15s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 33.56s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -580,12 +580,12 @@ failures:
 
 ---- tests::keep_alive::past_the_cap_an_answer_closes_its_connection stdout ----
 
-thread 'tests::keep_alive::past_the_cap_an_answer_closes_its_connection' (85056) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:325:5:
+thread 'tests::keep_alive::past_the_cap_an_answer_closes_its_connection' (58702) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:325:5:
 past the cap: HTTP/1.1 200 OK
 content-type: text/plain; charset=utf-8
 content-length: 825
 x-content-type-options: nosniff
-pw-build: b83517e76aeee06e3
+pw-build: bc71fb34e7b7505f8
 connection: keep-alive
 keep-alive: timeout=75
 
@@ -596,7 +596,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::past_the_cap_an_answer_closes_its_connection
 
-test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 28.61s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 23.16s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -656,15 +656,15 @@ failures:
 
 ---- tests::keep_alive::a_kept_connection_is_closed_after_its_idle_wait stdout ----
 
-thread 'tests::keep_alive::a_kept_connection_is_closed_after_its_idle_wait' (85389) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:207:5:
-closed after its idle wait: false, waited 10.430772118s
+thread 'tests::keep_alive::a_kept_connection_is_closed_after_its_idle_wait' (59037) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:207:5:
+closed after its idle wait: false, waited 10.126304992s
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 
 failures:
     tests::keep_alive::a_kept_connection_is_closed_after_its_idle_wait
 
-test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 38.73s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 33.36s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -707,13 +707,13 @@ failures:
 
 ---- tests::keep_alive::a_request_answered_with_nothing_closes_its_connection stdout ----
 
-thread 'tests::keep_alive::a_request_answered_with_nothing_closes_its_connection' (85748) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:379:5:
+thread 'tests::keep_alive::a_request_answered_with_nothing_closes_its_connection' (59394) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:379:5:
 closed with no answer
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::keep_alive::a_streams_connection_is_closed_with_it stdout ----
 
-thread 'tests::keep_alive::a_streams_connection_is_closed_with_it' (85754) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:355:5:
+thread 'tests::keep_alive::a_streams_connection_is_closed_with_it' (59404) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:355:5:
 closed with its stream
 
 
@@ -721,7 +721,7 @@ failures:
     tests::keep_alive::a_request_answered_with_nothing_closes_its_connection
     tests::keep_alive::a_streams_connection_is_closed_with_it
 
-test result: FAILED. 29 passed; 2 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 69.42s
+test result: FAILED. 29 passed; 2 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 64.37s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -764,7 +764,7 @@ failures:
 
 ---- tests::keep_alive::arming_a_drop_closes_the_kept_connections_waiting stdout ----
 
-thread 'tests::keep_alive::arming_a_drop_closes_the_kept_connections_waiting' (86113) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:406:5:
+thread 'tests::keep_alive::arming_a_drop_closes_the_kept_connections_waiting' (59763) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:406:5:
 the kept connection closed when the drop was armed
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -772,7 +772,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::arming_a_drop_closes_the_kept_connections_waiting
 
-test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 38.96s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 33.45s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -815,7 +815,7 @@ failures:
 
 ---- tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept stdout ----
 
-thread 'tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept' (86440) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:439:5:
+thread 'tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept' (60090) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:439:5:
 
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -823,7 +823,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept
 
-test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 28.71s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 23.14s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -866,12 +866,12 @@ failures:
 
 ---- tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept stdout ----
 
-thread 'tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept' (86793) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:439:5:
+thread 'tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept' (60443) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:439:5:
 HTTP/1.1 200 OK
 content-type: text/plain; charset=utf-8
 content-length: 825
 x-content-type-options: nosniff
-pw-build: b83517e76aeee06e3
+pw-build: bc71fb34e7b7505f8
 connection: close
 
 
@@ -881,7 +881,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::a_drop_one_session_arms_leaves_another_sessions_connections_kept
 
-test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 28.67s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 22.89s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -924,7 +924,7 @@ failures:
 
 ---- tests::keep_alive::arming_a_drop_closes_the_kept_connections_waiting stdout ----
 
-thread 'tests::keep_alive::arming_a_drop_closes_the_kept_connections_waiting' (87173) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:406:5:
+thread 'tests::keep_alive::arming_a_drop_closes_the_kept_connections_waiting' (60825) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:406:5:
 the kept connection closed when the drop was armed
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -932,7 +932,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::arming_a_drop_closes_the_kept_connections_waiting
 
-test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 38.72s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 33.61s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -975,13 +975,13 @@ failures:
 
 ---- tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it stdout ----
 
-thread 'tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it' (87500) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:472:5:
-closed once listed: false, after 10.179776975s
+thread 'tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it' (61149) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:472:5:
+closed once listed: false, after 10.196909194s
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::keep_alive::arming_a_drop_closes_the_kept_connections_waiting stdout ----
 
-thread 'tests::keep_alive::arming_a_drop_closes_the_kept_connections_waiting' (87532) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:406:5:
+thread 'tests::keep_alive::arming_a_drop_closes_the_kept_connections_waiting' (61181) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:406:5:
 the kept connection closed when the drop was armed
 
 
@@ -989,7 +989,7 @@ failures:
     tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it
     tests::keep_alive::arming_a_drop_closes_the_kept_connections_waiting
 
-test result: FAILED. 29 passed; 2 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 47.84s
+test result: FAILED. 29 passed; 2 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 42.48s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1040,7 +1040,7 @@ failures:
 
 ---- tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept stdout ----
 
-thread 'tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept' (87844) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:538:5:
+thread 'tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept' (61501) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:538:5:
 the telling taken while the connection is kept
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -1048,7 +1048,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept
 
-test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 33.64s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 28.39s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1091,7 +1091,7 @@ failures:
 
 ---- tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed stdout ----
 
-thread 'tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed' (88212) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:579:5:
+thread 'tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed' (61867) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:579:5:
 HTTP/1.1 400 Bad Request
 content-type: application/json; charset=utf-8
 content-length: 104
@@ -1107,7 +1107,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed
 
-test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 28.64s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 23.15s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1150,12 +1150,12 @@ failures:
 
 ---- tests::keep_alive::a_head_that_trickles_past_its_deadline_is_refused_and_closed stdout ----
 
-thread 'tests::keep_alive::a_head_that_trickles_past_its_deadline_is_refused_and_closed' (88570) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:611:5:
+thread 'tests::keep_alive::a_head_that_trickles_past_its_deadline_is_refused_and_closed' (62229) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:611:5:
 HTTP/1.1 200 OK
 content-type: text/plain; charset=utf-8
 content-length: 825
 x-content-type-options: nosniff
-pw-build: b83517e76aeee06e3
+pw-build: bc71fb34e7b7505f8
 connection: keep-alive
 keep-alive: timeout=75
 
@@ -1166,7 +1166,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::a_head_that_trickles_past_its_deadline_is_refused_and_closed
 
-test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 39.07s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 33.80s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1209,7 +1209,7 @@ failures:
 
 ---- tests::keep_alive::a_head_that_trickles_past_its_deadline_is_refused_and_closed stdout ----
 
-thread 'tests::keep_alive::a_head_that_trickles_past_its_deadline_is_refused_and_closed' (88926) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:611:5:
+thread 'tests::keep_alive::a_head_that_trickles_past_its_deadline_is_refused_and_closed' (62582) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:611:5:
 
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -1217,7 +1217,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::a_head_that_trickles_past_its_deadline_is_refused_and_closed
 
-test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 38.40s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 33.70s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1260,7 +1260,7 @@ failures:
 
 ---- tests::keep_alive::a_head_past_its_size_is_refused_and_closed stdout ----
 
-thread 'tests::keep_alive::a_head_past_its_size_is_refused_and_closed' (89275) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:631:5:
+thread 'tests::keep_alive::a_head_past_its_size_is_refused_and_closed' (62930) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:631:5:
 
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -1268,7 +1268,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::a_head_past_its_size_is_refused_and_closed
 
-test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 28.62s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 23.24s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1322,15 +1322,15 @@ failures:
 
 ---- tests::keep_alive::a_head_request_is_answered_with_no_body_and_closed stdout ----
 
-thread 'tests::keep_alive::a_head_request_is_answered_with_no_body_and_closed' (89629) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:665:5:
-no body after a HEAD's answer: [35, 98, 117, 105, 108, 100, 124, 98, 56, 51, 53, 49, 55, 101, 55, 54, 97, 101, 101, 101, 48, 54, 101, 51, 10, 35, 112, 97, 103, 101, 124, 102, 101, 101, 100, 46, 97, 112, 112, 46, 67, 111, 110, 118, 101, 114, 115, 97, 116, 105, 111, 110, 80, 97, 103, 101, 126, 117, 105, 124, 100, 54, 49, 53, 57, 57, 52, 100, 55, 101, 51, 101, 101, 50, 100, 50, 124, 115, 101, 115, 115, 105, 111, 110, 58, 10, 35, 112, 97, 103, 101, 124, 102, 101, 101, 100, 46, 97, 112, 112, 46, 70, 111, 108, 108, 111, 119, 105, 110, 103, 80, 97, 103, 101, 126, 117, 105, 124, 99, 102, 52, 102, 98, 53, 48, 100, 48, 57, 54, 100, 54, 53, 101, 54, 124, 115, 101, 115, 115, 105, 111, 110, 58, 10, 35, 112, 97, 103, 101, 124, 102, 101, 101, 100, 46, 97, 112, 112, 46, 72, 111, 109, 101, 126, 117, 105, 124, 49, 100, 102, 54, 50, 98, 50, 57, 49, 52, 56, 54, 57, 54, 51, 56, 124, 115, 101, 115, 115, 105, 111, 110, 58, 10, 35, 112, 97, 103, 101, 124, 102, 101, 101, 100, 46, 97, 112, 112, 46, 77, 101, 115, 115, 97, 103, 101, 115, 80, 97, 103, 101, 126, 117, 105, 124, 53, 55, 52, 101, 57, 49, 49, 97, 57, 100, 55, 48, 56, 50, 52, 50, 124, 115, 101, 115, 115, 105, 111, 110, 58, 10, 35, 112, 97, 103, 101, 124, 102, 101, 101, 100, 46, 97, 112, 112, 46, 78, 111, 116, 105, 102, 105, 99, 97, 116, 105, 111, 110, 115, 80, 97, 103, 101, 126, 117, 105, 124, 55, 57, 57, 99, 49, 57, 54, 100, 100, 97, 102, 51, 99, 57, 51, 54, 124, 115, 101, 115, 115, 105, 111, 110, 58, 10, 35, 112, 97, 103, 101, 124, 102, 101, 101, 100, 46, 97, 112, 112, 46, 80, 111, 115, 116, 80, 97, 103, 101, 126, 117, 105, 124, 48, 49, 49, 56, 49, 53, 54, 98, 102, 56, 48, 48, 98, 56, 57, 50, 124, 112, 114, 105, 118, 97, 116, 101, 58, 10, 35, 112, 97, 103, 101, 124, 102, 101, 101, 100, 46, 97, 112, 112, 46, 80, 114, 111, 102, 105, 108, 101, 80, 97, 103, 101, 126, 117, 105, 124, 49, 57, 49, 52, 50, 51, 48, 102, 51, 56, 52, 52, 56, 98, 97, 51, 124, 115, 101, 115, 115, 105, 111, 110, 58, 10, 48, 54, 48, 100, 57, 99, 97, 53, 101, 48, 100, 97, 56, 52, 101, 98, 124, 10, 49, 56, 52, 53, 54, 97, 102, 57, 50, 101, 52, 56, 53, 57, 102, 55, 124, 105, 100, 10, 49, 98, 54, 100, 101, 49, 53, 97, 100, 99, 53, 100, 54, 55, 54, 55, 124, 105, 116, 101, 109, 46, 105, 100, 10, 49, 100, 99, 55, 48, 55, 52, 52, 99, 49, 101, 97, 54, 56, 53, 97, 124, 10, 50, 48, 55, 48, 98, 100, 53, 51, 50, 49, 101, 102, 50, 102, 56, 54, 124, 10, 50, 55, 97, 100, 48, 56, 56, 49, 54, 53, 56, 49, 56, 52, 97, 98, 124, 105, 100, 10, 50, 98, 48, 100, 100, 56, 100, 51, 52, 49, 100, 50, 53, 56, 102, 48, 124, 112, 46, 105, 100, 10, 51, 48, 54, 51, 49, 53, 56, 98, 53, 55, 101, 51, 57, 56, 101, 99, 124, 105, 100, 10, 51, 54, 99, 97, 48, 49, 51, 51, 52, 99, 101, 56, 99, 102, 100, 98, 124, 105, 100, 10, 52, 97, 101, 101, 53, 52, 51, 102, 55, 98, 102, 51, 53, 55, 51, 55, 124, 119, 105, 116, 104, 10, 52, 100, 99, 55, 51, 54, 53, 49, 54, 48, 56, 97, 97, 54, 48, 102, 124, 10, 53, 98, 57, 97, 51, 55, 99, 55, 52, 97, 56, 49, 53, 57, 99, 52, 124, 10, 53, 99, 54, 98, 56, 100, 100, 101, 53, 100, 99, 55, 48, 53, 56, 57, 124, 10, 54, 99, 100, 55, 55, 48, 56, 99, 51, 97, 55, 56, 49, 100, 98, 98, 124, 10, 55, 57, 98, 52, 54, 52, 98, 52, 97, 56, 50, 48, 52, 48, 101, 57, 124, 10, 56, 54, 52, 54, 101, 102, 97, 101, 50, 97, 97, 50, 98, 53, 52, 99, 124, 10, 97, 56, 98, 97, 48, 98, 48, 50, 50, 55, 51, 53, 55, 57, 53, 53, 124, 105, 116, 101, 109, 46, 105, 100, 10, 98, 57, 54, 99, 48, 52, 52, 55, 51, 56, 48, 50, 53, 55, 52, 49, 124, 119, 105, 116, 104, 10, 100, 56, 97, 98, 49, 57, 54, 53, 48, 102, 52, 98, 51, 97, 99, 57, 124, 115, 116, 97, 103, 101, 100, 10, 101, 49, 51, 100, 49, 97, 99, 48, 52, 98, 55, 53, 102, 101, 51, 53, 124, 112, 46, 105, 100, 10]
+thread 'tests::keep_alive::a_head_request_is_answered_with_no_body_and_closed' (63285) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:665:5:
+no body after a HEAD's answer: [35, 98, 117, 105, 108, 100, 124, 98, 99, 55, 49, 102, 98, 51, 52, 101, 55, 98, 55, 53, 48, 53, 102, 56, 10, 35, 112, 97, 103, 101, 124, 102, 101, 101, 100, 46, 97, 112, 112, 46, 67, 111, 110, 118, 101, 114, 115, 97, 116, 105, 111, 110, 80, 97, 103, 101, 126, 117, 105, 124, 100, 54, 49, 53, 57, 57, 52, 100, 55, 101, 51, 101, 101, 50, 100, 50, 124, 115, 101, 115, 115, 105, 111, 110, 58, 10, 35, 112, 97, 103, 101, 124, 102, 101, 101, 100, 46, 97, 112, 112, 46, 70, 111, 108, 108, 111, 119, 105, 110, 103, 80, 97, 103, 101, 126, 117, 105, 124, 99, 102, 52, 102, 98, 53, 48, 100, 48, 57, 54, 100, 54, 53, 101, 54, 124, 115, 101, 115, 115, 105, 111, 110, 58, 10, 35, 112, 97, 103, 101, 124, 102, 101, 101, 100, 46, 97, 112, 112, 46, 72, 111, 109, 101, 126, 117, 105, 124, 49, 100, 102, 54, 50, 98, 50, 57, 49, 52, 56, 54, 57, 54, 51, 56, 124, 115, 101, 115, 115, 105, 111, 110, 58, 10, 35, 112, 97, 103, 101, 124, 102, 101, 101, 100, 46, 97, 112, 112, 46, 77, 101, 115, 115, 97, 103, 101, 115, 80, 97, 103, 101, 126, 117, 105, 124, 53, 55, 52, 101, 57, 49, 49, 97, 57, 100, 55, 48, 56, 50, 52, 50, 124, 115, 101, 115, 115, 105, 111, 110, 58, 10, 35, 112, 97, 103, 101, 124, 102, 101, 101, 100, 46, 97, 112, 112, 46, 78, 111, 116, 105, 102, 105, 99, 97, 116, 105, 111, 110, 115, 80, 97, 103, 101, 126, 117, 105, 124, 55, 57, 57, 99, 49, 57, 54, 100, 100, 97, 102, 51, 99, 57, 51, 54, 124, 115, 101, 115, 115, 105, 111, 110, 58, 10, 35, 112, 97, 103, 101, 124, 102, 101, 101, 100, 46, 97, 112, 112, 46, 80, 111, 115, 116, 80, 97, 103, 101, 126, 117, 105, 124, 48, 49, 49, 56, 49, 53, 54, 98, 102, 56, 48, 48, 98, 56, 57, 50, 124, 112, 114, 105, 118, 97, 116, 101, 58, 10, 35, 112, 97, 103, 101, 124, 102, 101, 101, 100, 46, 97, 112, 112, 46, 80, 114, 111, 102, 105, 108, 101, 80, 97, 103, 101, 126, 117, 105, 124, 49, 57, 49, 52, 50, 51, 48, 102, 51, 56, 52, 52, 56, 98, 97, 51, 124, 115, 101, 115, 115, 105, 111, 110, 58, 10, 48, 54, 48, 100, 57, 99, 97, 53, 101, 48, 100, 97, 56, 52, 101, 98, 124, 10, 49, 56, 52, 53, 54, 97, 102, 57, 50, 101, 52, 56, 53, 57, 102, 55, 124, 105, 100, 10, 49, 98, 54, 100, 101, 49, 53, 97, 100, 99, 53, 100, 54, 55, 54, 55, 124, 105, 116, 101, 109, 46, 105, 100, 10, 49, 100, 99, 55, 48, 55, 52, 52, 99, 49, 101, 97, 54, 56, 53, 97, 124, 10, 50, 48, 55, 48, 98, 100, 53, 51, 50, 49, 101, 102, 50, 102, 56, 54, 124, 10, 50, 55, 97, 100, 48, 56, 56, 49, 54, 53, 56, 49, 56, 52, 97, 98, 124, 105, 100, 10, 50, 98, 48, 100, 100, 56, 100, 51, 52, 49, 100, 50, 53, 56, 102, 48, 124, 112, 46, 105, 100, 10, 51, 48, 54, 51, 49, 53, 56, 98, 53, 55, 101, 51, 57, 56, 101, 99, 124, 105, 100, 10, 51, 54, 99, 97, 48, 49, 51, 51, 52, 99, 101, 56, 99, 102, 100, 98, 124, 105, 100, 10, 52, 97, 101, 101, 53, 52, 51, 102, 55, 98, 102, 51, 53, 55, 51, 55, 124, 119, 105, 116, 104, 10, 52, 100, 99, 55, 51, 54, 53, 49, 54, 48, 56, 97, 97, 54, 48, 102, 124, 10, 53, 98, 57, 97, 51, 55, 99, 55, 52, 97, 56, 49, 53, 57, 99, 52, 124, 10, 53, 99, 54, 98, 56, 100, 100, 101, 53, 100, 99, 55, 48, 53, 56, 57, 124, 10, 54, 99, 100, 55, 55, 48, 56, 99, 51, 97, 55, 56, 49, 100, 98, 98, 124, 10, 55, 57, 98, 52, 54, 52, 98, 52, 97, 56, 50, 48, 52, 48, 101, 57, 124, 10, 56, 54, 52, 54, 101, 102, 97, 101, 50, 97, 97, 50, 98, 53, 52, 99, 124, 10, 97, 56, 98, 97, 48, 98, 48, 50, 50, 55, 51, 53, 55, 57, 53, 53, 124, 105, 116, 101, 109, 46, 105, 100, 10, 98, 57, 54, 99, 48, 52, 52, 55, 51, 56, 48, 50, 53, 55, 52, 49, 124, 119, 105, 116, 104, 10, 100, 56, 97, 98, 49, 57, 54, 53, 48, 102, 52, 98, 51, 97, 99, 57, 124, 115, 116, 97, 103, 101, 100, 10, 101, 49, 51, 100, 49, 97, 99, 48, 52, 98, 55, 53, 102, 101, 51, 53, 124, 112, 46, 105, 100, 10]
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 
 failures:
     tests::keep_alive::a_head_request_is_answered_with_no_body_and_closed
 
-test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 28.62s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 23.18s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1373,12 +1373,12 @@ failures:
 
 ---- tests::keep_alive::a_head_request_is_answered_with_no_body_and_closed stdout ----
 
-thread 'tests::keep_alive::a_head_request_is_answered_with_no_body_and_closed' (89986) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:664:5:
+thread 'tests::keep_alive::a_head_request_is_answered_with_no_body_and_closed' (63638) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:664:5:
 HTTP/1.1 200 OK
 content-type: text/plain; charset=utf-8
 content-length: 825
 x-content-type-options: nosniff
-pw-build: b83517e76aeee06e3
+pw-build: bc71fb34e7b7505f8
 connection: keep-alive
 keep-alive: timeout=75
 
@@ -1389,7 +1389,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::a_head_request_is_answered_with_no_body_and_closed
 
-test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 38.95s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 33.27s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1440,7 +1440,7 @@ failures:
 
 ---- tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on stdout ----
 
-thread 'tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on' (90312) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:688:5:
+thread 'tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on' (63963) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:688:5:
 no answer: HTTP/1.1 202 
 content-type: application/json; charset=utf-8
 content-length: 53
@@ -1456,7 +1456,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on
 
-test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 39.34s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 34.08s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1507,15 +1507,15 @@ failures:
 
 ---- tests::keep_alive::the_next_request_waits_on_no_telling stdout ----
 
-thread 'tests::keep_alive::the_next_request_waits_on_no_telling' (90725) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:718:5:
-waited 2.000580902s
+thread 'tests::keep_alive::the_next_request_waits_on_no_telling' (64381) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:718:5:
+waited 2.000596588s
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 
 failures:
     tests::keep_alive::the_next_request_waits_on_no_telling
 
-test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 28.49s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 22.57s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1558,7 +1558,7 @@ failures:
 
 ---- tests::keep_alive::the_accept_loop_backs_off_after_a_failure stdout ----
 
-thread 'tests::keep_alive::the_accept_loop_backs_off_after_a_failure' (91074) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:728:5:
+thread 'tests::keep_alive::the_accept_loop_backs_off_after_a_failure' (64791) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:728:5:
 assertion `left == right` failed
   left: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
  right: [10, 20, 40, 80, 160, 320, 640, 1000, 1000, 1000]
@@ -1568,7 +1568,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::the_accept_loop_backs_off_after_a_failure
 
-test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 28.59s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 22.93s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1622,7 +1622,7 @@ failures:
 
 ---- tests::keep_alive::a_second_answer_to_one_request_closes_its_connection stdout ----
 
-thread 'tests::keep_alive::a_second_answer_to_one_request_closes_its_connection' (91411) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:746:5:
+thread 'tests::keep_alive::a_second_answer_to_one_request_closes_its_connection' (65128) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:746:5:
 closed after a second
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -1630,7 +1630,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::a_second_answer_to_one_request_closes_its_connection
 
-test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 28.60s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 23.14s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1673,15 +1673,15 @@ failures:
 
 ---- tests::keep_alive::a_kept_connections_answers_wait_on_no_acknowledgement stdout ----
 
-thread 'tests::keep_alive::a_kept_connections_answers_wait_on_no_acknowledgement' (91760) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:799:5:
-twenty answers took 778.899042ms
+thread 'tests::keep_alive::a_kept_connections_answers_wait_on_no_acknowledgement' (65477) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:799:5:
+twenty answers took 779.069632ms
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 
 failures:
     tests::keep_alive::a_kept_connections_answers_wait_on_no_acknowledgement
 
-test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 29.56s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 23.62s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1724,12 +1724,12 @@ failures:
 
 ---- tests::keep_alive::while_a_dropped_command_is_armed_no_answer_keeps_its_connection stdout ----
 
-thread 'tests::keep_alive::while_a_dropped_command_is_armed_no_answer_keeps_its_connection' (92141) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:501:5:
+thread 'tests::keep_alive::while_a_dropped_command_is_armed_no_answer_keeps_its_connection' (65860) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:501:5:
 HTTP/1.1 200 OK
 content-type: text/plain; charset=utf-8
 content-length: 825
 x-content-type-options: nosniff
-pw-build: b83517e76aeee06e3
+pw-build: bc71fb34e7b7505f8
 connection: keep-alive
 keep-alive: timeout=75
 
@@ -1740,7 +1740,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::keep_alive::while_a_dropped_command_is_armed_no_answer_keeps_its_connection
 
-test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 28.66s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 22.73s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1783,15 +1783,15 @@ failures:
 
 ---- tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it stdout ----
 
-thread 'tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it' (92445) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:472:5:
-closed once listed: false, after 10.05513337s
+thread 'tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it' (66162) panicked at spikes/own-renderer/server/src/tests/keep_alive.rs:472:5:
+closed once listed: false, after 10.284311198s
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 
 failures:
     tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it
 
-test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 37.80s
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 1017 filtered out; finished in 32.49s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 

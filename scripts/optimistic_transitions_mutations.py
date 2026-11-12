@@ -40,12 +40,11 @@ MUTANTS = [
         "        if hole.nested {\n            // Rendered with its region (ADR-0172).\n",
         "        if hole.nested && false {\n            // Rendered with its region (ADR-0172).\n",
     ),
-    (
-        "a decoded Int stays a JSON number",
-        JS_PURE,
-        '            Type::Int => format!("BigInt({expr})"),\n',
-        "            Type::Int => expr.to_string(),\n",
-    ),
+    # "A decoded Int stays a JSON number" was a mutant here until ADR-0433,
+    # which made it the design: an Int is the number JSON carries. That a
+    # value the page holds is read as it is, not copied, is held by
+    # handler_mutations.py, whose tests read the module's text; these tests
+    # cannot tell a copy from the value.
     (
         "the transition drops a new item",
         USER_CARTS,

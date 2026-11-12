@@ -16,13 +16,13 @@ export async function run(context) {
   const v0 = context.captures["id"];
   const v1 = context.captures["p"]["id"];
   const v2 = context.get("label");
-  const v4 = BigInt(Array.from(v2).length);
-  const v5 = 1n;
+  const v4 = Array.from(v2).length;
+  const v5 = 1;
   const v6 = v4 >= v5;
   let v11;
   if (v6) {
-    const v7 = BigInt(Array.from(v2).length);
-    const v8 = 40n;
+    const v7 = Array.from(v2).length;
+    const v8 = 40;
     const v9 = v7 <= v8;
     v11 = v9;
   } else {

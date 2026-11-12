@@ -1,8 +1,8 @@
 E10 gate item 1 - the store builds from source, without Koka or Marko
 
 produced by: just e10-build
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the control: the ordinary PATH
@@ -18,7 +18,7 @@ rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
   pnpm  absent
 
 pw build: 8 template(s), 34 handler(s), 55 component(s), 69 contract(s) -> OUT
-  handler    ce4501910ab2a49a  `add_to_cart` calls `store.page.add_to_cart`  2967 bytes
+  handler    ce4501910ab2a49a  `add_to_cart` calls `store.page.add_to_cart`  2521 bytes
   handler    15483a28f370066a  `decrease_in_cart` calls `store.page.decrease_in_cart`  1456 bytes
   handler    e54d74c7f76a6a78  `increase_in_cart` calls `store.page.increase_in_cart`  1946 bytes
   handler    0884d13a19812a03  `remove_from_cart` calls `store.page.remove_from_cart`  1456 bytes
@@ -26,32 +26,32 @@ pw build: 8 template(s), 34 handler(s), 55 component(s), 69 contract(s) -> OUT
   handler    15483a28f370066a  `decrease_in_cart` calls `store.page.decrease_in_cart`  1456 bytes
   handler    e54d74c7f76a6a78  `increase_in_cart` calls `store.page.increase_in_cart`  1946 bytes
   handler    0884d13a19812a03  `remove_from_cart` calls `store.page.remove_from_cart`  1456 bytes
-  handler    029fa6a984724f1c  `` calls ``  330 bytes
-  handler    a1b9d04f6c3d6962  `apply_promo` calls `store.page.apply_promo`  6426 bytes
-  handler    481e071528717f3b  `remove_promo` calls `store.page.remove_promo`  6390 bytes
-  handler    dc95ff389eaac1f1  `choose_tip` calls `store.page.choose_tip`  1842 bytes
-  handler    1788d84a81fb0dc3  `choose_tip` calls `store.page.choose_tip`  1843 bytes
-  handler    6157a6a5babb44ef  `choose_tip` calls `store.page.choose_tip`  1844 bytes
-  handler    8e028bbd31639049  `choose_tip` calls `store.page.choose_tip`  1842 bytes
-  handler    55314a08032a0a1d  `` calls ``  335 bytes
-  handler    18a30e7eda6408b5  `dollars_typed` calls `store.page.choose_tip`  8920 bytes
+  handler    029fa6a984724f1c  `` calls ``  294 bytes
+  handler    a1b9d04f6c3d6962  `apply_promo` calls `store.page.apply_promo`  7339 bytes
+  handler    481e071528717f3b  `remove_promo` calls `store.page.remove_promo`  7303 bytes
+  handler    dc95ff389eaac1f1  `choose_tip` calls `store.page.choose_tip`  1567 bytes
+  handler    1788d84a81fb0dc3  `choose_tip` calls `store.page.choose_tip`  1568 bytes
+  handler    6157a6a5babb44ef  `choose_tip` calls `store.page.choose_tip`  1569 bytes
+  handler    8e028bbd31639049  `choose_tip` calls `store.page.choose_tip`  1567 bytes
+  handler    55314a08032a0a1d  `` calls ``  299 bytes
+  handler    18a30e7eda6408b5  `dollars_typed` calls `store.page.choose_tip`  9685 bytes
   handler    b5c3e56ff370a6a8  `clear_cart` calls `store.page.clear_cart`  1391 bytes
-  handler    0567c01c8c1d4702  `place_order` calls `store.page.place_order`  21081 bytes
-  handler    88497d21af8270bf  `choose_time` calls `store.page.choose_time`  3752 bytes
-  handler    54002ec8f031143d  `choose_time` calls `store.page.choose_time`  4473 bytes
+  handler    0567c01c8c1d4702  `place_order` calls `store.page.place_order`  21912 bytes
+  handler    88497d21af8270bf  `choose_time` calls `store.page.choose_time`  3582 bytes
+  handler    54002ec8f031143d  `choose_time` calls `store.page.choose_time`  4295 bytes
   handler    6f4329b46ef92224  `cancel_order` calls `store.page.cancel_order`  1909 bytes
-  handler    8ef712ee855dff03  `` calls ``  331 bytes
+  handler    8ef712ee855dff03  `` calls ``  295 bytes
   handler    8d96aa03266aae5b  `choose_address` calls `store.page.choose_address`  1380 bytes
-  handler    26058453d2c7def8  `address_label` calls `store.page.rename_address`  2346 bytes
+  handler    26058453d2c7def8  `address_label` calls `store.page.rename_address`  2328 bytes
   handler    2a2607ad200b08c0  `remove_address` calls `store.page.remove_address`  1344 bytes
-  handler    9b11646e3891a94e  `address_label` calls `store.page.add_address`  2875 bytes
-  handler    609a1cdc3f764fa0  `` calls ``  613 bytes
-  handler    137b05e28516165a  `` calls ``  613 bytes
-  handler    caef098036bb24e4  `` calls ``  613 bytes
-  handler    144ae10590824570  `` calls ``  613 bytes
-  handler    8c99633129a756a0  `` calls ``  613 bytes
-  handler    b2ef12af35e8d84f  `` calls ``  333 bytes
-  handler    8d037e136bada386  `stars_of` calls `store.rate.rate_order`  4787 bytes
+  handler    9b11646e3891a94e  `address_label` calls `store.page.add_address`  2857 bytes
+  handler    609a1cdc3f764fa0  `` calls ``  609 bytes
+  handler    137b05e28516165a  `` calls ``  609 bytes
+  handler    caef098036bb24e4  `` calls ``  609 bytes
+  handler    144ae10590824570  `` calls ``  609 bytes
+  handler    8c99633129a756a0  `` calls ``  609 bytes
+  handler    b2ef12af35e8d84f  `` calls ``  297 bytes
+  handler    8d037e136bada386  `stars_of` calls `store.rate.rate_order`  4765 bytes
   todo       Resources.Cart  a placeholder body; nothing built depends on it
   todo       Resources.Menu  a placeholder body; nothing built depends on it
   todo       Resources.Order  a placeholder body; nothing built depends on it
@@ -129,10 +129,10 @@ pw build: 8 template(s), 34 handler(s), 55 component(s), 69 contract(s) -> OUT
   page       store.page.AddressPage~ui  3 binding(s), 1 part(s)
   page       store.rate.RatePage~ui  2 binding(s), 3 part(s)
   page       store.search.SearchPage~ui  2 binding(s), 2 part(s)
-  speculate  store.page.StorePage~ui  store.page.add_to_cart, store.page.decrease_in_cart, store.page.increase_in_cart, store.page.remove_from_cart on cart  18789 bytes
-  speculate  store.page.CartPage~ui  store.page.decrease_in_cart, store.page.increase_in_cart, store.page.remove_from_cart on cart  12926 bytes
-  computed   store.rate.RatePage~ui  1203 bytes
-  build      bd375481d4b83f4e4
+  speculate  store.page.StorePage~ui  store.page.add_to_cart, store.page.decrease_in_cart, store.page.increase_in_cart, store.page.remove_from_cart on cart  25536 bytes
+  speculate  store.page.CartPage~ui  store.page.decrease_in_cart, store.page.increase_in_cart, store.page.remove_from_cart on cart  17746 bytes
+  computed   store.rate.RatePage~ui  1149 bytes
+  build      bd0fbe95005b8121b
 
 == what was written
     47172  app.wit
@@ -192,38 +192,38 @@ pw build: 8 template(s), 34 handler(s), 55 component(s), 69 contract(s) -> OUT
      5061  components/store.reviews.StoreRatings.wasm
      5134  components/store.reviews.StoreToRate.wasm
     35204  components/store.search.Search.wasm
-     1203  computed/store.rate.RatePage~ui.mjs
+     1149  computed/store.rate.RatePage~ui.mjs
    264745  contracts.json
     32430  graph.json
-      330  handlers/029fa6a984724f1c.mjs
-    21081  handlers/0567c01c8c1d4702.mjs
+      294  handlers/029fa6a984724f1c.mjs
+    21912  handlers/0567c01c8c1d4702.mjs
      1456  handlers/0884d13a19812a03.mjs
-      613  handlers/137b05e28516165a.mjs
-      613  handlers/144ae10590824570.mjs
+      609  handlers/137b05e28516165a.mjs
+      609  handlers/144ae10590824570.mjs
      1456  handlers/15483a28f370066a.mjs
-     1843  handlers/1788d84a81fb0dc3.mjs
-     8920  handlers/18a30e7eda6408b5.mjs
-     2346  handlers/26058453d2c7def8.mjs
+     1568  handlers/1788d84a81fb0dc3.mjs
+     9685  handlers/18a30e7eda6408b5.mjs
+     2328  handlers/26058453d2c7def8.mjs
      1344  handlers/2a2607ad200b08c0.mjs
-     6390  handlers/481e071528717f3b.mjs
-     4473  handlers/54002ec8f031143d.mjs
-      335  handlers/55314a08032a0a1d.mjs
-      613  handlers/609a1cdc3f764fa0.mjs
-     1844  handlers/6157a6a5babb44ef.mjs
+     7303  handlers/481e071528717f3b.mjs
+     4295  handlers/54002ec8f031143d.mjs
+      299  handlers/55314a08032a0a1d.mjs
+      609  handlers/609a1cdc3f764fa0.mjs
+     1569  handlers/6157a6a5babb44ef.mjs
      1909  handlers/6f4329b46ef92224.mjs
-     3752  handlers/88497d21af8270bf.mjs
-      613  handlers/8c99633129a756a0.mjs
-     4787  handlers/8d037e136bada386.mjs
+     3582  handlers/88497d21af8270bf.mjs
+      609  handlers/8c99633129a756a0.mjs
+     4765  handlers/8d037e136bada386.mjs
      1380  handlers/8d96aa03266aae5b.mjs
-     1842  handlers/8e028bbd31639049.mjs
-      331  handlers/8ef712ee855dff03.mjs
-     2875  handlers/9b11646e3891a94e.mjs
-     6426  handlers/a1b9d04f6c3d6962.mjs
-      333  handlers/b2ef12af35e8d84f.mjs
+     1567  handlers/8e028bbd31639049.mjs
+      295  handlers/8ef712ee855dff03.mjs
+     2857  handlers/9b11646e3891a94e.mjs
+     7339  handlers/a1b9d04f6c3d6962.mjs
+      297  handlers/b2ef12af35e8d84f.mjs
      1391  handlers/b5c3e56ff370a6a8.mjs
-      613  handlers/caef098036bb24e4.mjs
-     2967  handlers/ce4501910ab2a49a.mjs
-     1842  handlers/dc95ff389eaac1f1.mjs
+      609  handlers/caef098036bb24e4.mjs
+     2521  handlers/ce4501910ab2a49a.mjs
+     1567  handlers/dc95ff389eaac1f1.mjs
      1946  handlers/e54d74c7f76a6a78.mjs
      2037  pages/store.page.AddressPage~ui.json
      6423  pages/store.page.CartPage~ui.json
@@ -236,9 +236,9 @@ pw build: 8 template(s), 34 handler(s), 55 component(s), 69 contract(s) -> OUT
       136  predicates.json
       294  sources.json
       437  speculations/store.page.CartPage~ui.json
-    12926  speculations/store.page.CartPage~ui.mjs
+    17746  speculations/store.page.CartPage~ui.mjs
       487  speculations/store.page.StorePage~ui.json
-    18789  speculations/store.page.StorePage~ui.mjs
+    25536  speculations/store.page.StorePage~ui.mjs
     99155  templates.json
 
 == byte-identical to the separately recorded artifacts
@@ -281,7 +281,7 @@ pw build: 8 template(s), 34 handler(s), 55 component(s), 69 contract(s) -> OUT
 test a_placeholder_that_something_depends_on_is_a_refusal ... ok
 test a_program_that_does_not_check_builds_nothing ... ok
 test the_store_builds_every_artifact_from_source ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.32s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.26s
 
 Since ADR-0125 the development server runs the store's queries and
 the cart's count (UserCarts.line_count since track store-accounts) by

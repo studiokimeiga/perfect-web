@@ -1,8 +1,8 @@
 ADR-0195 ruling 13 - every HTML answer carries a Content-Security-Policy generated from its build, and the build refuses what it would refuse
 
 produced by: just e14-page-policy
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 playwright: Version 1.58.0
 
@@ -10,11 +10,11 @@ playwright: Version 1.58.0
 
 test a_link_html_allows_in_the_body_is_written_where_it_is ... ok
 test a_link_the_head_holds_is_refused_in_markup ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 test an_address_names_another_origin_as_a_browser_reads_it ... ok
 test a_links_address_is_written_as_text ... ok
-test a_load_from_another_origin_is_refused_where_it_is_written ... ok
 test a_load_from_this_origin_and_what_is_no_load_check_clean ... ok
+test a_load_from_another_origin_is_refused_where_it_is_written ... ok
 test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 
 == the corpus at C22 (corpus-check, corpus_history.rs, generality.rs, checking_source.rs)
@@ -24,21 +24,21 @@ accepted: 44/44 charter §16 categories covered
 rejected: 97 files
 rejected: 97/97 charter §16 categories covered
 corpus-check: OK
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 195.71s
-test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.77s
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 175.84s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 92.63s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.61s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 92.25s
 
 == the policy, and the answers it is sent with (csp.rs, tests/page_policy.rs)
 
 test csp::tests::an_origin_is_a_scheme_and_an_authority ... ok
 test csp::tests::a_comment_holds_no_markup_whatever_it_says ... ok
 test csp::tests::a_hash_source_is_the_texts_digest_in_base64 ... ok
-test csp::tests::plain_markup_asks_nothing ... ok
 test csp::tests::raw_markup_may_hold_a_style_attribute ... ok
+test csp::tests::plain_markup_asks_nothing ... ok
 test csp::tests::a_documents_policy_allows_what_it_is_given_and_no_more ... ok
 test csp::tests::what_markup_writes_is_found_wherever_it_is ... ok
-test tests::page_policy::a_build_whose_stylesheets_draw_with_data_allows_those_images ... ok
 test tests::page_policy::a_policy_allows_data_images_only_where_a_build_needs_them ... ok
+test tests::page_policy::a_build_whose_stylesheets_draw_with_data_allows_those_images ... ok
 test tests::page_policy::a_streamed_document_carries_its_policy_in_its_head ... ok
 test tests::page_policy::a_deployment_that_takes_payments_frames_its_provider_alone ... ok
 test tests::page_policy::a_sign_in_at_another_origin_is_a_forms_to_reach ... ok
@@ -49,11 +49,11 @@ test tests::page_policy::every_other_html_answer_runs_nothing ... ok
 test tests::page_policy::the_host_writes_no_style_attribute ... ok
 test tests::sign_in::the_development_provider_signs_up_and_in_through_the_flow ... ok
 test tests::redirects::a_page_at_another_address_of_the_page_is_moved_there_for_good ... ok
-test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 1029 filtered out; finished in 39.91s
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 1029 filtered out; finished in 22.61s
 
 == the pages the suite serves, under it, in three engines (e2e/page-policy.spec.mjs)
 
-  51 passed (2.3m)
+  51 passed (1.3m)
 
 == mutation controls (scripts/page_policy_mutations.py)
 

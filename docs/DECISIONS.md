@@ -3409,3 +3409,15 @@ A production page reports nothing to its tests: each thing the runtime tells the
 
 [ADR-0431](DECISIONS/ADR-0431-a-failure-the-runtime-recovers-from-is-told-the-developer.md):
 A failure the runtime recovers from is told the developer as the platform tells an error nothing caught (`reportError`): a press that failed, the page's or a speculation's module that did not load, a rollback that could not render, a navigation that could not be finished, a boot that failed; a refusal, no answer and a full store, which the reader is told by name, are not.
+
+[ADR-0432](DECISIONS/ADR-0432-a-lists-rows-are-made-as-they-changed-and-a-planned-row-is-of-one-shape.md):
+A list's rows are made as they changed: where the old rows are the first of the new, in their order, they are changed in place and the new ones go in after them as one; where none stays, every row goes at once; otherwise they are placed as before. A planned row is a plain object of plain fields, its text written when first read, and the map of rows a render makes refuses a repeated key.
+
+[ADR-0433](DECISIONS/ADR-0433-an-int-is-a-number-in-a-browsers-module-and-a-value-is-read-as-it-is.md):
+An `Int` is a number within ±2^53 in a browser's module and a `BigInt` past it, one form for each value, each operation exact; a value the page holds is read as it is and given to the wire as it is, its `Int`s checked, so nothing is copied and a row a handler leaves alone is the very object it read; a command's answer is read case by case.
+
+[ADR-0434](DECISIONS/ADR-0434-a-pages-own-code-renders-its-templates.md):
+Proposed: the packaging writes each page's own renderer, the general one partially evaluated over the page's template IR, offering the calls the runtime makes of it; the general renderer kept where a template is not generated, folded away where every one is; the three renderers held to one semantics by the agreement test; built in steps (planned rows, a block's markup, the general renderer folded away), each measured by the builds visited in turn.
+
+[ADR-0435](DECISIONS/ADR-0435-a-planned-rows-handlers-are-noted-on-their-element.md):
+A planned row's handlers are noted on their element, under a symbol of the runtime's own, not in a weak map: what a handler on a row a plan made captures is read from the element pressed.

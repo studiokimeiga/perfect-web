@@ -190,10 +190,9 @@ fn a_handler_reaches_a_signal_through_its_context() {
         })
         .collect();
     assert!(
-        sources
-            .iter()
-            .any(|s| s.contains("BigInt(context.get(\"count\"))")
-                && s.contains("context.set(\"count\", exact(")),
+        sources.iter().any(|s| s.contains("context.get(\"count\")")
+            && !s.contains("BigInt(context.get(")
+            && s.contains("context.set(\"count\", exact(")),
         "{sources:#?}"
     );
     assert!(

@@ -1,31 +1,31 @@
 ADR-0323 - a member read is computed wherever a page reads it
 
 produced by: just e14-member-reads
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
 
 == the plan's member reads (compiler/pw-core/tests/member_reads_in_blocks.rs)
 
-test a_member_read_inside_a_block_is_computed_by_a_host ... ok
 test a_loops_list_read_through_a_member_is_refused ... ok
+test a_member_read_inside_a_block_is_computed_by_a_host ... ok
 test a_member_read_inside_a_view_that_contains_itself_is_refused ... ok
-test a_member_of_the_page_inside_a_row_is_refused_as_any_read_of_it_is ... ok
 test a_member_read_inside_a_speculated_block_is_computed_in_the_browser ... ok
+test a_member_of_the_page_inside_a_row_is_refused_as_any_read_of_it_is ... ok
 test a_member_read_outside_text_is_computed_by_a_host ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 17.06s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 27.16s
 
 == the host: a count inside a block, told where it is, and in a block a speculation renders
 
-test tests::a_member_read_inside_a_block_is_computed_and_told_where_it_is ... ok
 test tests::a_member_read_inside_a_speculated_block_is_rendered_with_it ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1046 filtered out; finished in 0.29s
+test tests::a_member_read_inside_a_block_is_computed_and_told_where_it_is ... ok
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1046 filtered out; finished in 0.45s
 
 == the checkout link's subtotal before the server answers, in three engines (e2e/cart.spec.mjs)
 
-  6 passed (22.1s)
+  6 passed (29.8s)
 
 == mutation controls (scripts/member_reads_mutations.py)
 

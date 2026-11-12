@@ -1,19 +1,19 @@
 Track store-pg - the store's data on PostgreSQL, held to what its source states
 
 produced by: just e14-store-postgres
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 postgres: 18.6 (Debian 18.6-1.pgdg13+2)
 
 == the store on PostgreSQL (spikes/own-renderer/server/src/tests/store_pg.rs)
 
 test tests::store_pg::on_postgres_a_cart_change_reaches_the_sessions_open_page ... ok
-test tests::store_pg::on_postgres_a_retried_interaction_runs_its_command_once ... ok
 test tests::store_pg::on_postgres_a_cart_change_commits_with_its_event_in_one_transaction ... ok
+test tests::store_pg::on_postgres_a_retried_interaction_runs_its_command_once ... ok
 test tests::store_pg::on_postgres_a_refused_commit_commits_neither_its_state_nor_its_event ... ok
-test tests::store_pg::on_postgres_a_routes_change_commits_with_its_event_in_one_transaction ... ok
 test tests::store_pg::on_postgres_a_run_is_written_by_its_commands_transaction ... ok
+test tests::store_pg::on_postgres_a_routes_change_commits_with_its_event_in_one_transaction ... ok
 test tests::store_pg::on_postgres_a_run_committed_and_not_removed_commits_once ... ok
 test tests::store_pg::on_postgres_a_run_kept_under_the_old_key_is_its_schedulers_after_the_upgrade ... ok
 test tests::store_pg::on_postgres_a_run_outlives_the_host_that_scheduled_it ... ok
@@ -22,22 +22,22 @@ test tests::store_pg::on_postgres_a_second_hosts_commit_answers_what_the_first_c
 test tests::store_pg::on_postgres_an_interactions_answer_outlives_its_host ... ok
 test tests::store_pg::on_postgres_an_interactions_record_answers_a_day ... ok
 test tests::store_pg::on_postgres_an_order_keeps_its_lines_and_the_outboxes_hold_only_its_hosts_rows ... ok
-test tests::store_pg::on_postgres_eight_sessions_adding_five_times_each_commit_all_forty ... ok
 test tests::store_pg::on_postgres_the_database_provides_what_the_store_states ... ok
+test tests::store_pg::on_postgres_eight_sessions_adding_five_times_each_commit_all_forty ... ok
 test tests::store_pg::on_postgres_nothing_the_store_keeps_holds_a_session_cookie ... ok
 test tests::store_pg::on_postgres_the_stores_schema_is_its_own_beside_the_feeds ... ok
 test tests::store_pg::on_postgres_two_hosts_commit_a_run_once ... ok
 test tests::store_pg::on_postgres_serializable_against_a_read_committed_default_is_refused ... ok
 test tests::store_pg::on_postgres_the_two_layers_answer_alike ... ok
-test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 1027 filtered out; finished in 47.76s
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 1027 filtered out; finished in 31.77s
 
 == the server's whole suite, the store on PostgreSQL (PW_STORE_TEST_LAYER=postgres)
 
-test result: ok. 1018 passed; 0 failed; 9 ignored; 0 measured; 21 filtered out; finished in 824.70s
+test result: ok. 1018 passed; 0 failed; 9 ignored; 0 measured; 21 filtered out; finished in 545.15s
 
 == the server's whole suite, the store in memory
 
-test result: ok. 1018 passed; 0 failed; 9 ignored; 0 measured; 21 filtered out; finished in 717.74s
+test result: ok. 1018 passed; 0 failed; 9 ignored; 0 measured; 21 filtered out; finished in 474.93s
 
 == mutation controls (scripts/store_postgres_mutations.py)
 

@@ -53,15 +53,18 @@ MUTANTS = [
         "                None if false => {",
     ),
     (
-        "a captured Int stays a JavaScript number",
+        # Re-anchored by ADR-0433: an Int is the JSON number it arrives as,
+        # and a value the page holds is read as it is, not copied.
+        "a value the page holds is copied as it is read",
         JS_PURE,
-        '            Type::Int => format!("BigInt({expr})"),',
-        "            Type::Int => expr.to_string(),",
+        "        if !self.outside && self.same_on_wire(ty) {\n            return Ok(expr.to_string());\n        }\n",
+        "",
     ),
     (
-        "an Int past 2^53 is sent rounded",
+        # Re-anchored by ADR-0433: one past 2^53 is a BigInt.
+        "an Int past 2^53 is sent as it is",
         JS_PURE,
-        "if (v < -9007199254740992n || v > 9007199254740992n) trap(",
+        'if (typeof v === \\"bigint\\") trap(',
         "if (false) trap(",
     ),
     # ADR-0427: a list of literals is a value of the handler's module.

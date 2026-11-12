@@ -1,26 +1,26 @@
 ADR-0241 - an optimistic transition's value is the value typer's
 
 produced by: just e14-transition-values
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the checker (compiler/pw-core/tests/transition_values.rs, policy_term_positions.rs)
 
-test every_term_position_is_a_real_policy ... ok
 test the_corpus_writes_exactly_these_terms_in_policy_position ... ok
 test an_optimistic_clause_has_a_target_a_binder_and_a_transition ... ok
+test every_term_position_is_a_real_policy ... ok
 test the_target_may_read_context_and_the_transition_may_not ... ok
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.13s
-test a_call_is_reported_once ... ok
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.72s
 test the_repair_names_the_binder_and_the_target_holds_the_value ... ok
+test a_call_is_reported_once ... ok
 test a_target_is_a_resources_entry ... ok
 test a_literal_is_a_value_of_its_type ... ok
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.34s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.49s
 
 == the store's relations, all decided (value_relations.rs)
 
-test result: ok. 42 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.41s
+test result: ok. 42 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.58s
 
 == mutation controls (scripts/transition_values_mutations.py)
 
