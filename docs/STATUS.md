@@ -2,6 +2,30 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**L1, durable tables, 2026-11-12:** on trains 27 and 28 (master at
+`d570bdb5`), the first train of the declared data layer's landing
+(`wip/l1-durable-tables`). A
+program's declared tables are served durably from PostgreSQL where the
+deployment names a database for them (ADR-0397, `PW_TABLES_DATABASE_URL`):
+`TablesPg`, a `DataLayer` over D3's adapter behind the same gate as memory;
+a command one transaction with its rows, its runs, its interaction's record
+and its outbox; one state a render; the reader's session the database's,
+each command fenced on it; the platform's records kept bounded by the
+host's sweeps. The guestbook outlives its host, killed and stopped, in
+three engines. The merge's five conflicts were a generated file, imports
+and receipts (the receipts master's, recorded again by the full verify);
+what git did not show, each repaired with a test: two test commands
+without `requires` (PW0367), the conformance suite counting a
+transaction's `BEGIN` against its first write and its first read in a
+render, and master's user-keyed runs (ADR-0334, amended) held by no test of
+the new layer. Measured here, each recipe whole with its mutation script
+(PostgreSQL 18.6, at `3b2caab3`): `e14-durable-tables` 50 of 50 mutants
+killed (the guestbook 18 of 18 on PostgreSQL in three engines, 15 of 15 in
+memory), `e14-d3-postgres` 56 of 56, `e14-data-path` 60 of 60,
+`e14-browser-host-map` 54 of 54, `e14-guide` 75 of 75; master's merge since
+reaches none of the five (`ci_plan.py`), and at it the workspace's 4,039
+tests pass. Its full verify is the record, not yet run.
+
 **Trains 27 and 28, 2026-11-12:** on train-26, landing together. A list's
 rows are made as they changed (ADR-0432): an update, a list made from none
 and rows added at its end change the rows in place and put the new ones in
@@ -711,6 +735,9 @@ Current continuation order (2026-11-02), superseding the dated queue below:
    branch before integration; retain the existing row work and its ownership.
 3. Validate durable declared tables and then protected feed/store migration
    with row authority and two-user witnesses. No paid model study is needed.
+   (2026-11-12: durable declared tables are L1, ADR-0397, verified locally
+   and awaiting their full verify; row authority is L2, next, per
+   [NEXT](NEXT.md).)
 
 The following three items retain their historical scope:
 

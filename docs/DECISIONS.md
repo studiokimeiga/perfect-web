@@ -3421,3 +3421,8 @@ Proposed: the packaging writes each page's own renderer, the general one partial
 
 [ADR-0435](DECISIONS/ADR-0435-a-planned-rows-handlers-are-noted-on-their-element.md):
 A planned row's handlers are noted on their element, under a symbol of the runtime's own, not in a weak map: what a handler on a row a plan made captures is read from the element pressed.
+
+**2026-11-12 — L1, durable tables.** The first train of the declared data layer's landing: track `durable-tables` merged onto master, numbered as train-14 reserved it, ahead of row ownership (ADR-0395, L2), as the landing plan rules.
+
+[ADR-0397](DECISIONS/ADR-0397-declared-tables-served-durably.md):
+A program's declared tables served durably from PostgreSQL, one transaction a command: where the deployment names a database (`PW_TABLES_DATABASE_URL`), the development server serves them through the same gate as memory (`TablesPg`, over ADR-0393's adapter); a command's rows, its runs, its interaction's record and its outbox commit together or not at all, a render reads one state, the reader's session is the database's and each command is fenced on it, and the platform's records stay bounded by the host's sweeps. The guestbook outlives its host, killed or stopped, in three engines. Its landing found what git did not show: two test commands without `requires` (PW0367), the conformance suite counting a transaction's `BEGIN` against its first write and its first read in a render, and master's user-keyed runs (ADR-0334, amended) held by no test of the layer.

@@ -1,17 +1,23 @@
-# ADR-XXXX: a program's declared tables served durably from PostgreSQL, one transaction a command
+# ADR-0397: a program's declared tables served durably from PostgreSQL, one transaction a command
 
-Status: proposed by track `durable-tables` under the owner's delegation of
-2026-10-02 and the standing order of 2026-10-25 (decide by best judgement);
-the integrator numbers it (ADR-0397 reserved) and lands it after an
-independent review. Date: 2026-11-02; revised the same day after the
+Status: accepted. Proposed by track `durable-tables` under the owner's
+delegation of 2026-10-02 and the standing order of 2026-10-25 (decide by
+best judgement); independently reviewed (the review of `3ccd083a`) and
+repaired; landed as L1, the first train of the declared data layer's
+landing, by its integrator under the same delegation (2026-11-12): branch
+`wip/l1-durable-tables`, `wip/durable-tables` at `d6442c4e` merged onto
+`master` at `3f4b65aa` in `a281cb76`, its last change `3b2caab3`, and
+master at `d570bdb5` (trains 27 and 28) merged in at `c835f5df` (see
+[Landing](#landing-l1-2026-11-12), first below). Date: 2026-11-02;
+revised the same day after the
 independent review of `3ccd083a` and the integrator's rulings on it (its
 findings 1 to 6 repaired here, 7 left to the tracks that own it: see
 "Corrections" and "Depends on"), and again once `data-path`'s repairs
 (`origin/wip/data-path` at `a431dddc`, PR #72) and PR #67
 (`session-overlap`, `master` at `bae4f531`) were merged in, as the
-integrator ruled. Milestone: E14, the app layer.
+integrator ruled; landed 2026-11-12. Milestone: E14, the app layer.
 ADR-0338's D3 joined to D2's routing: track `data-path`'s server (its ADR,
-ADR-0394 reserved, `an-app-with-no-rust-data-layer`) serves a program's
+ADR-0394, `an-app-with-no-rust-data-layer`) serves a program's
 declared tables through the gate from memory; ADR-0393's adapter
 (`runtime/pw-table-postgres`) holds them on PostgreSQL; this joins the two,
 so that the acceptance criterion (a complete, durable, authenticated,
@@ -19,6 +25,120 @@ privacy-preserving web app written in `.pw` with no handwritten app-specific
 Rust) holds of a running host and not only of a crate. Builds on ADR-0338
 (decisions 1.3, 5.1, 5.2, 5.5, D3), ADR-0393, ADR-0394 (data-path),
 ADR-0208, ADR-0246, ADR-0325, ADR-0334, ADR-0354 and ADR-0369.
+
+## Landing (L1, 2026-11-12)
+
+The first train of the declared data layer's landing, by its integrator
+under the owner's delegation, the landing plan's rulings taken as the
+integrator's defaults:
+
+- **Ruling 1: L1 before L2.** This decision lands before row ownership
+  (ADR-0395, with ADR-0407's amendments), which merges onto it: its
+  conflicts with master are generated files, imports and receipts, and
+  durability is independent of ownership; one pull request of both would
+  hold durability behind ADR-0407's new design.
+- **Ruling 6: only CI records land as receipts.** The three receipts the
+  merge conflicted on (`data-path.txt`, `d3-postgres.txt`,
+  `browser-host-map.txt`) take master's side, and `durable-tables.txt`
+  stays round one's; the full verify at this train's head records them
+  again. The runs below are measurements made here, not receipts: none of
+  their files is committed.
+- **Ruling 10: the number**, ADR-0397, reserved for this decision since
+  train-14. `ADR-XXXX` read `ADR-0397` in this file's name and title, its
+  only mentions.
+- **Ruling 11: the restart spec's timing**, which predates keep-alive
+  (ADR-0401) and held subscriptions (ADR-0402), needed no retuning: five
+  runs of the guestbook on PostgreSQL here, four at `3b2caab3` and one at
+  `c835f5df`, 18 of 18 each (the restart's three among them, the page's
+  own reload racing the reader's); the record is CI's.
+
+**The merge**: `wip/durable-tables` at `d6442c4e` onto `master` at
+`3f4b65aa`, in `a281cb76`. Its five conflicts:
+- `scripts/ci_seconds.json`, which `evidence_fetch.py`'s `remember()`
+  writes: master's seconds, each a later run's, and this track's one new
+  recipe's (`e14-durable-tables`, 1,449), sorted as `remember()` writes
+  them;
+- the `justfile`'s imports: both sides';
+- the three receipts: master's (ruling 6).
+
+**What git did not show**, each found by building and running everything
+(after the first repair, `cargo test --workspace`: 4,035 passed and 2
+failed, the suite's two on PostgreSQL):
+- **Two test commands said nothing of who may run them**: `note_later` and
+  `start` in `tests::tables_pg::`'s programs, which master's PW0367
+  (ADR-0406) refuses, so two tests' programs no longer built. Each says
+  `requires Anyone`, as ADR-0406 migrated the tests' own programs.
+- **The conformance suite counted a transaction's `BEGIN` against its
+  first read or write.** Master's suite (`data-path`'s, after this track
+  merged it) holds each write of a command to one statement of the adapter,
+  and reads in a render; this layer's adapter begins a command's
+  transaction at its first statement (D3's: a command touching no table
+  costs the database nothing), and a render's snapshot likewise. Over this
+  layer the suite failed at both programs' first `insert` (2 statements)
+  and, that repaired, at their first `get` in a render (the writes part
+  runs first, and had hidden it). The suite now begins each transaction it
+  counts in with a read it does not count (`begun`), as D3's own pins do;
+  memory's counts are unchanged.
+- **Nothing held master's user-keyed runs on this layer.** ADR-0334's
+  amendment of 2026-11-07 (a run's key names the user whose command
+  scheduled it) reaches the layer through the host's key, which it keeps
+  as given; no test of the layer had two readers, and a control writing
+  the key of the command and its arguments alone survived (0 of 1). The
+  test now has two readers schedule one command with the same arguments:
+  two runs, each its reader's, one reader's scheduling again moving theirs
+  alone; the control, the script's fiftieth, is killed by it. The
+  adapter's migration comment named the old key.
+- **Fallow's new-only audit** (3.23.0, the pull request's gate) failed on
+  one function: the restart spec's `Host.start`, cyclomatic 5 (CRAP 30,
+  the threshold). Its fetch is a function of its own (`answers`), and the
+  start's assertion that its tables are on PostgreSQL, which the fetch's
+  `catch` used to swallow until a 60-second timeout, fails at once.
+
+**The result, as measured here** (WSL2 Ubuntu 22.04 on the owner's PC,
+PostgreSQL 18.6, Rust 1.97.1, Node 22.21.1, Playwright 1.58.0, eight build
+jobs), at `3b2caab3`, each recipe whole, its mutation script with it:
+- `just e14-durable-tables`: the adapter's `tests/platform.rs` 15 passed;
+  the server on PostgreSQL, `tests::tables_pg::`, 30 (the conformance
+  suite over it: 328 reads of the lists app's tables and 226 of the
+  guestbook's, each table's refusals as in memory); in memory 30; the server
+  as a process, killed and stopped, 1; the guestbook in three engines on
+  PostgreSQL 18 of 18 and in memory 15 of 15;
+  `scripts/durable_tables_mutations.py` baseline 46 passed, **50 of 50
+  mutants killed**, each at a native assertion (round two's 49, among them
+  "a fenced command's session lock is never given back", invalid at
+  `a90a60e7` and killed here by 8 of 46 tests, and the landing's one);
+  23 minutes.
+- `just e14-d3-postgres`: D3's five test binaries, 52 passed (primitives
+  14, commands 19, migrations 13, parity 4, durability 2);
+  `scripts/d3_postgres_mutations.py` baseline 67 (this track's
+  `tests/platform.rs` among them), **56 of 56 killed**; 28 minutes.
+- `just e14-data-path`: the server 45 (the suite in memory among them, 328
+  and 226 reads and 7 writes a program), the engine 5, the platform's
+  transaction 1, the compiler 22, the guide 15, the guestbook in three
+  engines 15 of 15; `scripts/data_path_mutations.py` baseline 62, **60 of
+  60 killed**; 16 minutes.
+- `just e14-browser-host-map`: the map held to every spec 25 of 25, against
+  the real CLI 17 of 17, a spec on each kind of host in three engines 117
+  passed; `scripts/browser_host_map_mutations.py` **54 of 54 killed**; 12
+  minutes.
+- `just e14-guide`: the guide's examples 15, the reference of codes
+  current (7), the tutorial's app in three engines 15 of 15;
+  `scripts/guide_mutations.py` **75 of 75 killed, 0 refused, 0 survived**;
+  6 minutes.
+
+Master moved while they ran: `c835f5df` merges trains 27 and 28 (#106,
+`d570bdb5`), whose one conflict was `ci_seconds.json` again, resolved the
+same way. `ci_plan.py --changed 3b2caab3 c835f5df` reaches 39 recipes and
+none of these five, so their runs stand for it (ADR-0281); at it,
+`cargo test --workspace` passed 4,039 (0 failed, 26 ignored), and the
+guestbook in three engines 18 of 18 on PostgreSQL and 15 of 15 in memory.
+Fallow's new-only audit passes (complexity and dead code introduced 0), and
+the branch is pushed only on `just ci` passing at its head (`just ci &&
+git push`).
+
+What is left: the full verify at this train's head, every recipe and the
+three browser suites, and its fetch; and, under "Depends on", the deploy
+track's production allow-list for `/bench/*` (L6, ADR-0396).
 
 ## Context
 
@@ -197,7 +317,9 @@ ADR-0208, ADR-0246, ADR-0325, ADR-0334, ADR-0354 and ADR-0369.
      it began (`identity::SIGN_IN_LIFETIME`), as before by the next sign-in.
 7. **The conformance suite over this layer, as written**: `conformance.rs`'s
    suite (answers and costs at 3 and 24 rows, its costs counted at the
-   adapter; staging; refused commands) run with this layer as its layer
+   adapter, outside a render and in one, each once its transaction is
+   begun, as the landing made it; staging; each write one statement;
+   refused commands) run with this layer as its layer
    under test (`data-path`'s `Layer` parameter, a fresh schema for each
    server it builds) for the guestbook's tables and the lists app's, its
    oracle the same, and its idempotency and query pins on this layer. Its
@@ -294,9 +416,17 @@ ADR-0208, ADR-0246, ADR-0325, ADR-0334, ADR-0354 and ADR-0369.
 
 ## Evidence
 
-**The review's repairs (round two).** The record is the verify run named
-in the evidence commit that follows this one (`just e14-durable-tables`,
-`e14-d3-postgres` and `e14-data-path`, each whole). What it holds: the
+**The record of this decision as landed** is the full verify at L1's head
+(`just e14-durable-tables`, `e14-d3-postgres`, `e14-data-path`,
+`e14-browser-host-map` and `e14-guide` among every recipe), fetched into
+`docs/evidence/` after it; what was measured before it, at the landing, is
+in [Landing](#landing-l1-2026-11-12). Round two's own verify (41529401386,
+at `a90a60e7`) killed 48 of its 49 mutants and found the 49th invalid,
+repaired at `d6442c4e` (its test closes the session through the kept
+sessions, asserted to answer within four seconds); it was never fetched,
+so the receipt below is round one's.
+
+**The review's repairs (round two).** What its record holds: the
 adapter's `tests/platform.rs`, 14 (the 7 below, and: a command waiting for
 its session holding no other up; a command holding the turn never waiting
 for a connection; a failed session's change's connection closed; a
@@ -313,7 +443,10 @@ answered refused; sessions and sign-ins swept by the host; a command fenced
 from its first statement or never); and the mutation script's 47 mutants
 (the first round's 29, three of them re-anchored and two re-aimed, at the
 generation the taking's locked row holds and at a taking whose deletion
-removed nothing; and 18 new). Locally, before the record (PostgreSQL 18.6):
+removed nothing; and 18 new), 49 once PR #67 was merged (an admission
+waiting for a command holding its session, its due write made under that
+command's lock), 50 at the landing (a run's key without its user).
+Locally, before the record (PostgreSQL 18.6):
 the 23 new, re-anchored and re-aimed mutants killed, one after a repair of
 the mutant itself (its replacement needed a type to build).
 
@@ -534,9 +667,13 @@ What this track depended on, and has now merged:
 - (c) The second host told live is not next: the target is a single VM
   ("Not claimed").
 
-## Questions for the integrator
+## Questions for the integrator, ruled at the landing (2026-11-12)
 
 - `PW_TABLES_DATABASE_URL` as one database a program, until ADR-0338 5.1's
-  `PW_SOURCE_<NAME>` routes sources apart (T1).
+  `PW_SOURCE_<NAME>` routes sources apart (T1). **Ruled: as written.** One
+  database holds a program's tables until T1; a deployment of today is one
+  host on one database ("Not claimed").
 - The host running a command again after a serialization failure, for
   every layer at once (Alternatives), as a follow-up of the host's.
+  **Ruled: the host's, for every layer at once, not this decision's**: in
+  NEXT, beside the outbox's tail that tells a second host live.

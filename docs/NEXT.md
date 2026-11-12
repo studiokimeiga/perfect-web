@@ -6,6 +6,34 @@
 
 # Next
 
+## After L1, durable tables, 2026-11-12
+
+L1, the first train of the declared data layer's landing: a program's
+declared tables are served durably from PostgreSQL where the deployment
+names a database (ADR-0397, `PW_TABLES_DATABASE_URL`), one transaction a
+command with every record of the platform's, one state a render, the
+reader's session the database's and each command fenced on it; the
+guestbook outlives its host in three engines. What stays open, in order:
+
+1. **L1's record**: the full verify at its head, every recipe and the three
+   browser suites, then `evidence-fetch`: `e14-durable-tables` (its receipt
+   is round one's; round two's verify, 41529401386, was never fetched) and
+   the receipts the merge took master's side of (`e14-d3-postgres`,
+   `e14-data-path`, `e14-browser-host-map`), with `e14-guide`'s.
+2. **L2, row ownership** (ADR-0395, with ADR-0407's amendments), merged onto
+   L1: `owner_names_a_principal` moved to PW0370 (PW0367 is ADR-0406's),
+   PW69xx kept as `DataPath`'s, the mandatory declaration PW6920, the
+   public-read owner-written form, `requires` on its five commands, and the
+   guestbook on `owned by`.
+3. **L3 to L5**: the platform's prerequisites, bounded reads and declared
+   uploads, each numbered after `evidence-fetch`, past ADR-0437; the refusal
+   at start of uploads beside declared tables stays until L5's bridge passes.
+4. **L6, a production host** (ADR-0396), rewritten on master: it closes
+   ADR-0397's one open dependency, a production host refusing `/bench/*`.
+5. **What ADR-0397 leaves to the host**: a command run again after a
+   serialization failure, for every layer at once; a second host told live
+   of the first's commits on this layer, by a tail of its outbox (ADR-0369).
+
 ## After trains 27 and 28, 2026-11-12
 
 A list's rows are made as they changed, and a planned row is a plain object
