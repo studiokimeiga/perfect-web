@@ -6,6 +6,35 @@
 
 # Next
 
+## After train-32, 2026-11-12
+
+A planned list's rows are kept and made by its page's own code (ADR-0437),
+ADR-0434's first step. The first "create 1,000 rows" of a cold visit spends
+9.48 ms of JavaScript to Svelte's 9.09 (12.40 before), 43.10 to 46.52 with the
+processor slowed four times; the builds visited in turn have it quicker past
+the rounds' spread in Firefox (create −5.0 ms, replace −4.0, every press −6.0)
+and under Slow 4G (create −15.2 cold, append −44.6 warm), and every press of a
+warm visit −7.9 in Chromium. What is left, each measured, none decided:
+
+1. **A cold append, slower to its frame**: +6.4 ms in Chromium (3.5..8.6) and
+   +25.8 under Slow 4G, its change in the document sooner in every round. The
+   head-to-head's own visit traced holds V8's incremental marking and a
+   mark-compact in its frame in four of six visits, where train-31's holds a
+   scavenge; its own work is less (ADR-0437's result). Where a visit's major
+   collection falls moved with what it keeps: whether what a row keeps (the
+   block's values, which a row's scope is made from) can be held so that none
+   falls in a press is not found; with item 2 after trains 27 and 28.
+2. **Two comments a row** (item 4 after trains 27 and 28): the next step of
+   ADR-0434's rows, two of every three nodes a thousand rows insert, and
+   Firefox's layout of them, where its cold create, append and replace are
+   behind Svelte's.
+3. **Bytes**: the large list's page alone is 175 B heavier with Brotli (+700
+   decoded) for its own code; TodoMVC's is byte for byte what it was before
+   this step. The byte rows are ADR-0434's later steps' (a block's markup,
+   the general renderer folded away where every template is written).
+4. **Swap and remove** spend what placing the rows costs (`rowsPlaced`,
+   `staying`, `placesOf`), which no page's own code writes yet.
+
 ## After trains 27 and 28, 2026-11-12
 
 A list's rows are made as they changed, and a planned row is a plain object
