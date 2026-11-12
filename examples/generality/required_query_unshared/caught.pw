@@ -1,0 +1,28 @@
+// @status: GENERAL
+// @invariant: required_query_unshared
+//
+// Structurally different from R-116: the predicate is the deployment's (no
+// body), and the query reads a table no one owns (A-050's `Chores`).
+// Whoever answers the predicate, a shared cache answers the next reader of
+// a room from the first one's entry, never asking them.
+
+module ChoreBoard
+
+import Chores.{ Chore, Room }
+import Chores
+
+predicate Housemate()
+    says "Only a housemate sees the chores."
+
+public query RoomChores(room: Room) -> List<Chore>
+    freshness     60.seconds
+    consistency   strong
+    cache         shared
+    key           room
+    requires      Housemate
+    concurrency   one_per_key
+    on_key_change cancel
+    timeout       2.seconds
+{
+    Chores.of_room(room)
+}

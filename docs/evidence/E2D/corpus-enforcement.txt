@@ -5,7 +5,7 @@ produced by: just evidence-corpus
 held to the corpus by: compiler/pw-core/tests/checking_source.rs
 (the_committed_enforcement_table_is_what_the_corpus_checks_now)
 
-97/97 enforce their declared invariant
+105/105 enforce their declared invariant
 
 R-001  enforced                  PW0401
        network request inside view
@@ -201,3 +201,19 @@ R-108  enforced                  PW6801
        a value the device keeps sent as a command's argument
 R-109  enforced                  PW6802
        a query keyed by a value the device keeps
+R-110  enforced                  PW0370
+       a table owned by a field that holds no principal's id
+R-111  enforced                  PW0368
+       an owned table read by a field no reader holds
+R-112  enforced                  PW0369
+       a private field another reader selects rows by
+R-113  enforced                  PW6905
+       a predicate whose body writes
+R-114  enforced                  PW6924
+       a reference across owners' rows
+R-115  enforced                  PW6925
+       a predicate with a body required where it is not seen
+R-116  enforced                  PW6907
+       a query requiring a predicate in a shared cache
+R-117  enforced                  PW6926
+       a query requiring a predicate called by another declaration

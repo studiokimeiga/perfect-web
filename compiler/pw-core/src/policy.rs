@@ -198,6 +198,14 @@ pub enum Domain {
     /// with 0`. Its words are held by `tables::check` (PW0361), and its use by
     /// the schema's diff (PW0366).
     Migration,
+    /// **Whose a table's rows are** (track `row-ownership`, ADR-0384 H1):
+    /// `owned by owner`, a field of the row holding a principal's id. Held by
+    /// `tables::check` (PW0370).
+    Owner,
+    /// **Who else reads a table's rows** (track `row-ownership`): `shares
+    /// with to`, fields of the row each holding a principal's id. Held by
+    /// `tables::check` (PW0370).
+    Sharers,
 }
 
 /// One policy operator, with the semantic kind of each argument.
@@ -434,6 +442,12 @@ pub fn domain_of(head: &str) -> Option<Domain> {
         "refers" => Domain::Reference,
         "bounded" => Domain::Count,
         "migrate" => Domain::Migration,
+        // Track `row-ownership` (ADR-0384, H1): whose a table's rows are, who
+        // else reads them, and the fields their owner alone reads, each held
+        // to the row by `tables::check` (PW0368 to PW0370).
+        "owned" => Domain::Owner,
+        "shares" => Domain::Sharers,
+        "private" => Domain::Fields,
         // Track `device-store` (ADR-0366): the version of a value the device
         // keeps; each earlier one is its `migrate`'s.
         "version" => Domain::Count,
@@ -694,6 +708,8 @@ pub fn declared_by(head: &str) -> Option<(&'static [crate::hir::DeclKind], &'sta
         "set" => (&[K::Fn], "a function"),
         // A table's (track `tables`, ADR-0338).
         "row" | "order" | "index" | "unique" | "refers" | "bounded" => (&[K::Table], "a table"),
+        // Whose its rows are (track `row-ownership`, ADR-0384 H1).
+        "owned" | "shares" | "private" => (&[K::Table], "a table"),
         // A table's change from its schema released, or a device's value's
         // from its version released (track `device-store`).
         "migrate" => (
@@ -1284,6 +1300,9 @@ mod tests {
         "refers",
         "bounded",
         "migrate",
+        "owned",
+        "shares",
+        "private",
         "transactions",
         "reads",
         "changes",

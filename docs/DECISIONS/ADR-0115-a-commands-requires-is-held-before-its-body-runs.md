@@ -88,3 +88,43 @@ it does not define application-specific predicates such as `OwnsOrder`.
 Those are deployment integrations. The guarantee added here is narrower and
 structural: when source declares an authorization precondition, execution
 cannot bypass evaluating it.
+
+## Amendment (ADR-0384 H2, track `row-ownership`, 2026-11-02)
+
+The integrator ruled on ADR-0384 (its ruling 2) that a program may give a
+predicate a body, so who may act is in the program where the checker sees
+it. Built by `ADR-XXXX-owned-tables`:
+
+1. **Decision 1, amended**: a predicate the program declares with a body
+   (`predicate Wrote(id: NoteId) says ".." { .. }`) is the program's: its
+   body answers a `Bool` (PW0606) and only reads (PW6905), and it is compiled
+   as a component of its own, kind `predicate`. A predicate with no body is
+   the deployment's vocabulary, as before. One with a body is answered by
+   that body alone (PW6925): a `requires` naming it sees it where it is
+   written, no page asks it of its reader (ADR-0307's asks are the
+   deployment's), and no predicate the deployment answers shares its name
+   (PW0351: a predicate is declared once).
+2. **Decision 2, widened**: `requires` belongs to a command or a query
+   (ADR-0339's ruling 3); its arguments are still the declaration's
+   parameters, so no expression runs before authorization. A query that
+   requires a predicate is answered to its reader alone, every read of it
+   keyed by its reader (`cache private`, or a `user` or `session` query),
+   no materialization depending on it (PW6907); and it is read by a page's
+   binding alone, never called, named or bound by another declaration,
+   into whose body its own would be compiled unasked (PW6926).
+3. **Decision 3**: an export's `authorization` entry names the component
+   that answers it (`component`) where the program gives the predicate a
+   body; it is part of `abi_schema` with the rest (held since the second
+   review of the track: `schema_of` hashed `component` out until then).
+4. **Decision 4, the order of asking**: the requirements in the order the
+   export states them. One naming a component is asked by **the engine
+   itself** (`Prepared::call_authorized_with_tables_as`): that compiled
+   predicate, run as the export's caller, its reads on the export's own
+   tables (a command's transaction, a query's read), under the export's
+   limits and from its one fuel budget. No embedder answers it, and the
+   deployment is never asked it, on any path: `authorize_export`, the
+   deployment's, refuses a requirement naming a component unasked. Any
+   other is asked of the deployment's evaluator as before. False, an error
+   or an unknown predicate refuses the invocation before its component
+   runs. The deployment's Rust predicates (`identity.rs`'s `holds`) keep
+   working until each is rewritten with a body.

@@ -28,6 +28,7 @@ e14-durable-tables:
      fi
     @BUILD_ONLY=1 bash spikes/own-renderer/run.sh > /dev/null
     @bash spikes/own-renderer/guestbook.sh > /dev/null
+    @bash spikes/own-renderer/owned.sh > /dev/null
     @cargo build --quiet --locked -p pw-dev-server
     @mkdir -p docs/evidence/E14
     @url="${PW_TABLES_DATABASE_URL:-${PW_STORE_DATABASE_URL:-${PW_FEED_DATABASE_URL:-}}}"; \
@@ -38,6 +39,7 @@ e14-durable-tables:
        echo "rust: $(rustc --version)"; echo "node: $(node --version)"; \
        echo "playwright: $(cd spikes/own-renderer && pnpm exec playwright --version)"; \
        echo "postgres: $(psql "$url" -Atc 'SHOW server_version' 2>/dev/null || echo 'unknown (psql is not on PATH)')"; echo; \
+       cargo test --locked -p pw-table-postgres --test compiled_owned; \
        echo "== the adapter's runs, sessions and fence (runtime/pw-table-postgres/tests/platform.rs)"; echo; \
        cargo test --locked -p pw-table-postgres --test platform 2>&1 | grep -E '^(test |test result)|panicked at'; \
        echo; echo "== the server on PostgreSQL (tests::tables_pg::), the conformance suite over it"; echo; \
@@ -48,6 +50,8 @@ e14-durable-tables:
        cargo test --locked -p pw-dev-server --test durable_tables 2>&1 | grep -E '^(test |test result)|panicked at'; \
        echo; echo "== the guestbook in three engines on PostgreSQL (playwright.tables.config.mjs)"; echo; \
        bash scripts/run_suite.sh -- pnpm exec playwright test --config playwright.tables.config.mjs e2e/guestbook.spec.mjs e2e-tables/guestbook-durable.spec.mjs --reporter=line; \
+       echo; echo "== owned rows in three engines on PostgreSQL"; \
+       PW_E2E_TABLES_APP=owned bash scripts/run_suite.sh -- pnpm exec playwright test --config playwright.tables.config.mjs e2e/owned-rows.spec.mjs --reporter=line; \
        echo; echo "== and in memory, the main suite's hosts (playwright.config.mjs)"; echo; \
        bash scripts/run_suite.sh -- pnpm exec playwright test e2e/guestbook.spec.mjs --reporter=line; \
        echo; echo "== mutation controls (scripts/durable_tables_mutations.py)"; echo; \

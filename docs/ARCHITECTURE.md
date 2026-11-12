@@ -69,10 +69,29 @@ adapter are in fetched master `5d4d4d55` (2026-11-02); ADR-0350, ADR-0385,
 ADR-0386 and ADR-0393 govern them. Generic development-server routing and
 the guestbook without app-specific Rust are on unmerged PR #72 at `687dd922`,
 including a reusable conformance suite. Durable server integration and row
-authority remain separate obligations. The render-merge implementation is in
+authority are local integration work described below, with hosted landing
+still pending. The render-merge implementation is in
 main history; its remaining snapshot limits remain explicit in its ADR and
 tests. This corrects the older October track inventory without promoting
 unmerged work to a landing.
+
+The local 2026-11-03 integration (`497c0a6c`, not published) connects the
+generic server to the engine's row-aware calls. Commands supply predicate
+reads on their staging; table queries select one render or standalone
+snapshot for predicate and body. The engine runs compiled predicates as the
+invocation-bound caller under one fuel budget. Reused guarded cache values
+receive authorization against the new invocation's read state without
+executing their body again. Typed denials preserve authored refusal words;
+query denials cannot contaminate command receipts. Whole local row/data/
+refusal gates and CI passed that earlier source. The successor `6b31f4ba`
+also closes the owned-row browser and PostgreSQL bridge locally: command
+predicates read staged data in the fenced command, while snapshot predicates
+and bodies share the same PostgreSQL transaction. The same owned-row browser
+spec passes in three engines on both adapters. The operation-cost seam counts
+non-boundary SQL calls, with total SQL calls retained and transaction overhead
+pinned separately. Whole row/data/D3/durable/refusal and CI gates pass locally;
+protected feed/store migration and fresh hosted landing gates remain open.
+See the [latest record](diagnostics/row-browser-postgres-2026-11-03.md).
 
 ## Current integration boundary (2026-10-15)
 

@@ -225,6 +225,18 @@ race), #72 with the closed-table cache repair (ADR-0394), the performance stack
 
 The paragraphs below are dated history: #72 and the cache repair are merged.
 
+**Local row browsers and PostgreSQL, 2026-11-03:** code/test source
+`6b31f4ba` passed the whole row 71/71, data-path 60/60, D3 PostgreSQL 60/60,
+durable 51/51 and refusal 23/23 + 7/7 campaigns, and local CI (server
+951 passed, 9 ignored). The same six owned-row browser checks
+pass on memory and PostgreSQL in Chromium, Firefox and WebKit. Command
+predicates use their existing fenced PostgreSQL transaction; fresh query predicates
+and bodies share one snapshot. Independent final review is clear. Only hashed
+generated receipts were dirty CI inputs. Both original worktrees are preserved.
+These are local implementation results, not hosted landing evidence. See the
+[execution record](diagnostics/row-browser-postgres-2026-11-03.md); the older continuation sections below are history.
+The protected feed/store migration, H3/H4 and hosted landing gates remain open.
+
 **Local continuation, 2026-11-02:** freshly fetched `origin/master` is
 `5d4d4d55a36f52ea556aa8f2af3e70b1150ffcf6`. D3 (PR #66), the added-table
 reference repair (#69), session overlap (#67), and the disk-fixture repair
@@ -234,9 +246,17 @@ and guestbook are still unmerged at `687dd922`; its exact-head hosted CI and
 verify workflows report success, but this continuation has not independently
 audited every recipe artifact. Row-ownership's existing dirty work is preserved.
 
-The current local slice is a reproduced closed-table cache bypass, with a
-failing-first commit `069ffc6f` and repair on `fix/tables-cached-refusals` in
-the existing data-path checkout. See the [execution record](diagnostics/tables-cached-refusals-2026-11-02.md).
+The completed cache slice is on `fix/tables-cached-refusals`. The current
+2026-11-03 continuation is `fix/row-data-integration` in the same checkout:
+recovery snapshot `b407ede4`, combined baseline `cb34e638`, and snapshot
+repair `a35da34a`. The original row worktree's branch, index and 20 edited
+files remain untouched. Code/test source `497c0a6c` passed the whole row
+campaign (68/68), data-path (60/60 and 15 browser checks), both refusal parts
+(23/23 and 7/7), and local CI (server 918 passed/9 ignored). Independent final
+review is clear. Only four hashed generated receipts were dirty CI inputs;
+these are local source results, not published-head landing gates. See the
+[integration record](diagnostics/row-data-integration-2026-11-03.md)
+and the [cache record](diagnostics/tables-cached-refusals-2026-11-02.md).
 This is local implementation evidence; no new landing or production claim.
 The paid E14 study remains deferred.
 
@@ -446,6 +466,11 @@ stored media and private-media authorization/revocation remain outside this
 metadata-minimization claim.
 
 ## last passing commit
+
+Latest local source: `6b31f4ba3468fdd50d0fb4ce357a86b0e571f9b6` passed the complete browser/PostgreSQL
+and row/data/refusal gates plus local CI recorded above. Its later evidence
+commit changes documentation and receipts only. This supersedes the older
+local passing-source note below; no published-head acceptance is asserted.
 
 Local continuation source `b496bdc34467269c2b436350ba1cfb2a52e268ed` has the
 data-path and local CI receipts recorded above, including the generated-input

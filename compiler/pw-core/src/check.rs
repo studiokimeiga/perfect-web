@@ -323,6 +323,17 @@ pub(crate) fn check_inferred_prepared(
             // ADR-0302: a predicate the program declares says what a refusal
             // by it is told, and is given what it takes.
             out.extend(crate::predicates::check(&u.hir, i, sigs, workspace));
+            // ADR-0384's H2: and a body it is given only reads (PW6905).
+            out.extend(crate::predicates::bodies(&u.hir, i, inference));
+            // The reviews of track `row-ownership`: a predicate with a body
+            // is answered by it alone (PW6925); a query requiring one is
+            // answered to its reader alone (PW6907), read by a page's
+            // binding alone (PW6926).
+            out.extend(crate::predicates::answered_by_its_body(
+                hirs, i, workspace, sigs,
+            ));
+            out.extend(crate::predicates::answered_per_reader(hirs, i, workspace));
+            out.extend(crate::predicates::read_unasked(hirs, i, workspace));
             // ADR-0307: a control is shown where its command's predicates hold.
             out.extend(crate::holds::check(hirs, workspace, sigs, i));
             out.extend(answer_read_for_a_value(&u.hir, i, sigs));
@@ -1796,10 +1807,16 @@ fn policy_value(
         // declarations. Their arguments ARE Pleris command parameters,
         // and must bind to the values the host will receive. Anything
         // richer would execute application code before authorization.
+        // A query's too (ADR-0339's ruling 3, built by ADR-0384's H2): who
+        // may read it, held where it is read.
         Some(Domain::PredicateRef) => {
-            if decl.kind != crate::hir::DeclKind::Command {
+            if !matches!(
+                decl.kind,
+                crate::hir::DeclKind::Command | crate::hir::DeclKind::Query
+            ) {
                 Some(
-                    "`requires` is an invocation precondition and belongs to a command".to_string(),
+                    "`requires` is an invocation precondition and belongs to a command or a query"
+                        .to_string(),
                 )
             } else {
                 match crate::policy::predicates(value) {

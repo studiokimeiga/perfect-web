@@ -403,25 +403,26 @@ stays open, in order:
      the latency repair moved the store's median latency from a loss to
      neither and its 99th percentile from a win to neither.
 
-## Current local continuation, 2026-11-02
+## Current local continuation, 2026-11-03
 
-Fetched `origin/master` is `5d4d4d55`; D3 PostgreSQL, added-table references,
-session overlap and preverify's disk-fixture repair are already merged.
-The older queues below remain dated history.
+1. Prepare the reviewed local integration for landing: code/test source
+   `6b31f4ba` closes row-specific browsers and PostgreSQL command/snapshot
+   integration locally. Complete the whole integration's fresh published-head
+   gates and ADR numbering before landing. The delta from fe5ce0c6 plans
+   156 recipes in 16 shards; this plan is not an executed verification result
+   and does not replace planning the full integration range.
+2. Move protected feed/store data and predicates through the proven generic
+   row/durable seam, in their own migration slice. Keep app business rules
+   in `.pw`, with no per-app Rust data adapter. No such migration occurred
+   in this continuation.
+3. Keep H3/H4, private write-flow, default deny and a second-host outbox tail
+   as separate obligations. The paid E14 study remains deferred.
 
-1. Prepare integration of the local closed-table cache fence on
-   `fix/tables-cached-refusals`. Source `b496bdc3` has four native regressions,
-   a complete 60/60 data-path campaign, 15 browser checks, passing local CI
-   and independent final review. Re-plan, number and complete the required
-   published-head gates before landing. See its
-   [execution record](diagnostics/tables-cached-refusals-2026-11-02.md).
-2. Audit PR #72's exact-head recipe evidence, then reconcile row ownership
-   without overwriting `/home/haki/code/pw-wt/row-ownership`'s dirty files.
-3. Validate durable declared tables and row-authorized feed/store migration,
-   using real two-user `.pw` witnesses. The paid E14 study stays deferred.
-
-Remote publication and deployment require current authorization. Local tests
-and implementation continue within that boundary.
+Original row worktree ff9ff2c6, its branch, real index and 20 edited files remain
+unchanged; recovery snapshot b407ede4 is retained. The original durable
+worktree d6442c4e and its three edited files are unchanged. See the
+[execution record](diagnostics/row-browser-postgres-2026-11-03.md). Remote publication and deployment require
+current authorization; local implementation and verification need no new pause.
 
 
 ## The head-to-head's findings, 2026-11-02 (ADR-0392)

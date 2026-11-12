@@ -511,7 +511,12 @@ fn the_trusted_platform_contract_is_hashed() {
     // numbers from one to another (ADR-0422), and `swap`, a list's
     // two places exchanged (ADR-0425): the large list built its ids by
     // a halving of its own and swapped by sixteen lines.
-    const EXPECTED: u64 = 0x2d9081500b5d89a5;
+    // 2026-11-12 (L2, ADR-0395): `capability` declares `id_of(User<UserId>)
+    // -> UserId` (ADR-0384's H1), an owned row's owner written from the
+    // writer's handle, beside `context.account_of`'s `Account` record and
+    // host operation; the union of the two tracks' declarations, which
+    // neither track's own hash describes.
+    const EXPECTED: u64 = 0x5d3bef91cc969de0;
     eprintln!(
         "  platform contract: {} files, hash {hash:#018x}",
         names.len()

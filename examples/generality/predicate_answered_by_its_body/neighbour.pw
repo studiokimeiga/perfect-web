@@ -1,0 +1,25 @@
+// @status: NEIGHBOUR
+// @invariant: predicate_answered_by_its_body
+// @dimension: valid neighbour — the same page asking a predicate the deployment answers
+//
+// A rule that refused every predicate a page asks, rather than one the
+// program gives a body, would refuse this: `Maintenance` has no body, so
+// the deployment that answers `requires` answers it for the page.
+
+module ShopHome
+
+predicate Maintenance()
+    says "The shop is closed for maintenance."
+
+session page ShopHome() {
+    route     "/shop"
+    placement origin
+    cache     private
+
+    view {
+        <title>Shop</title>
+        <main>
+            {#if Maintenance}<p id="closed">Closed for maintenance.</p>{/if}
+        </main>
+    }
+}

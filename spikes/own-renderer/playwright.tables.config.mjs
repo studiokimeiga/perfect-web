@@ -1,4 +1,4 @@
-// Track `durable-tables`: the guide's guestbook on PostgreSQL, in three
+// Track `durable-tables`: the guestbook and owned-row fixture on PostgreSQL, in three
 // engines, apart from the main suite (`playwright.config.mjs`), whose hosts
 // keep their tables in memory (ADR-0257). Two parts:
 //   - the main suite's own guestbook spec (`e2e/guestbook.spec.mjs`), as
@@ -9,25 +9,30 @@
 //     per engine, stops it (SIGKILL, then SIGTERM) and starts it again while a
 //     reader's page is open, and reloads it: Playwright's `webServer` cannot
 //     stop one host while a test runs.
-// Needs the guestbook's build (`guestbook.sh`), the development server
+// PW_E2E_TABLES_APP=owned selects the same owned-row spec used in memory,
+// with its own build and ports; the default guestbook selection is unchanged.
+// Needs the selected app's build, the development server
 // (`cargo build -p pw-dev-server`) and PW_TABLES_DATABASE_URL, a throwaway
 // database; `just e14-durable-tables` runs it.
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, devices } from "@playwright/test";
-import { ENGINES, GUESTBOOK_PORTS, buildProblem } from "./host-metadata.mjs";
+import { ENGINES, GUESTBOOK_PORTS, OWNED_PORTS, buildProblem } from "./host-metadata.mjs";
 import { ownedCommand } from "./host-plan.mjs";
 import { schemaOf } from "./e2e-tables/schemas.mjs";
 
 const ROOT = fileURLToPath(new URL(".", import.meta.url));
 const DATABASE = process.env.PW_TABLES_DATABASE_URL ?? "";
+const APP = process.env.PW_E2E_TABLES_APP ?? "guestbook";
+if (!["guestbook", "owned"].includes(APP)) throw new Error(`unknown tables app: ${APP}`);
+const PORTS = APP === "owned" ? OWNED_PORTS : GUESTBOOK_PORTS;
 if (!DATABASE) {
-  throw new Error("PW_TABLES_DATABASE_URL is not set: the guestbook on PostgreSQL needs a throwaway database");
+  throw new Error("PW_TABLES_DATABASE_URL is not set: tables on PostgreSQL need a throwaway database");
 }
 // The guestbook's build, held as the main suite holds it (ADR-0161,
 // ADR-0166): built, with the runtime the repository has, from the sources it
 // records. A stale build is refused here rather than served.
-const problem = buildProblem("guestbook", ROOT);
+const problem = buildProblem(APP, ROOT);
 if (problem) throw new Error(problem);
 
 // **This run's schemas**, one per engine: named once, in the process that
@@ -38,9 +43,9 @@ process.env.PW_E2E_TABLES_RUN ??= `${Date.now()}`;
 
 const target = resolve(ROOT, "../../", process.env.CARGO_TARGET_DIR ?? "target", "debug");
 const webServer = ENGINES.map((engine) => ({
-  command: ownedCommand([resolve(target, "pw-dev-server"), "dist-guestbook"]),
+  command: ownedCommand([resolve(target, "pw-dev-server"), `dist-${APP}`]),
   env: {
-    PORT: String(GUESTBOOK_PORTS[engine]),
+    PORT: String(PORTS[engine]),
     PW_TABLES_DATABASE_URL: DATABASE,
     PW_TABLES_SCHEMA: schemaOf(engine),
     PW_IDENTITY: "dev-accounts",
@@ -52,14 +57,14 @@ const webServer = ENGINES.map((engine) => ({
     PW_PAYMENTS: undefined,
     PW_PAYMENTS_PORT: undefined,
   },
-  port: GUESTBOOK_PORTS[engine],
+  port: PORTS[engine],
   reuseExistingServer: false,
   timeout: 60_000,
 }));
 
 export default defineConfig({
   testDir: ".",
-  testMatch: ["e2e/guestbook.spec.mjs", "e2e-tables/*.spec.mjs"],
+  testMatch: APP === "owned" ? ["e2e/owned-rows.spec.mjs"] : ["e2e/guestbook.spec.mjs", "e2e-tables/*.spec.mjs"],
   forbidOnly: true,
   fullyParallel: false,
   workers: ENGINES.length,
