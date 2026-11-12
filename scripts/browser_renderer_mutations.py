@@ -109,6 +109,8 @@ MUTANTS = [
     ("a changed list in a row is not told", RUNTIME, "            if (!same(x, y) && listChanged(p, x, y, after, others)) out.push([p.id, { list: true }]);\n", ""),
     ("a list's change is told as the row's, set in place", RUNTIME, "      return found && found.some(([, change]) => change.list) ? null : found;\n", "      return found;\n"),
     ("two values of another type are one", RUNTIME, """  const scalar = (v) => (typeof v === "boolean" ? "b" : isInt(v) ? "i" : "t") + shown(v);\n""", """  const scalar = (v) => shown(v);\n"""),
+    # --- what a row kept read (found by the planned rows' agreement) -----------
+    ("a NaN the page holds is not what a row read of it", RUNTIME, "  const unmoved = (now, was) => now === was || (now !== now && was !== was);\n", "  const unmoved = (now, was) => now === was;\n"),
     # --- a list inside a row ---------------------------------------------------
     ("a new list's missing key is taken", RUNTIME, """        if (key === "") throw new Blocked("MissingLoopKey", p.key);\n        if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);\n        seen.add(key);\n      }\n""", """        if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);\n        seen.add(key);\n      }\n"""),
     ("a new list's repeated key is taken", RUNTIME, """        if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);\n        seen.add(key);\n      }\n""", """        seen.add(key);\n      }\n"""),

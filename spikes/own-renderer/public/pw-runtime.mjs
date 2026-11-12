@@ -1700,9 +1700,15 @@ const renderer = (() => {
     for (let a = row.names, b = e.names; a || b; a = a.up, b = b.up) {
       if (!a || !b || !same(a.value, b.value)) return false;
     }
-    for (const [name, value] of row.reads) if (e.page.get(name) !== value) return false;
+    for (const [name, value] of row.reads) if (!unmoved(e.page.get(name), value)) return false;
     return computedHold(row, item, e, p);
   }
+
+  /** **Whether what the page holds is what a row read of it**: the very
+   * value, or `NaN` for `NaN`, which no `===` holds of itself. A row that read
+   * `NaN` was made again at every render (found 2026-11-12 by the planned
+   * rows' agreement). */
+  const unmoved = (now, was) => now === was || (now !== now && was !== was);
 
   /** **Whether what a row computes still comes out as it did** (ADR-0424):
    * where nothing it read of the page moved, so; else
@@ -1715,7 +1721,7 @@ const renderer = (() => {
     if (!computing || computing.computedValues.length === 0) return true;
     let moved = false;
     for (const [name, value] of computing.computedReads) {
-      if (e.page.get(name) !== value) {
+      if (!unmoved(e.page.get(name), value)) {
         moved = true;
         break;
       }

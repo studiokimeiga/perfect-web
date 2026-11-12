@@ -25,7 +25,7 @@ const runtime = readFileSync(path.join(here, "public/pw-runtime.mjs"), "utf8");
 const BEGIN = "const renderer = (() => {";
 const END = "// --- end of the browser's renderer";
 
-function loadRenderer(server = true) {
+function loadRenderer(server = true, flags = {}) {
   const start = runtime.indexOf(BEGIN);
   const end = runtime.indexOf(END);
   assert.ok(start >= 0 && end > start, "the runtime holds the renderer between its markers");
@@ -41,6 +41,7 @@ function loadRenderer(server = true) {
     // it (ADR-0205), which the agreement holds: the renderer as a build that
     // writes graphs has it (ADR-0428).
     PW_GRAPHS: true,
+    ...flags,
   });
 }
 const renderer = loadRenderer();
@@ -614,6 +615,28 @@ test("a row is written again when what a block around it bound changes", () => {
   const second = render("b");
   assert.notEqual(second.lists[0].rows[0], first.lists[0].rows[0], "what it read changed");
   assert.match(textOfKept(second), />b<|-->b<!--/);
+});
+
+test("a row that read NaN of the page is the row kept, and its computed value is not computed again", () => {
+  // `NaN` is no `===` of itself: a row that read it of the page was made
+  // again at every render, and a value it computed from it computed again
+  // (found by the planned rows' agreement, 2026-11-12). With views and with
+  // none, where a plan makes the row.
+  for (const device of [loadRenderer(false), loadRenderer(false, { PW_VIEWS: false })]) {
+    const items = [{ id: 1, name: "a" }];
+    const part = { part: "each", id: 3, collection: "items", binding: "item", key: "id", body: [text("item.name", 4), text("note", 5)] };
+    const render = (note) => device.block(part, device.env(Object.entries({ items, note })), []).lists[0].rows[0];
+    const first = render(Number.NaN);
+    assert.equal(render(Number.NaN), first, "a row that read NaN of the page is kept");
+    assert.notEqual(render(0), first, "and one whose NaN became a number is not");
+    let computed = 0;
+    device.rowsComputed({ "#t~9": (item, n) => `${item.name}${(computed += 1, n)}` }, [{ name: "#t~9", inputs: ["item", "n"] }]);
+    const counted = { part: "each", id: 6, collection: "items", binding: "item", key: "id", body: [text("item.#t~9", 7)] };
+    const again = () => device.block(counted, device.env(Object.entries({ items, n: Number.NaN })), []).lists[0].rows[0];
+    const once = again();
+    assert.equal(again(), once, "a row whose computed value read NaN is kept");
+    assert.equal(computed, 1, "and its value is computed once");
+  }
 });
 
 test("the two renderers agree over the compiler's own templates", () => {

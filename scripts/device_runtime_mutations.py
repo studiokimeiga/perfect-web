@@ -315,7 +315,7 @@ MUTANTS = [
     ("a row whose value changed is kept", "rows", RUNTIME,
      "    if (!same(row.item, item)) return false;\n", ""),
     ("a row that read the page is kept", "rows", RUNTIME,
-     "    for (const [name, value] of row.reads) if (e.page.get(name) !== value) return false;\n", ""),
+     "    for (const [name, value] of row.reads) if (!unmoved(e.page.get(name), value)) return false;\n", ""),
     ("what a row reads is not noted", "rows", RUNTIME,
      "    if (!PW_SERVER && e.reads) e.reads.set(key, e.page.get(key));\n", ""),
     ("a press on a row's element is not heard", "rows", RUNTIME,
