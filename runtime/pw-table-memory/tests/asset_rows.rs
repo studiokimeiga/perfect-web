@@ -632,3 +632,29 @@ source AssetData
         [candidate('b')]
     );
 }
+
+#[test]
+fn captured_asset_publisher_borrows_only_its_original_memory_command_and_never_ends_it() {
+    let db = database();
+    let mut c = db.begin().assert_ok("original command");
+    let publish = c.asset_publisher();
+    let image = publish("PostImage", candidate('b'))
+        .assert_ok("borrowed publication leaves original command open");
+    c.write("pw:tables/assets#insert", &[row(1, Some(&image))])
+        .assert_ok("original command still owns its turn");
+    let p = c.prepare().assert_ok("original command prepares once");
+    assert!(
+        publish("PostImage", candidate('c')).is_err(),
+        "a retained function cannot mutate a prepared command"
+    );
+    p.publish().assert_ok("original owner publishes");
+    let mut next = db.begin().assert_ok("new command owns new turn");
+    assert!(
+        publish("PostImage", candidate('c')).is_err(),
+        "stale function cannot target the next command"
+    );
+    next.write("pw:tables/assets#insert", &[row(2, Some(&image))])
+        .assert_ok("stale callback did not end the new command");
+    next.commit().assert_ok("new command remains valid");
+    assert_eq!(visible(&db), Some(image));
+}

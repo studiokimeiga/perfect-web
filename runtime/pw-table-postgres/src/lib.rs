@@ -40,6 +40,7 @@
 //!   it acts for, from its first statement to its end.
 
 mod assets;
+pub use assets::{AssetInteraction, AssetPublisher, AssetReceiptMarker};
 mod migrate;
 pub mod platform;
 mod pool;

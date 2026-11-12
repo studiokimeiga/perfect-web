@@ -16936,6 +16936,7 @@ public query Store(",
 
     // The canonical protected-app migration: generic authority seams.
     mod protected_migration;
+    mod upload_claims_pg;
     mod upload_generations;
 
     // TRACK SEAM (device-store): a page that holds a value the device keeps,

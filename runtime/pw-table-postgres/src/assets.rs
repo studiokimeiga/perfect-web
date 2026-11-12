@@ -340,6 +340,7 @@ fn check_recorded_bindings(
 }
 
 mod command;
+pub use command::{AssetInteraction, AssetPublisher, AssetReceiptMarker};
 pub(crate) use command::{
     Transaction, collect_committed, keep, lock_lifetime, prepare, verify_before_commit,
     verify_receipt,

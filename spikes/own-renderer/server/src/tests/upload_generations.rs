@@ -16,13 +16,13 @@ use std::sync::{
 use std::time::Duration;
 
 type Hook = Arc<dyn Fn() + Send + Sync>;
-struct Disk {
+pub(super) struct Disk {
     files: LocalBlobs,
     before_collect: Mutex<Option<Hook>>,
     fail_collect: AtomicBool,
 }
 impl Disk {
-    fn new(path: &std::path::Path) -> Self {
+    pub(super) fn new(path: &std::path::Path) -> Self {
         Self {
             files: LocalBlobs::new(path).asserted("real local provider"),
             before_collect: Mutex::new(None),
@@ -51,7 +51,7 @@ impl Storage for Disk {
         self.files.collect_generation(n, d)
     }
 }
-fn build() -> (tempfile::TempDir, std::path::PathBuf) {
+pub(super) fn build() -> (tempfile::TempDir, std::path::PathBuf) {
     super::tables::built(
         &[],
         &[
@@ -138,7 +138,12 @@ public query Url(image: PostImage.Ref) -> String
         ],
     )
 }
-fn open(url: &str, schema: &str, build: &std::path::Path, storage: Arc<Disk>) -> Arc<PgTables> {
+pub(super) fn open(
+    url: &str,
+    schema: &str,
+    build: &std::path::Path,
+    storage: Arc<Disk>,
+) -> Arc<PgTables> {
     Arc::new(
         PgTables::open_with_uploads(
             url,
