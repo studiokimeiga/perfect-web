@@ -1,20 +1,20 @@
 every page decides in its runtime, held to pw-resume
 
 produced by: just e14-decision-in-js
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
 
 == the two, asked the same (decision-agreement.test.mjs)
 
-✔ every change to one field of a manifest is answered as the module answers (32.118814ms)
-✔ every change to two fields is answered as the module answers (311.700785ms)
-✔ a walk over all nine fields is answered as the module answers (195.168426ms)
-✔ the manifests reach each answer this decision has (17.476868ms)
-✔ each recovery a refusal can name is one the module names (2.332653ms)
-✔ a handler's identity is not read as anything but the table's own lines (0.144639ms)
+✔ every change to one field of a manifest is answered as the module answers (36.298529ms)
+✔ every change to two fields is answered as the module answers (416.892324ms)
+✔ a walk over all nine fields is answered as the module answers (269.26973ms)
+✔ the manifests reach each answer this decision has (23.346473ms)
+✔ each recovery a refusal can name is one the module names (5.66127ms)
+✔ a handler's identity is not read as anything but the table's own lines (0.170756ms)
 ℹ tests 6
 ℹ suites 0
 ℹ pass 6
@@ -22,7 +22,7 @@ playwright: Version 1.58.0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 595.627822
+ℹ duration_ms 796.166306
 
 == the crate that specifies it (runtime/pw-resume-wasm)
 
@@ -31,17 +31,17 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 == what a document asks for and allows (the host's tests)
 
 test tests::a_document_preloads_what_its_runtime_boots_with ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1047 filtered out; finished in 1.30s
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 1038 filtered out; finished in 10.64s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1047 filtered out; finished in 1.75s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 1038 filtered out; finished in 14.59s
 
 == the pages that decide, in three engines
 
 EVIDENCE static-route-script-bytes=0 wasm-bytes=0
-EVIDENCE interactive-script-bytes=240572 brotli=62094
+EVIDENCE interactive-script-bytes=242664 brotli=62489
 EVIDENCE interactive-wasm-bytes=0 brotli=0
-EVIDENCE  script 240572 gzip=74188 brotli=62094 http://127.0.0.1:3148/pw-runtime.mjs
+EVIDENCE  script 242664 gzip=74669 brotli=62489 http://127.0.0.1:3148/pw-runtime.mjs
   9 skipped
-  144 passed (2.0m)
+  144 passed (2.3m)
 
 == mutation controls (scripts/decision_in_js_mutations.py)
 

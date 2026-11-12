@@ -1,0 +1,33 @@
+ADR-0431 - a failure the runtime recovers from is told the developer
+
+produced by: just e14-failures-told
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+node: v22.21.1
+playwright: Version 1.58.0
+
+== the demos and the feed as developed, in three engines
+
+  33 passed (50.1s)
+
+== TodoMVC as served, in three engines (e2e/device-runtime.spec.mjs)
+
+  3 passed (8.9s)
+
+== mutation controls (scripts/failures_told_mutations.py)
+
+baseline (developed): 11 passed, 0 failed
+baseline (served): 1 passed, 0 failed
+a press that failed is told no developer [developed]: KILLED (3 of 11 tests fail)
+a refusal is told the developer [developed]: KILLED (1 of 10 tests fail)
+no answer is told the developer [developed]: KILLED (1 of 11 tests fail)
+the page's module that did not load is told no developer [developed]: KILLED (1 of 11 tests fail)
+a press sent unspeculated is told no developer [developed]: KILLED (2 of 11 tests fail)
+a rollback that failed is told no developer [developed]: KILLED (1 of 11 tests fail)
+a navigation that failed in place is told no developer [developed]: KILLED (1 of 11 tests fail)
+a next runtime that did not load is told no developer [developed]: KILLED (1 of 11 tests fail)
+computed values that did not load are told twice [developed]: KILLED (1 of 11 tests fail)
+a boot that failed is told no developer [served]: KILLED (1 of 1 tests fail)
+10 of 10 mutants killed
+memory bound: no process was stopped

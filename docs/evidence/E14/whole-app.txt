@@ -1,38 +1,43 @@
 ADR-0429 - pw build --dist builds a whole app
 
 produced by: just e14-whole-app
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == a whole app's build (compiler/pw-cli/tests/whole_app.rs)
 
-test a_program_in_error_builds_nothing ... ok
 test a_directory_that_is_no_build_is_not_replaced ... ok
-test an_app_is_built_with_the_standard_packages_its_runtime_and_its_record ... ok
+test a_program_in_error_builds_nothing ... ok
 test a_directory_given_is_each_pw_file_in_it ... ok
-test what_builds_a_whole_app_is_asked_of_dist_alone ... ok
+test an_app_is_built_with_the_standard_packages_its_runtime_and_its_record ... ok
+test reports_are_kept_by_a_production_build_alone ... ok
+test a_production_build_keeps_its_reports_only_where_asked ... ok
 test a_build_of_an_app_is_replaced_whole ... ok
+test what_builds_a_whole_app_is_asked_of_dist_alone ... ok
 test standard_packages_named_are_not_added_again ... ok
 test an_asset_is_written_beside_the_build ... ok
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.21s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.70s
 
 == mutation controls (scripts/whole_app_mutations.py)
 
-baseline: 8 passed, 0 failed
-the standard packages are not added: KILLED (5 of 8 tests fail)
-a source named twice is built twice: KILLED (1 of 8 tests fail)
-a directory is read as a file: KILLED (2 of 8 tests fail)
-an app of no sources is built: KILLED (1 of 8 tests fail)
-the runtime is not written: KILLED (2 of 8 tests fail)
-an asset is not written: KILLED (1 of 8 tests fail)
-an asset's name may leave the build: KILLED (1 of 8 tests fail)
-a directory that is no build is replaced: KILLED (1 of 8 tests fail)
-a build before is not replaced: KILLED (1 of 8 tests fail)
-a source's digest is not its own: KILLED (1 of 8 tests fail)
-the record names no source: KILLED (3 of 8 tests fail)
-a program in error is built: KILLED (1 of 8 tests fail)
-what builds a whole app is taken without one: KILLED (1 of 8 tests fail)
-a whole app and its artifacts alone are asked together: KILLED (1 of 8 tests fail)
-14 of 14 mutants killed
+baseline: 10 passed, 0 failed
+the standard packages are not added: KILLED (6 of 10 tests fail)
+a source named twice is built twice: KILLED (1 of 10 tests fail)
+a directory is read as a file: KILLED (2 of 10 tests fail)
+an app of no sources is built: KILLED (1 of 10 tests fail)
+the runtime is not written: KILLED (2 of 10 tests fail)
+an asset is not written: KILLED (1 of 10 tests fail)
+an asset's name may leave the build: KILLED (1 of 10 tests fail)
+a directory that is no build is replaced: KILLED (1 of 10 tests fail)
+a build before is not replaced: KILLED (1 of 10 tests fail)
+a source's digest is not its own: KILLED (1 of 10 tests fail)
+the record names no source: KILLED (3 of 10 tests fail)
+a program in error is built: KILLED (1 of 10 tests fail)
+what builds a whole app is taken without one: KILLED (1 of 10 tests fail)
+a whole app and its artifacts alone are asked together: KILLED (1 of 10 tests fail)
+a production build is not asked to keep its reports: KILLED (1 of 10 tests fail)
+a production build is asked to keep its reports always: KILLED (1 of 10 tests fail)
+--report is taken without --production: KILLED (1 of 10 tests fail)
+17 of 17 mutants killed
 memory bound: no process was stopped

@@ -1,22 +1,22 @@
 ADR-0255 - a materialization may read another
 
 produced by: just e14-materialization-chains
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the checker (compiler/pw-core/tests/materialization_chains.rs)
 
-test a_clause_naming_no_resource_is_refused ... ok
 test a_materialization_may_read_another ... ok
+test a_clause_naming_no_resource_is_refused ... ok
 test a_reader_declared_before_what_it_reads_reads_it_too ... ok
 test the_key_audit_counts_what_a_materialization_read_separates ... ok
-test a_materialization_that_reads_itself_is_refused ... ok
 test a_shared_materialization_reads_no_private_one ... ok
+test a_materialization_that_reads_itself_is_refused ... ok
 test what_a_materialization_reads_itself_passes_to_its_readers ... ok
 test what_it_gives_the_one_it_reads_is_checked ... ok
 test a_write_reaches_what_reads_a_materialization_it_changes ... ok
-test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.64s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.37s
 
 == the runtime's reads (runtime/pw-materialize/tests/reads.rs)
 
@@ -24,9 +24,9 @@ test an_event_reaches_what_reads_a_materialization_it_reaches ... ok
 test a_key_the_reader_does_not_supply_reaches_every_entry ... ok
 test a_node_read_twice_is_followed_at_each_key ... ok
 test a_reader_of_what_the_event_does_not_reach_is_untouched ... ok
-test reads_that_form_a_cycle_end ... ok
 test an_event_reaches_what_reads_its_listener ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test reads_that_form_a_cycle_end ... ok
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 
 == mutation controls (scripts/materialization_chains_mutations.py)
 

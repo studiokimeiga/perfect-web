@@ -1,8 +1,8 @@
 ADR-0305 - a page's commands run in the order it sent them
 
 produced by: just e14-command-order
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -21,13 +21,13 @@ test tests::a_session_forgotten_takes_its_commands_order ... ok
 test tests::a_pages_command_whose_first_never_comes_is_answered_early_and_runs_nothing ... ok
 test tests::a_pages_command_here_before_the_one_it_follows_runs_after_it ... ok
 test tests::a_pages_command_after_one_closed_unrun_waits_for_it_sent_again ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 1036 filtered out; finished in 5.21s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 1036 filtered out; finished in 9.60s
 
 == in three engines (e2e/command-order.spec.mjs; optimistic.spec, navigate.spec)
 
-  12 passed (28.5s)
+  12 passed (34.8s)
   2 skipped
-  43 passed (40.9s)
+  43 passed (50.5s)
 
 == mutation controls (scripts/command_order_mutations.py)
 

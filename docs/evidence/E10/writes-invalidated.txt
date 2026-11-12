@@ -1,8 +1,8 @@
 ADR-0101 - a command invalidates what it writes
 
 produced by: just e10-writes-invalidated
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == writes invalidated (compiler/pw-core/tests/writes_invalidated.rs, effects.rs)
@@ -10,11 +10,11 @@ rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 test a_command_answers_for_its_own_write ... ok
 test a_staleness_window_is_the_readers_declaration ... ok
 test a_reader_in_another_module_is_reached_too ... ok
-test an_event_the_reader_does_not_hear_invalidates_nothing ... ok
-test a_write_reaches_the_readers_of_its_domain_only ... ok
 test the_write_is_underlined_and_the_reader_named ... ok
+test a_write_reaches_the_readers_of_its_domain_only ... ok
+test an_event_the_reader_does_not_hear_invalidates_nothing ... ok
 test a_command_invalidates_what_it_writes ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.05s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.31s
 test effects::tests::a_database_effect_names_its_domain ... ok
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 197 filtered out; finished in 0.00s
 

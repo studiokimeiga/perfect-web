@@ -1,8 +1,8 @@
 ADR-0230 - a condition is a Bool, or a List or String tested non-empty
 
 produced by: just e14-condition-truth
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the checker (compiler/pw-core/tests/template_truth.rs, template_operands.rs)
@@ -11,7 +11,7 @@ test an_option_condition_is_reported_once ... ok
 test an_each_runs_over_a_list ... ok
 test an_event_attribute_is_given_a_function ... ok
 test an_if_tests_a_value_with_a_truth ... ok
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.37s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.40s
 test the_repair_builds ... ok
 test a_number_and_a_record_have_no_truth ... ok
 test a_bool_and_a_list_or_string_tested_non_empty_have ... ok
@@ -24,8 +24,8 @@ accepted: 44/44 charter §16 categories covered
 rejected: 97 files
 rejected: 97/97 charter §16 categories covered
 corpus-check: OK
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 95.31s
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 90.26s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 107.92s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 108.86s
 
 == mutation controls (scripts/condition_truth_mutations.py)
 

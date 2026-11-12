@@ -1,8 +1,8 @@
 ADR-0195 ruling 13 - every HTML answer carries a Content-Security-Policy generated from its build, and the build refuses what it would refuse
 
 produced by: just e14-page-policy
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 playwright: Version 1.58.0
 
@@ -24,9 +24,9 @@ accepted: 44/44 charter §16 categories covered
 rejected: 97 files
 rejected: 97/97 charter §16 categories covered
 corpus-check: OK
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 198.84s
-test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.25s
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 182.51s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 195.71s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.77s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 175.84s
 
 == the policy, and the answers it is sent with (csp.rs, tests/page_policy.rs)
 
@@ -35,10 +35,10 @@ test csp::tests::a_comment_holds_no_markup_whatever_it_says ... ok
 test csp::tests::a_hash_source_is_the_texts_digest_in_base64 ... ok
 test csp::tests::plain_markup_asks_nothing ... ok
 test csp::tests::raw_markup_may_hold_a_style_attribute ... ok
-test csp::tests::what_markup_writes_is_found_wherever_it_is ... ok
 test csp::tests::a_documents_policy_allows_what_it_is_given_and_no_more ... ok
-test tests::page_policy::a_policy_allows_data_images_only_where_a_build_needs_them ... ok
+test csp::tests::what_markup_writes_is_found_wherever_it_is ... ok
 test tests::page_policy::a_build_whose_stylesheets_draw_with_data_allows_those_images ... ok
+test tests::page_policy::a_policy_allows_data_images_only_where_a_build_needs_them ... ok
 test tests::page_policy::a_streamed_document_carries_its_policy_in_its_head ... ok
 test tests::page_policy::a_deployment_that_takes_payments_frames_its_provider_alone ... ok
 test tests::page_policy::a_sign_in_at_another_origin_is_a_forms_to_reach ... ok
@@ -49,7 +49,7 @@ test tests::page_policy::every_other_html_answer_runs_nothing ... ok
 test tests::page_policy::the_host_writes_no_style_attribute ... ok
 test tests::sign_in::the_development_provider_signs_up_and_in_through_the_flow ... ok
 test tests::redirects::a_page_at_another_address_of_the_page_is_moved_there_for_good ... ok
-test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 1029 filtered out; finished in 41.82s
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 1029 filtered out; finished in 39.91s
 
 == the pages the suite serves, under it, in three engines (e2e/page-policy.spec.mjs)
 

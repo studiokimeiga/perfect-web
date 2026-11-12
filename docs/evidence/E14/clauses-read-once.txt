@@ -1,8 +1,8 @@
 ADR-0240 - a clause is read once
 
 produced by: just e14-clauses-read-once
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the checker (compiler/pw-core/tests/clauses_read_once.rs)
@@ -24,7 +24,7 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 15 filtered out; fin
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
-test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.00s
 
 == the corpus (corpus-check, checking_source.rs)
 
@@ -33,7 +33,7 @@ accepted: 44/44 charter §16 categories covered
 rejected: 97 files
 rejected: 97/97 charter §16 categories covered
 corpus-check: OK
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 201.84s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 196.44s
 
 == mutation controls (scripts/clauses_read_once_mutations.py)
 

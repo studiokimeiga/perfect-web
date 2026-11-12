@@ -1,20 +1,20 @@
 ADR-0128 - a shared cache holds no one reader's value, whatever its declaration says
 
 produced by: just e14-shared-cache
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == regression tests (compiler/pw-core/tests/shared_cache_holds_no_readers_value.rs)
 
 test a_readers_value_in_a_tenants_cache_is_one_defect ... ok
-test a_shared_fragment_of_a_query_given_the_session_is_refused ... ok
 test a_key_naming_the_reader_does_not_make_their_value_shareable ... ok
-test the_parameter_a_readers_value_comes_from_is_noted_in_a_whole_sentence ... ok
+test a_shared_fragment_of_a_query_given_the_session_is_refused ... ok
 test the_parameter_is_noted_with_its_own_label_where_more_are_given ... ok
+test the_parameter_a_readers_value_comes_from_is_noted_in_a_whole_sentence ... ok
 test a_query_given_the_session_holds_the_sessions_value_whatever_its_keyword ... ok
 test a_tenants_value_may_be_shared_keyed_by_its_tenant ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.88s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.94s
 
 == generality (just generality)
 

@@ -1,21 +1,21 @@
 NEXT 6c - a command the platform invokes, which no reader presses
 
 produced by: just e14-invoked-by
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the clause and its refusals (compiler/pw-core/tests/invoked_by.rs)
 
-test a_command_the_platform_invokes_holds_no_reader_to_a_predicate ... ok
 test a_command_the_platform_invokes_is_idempotent ... ok
-test a_command_the_platform_invokes_is_given_what_the_host_has ... ok
+test a_command_the_platform_invokes_holds_no_reader_to_a_predicate ... ok
 test a_command_the_platform_invokes_says_so_in_its_contract ... ok
 test a_payments_command_is_told_at_its_invoked_by_clause ... ok
-test one_command_answers_a_payments_outcome ... ok
+test a_command_the_platform_invokes_is_given_what_the_host_has ... ok
 test no_page_presses_a_command_the_platform_invokes ... ok
+test one_command_answers_a_payments_outcome ... ok
 test only_the_platforms_invokers_and_only_on_a_command ... ok
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
 
 == a reader's press refused (spikes/own-renderer/server/src/payments.rs)
 

@@ -1,8 +1,8 @@
 ADR-0247 - a clause written in a block is judged by its domain
 
 produced by: just e14-block-clauses
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the checker (compiler/pw-core/tests/block_clauses.rs)
@@ -10,16 +10,16 @@ rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 test a_length_is_a_count_and_a_css_unit ... ok
 test an_animations_preference_is_judged ... ok
 test a_handler_policys_clauses_are_judged ... ok
-test a_subtrees_height_is_a_css_length ... ok
 test a_clause_in_a_resources_block_is_judged ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.91s
+test a_subtrees_height_is_a_css_length ... ok
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.20s
 
 == a header's values, the names check, the corpus
 
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 131.95s
-test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.62s
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.04s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 194.42s
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.39s
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.34s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.53s
 
 == mutation controls (scripts/block_clauses_mutations.py)
 

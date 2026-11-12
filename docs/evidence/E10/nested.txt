@@ -1,14 +1,14 @@
 ADR-0066 - a nested declaration sees the bindings around it
 
 produced by: just e10-nested
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == nested declarations, streams, clauses, calls (compiler/pw-core/tests/nested_scope.rs)
 
-test a_nested_declarations_own_annotations_resolve ... ok
 test a_call_to_a_function_outside_its_scope_is_reported ... ok
+test a_nested_declarations_own_annotations_resolve ... ok
 test a_nested_function_reads_the_declared_label_of_a_field_around_it ... ok
 test a_nested_function_carries_the_label_of_what_it_reads_around_it ... ok
 test a_nested_function_sees_the_binding_in_scope_where_it_is_written ... ok
@@ -16,7 +16,7 @@ test a_release_clause_names_what_its_resource_acquires ... ok
 test a_streams_parts_are_its_answer_and_its_failure ... ok
 test one_parenthesised_parameter_binds ... ok
 test a_nested_function_types_what_it_reads_around_it ... ok
-test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.38s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.64s
 
 == mutation controls (scripts/nested_scope_mutations.py)
 

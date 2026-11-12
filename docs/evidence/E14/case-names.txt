@@ -1,19 +1,19 @@
 ADR-0197 - a pattern tells a case from a binding by its capital
 
 produced by: just e14-case-names
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the rule (compiler/pw-core/tests/case_names.rs, sum_types.rs)
 
 test a_case_written_twice_in_one_pattern_binds_nothing ... ok
-test a_case_named_in_lowercase_is_refused_where_it_is_declared ... ok
 test a_template_arms_field_that_is_a_case_is_no_arm ... ok
+test a_case_named_in_lowercase_is_refused_where_it_is_declared ... ok
 test another_types_case_is_refused_against_this_one ... ok
 test a_misspelt_case_is_a_case_its_type_lacks_not_a_binding ... ok
 test true_and_false_are_bools_cases_in_a_pattern ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.38s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.37s
 test a_case_alone_through_a_module_is_a_case_not_a_binding ... ok
 test a_bare_case_is_the_one_type_that_has_it ... ok
 test a_case_is_its_types_value ... ok
@@ -31,7 +31,7 @@ test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fin
 == compiled patterns (compiler/pw-conformance/tests/patterns.rs, sum_types.rs)
 
 test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.64s
-test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.23s
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.11s
 
 == the corpus at C14 (corpus-check, generality.rs, checking_source.rs)
 
@@ -45,9 +45,9 @@ test every_rejected_fixture_emits_only_its_own_defect ... ok
 test every_rejected_fixtures_rule_is_a_code_its_check_reports ... ok
 test every_diagnostic_carries_what_charter_16_3_requires has been running for over 60 seconds
 test every_diagnostic_carries_what_charter_16_3_requires ... ok
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 133.99s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 131.77s
 test generality_is_reported_separately_from_conformance ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 125.30s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 134.89s
 
 == mutation controls (scripts/case_names_mutations.py)
 
