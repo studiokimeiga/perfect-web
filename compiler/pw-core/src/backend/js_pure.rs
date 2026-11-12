@@ -1300,14 +1300,20 @@ impl<'p> Emitter<'p> {
             Type::Option(t) => {
                 let mut some = Vec::new();
                 self.int_checks(&format!("{v}.value"), &t, depth, &mut some);
-                out.push(format!("if ({v}.$case === \"some\") {{ {} }}", some.join(" ")));
+                out.push(format!(
+                    "if ({v}.$case === \"some\") {{ {} }}",
+                    some.join(" ")
+                ));
             }
             Type::Result(t, e) => {
                 for (case, payload) in [("ok", t), ("err", e)] {
                     let mut arm = Vec::new();
                     self.int_checks(&format!("{v}.value"), &payload, depth, &mut arm);
                     if !arm.is_empty() {
-                        out.push(format!("if ({v}.$case === \"{case}\") {{ {} }}", arm.join(" ")));
+                        out.push(format!(
+                            "if ({v}.$case === \"{case}\") {{ {} }}",
+                            arm.join(" ")
+                        ));
                     }
                 }
             }
