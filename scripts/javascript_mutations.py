@@ -17,6 +17,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 JS = ROOT / "compiler/pw-core/src/backend/js_pure.rs"
+IR = ROOT / "compiler/pw-core/src/backend/ir.rs"
 
 # (what is undone, file, anchor, replacement)
 MUTANTS = [
@@ -73,8 +74,8 @@ MUTANTS = [
     (
         "the literals a list of the module read are written",
         JS,
-        "        self.line(&format!(\"return {};\", val(*result)));\n        self.unread_dropped();\n        Ok(())\n    }\n\n    fn line(",
-        "        self.line(&format!(\"return {};\", val(*result)));\n        Ok(())\n    }\n\n    fn line(",
+        "        self.line(&format!(\"return {};\", val(*result)));\n        self.unread_dropped();\n        self.unmade_unread()\n    }\n\n    /// **Refused: a value left unmade",
+        "        self.line(&format!(\"return {};\", val(*result)));\n        self.unmade_unread()\n    }\n\n    /// **Refused: a value left unmade",
     ),
     (
         "a function value's lists of literals are not the module's",
@@ -139,6 +140,45 @@ MUTANTS = [
         JS,
         "{n} < 0 ? 0 : ",
         "",
+    ),
+    # ADR-0436: an Option a match takes apart where it is made is never made,
+    # and one read again is: each read `reads` counts is a query's, the
+    # match's test is its case's, and List.find takes the first that holds.
+    (
+        "an Option read again is taken apart where it is made",
+        JS,
+        "                && self.reads.get(scrutinee) == Some(&1)\n",
+        "",
+    ),
+    (
+        "a region's value is not a read",
+        IR,
+        "                *out.entry(r.value).or_default() += 1;\n",
+        "",
+    ),
+    (
+        "a body's value is not a read",
+        IR,
+        "    *out.entry(value).or_default() += 1;\n",
+        "",
+    ),
+    (
+        "a case's payload is not a read",
+        IR,
+        "            Instr::Variant { payload, .. } => payload.iter().copied().collect(),\n",
+        "            Instr::Variant { .. } => Vec::new(),\n",
+    ),
+    (
+        "an Option taken apart takes Some's arm where its test fails",
+        JS,
+        'self.line(&format!("if ({}) {{", o.test));',
+        'self.line(&format!("if (!({})) {{", o.test));',
+    ),
+    (
+        "List.find takes the last that holds",
+        JS,
+        "{xs}.findIndex({f});",
+        "{xs}.findLastIndex({f});",
     ),
 ]
 

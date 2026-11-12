@@ -102,6 +102,59 @@ public query Head(xs: List<Int>) -> Int {
     }
 }
 
+// ADR-0436: an Option a match takes apart where it is made, its arms in
+// either order, is never made; one read again is made and matched.
+public query FoundDouble(xs: List<Int>) -> Int {
+    match List.find(xs, x => x > 2) {
+        None => 0,
+        Some(x) => x * 2,
+    }
+}
+
+public query KeptAndMatched(xs: List<Int>, i: Int) -> Option<Int> {
+    let o = List.get(xs, i)
+    let n = match o {
+        Some(x) => x,
+        None => 0,
+    }
+    if n > 10 { o } else { None }
+}
+
+public query FirstOrGiven(xs: List<Int>) -> Option<Int> {
+    let o = List.get(xs, 0)
+    let n = match o {
+        Some(x) => x,
+        None => 0,
+    }
+    if n > 50 {
+        return None
+    }
+    o
+}
+
+public query Wrapped(xs: List<Int>, i: Int) -> Option<Option<Int>> {
+    let o = List.get(xs, i)
+    let n = match o {
+        Some(x) => x,
+        None => 0,
+    }
+    if n > 5 { Some(o) } else { None }
+}
+
+public query AnyAt(words: List<Word>, i: Int) -> Int {
+    match List.get(words, i) {
+        Some(_) => 1,
+        _ => 0,
+    }
+}
+
+public query Leading(points: List<Int>) -> List<Int> {
+    match List.get(points, 0) {
+        Some(36) => List.drop(points, 1),
+        _ => points,
+    }
+}
+
 public query AsFloat(n: Int) -> Float { Float.from_int(n) }
 
 // ADR-0427: a list of literals is a value of the module, made once, in a
@@ -888,6 +941,40 @@ fn a_list_of_literals_is_a_value_of_the_module() {
         1,
         "{counted}"
     );
+}
+
+/// **An `Option` a match takes apart where it is made is never made**
+/// (ADR-0436): `List.get`, `Map.get` and `List.find`, read only by the
+/// match after them, are an `if` on their test, `Some`'s arm reading what
+/// it holds; one read again is made, and matched as any other.
+#[test]
+fn an_option_matched_where_it_is_made_is_never_made() {
+    let us = units(&[("j.pw", PROGRAM)]);
+    let module = |id: &str| {
+        pw_core::backend::js_pure::module(&us, id).unwrap_or_else(|e| panic!("{id}: {e}"))
+    };
+    for id in [
+        "j.Head",
+        "j.Words",
+        "j.FoundDouble",
+        "j.Tally",
+        "j.AnyAt",
+        "j.Leading",
+    ] {
+        let m = module(id);
+        assert!(!m.contains("$case"), "{id} makes an Option:\n{m}");
+    }
+    for id in ["j.KeptAndMatched", "j.FirstOrGiven", "j.Wrapped"] {
+        let m = module(id);
+        assert!(
+            m.contains("switch (v"),
+            "{id} does not match the Option it makes:\n{m}"
+        );
+        assert!(
+            m.contains(" ? some("),
+            "{id} does not make the Option it reads again:\n{m}"
+        );
+    }
 }
 
 /// **A type that contains itself** (ADR-0194): a module's value is nested,

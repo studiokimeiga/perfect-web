@@ -762,6 +762,43 @@ impl Instr {
             }
         }
     }
+
+    /// **The values this instruction reads**, once for each place it names
+    /// one; its regions' are theirs. A match's bindings and a loop's
+    /// parameters are values it makes. Every instruction is named, so one
+    /// added is a decision here and not a read [`reads`] misses (ADR-0436).
+    pub fn operands(&self) -> Vec<ValueId> {
+        match self {
+            Instr::Const { .. } | Instr::SignalGet { .. } => Vec::new(),
+            Instr::Call { args, .. }
+            | Instr::ImportCall { args, .. }
+            | Instr::Construct { args, .. }
+            | Instr::Intrinsic { args, .. }
+            | Instr::Command { args, .. } => args.clone(),
+            Instr::Case { fields, .. } => fields.clone(),
+            Instr::Concat { parts, .. } => parts.clone(),
+            Instr::MakeList { items, .. } => items.clone(),
+            Instr::Closure { captures, .. } => captures.clone(),
+            Instr::Variant { payload, .. } => payload.iter().copied().collect(),
+            Instr::Project { of: v, .. }
+            | Instr::Match { scrutinee: v, .. }
+            | Instr::Unary { operand: v, .. }
+            | Instr::If { cond: v, .. }
+            | Instr::Format { value: v, .. }
+            | Instr::Return { value: v, .. }
+            | Instr::SignalSet { value: v, .. }
+            | Instr::Retype { value: v, .. }
+            | Instr::Local { init: v, .. }
+            | Instr::Get { local: v, .. } => vec![*v],
+            Instr::Binary { lhs, rhs, .. } => vec![*lhs, *rhs],
+            Instr::Set { local, value, .. } => vec![*local, *value],
+            Instr::Each { list, seed, .. } => std::iter::once(*list).chain(*seed).collect(),
+            Instr::Navigate { args, .. } => args.iter().map(|(_, v)| *v).collect(),
+            Instr::Apply { function, args, .. } => std::iter::once(*function)
+                .chain(args.iter().copied())
+                .collect(),
+        }
+    }
 }
 
 /// Every instruction in `instrs`, regions included.
@@ -770,6 +807,28 @@ pub fn all_instrs(instrs: &[Instr]) -> Vec<&Instr> {
     for i in instrs {
         i.walk(&mut out);
     }
+    out
+}
+
+/// **How many times each value of a body is read** (ADR-0436): by its
+/// instructions, those in their regions, each region's own value, and the
+/// body's, `value`. A value read once, by the instruction after the one that
+/// makes it, need not be made where that instruction takes it apart.
+pub fn reads(instrs: &[Instr], value: ValueId) -> std::collections::BTreeMap<ValueId, usize> {
+    fn count(instrs: &[Instr], out: &mut std::collections::BTreeMap<ValueId, usize>) {
+        for i in instrs {
+            for v in i.operands() {
+                *out.entry(v).or_default() += 1;
+            }
+            for r in i.regions() {
+                count(&r.instrs, out);
+                *out.entry(r.value).or_default() += 1;
+            }
+        }
+    }
+    let mut out = std::collections::BTreeMap::new();
+    count(instrs, &mut out);
+    *out.entry(value).or_default() += 1;
     out
 }
 
