@@ -12,7 +12,8 @@ found a row that read `NaN` made again at every render (fixed apart). The first
 "create 1,000 rows": 9.48 ms of JavaScript to Svelte's 9.09, from 12.40. The
 builds visited in turn: quicker past the spread in Firefox and under Slow 4G,
 every press of a warm visit 7.9 ms quicker in Chromium, and a cold append
-slower (+6.4 ms in Chromium), a major collection moved into it (NEXT). TodoMVC
+slower (+6.4 ms in Chromium, +25.8 under Slow 4G), a major collection moved
+into it (NEXT). TodoMVC
 is sent the bytes it was but the `NaN` fix's (+12 B with Brotli); the large
 list's page is 175 B heavier with Brotli for its own code.
 

@@ -189,9 +189,11 @@ device's renderer with views on, so no list of it was a plan's.
   | Firefox, cold | **−5.0 (−6.0..−2.0)** | 0.0 (−2.0..1.0) | **−4.0 (−7.0..−1.0)** | 0.0 | **−6.0 (−11.0..−3.0)** |
   | Firefox, warm | 0.0 (−4.0..4.0) | 0.0 (−4.0..1.0) | −4.0 (−5.0..0.0) | 0.0 | −7.0 (−9.0..10.0) |
 
-  Past its spread, Slow 4G's warm swap −1.5 (−4.2..−0.3) and warm "clear
-  all rows" +2.8 (1.0..5.4); Firefox's cold "select a row" +1.0 (0.0..1.0),
-  a millisecond its clock reads whole. Every other cell within its spread.
+  Past its spread too: Chromium's warm "clear all rows" −4.9 (−8.1..−2.8)
+  and Slow 4G's warm swap −1.5 (−4.2..−0.3), quicker; Slow 4G's warm "clear
+  all rows" +2.8 (1.0..5.4), slower. Firefox's cold select, remove and clear,
+  +1.0 each, a millisecond its clock reads whole, have spreads from 0.0.
+  Every other cell is within its spread.
 - **The cold append, slower, is a collection moved into it**: its change
   reaches the document sooner in every round (6.1 to 6.4 ms against 6.3 to
   7.0) and its frame later (3.7 ms, 2.3..5.3, `t32/ab-append-detail.txt`).
