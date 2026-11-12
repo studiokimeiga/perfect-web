@@ -386,6 +386,42 @@ test("a list inside a case's arm is kept by the general code, and shows what its
   expect(page.errors).toEqual([]);
 });
 
+test("a list the general code keeps leaves a row where it was where what it shows and computes is the same", async ({ page }) => {
+  // The case's arm's list again (ADR-0437): each row's class is what it
+  // computes from the page's `picked`, and its button has two handlers, one
+  // hole. A press that changes one row's class leaves the other's node the
+  // one it was, as what the other computes comes out the same.
+  await open(page, "/events");
+  const row = (i) => page.locator("#matched .matched").nth(i);
+  await page.click("#next-maybe");
+  await expect(row(1).locator(".mname")).toHaveText("two 2");
+  await expect(row(0)).toHaveAttribute("class", "matched");
+  await row(1).evaluate((li) => (li.__kept = true));
+  await row(0).locator(".mpick").click();
+  await expect(row(0)).toHaveAttribute("class", "matched chosen");
+  await expect(row(1)).toHaveAttribute("class", "matched");
+  expect(await row(1).evaluate((li) => li.__kept === true)).toBe(true);
+  expect(await row(1).locator(".moff").evaluate((s) => s.hidden)).toBe(false);
+  expect(await row(0).getAttribute("title")).toBe("one");
+  expect(page.errors).toEqual([]);
+});
+
+test("a press writes the one row of a list the general code keeps that it changed, by what the row computes", { tag: "@report" }, async ({ page }) => {
+  // What the other row computes reads the page too, and comes out the same:
+  // it is kept, not written again (the large list's own code is held so by
+  // "a press writes the text of the rows it changed").
+  await open(page, "/events");
+  const row = (i) => page.locator("#matched .matched").nth(i);
+  await page.click("#next-maybe");
+  await expect(row(1).locator(".mname")).toHaveText("two 2");
+  const before = await page.evaluate(() => window.__pw.log.length);
+  await row(0).locator(".mpick").click();
+  await expect(row(0)).toHaveAttribute("class", "matched chosen");
+  await page.waitForFunction((n) => window.__pw.log.slice(n).some((l) => / of 2 rows$/.test(l)), before);
+  const lines = await page.evaluate((n) => window.__pw.log.slice(n), before);
+  expect(lines.filter((l) => / of 2 rows$/.test(l)).map((l) => l.replace(/^block \d+ /, ""))).toEqual(["wrote 1 of 2 rows"]);
+});
+
 test("a press writes the text of the rows it changed and indexes nothing inside them", { tag: "@report" }, async ({ page }) => {
   await open(page);
   await created(page);

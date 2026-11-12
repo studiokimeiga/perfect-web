@@ -131,7 +131,7 @@ page Events() {
             {:Some(n)}
                 <ol id="matched">
                     {#each items as item (item.id)}
-                        <li class="matched" title={item.name}><span class="mname">{item.name} {n}</span> <button class="mpick" type="button" on:press={resumable(captures = { item }) => picked = item.name}>Pick</button> <span class="moff" hidden={item.name == "renamed"}>off</span></li>
+                        <li class={if item.name == picked { "matched chosen" } else { "matched" }} title={item.name}><span class="mname">{item.name} {n}</span> <button class="mpick" type="button" on:press={resumable(captures = { item }) => picked = item.name} on:keydown={resumable(captures = { item }) => picked = item.name}>Pick</button> <span class="moff" hidden={item.name == "renamed"}>off</span></li>
                     {/each}
                 </ol>
             {:None}
