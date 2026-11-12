@@ -8,14 +8,16 @@
 # A page no reader decides and with no layout starts a runtime of its own: its
 # decision held to `pw-resume`'s own build over changed manifests; what the
 # packaging writes; what the host starts; TodoMVC's whole suite and the page's
-# requests on a production build, in three engines; and the mutation controls.
+# requests on a production build, in three engines; and the mutation controls,
+# a planned list kept and made by its page's own code's too (ADR-0437, held to
+# the general code by `renderer-agreement.test.mjs`, which reads the oracle).
 # Each suite runs on its build as it is served, which reports nothing to its
 # tests, less a test that reads what the page reports (`@report`, ADR-0430),
 # which runs on the same app built to report.
 e14-device-runtime:
     @BUILD_ONLY=1 bash spikes/own-renderer/run.sh > /dev/null
     @PW_PRODUCTION_ASSETS=1 bash spikes/own-renderer/todomvc.sh > /dev/null
-    @cargo build --quiet --locked -p pw-dev-server
+    @cargo build --quiet --locked -p pw-dev-server -p pw-render-oracle
     @cargo build --quiet --locked -p pw-resume-wasm --target wasm32-unknown-unknown --profile browser
     @mkdir -p docs/evidence/E14
     @{ echo "a page that talks to no server starts a runtime with no server's code in it"; echo; \
@@ -42,5 +44,7 @@ e14-device-runtime:
        PW_PRODUCTION_ASSETS=1 bash scripts/run_suite.sh -- pnpm exec playwright test e2e/rows.spec.mjs --grep @report --reporter=line; \
        echo; echo "== mutation controls (scripts/device_runtime_mutations.py)"; echo; \
        CARGO_INCREMENTAL=0 python3 scripts/device_runtime_mutations.py; \
+       echo; echo "== a planned list's own code, mutation controls (scripts/own_rows_mutations.py)"; echo; \
+       CARGO_INCREMENTAL=0 python3 scripts/own_rows_mutations.py; \
      } > docs/evidence/E14/device-runtime.txt
     @grep -E "^ℹ (pass|fail)|^test result|passed|mutants killed|panicked at" docs/evidence/E14/device-runtime.txt

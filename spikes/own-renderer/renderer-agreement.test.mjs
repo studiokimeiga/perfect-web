@@ -18,6 +18,8 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
+import { withOwnRows } from "./optimize-assets.mjs";
+import { OWN_ROWS, keptLists as keptOf, ownRows } from "./own-rows.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, "../..");
@@ -25,11 +27,18 @@ const runtime = readFileSync(path.join(here, "public/pw-runtime.mjs"), "utf8");
 const BEGIN = "const renderer = (() => {";
 const END = "// --- end of the browser's renderer";
 
-function loadRenderer(server = true, flags = {}) {
-  const start = runtime.indexOf(BEGIN);
-  const end = runtime.indexOf(END);
+/** The renderer of `source`, between its markers. */
+function rendererOf(source) {
+  const start = source.indexOf(BEGIN);
+  const end = source.indexOf(END);
   assert.ok(start >= 0 && end > start, "the runtime holds the renderer between its markers");
-  return vm.runInNewContext(`${runtime.slice(start, end)}\nrenderer`, {
+  return source.slice(start, end);
+}
+
+/** The renderer as a build none of whose lists its page's own code keeps
+ * has it (ADR-0437): the packaging's own lines cut, as it cuts them. */
+function loadRenderer(server = true, flags = {}) {
+  return vm.runInNewContext(`${rendererOf(withOwnRows(runtime, { rows: null }))}\nrenderer`, {
     TextEncoder,
     PW_SERVER: server,
     PW_LINKS: true,
@@ -803,7 +812,8 @@ function plannedAgree(requests) {
   const server = fromTheServer(requests);
   const before = fromTheServer(requests.map(([name, r]) => [name, { ...r, part: uncaptured(r.part) }]));
   const held = { rows: 0, planned: 0, holes: 0, refused: 0 };
-  requests.forEach(([, request], i) => {
+  /** Request `i`, its planned rows held to the server's. */
+  const plannedAt = ([, request], i) => {
     const at = wire(request);
     const values = () => device.env(Object.entries(request.values ?? {}));
     let block;
@@ -849,7 +859,8 @@ function plannedAgree(requests) {
       if (shown.get(list.part) !== 1) return;
       list.rows.forEach((row, n) => assert.equal(again.lists[k].rows[n], row, `a row nothing changed is the row kept: ${at}`));
     });
-  });
+  };
+  requests.forEach(plannedAt);
   return held;
 }
 
@@ -897,6 +908,210 @@ test("a planned row agrees with the server over the compiler's own templates", (
   const held = plannedAgree(plannedRequests(compiledRequests([...COMPILED, ...BUILT])));
   t.diagnostic(`held: ${JSON.stringify(held)}`);
   assert.ok(held.planned > 20 && held.holes > 60, JSON.stringify(held));
+});
+
+// --- a list the page's own code keeps (ADR-0437) ---------------------------
+//
+// The packaging writes, for each list a device's page keeps whose rows a plan
+// makes, the list's own key, hold and making (`own-rows.mjs`), spliced into
+// the renderer where it holds a place for them. That code is the general
+// code's for the list, partially evaluated, so it is held to it here: each row
+// it makes is the row `plannedRowOf` makes, field by field, refused where that
+// one is; its text and what its handlers capture are the same; and it keeps
+// the rows the general code keeps, render after render. The general code is
+// held to the server above.
+
+/** The device's renderer with the code `ownRows` writes for `entries`
+ * spliced in as the packaging splices it (`withOwnRows`), for a page of
+ * template `template` some of whose lists are the general code's. */
+function loadOwn(entries, template) {
+  const own = ownRows(entries);
+  assert.equal(rendererOf(runtime).split(OWN_ROWS).length, 2, "the renderer holds one place for a page's own lists");
+  const source = `${rendererOf(withOwnRows(runtime, { ...own, unowned: true }))}\nrenderer`;
+  const flags = { PW_SERVER: false, PW_LINKS: true, PW_MATCH: true, PW_VIEWS: false, PW_DIALOGS: true, PW_PLANS: true, PW_GRAPHS: true };
+  return { renderer: vm.runInNewContext(source, { TextEncoder, ...flags, parts: { template } }), own };
+}
+
+/** What the general code reads of a row, in a form two realms compare. */
+function rowFields(row) {
+  return wire({
+    key: row.key,
+    holes: row.holes ? [...row.holes] : null,
+    raws: row.raws ? [...row.raws].map((raw) => (raw === undefined ? "(none)" : raw === null ? "(null)" : typeof raw === "string" ? raw : [...raw])) : null,
+    reads: [...row.reads],
+    names: row.names,
+    capturing: row.capturing ?? null,
+    computing: row.computing && { reads: [...row.computing.computedReads], values: row.computing.computedValues },
+  });
+}
+
+/** `fn()`'s answer, or the kind of what refused it. */
+function answerOf(fn) {
+  try {
+    return [0, fn()];
+  } catch (error) {
+    if (error.kind === undefined) throw error;
+    return [1, error.kind];
+  }
+}
+
+/** Every row of `block` by its list and key. */
+const rowsBy = (block) => new Map(block.lists.flatMap((list, k) => list.rows.map((row) => [`${k}|${row.key}`, row])));
+
+/** **Each request rendered by both**, the page's own code and the general
+ * code, twice, the second time over values changed a little: the same rows,
+ * the same refusals, the same text and captures, the same rows kept. */
+function ownAgree(requests, computes = new Map(), functions = null) {
+  const entries = [];
+  for (const [, request] of requests) {
+    const names = new Set(Object.keys(request.values ?? {}));
+    for (const { list, around } of keptOf(wrapped(request.part))) entries.push({ template: "t", list, around, names, computes });
+  }
+  const { renderer: mine, own } = loadOwn(entries, "t");
+  const general = loadRenderer(false, { PW_VIEWS: false });
+  if (functions) {
+    const asked = [...computes].map(([name, inputs]) => ({ name, inputs }));
+    mine.rowsComputed(functions, asked);
+    general.rowsComputed(functions, asked);
+  }
+  const written = new Set(own.written.map((w) => w.part));
+  const held = { written: written.size, refusedLists: own.refused.length, rows: 0, own: 0, kept: 0, refused: 0, why: {} };
+  // Why the packaging refused what it refused, by the start of what it says.
+  for (const { why } of own.refused) {
+    const said = why.split(" ").slice(0, 5).join(" ");
+    held.why[said] = (held.why[said] ?? 0) + 1;
+  }
+  /** Request `i`, its rows kept and made by the page's own code and the
+   * general code over rounds of values perturbed. */
+  const ownAt = ([, request], i) => {
+    const r = random(7_000_000 + i);
+    let values = request.values ?? {};
+    let before = [null, null];
+    for (let round = 0; round < 2; round++) {
+      const at = `${wire({ part: request.part, values })} (render ${round + 1})`;
+      const ours = answerOf(() => mine.block(request.part, mine.env(Object.entries(values)), []));
+      const theirs = answerOf(() => general.block(request.part, general.env(Object.entries(values)), []));
+      assert.equal(ours[0], theirs[0], `only one refused ${at}: ${ours[1]} / ${theirs[1]}`);
+      if (ours[0] === 1) {
+        assert.equal(ours[1], theirs[1], `the two refused ${at} differently`);
+        held.refused += 1;
+        before = [null, null];
+      } else {
+        const [a, b] = [ours[1], theirs[1]];
+        assert.deepEqual([...a.strs], [...b.strs], `the block around its lists: ${at}`);
+        assert.equal(a.lists.length, b.lists.length, at);
+        a.lists.forEach((list, k) => {
+          const other = b.lists[k];
+          assert.equal(list.part, other.part, at);
+          assert.equal(list.of, other.of, `whether a plan makes its rows: ${at}`);
+          assert.equal(list.rows.length, other.rows.length, at);
+          list.rows.forEach((row, n) => {
+            const theirRow = other.rows[n];
+            held.rows += 1;
+            if (written.has(list.part)) held.own += 1;
+            assert.equal(row.item, theirRow.item, `the row's item: ${at}`);
+            assert.equal(rowFields(row), rowFields(theirRow), `row ${row.key}: ${at}`);
+            // What each of its handlers captures, as a press computes it,
+            // before anything has read the row's text, which makes its
+            // scope: a press can come first.
+            (row.holes ?? []).forEach((_, h) => {
+              const nodes = row.holes.map((_, x) => ({ x }));
+              const theirNodes = row.holes.map((_, x) => ({ x }));
+              const captured = answerOf(() => mine.capturesOf(row, nodes, nodes[h]));
+              assert.deepEqual(captured, answerOf(() => general.capturesOf(theirRow, theirNodes, theirNodes[h])), `row ${row.key}'s captures at ${h}: ${at}`);
+            });
+            const text = answerOf(() => mine.textOf(row));
+            assert.deepEqual(text, answerOf(() => general.textOf(theirRow)), `row ${row.key}'s text: ${at}`);
+            assert.equal(rowFields(row), rowFields(theirRow), `row ${row.key}, its text read: ${at}`);
+          });
+        });
+        // The rows each kept of the render before, by its list and key.
+        if (before[0]) {
+          const [oursThen, theirsThen] = before;
+          for (const [key, row] of rowsBy(a)) {
+            const kept = oursThen.get(key) === row;
+            assert.equal(kept, theirsThen.get(key) === rowsBy(b).get(key), `whether row ${key} is the one kept: ${at}`);
+            if (kept) held.kept += 1;
+          }
+        }
+        before = [rowsBy(a), rowsBy(b)];
+      }
+      values = round === 0 && r.chance(0.5) ? values : perturbed(r, values);
+    }
+  };
+  requests.forEach(ownAt);
+  return held;
+}
+
+/** The names a row's computed value is held under: of one field, and of two
+ * as the compiler names each (`#t.P~ui~5`, a `BrowserRow`'s path less its
+ * row's name). */
+const COMPUTED_NAMES = ["#t~c", "#t.P~ui~5"];
+
+/** Planned lists whose rows compute a value (ADR-0424), as the large list's
+ * class does from its row and the page's selection: given by the page's
+ * computed module, held by a row the host rendered, or none to be had. */
+function computedLists(cases) {
+  const requests = [];
+  for (let seed = 1; seed <= cases; seed++) {
+    const g = generated(2_000_000 + seed);
+    const { r } = g;
+    const items = g.rows(1);
+    // A name of one field, or of two as the compiler names one
+    // (`row.#t.P~ui~5`), whose first a host's item may hold a record at.
+    const name = r.pick(COMPUTED_NAMES);
+    items.forEach((item, i) => {
+      item.id = i;
+      if (r.chance(0.2)) item[name] = r.pick(NASTY);
+      if (name.includes(".") && r.chance(0.3)) item["#t"] = r.chance(0.7) ? { "P~ui~5": r.pick(NASTY) } : r.pick(NASTY);
+    });
+    const values = { list: items, sel: r.pick([0, 1, 2, "x", Number.NaN]) };
+    if (r.chance(0.1)) delete values.sel;
+    const computed = `row.${name}`;
+    const read = r.chance(0.8) ? computed : r.pick(["row.id", "row.name", "sel"]);
+    const body = [
+      { chunk: "static", value: "<tr " },
+      { chunk: "dynamic", value: { part: "attribute", id: 0, owner: 0, name: "class", value: read, context: "attribute" } },
+      { chunk: "static", value: "><td>" },
+      { chunk: "dynamic", value: { part: "text", id: 1, value: "row.id", context: "text" } },
+      { chunk: "static", value: "</td><td>" },
+      { chunk: "dynamic", value: { part: "text", id: 2, value: computed, context: "text" } },
+      { chunk: "static", value: "</td><td><button " },
+      { chunk: "dynamic", value: { part: "event", id: 3, owner: 1, event: "press", handler: "h", name: "n", captures: ["row.id"] } },
+      { chunk: "static", value: ">x</button></td></tr>" },
+    ];
+    requests.push(["render_part", { part: { part: "each", id: 900, collection: "list", binding: "row", key: "id", body }, values }]);
+  }
+  return requests;
+}
+
+test("a list's own code keeps and makes its rows as the general code does, over generated templates", (t) => {
+  const held = ownAgree(plannedRequests([...generatedRequests(1500), ...plannedLists(6000)]));
+  t.diagnostic(`held: ${JSON.stringify(held)}`);
+  // Enough lists written, rows made by them and kept, and refusals of both
+  // kinds (of a render and of a list), that this holds the code to much.
+  assert.ok(held.written > 3_000 && held.own > 3_000 && held.kept > 1_000, JSON.stringify(held));
+  assert.ok(held.refused > 1_000 && held.refusedLists > 100, JSON.stringify(held));
+});
+
+test("a list's own code computes what its rows compute as the general code does", (t) => {
+  const compute = (row, sel) => (row.id === sel ? "danger" : row.id === 2 ? [row.id] : "");
+  const computes = new Map(COMPUTED_NAMES.map((name) => [name, ["row", "sel"]]));
+  const functions = Object.fromEntries(COMPUTED_NAMES.map((name) => [name, compute]));
+  const held = ownAgree(plannedRequests(computedLists(1500)), computes, functions);
+  t.diagnostic(`held: ${JSON.stringify(held)}`);
+  assert.ok(held.written > 1_000 && held.own > 1_000 && held.kept > 300 && held.refused > 50, JSON.stringify(held));
+  // And where the page's computed module gives no function for it: its
+  // path's fields, as the general code reads them, which most rows lack.
+  const unanswered = ownAgree(plannedRequests(computedLists(600)), computes);
+  t.diagnostic(`held with no function: ${JSON.stringify(unanswered)}`);
+  assert.ok(unanswered.written > 400 && unanswered.refused > 300 && unanswered.own > 60, JSON.stringify(unanswered));
+});
+
+test("a list's own code keeps and makes its rows as the general code does, over the compiler's own templates", (t) => {
+  const held = ownAgree(plannedRequests(compiledRequests([...COMPILED, ...BUILT])));
+  t.diagnostic(`held: ${JSON.stringify(held)}`);
+  assert.ok(held.written > 10 && held.own > 50, JSON.stringify(held));
 });
 
 const PARTS = [

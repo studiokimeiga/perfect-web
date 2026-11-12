@@ -62,6 +62,12 @@ page Events() {
     signal numbers: List<Int> = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
     signal tags: List<Tag> = [Tag { id: 1, shown: "one", unseen: "first", off: false }, Tag { id: 2, shown: "two", unseen: "second", off: true }]
     signal plain: List<Item> = [Item { id: 1, name: "one" }, Item { id: 2, name: "two" }]
+    // A row whose markup the parser reads otherwise than it is written (a
+    // table's row goes in a `<tbody>`), and a list inside a case's arm, which
+    // reads the name the arm binds: the page's own code (ADR-0437) walks to
+    // the first's holes by the general walk, and keeps none of the second.
+    signal cells: List<Item> = [Item { id: 1, name: "one" }, Item { id: 2, name: "two" }]
+    signal maybe: Option<Int> = Some(1)
 
     view {
         <title>Events</title>
@@ -113,6 +119,23 @@ page Events() {
                     <li><span class="shown">{t.shown}</span> <button class="tag" type="button" on:press={resumable(captures = { t }) => picked = t.unseen} on:keydown={resumable(captures = { t }) => picked = t.shown}>Tag</button> <span class="on" hidden={t.off}>on</span></li>
                 {/each}
             </ul>
+            <button id="add-cell" type="button" on:press={() => cells = List.concat(cells, [Item { id: 3, name: "three" }])}>Add a cell</button>
+            <button id="rename-cell" type="button" on:press={() => cells = renamed(cells, 1)}>Rename a cell</button>
+            <ul id="cells">
+                {#each cells as c (c.id)}
+                    <li><table><tr><td class="cell">{c.name}</td></tr></table></li>
+                {/each}
+            </ul>
+            <button id="next-maybe" type="button" on:press={() => maybe = Some(2)}>Next</button>
+            {#match maybe}
+            {:Some(n)}
+                <ol id="matched">
+                    {#each items as item (item.id)}
+                        <li class="matched" title={item.name}><span class="mname">{item.name} {n}</span> <button class="mpick" type="button" on:press={resumable(captures = { item }) => picked = item.name}>Pick</button> <span class="moff" hidden={item.name == "renamed"}>off</span></li>
+                    {/each}
+                </ol>
+            {:None}
+            {/match}
         </main>
     }
 }
