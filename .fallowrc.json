@@ -30,7 +30,9 @@
     "benchmarks/headtohead/todomvc/react/**",
     "benchmarks/headtohead/todomvc/svelte/**",
     "benchmarks/headtohead/rows/react/**",
-    "benchmarks/headtohead/rows/svelte/**"
+    "benchmarks/headtohead/rows/svelte/**",
+    "docs/evidence/E10/handlers/**",
+    "docs/evidence/E10/kiokun/modules/**"
   ],
   "duplicates": {
     "ignore": [
@@ -47,7 +49,9 @@
       "benchmarks/headtohead/todomvc/react/**",
       "benchmarks/headtohead/todomvc/svelte/**",
       "benchmarks/headtohead/rows/react/**",
-      "benchmarks/headtohead/rows/svelte/**"
+      "benchmarks/headtohead/rows/svelte/**",
+      "docs/evidence/E10/handlers/**",
+      "docs/evidence/E10/kiokun/modules/**"
     ],
     "thresholdOverrides": [
       {
@@ -795,7 +799,7 @@
           "renderer"
         ],
         "maxCrap": 273.0,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers). Raised by trains 18 and 19, the planned rows written straight into their holes and the lists that are blocks of their own (ADR-0420, ADR-0421, ADR-0424); each ceiling the score it landed with. Raised by trains 20 and 21, a page alone in its build as one document and the planned row computed, its captures held (ADR-0426, ADR-0427); each ceiling the score it landed with. Raised by train-23, what a device's page holds is what its build reaches (ADR-0428); each ceiling the score it landed with. Raised by train-27, a planned row's prototype (ADR-0432); the ceiling the score it landed with."
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers). Raised by trains 18 and 19, the planned rows written straight into their holes and the lists that are blocks of their own (ADR-0420, ADR-0421, ADR-0424); each ceiling the score it landed with. Raised by trains 20 and 21, a page alone in its build as one document and the planned row computed, its captures held (ADR-0426, ADR-0427); each ceiling the score it landed with. Raised by train-23, what a device's page holds is what its build reaches (ADR-0428); each ceiling the score it landed with. Raised by train-27, the emit loop that notes each key and a planned row's text written when it is first read (ADR-0432); the ceiling the score it landed with."
       },
       {
         "files": [
