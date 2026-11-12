@@ -3421,3 +3421,6 @@ Proposed: the packaging writes each page's own renderer, the general one partial
 
 [ADR-0435](DECISIONS/ADR-0435-a-planned-rows-handlers-are-noted-on-their-element.md):
 A planned row's handlers are noted on their element, under a symbol of the runtime's own, not in a weak map: what a handler on a row a plan made captures is read from the element pressed.
+
+[ADR-0436](DECISIONS/ADR-0436-an-option-a-match-takes-apart-where-it-is-made-is-never-made.md):
+An `Option` that `List.get`, `Map.get` or `List.find` makes, read only by the match after it, is never made in a browser's module: the match is an `if` on the test that holds where it is `Some`, `Some`'s arm reading the payload there; each value's reads are counted over the body before it is written (`Instr::operands` names every instruction), a value read again is made from the same test and payload, and a body that names a value it left unmade is refused where it is built.

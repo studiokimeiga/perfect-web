@@ -14,12 +14,13 @@ value the page holds is read as it is (ADR-0433). The large list's presses do
 less; their record is the head-to-head their full verify is recorded with.
 What is left, each measured, none decided:
 
-1. **An `Option` made only to be matched.** `match List.get(xs, i) { Some(w)
-   => w, None => "" }` makes `{ $case: "some", value }` and switches on it at
-   once: three objects a row of the large list, and every `List.get`,
-   `Map.get` and `List.find` the same. A match on a value the same function
-   made from a case could take the case's arm with its payload, and the
-   object never be made: the compiler's lowering or its JavaScript backend.
+1. **Done, within the record's spread: an `Option` made only to be
+   matched is not made** (train-31, ADR-0436, to land after trains 27 and
+   28): a `List.get`, `Map.get` or `List.find` read only by the match after
+   it is an `if` on its test. The large list's three objects a row are gone
+   and its row-making handlers 667 bytes lighter (117 with Brotli); the
+   builds visited in turn moved no press past its rounds' spread. A profile
+   of the first press would say what share of it they were.
 2. **A warm append's frame, later in some rounds.** With trains 27 and 28
    a warm "append 1,000 rows" reaches the document sooner in every round
    (under Slow 4G 29.6 to 33.9 ms after the click, to 34.4 to 40.7) and its

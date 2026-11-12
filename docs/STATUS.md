@@ -2,6 +2,15 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**Train-31, 2026-11-12:** on trains 27 and 28, its full verify after theirs
+(#106). An `Option` that `List.get`, `Map.get` or `List.find` makes, read
+only by the match after it, is never made in a browser's module (ADR-0436):
+the match is an `if` on its test, `Some`'s arm reading the payload there,
+and a value read again is made from the same test and payload. The large
+list's label made three a row; its row-making handlers are 667 bytes lighter
+(117 with Brotli) and the store's `dollars_typed` 187; the two builds visited
+in turn, eleven rounds a cell, moved no press past its rounds' spread.
+
 **Trains 27 and 28, 2026-11-12:** on train-26, landing together. A list's
 rows are made as they changed (ADR-0432): an update, a list made from none
 and rows added at its end change the rows in place and put the new ones in
