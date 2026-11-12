@@ -1,8 +1,8 @@
 ADR-0383 (track upload-metadata) - an uploaded image kept and served without what names a place, a device, a person or a time
 
 produced by: just e14-upload-metadata
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -23,8 +23,8 @@ test tests::uploads::on_postgres_a_deleted_posts_image_is_not_served_and_its_blo
 test tests::uploads::on_postgres_an_attached_image_removed_is_forgotten ... ok
 test tests::uploads::on_postgres_an_image_is_kept_with_its_post ... ok
 test tests::uploads::on_postgres_posting_an_image_with_none_attached_commits_nothing ... ok
-test tests::uploads::an_upload_is_read_within_its_own_limits_not_a_commands ... ok
 test tests::uploads::an_image_attached_is_posted_with_its_post_and_served ... ok
+test tests::uploads::an_upload_is_read_within_its_own_limits_not_a_commands ... ok
 test tests::uploads::an_uploads_connection_is_closed_after_its_answer ... ok
 test uploads::icc::tests::a_profile_keeps_its_colour_and_names_nothing ... ok
 test uploads::icc::tests::a_profile_that_does_not_parse_is_not_kept ... ok
@@ -120,14 +120,15 @@ test uploads::tests::nothing_is_claimed_where_nothing_is_declared ... ok
 test uploads::tests::privacy_refusals_leave_no_lease_staged_or_final_blob ... ok
 test uploads::tests::privacy_rewrite_is_the_preview_claim_storage_key_and_served_body ... ok
 test uploads::tests::session_authority_tests::a_lease_claimed_during_final_inspection_is_not_replaced ... ok
+test tests::uploads::what_is_not_an_image_is_refused_whatever_it_is_called ... ok
 test uploads::tests::session_authority_tests::a_lease_replaced_during_final_inspection_is_not_overwritten ... ok
 test uploads::tests::session_authority_tests::completed_logout_refuses_old_cookie_preview_shown_and_claim ... ok
 test uploads::tests::session_authority_tests::current_reader_can_preview_claim_rollback_and_publish_public_image ... ok
 test uploads::tests::session_authority_tests::local_expiry_after_staged_put_refuses_publication_and_releases_gate ... ok
 test uploads::tests::session_authority_tests::original_bound_reader_cannot_preview_after_completed_logout ... ok
 test uploads::tests::session_authority_tests::preview_live_inspection_follows_the_complete_staged_blob_read ... ok
-test uploads::tests::session_authority_tests::remote_revocation_while_upload_body_is_held_refuses_staging ... ok
 test uploads::tests::session_authority_tests::remote_revocation_without_local_refresh_cannot_serve_preview ... ok
+test uploads::tests::session_authority_tests::remote_revocation_while_upload_body_is_held_refuses_staging ... ok
 test uploads::tests::session_authority_tests::same_cookie_same_account_new_generation_cannot_preview_or_claim_old_lease ... ok
 test uploads::tests::session_authority_tests::source_failure_after_same_key_put_preserves_existing_lease_and_shared_bytes ... ok
 test uploads::tests::session_authority_tests::source_failure_after_staged_put_refuses_new_lease_and_removes_unheld_bytes ... ok
@@ -136,27 +137,26 @@ test uploads::tests::session_authority_tests::stale_bound_reader_cannot_take_rep
 test uploads::tests::session_authority_tests::unavailable_source_cannot_serve_preview_from_cached_bound_reader ... ok
 test uploads::tests::session_authority_tests::upload_held_in_body_cannot_publish_a_lease_after_completed_logout ... ok
 test uploads::tests::staged_bytes_cover_expansion_but_hourly_bytes_count_the_upload ... ok
-test tests::uploads::what_is_not_an_image_is_refused_whatever_it_is_called ... ok
 test uploads::tests::the_kind_is_sniffed_and_never_the_senders ... ok
 test uploads::tests::the_same_image_attached_twice_is_kept ... ok
 test uploads::tests::the_size_is_held_before_and_after_the_body_is_read ... ok
 test tests::uploads::posting_an_image_with_none_attached_commits_nothing ... ok
 test uploads::tests::the_dimensions_are_held ... ok
 test uploads::strip::tests::any_bytes_are_refused_or_kept_and_kept_again_unchanged ... ok
-test result: ok. 134 passed; 0 failed; 0 ignored; 0 measured; 914 filtered out; finished in 5.76s
+test result: ok. 134 passed; 0 failed; 0 ignored; 0 measured; 914 filtered out; finished in 5.74s
 
 == an image shown and served without its metadata, in three engines (e2e/upload-metadata.spec.mjs)
 
 EVIDENCE colour (chromium): profiled.jpg renders by its profile: as sent and as served [106,135,188,255], without a profile [37,62,128,255]
 EVIDENCE colour (chromium): profiled.png renders by its profile: as sent and as served [124,156,188,255], without a profile [51,85,128,255]
 EVIDENCE colour (chromium): profiled.webp renders by its profile: as sent and as served [80,94,185,160], without a profile [19,29,123,160]
-EVIDENCE colour (firefox): profiled.jpg does not render by its profile: as sent and as served [37,62,128,255], without a profile [37,62,128,255]
-EVIDENCE colour (firefox): profiled.png does not render by its profile: as sent and as served [51,85,128,255], without a profile [51,85,128,255]
-EVIDENCE colour (firefox): profiled.webp does not render by its profile: as sent and as served [20,30,124,160], without a profile [20,30,124,160]
 EVIDENCE as sent (chromium): a PNG whose eXIf says Orientation 6, stored 6 by 4: shown 4 by 6
 EVIDENCE as sent (chromium): a WebP whose EXIF says Orientation 6, stored 12 by 9: shown 12 by 9
 EVIDENCE as sent (chromium): a JPEG whose Exif says 6, then a second Exif 1, stored 8 by 5: shown 5 by 8
 EVIDENCE as sent (chromium): a JPEG whose first APP1 is XMP, then an Exif that says 6, stored 8 by 5: shown 5 by 8
+EVIDENCE colour (firefox): profiled.jpg does not render by its profile: as sent and as served [37,62,128,255], without a profile [37,62,128,255]
+EVIDENCE colour (firefox): profiled.png does not render by its profile: as sent and as served [51,85,128,255], without a profile [51,85,128,255]
+EVIDENCE colour (firefox): profiled.webp does not render by its profile: as sent and as served [20,30,124,160], without a profile [20,30,124,160]
 EVIDENCE as sent (firefox): a PNG whose eXIf says Orientation 6, stored 6 by 4: shown 4 by 6
 EVIDENCE as sent (firefox): a WebP whose EXIF says Orientation 6, stored 12 by 9: shown 12 by 9
 EVIDENCE as sent (firefox): a JPEG whose Exif says 6, then a second Exif 1, stored 8 by 5: shown 5 by 8
@@ -305,7 +305,7 @@ what follows a JPEG's EOI is kept (a phone's second image): KILLED (3 of 134 tes
     -   242,
     -   196,
     -   137,
-    [cause]: Error: PW_ASSERTION:9bbdab8d8509f1dc49e2e2df63caf7e899ed62b4ab7e51d4ff61a69a034192f2
+    [cause]: Error: PW_ASSERTION:a5066b8cbb18b6bb0bae3af2a4b8133098f0df72f3325a830cd3ff3dfa4aa98a
   25) [webkit] › e2e/upload-metadata.spec.mjs:604:3 › JPEG orientation 6 keeps the same displayed pixels 
     Error: expect(received).toEqual(expected) // deep equality
     - Expected  - 106
@@ -415,7 +415,7 @@ what follows a JPEG's EOI is kept (a phone's second image): KILLED (3 of 134 tes
     -   224,
     -   18,
     -   118,
-    [cause]: Error: PW_ASSERTION:9bbdab8d8509f1dc49e2e2df63caf7e899ed62b4ab7e51d4ff61a69a034192f2
+    [cause]: Error: PW_ASSERTION:a5066b8cbb18b6bb0bae3af2a4b8133098f0df72f3325a830cd3ff3dfa4aa98a
   26) [webkit] › e2e/upload-metadata.spec.mjs:604:3 › JPEG orientation 7 keeps the same displayed pixels 
     Error: expect(received).toEqual(expected) // deep equality
     - Expected  - 106
@@ -525,7 +525,7 @@ what follows a JPEG's EOI is kept (a phone's second image): KILLED (3 of 134 tes
     -   0,
     -   6,
     -   104,
-    [cause]: Error: PW_ASSERTION:9bbdab8d8509f1dc49e2e2df63caf7e899ed62b4ab7e51d4ff61a69a034192f2
+    [cause]: Error: PW_ASSERTION:a5066b8cbb18b6bb0bae3af2a4b8133098f0df72f3325a830cd3ff3dfa4aa98a
   27) [webkit] › e2e/upload-metadata.spec.mjs:604:3 › JPEG orientation 8 keeps the same displayed pixels 
     Error: expect(received).toEqual(expected) // deep equality
     - Expected  - 105
@@ -634,13 +634,13 @@ what follows a JPEG's EOI is kept (a phone's second image): KILLED (3 of 134 tes
     -   27,
     -   239,
     -   136,
-    [cause]: Error: PW_ASSERTION:9bbdab8d8509f1dc49e2e2df63caf7e899ed62b4ab7e51d4ff61a69a034192f2
+    [cause]: Error: PW_ASSERTION:a5066b8cbb18b6bb0bae3af2a4b8133098f0df72f3325a830cd3ff3dfa4aa98a
 EVIDENCE colour (webkit): real.jpg does not render by its profile: as sent and as served [37,62,128,255], without a profile [37,62,128,255]
 EVIDENCE colour (webkit): real.png does not render by its profile: as sent and as served [51,85,128,255], without a profile [51,85,128,255]
 EVIDENCE colour (webkit): real.webp does not render by its profile: as sent and as served [19,29,123,160], without a profile [19,29,123,160]
   27 failed
-  18 passed (2.3m)
-  run_suite: kept 28 of 28 entries of its output (16.9 MiB) in kept-traces/e14-upload-metadata/20261111T075411Z-139452/run-1
+  18 passed (2.4m)
+  run_suite: kept 28 of 28 entries of its output (17.3 MiB) in kept-traces/e14-upload-metadata/20261111T194351Z-263379/run-1
   run_suite: exit 1
 
 a photo's turn is not written back: KILLED (27 of 45 tests fail)
@@ -802,12 +802,12 @@ an ICC profile a fixed text makes larger than 4 MiB is kept (and not kept again)
     Error: IMG_0001.jpg as served
     - Expected  - 1
     - Array []
-    [cause]: Error: PW_ASSERTION:4aa497ab31a7ae100bdbe0e4f776ff8039ae1e627f0efb8602b9e83c4c679667
+    [cause]: Error: PW_ASSERTION:4ae050effb7551ae5264bbb58b5213e7db893f47b0eb303e255838991daa4106
   2) [firefox] › e2e/upload-metadata.spec.mjs:484:1 › each format is shown and served without its metadata 
     Error: IMG_0001.jpg as served
     - Expected  - 1
     - Array []
-    [cause]: Error: PW_ASSERTION:4aa497ab31a7ae100bdbe0e4f776ff8039ae1e627f0efb8602b9e83c4c679667
+    [cause]: Error: PW_ASSERTION:4ae050effb7551ae5264bbb58b5213e7db893f47b0eb303e255838991daa4106
 EVIDENCE as sent (chromium): a PNG whose eXIf says Orientation 6, stored 6 by 4: shown 4 by 6
 EVIDENCE as sent (chromium): a WebP whose EXIF says Orientation 6, stored 12 by 9: shown 12 by 9
 EVIDENCE as sent (chromium): a JPEG whose Exif says 6, then a second Exif 1, stored 8 by 5: shown 5 by 8
@@ -823,7 +823,7 @@ EVIDENCE colour (chromium): real.webp does not render by its profile: as sent an
     Error: expect(received).toEqual(expected) // deep equality
     - Expected  -    1
     - Array []
-    [cause]: Error: PW_ASSERTION:4aa497ab31a7ae100bdbe0e4f776ff8039ae1e627f0efb8602b9e83c4c679667
+    [cause]: Error: PW_ASSERTION:4ae050effb7551ae5264bbb58b5213e7db893f47b0eb303e255838991daa4106
 EVIDENCE colour (firefox): real.jpg does not render by its profile: as sent and as served [37,62,128,255], without a profile [37,62,128,255]
 EVIDENCE colour (firefox): real.png does not render by its profile: as sent and as served [51,85,128,255], without a profile [51,85,128,255]
 EVIDENCE colour (firefox): real.webp does not render by its profile: as sent and as served [20,30,124,160], without a profile [20,30,124,160]
@@ -831,12 +831,12 @@ EVIDENCE colour (firefox): real.webp does not render by its profile: as sent and
     Error: expect(received).toEqual(expected) // deep equality
     - Expected  -    1
     - Array []
-    [cause]: Error: PW_ASSERTION:4aa497ab31a7ae100bdbe0e4f776ff8039ae1e627f0efb8602b9e83c4c679667
+    [cause]: Error: PW_ASSERTION:4ae050effb7551ae5264bbb58b5213e7db893f47b0eb303e255838991daa4106
   5) [webkit] › e2e/upload-metadata.spec.mjs:484:1 › each format is shown and served without its metadata 
     Error: IMG_0001.jpg as served
     - Expected  - 1
     - Array []
-    [cause]: Error: PW_ASSERTION:4aa497ab31a7ae100bdbe0e4f776ff8039ae1e627f0efb8602b9e83c4c679667
+    [cause]: Error: PW_ASSERTION:4ae050effb7551ae5264bbb58b5213e7db893f47b0eb303e255838991daa4106
 EVIDENCE as sent (webkit): a PNG whose eXIf says Orientation 6, stored 6 by 4: shown 6 by 4
 EVIDENCE as sent (webkit): a WebP whose EXIF says Orientation 6, stored 12 by 9: shown 12 by 9
 EVIDENCE as sent (webkit): a JPEG whose Exif says 6, then a second Exif 1, stored 8 by 5: shown 5 by 8
@@ -848,10 +848,10 @@ EVIDENCE colour (webkit): real.webp does not render by its profile: as sent and 
     Error: expect(received).toEqual(expected) // deep equality
     - Expected  -    1
     - Array []
-    [cause]: Error: PW_ASSERTION:4aa497ab31a7ae100bdbe0e4f776ff8039ae1e627f0efb8602b9e83c4c679667
+    [cause]: Error: PW_ASSERTION:4ae050effb7551ae5264bbb58b5213e7db893f47b0eb303e255838991daa4106
   6 failed
   39 passed (1.4m)
-  run_suite: kept 7 of 7 entries of its output (2.8 MiB) in kept-traces/e14-upload-metadata/20261111T081000Z-181129/run-1
+  run_suite: kept 7 of 7 entries of its output (2.8 MiB) in kept-traces/e14-upload-metadata/20261111T200030Z-304919/run-1
   run_suite: exit 1
 
 the bytes as sent are leased, not the bytes rewritten: KILLED (6 of 45 tests fail)

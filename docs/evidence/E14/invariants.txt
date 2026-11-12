@@ -1,8 +1,8 @@
 ADR-0179 - an opaque type states its invariant, and every construction and every boundary holds it
 
 produced by: just e14-invariants
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -14,19 +14,19 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 97 filtered out; fin
 
 == the checker, PW0622 and PW0623 (compiler/pw-core/tests/invariants.rs)
 
-test a_branch_is_either_of_its_values ... ok
 test a_let_is_its_initializer_where_the_let_is ... ok
+test a_branch_is_either_of_its_values ... ok
 test a_literal_is_itself ... ok
-test a_piped_value_is_held_too ... ok
-test a_conjunction_narrows_where_it_holds_and_only_there ... ok
 test an_invariant_the_language_cannot_read_is_refused_where_it_is_written ... ok
+test a_piped_value_is_held_too ... ok
 test an_opaque_type_that_states_nothing_checks_nothing ... ok
+test a_conjunction_narrows_where_it_holds_and_only_there ... ok
 test arithmetic_on_bounded_values_is_exact ... ok
 test a_test_narrows_what_it_tests ... ok
 test an_upper_bound_is_held_as_the_lower_is ... ok
 test the_store_s_contracts_state_where_a_count_comes_from_outside ... ok
 test the_store_builds_every_count_it_can_show ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.87s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.19s
 
 == the conformance oracle, its values fitted to the contract
 
@@ -36,7 +36,7 @@ test the_kiokun_search_agrees_with_its_reference ... ok
 test the_oracle_notices_a_reference_that_is_wrong ... ok
 test the_stores_queries_agree_with_their_reference ... ok
 test the_stores_commands_agree_with_their_reference ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.21s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.12s
 
 == the host (runtime/pw-host/tests/bounded.rs, pleris_component.rs)
 
@@ -48,17 +48,17 @@ test each_item_of_a_list_and_each_field_is_reached ... ok
 test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 test a_quantity_that_is_no_positive_int_is_refused_as_the_arguments_are_decoded ... ok
 test a_data_layer_answer_that_breaks_an_invariant_is_the_commands_failure ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 15 filtered out; finished in 0.03s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 15 filtered out; finished in 0.04s
 
 == the development server (pw-dev-server)
 
 test tests::a_quantity_that_is_no_positive_int_is_refused_at_the_boundary ... ok
 test tests::a_stored_line_of_nothing_is_a_failed_read ... ok
-test result: ok. 1039 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 327.44s
+test result: ok. 1039 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 459.41s
 
 == the page, in three engines (e2e/compiled-handler.spec.mjs)
 
-  18 passed (16.0s)
+  18 passed (20.0s)
 
 == mutation controls (scripts/invariants_mutations.py)
 

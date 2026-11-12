@@ -1,8 +1,8 @@
 ADR-0193 - an order is placed, and its page follows it
 
 produced by: just e14-orders
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -12,23 +12,23 @@ playwright: Version 1.58.0
 test tests::an_empty_cart_places_no_order ... ok
 test tests::an_order_is_placed_from_the_cart_and_reaches_its_open_page ... ok
 test tests::the_store_moving_an_order_along_reaches_its_open_page ... ok
-test result: ok. 1039 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 492.58s
+test result: ok. 1039 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 640.25s
 
 == the order's flow, in three engines (e2e/pages.spec.mjs, e2e/accessibility.spec.mjs)
 
-  ✓   1 [chromium] › e2e/pages.spec.mjs:138:1 › an order is placed from the cart, and its page follows it as the store moves it along (2.2s)
-  ✓   2 [chromium] › e2e/accessibility.spec.mjs:185:1 › the order's page keeps every rule, as the store moves it along (2.3s)
-  ✓   3 [chromium] › e2e/pages.spec.mjs:166:1 › an empty cart places no order, and says so (430ms)
-  ✓   4 [chromium] › e2e/accessibility.spec.mjs:387:1 › every control is reached from the keyboard, in the order it is read, and shows its focus (1.5s)
-  ✓   5 [firefox] › e2e/accessibility.spec.mjs:185:1 › the order's page keeps every rule, as the store moves it along (3.8s)
-  ✓   6 [firefox] › e2e/pages.spec.mjs:138:1 › an order is placed from the cart, and its page follows it as the store moves it along (2.6s)
-  ✓   8 [firefox] › e2e/pages.spec.mjs:166:1 › an empty cart places no order, and says so (522ms)
-  ✓   7 [firefox] › e2e/accessibility.spec.mjs:387:1 › every control is reached from the keyboard, in the order it is read, and shows its focus (1.8s)
-  ✓  10 [webkit] › e2e/pages.spec.mjs:138:1 › an order is placed from the cart, and its page follows it as the store moves it along (1.8s)
-  ✓   9 [webkit] › e2e/accessibility.spec.mjs:185:1 › the order's page keeps every rule, as the store moves it along (3.3s)
-  ✓  11 [webkit] › e2e/pages.spec.mjs:166:1 › an empty cart places no order, and says so (867ms)
+  ✓   1 [chromium] › e2e/pages.spec.mjs:138:1 › an order is placed from the cart, and its page follows it as the store moves it along (2.4s)
+  ✓   2 [chromium] › e2e/accessibility.spec.mjs:185:1 › the order's page keeps every rule, as the store moves it along (2.4s)
+  ✓   3 [chromium] › e2e/pages.spec.mjs:166:1 › an empty cart places no order, and says so (473ms)
+  ✓   4 [chromium] › e2e/accessibility.spec.mjs:387:1 › every control is reached from the keyboard, in the order it is read, and shows its focus (1.6s)
+  ✓   5 [firefox] › e2e/accessibility.spec.mjs:185:1 › the order's page keeps every rule, as the store moves it along (4.3s)
+  ✓   6 [firefox] › e2e/pages.spec.mjs:138:1 › an order is placed from the cart, and its page follows it as the store moves it along (3.2s)
+  ✓   8 [firefox] › e2e/pages.spec.mjs:166:1 › an empty cart places no order, and says so (724ms)
+  ✓   7 [firefox] › e2e/accessibility.spec.mjs:387:1 › every control is reached from the keyboard, in the order it is read, and shows its focus (1.9s)
+  ✓  10 [webkit] › e2e/pages.spec.mjs:138:1 › an order is placed from the cart, and its page follows it as the store moves it along (1.9s)
+  ✓   9 [webkit] › e2e/accessibility.spec.mjs:185:1 › the order's page keeps every rule, as the store moves it along (3.5s)
+  ✓  11 [webkit] › e2e/pages.spec.mjs:166:1 › an empty cart places no order, and says so (973ms)
   ✓  12 [webkit] › e2e/accessibility.spec.mjs:387:1 › every control is reached from the keyboard, in the order it is read, and shows its focus (2.1s)
-  12 passed (41.4s)
+  12 passed (52.5s)
 
 == mutation controls (scripts/orders_mutations.py)
 

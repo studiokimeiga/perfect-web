@@ -1,7 +1,7 @@
 ADR-0376 - canonical guide process ownership
 produced by: just e14-guide-ownership
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 test_abort_retains_the_leader_until_the_final_group_signal (test_guide_process_ownership.GuideOwnership.test_abort_retains_the_leader_until_the_final_group_signal) ... ok
 test_budget_is_capped_and_reserved_without_mutating_environments (test_guide_process_ownership.GuideOwnership.test_budget_is_capped_and_reserved_without_mutating_environments) ... ok
 test_callback_storage_error_does_not_mask_cancellation_or_restoration (test_guide_process_ownership.GuideOwnership.test_callback_storage_error_does_not_mask_cancellation_or_restoration) ... ok
@@ -19,7 +19,7 @@ test_running_cancellation_reaps_before_restoration_and_stops_its_group (test_gui
 test_timeout_stops_same_group_grandchild_and_cannot_validate (test_guide_process_ownership.GuideOwnership.test_timeout_stops_same_group_grandchild_and_cannot_validate) ... ok
 
 ----------------------------------------------------------------------
-Ran 15 tests in 15.986s
+Ran 15 tests in 15.957s
 
 OK
 test_abort_retains_the_leader_until_the_final_group_signal (test_guide_process_ownership.GuideOwnership.test_abort_retains_the_leader_until_the_final_group_signal) ... ok
@@ -39,11 +39,11 @@ test_running_cancellation_reaps_before_restoration_and_stops_its_group (test_gui
 test_timeout_stops_same_group_grandchild_and_cannot_validate (test_guide_process_ownership.GuideOwnership.test_timeout_stops_same_group_grandchild_and_cannot_validate) ... ok
 
 ----------------------------------------------------------------------
-Ran 15 tests in 16.241s
+Ran 15 tests in 16.568s
 
 OK
 
-Python structured receipt: /tmp/pw-guide-ownership-tvjgpngh/pw-guide-result-zqbdjset
+Python structured receipt: /tmp/pw-guide-ownership-ynl_we5y/pw-guide-result-_7d14p5f
 {"valid": true, "reason": "complete", "passed": ["test_guide_process_ownership.GuideOwnership.test_abort_retains_the_leader_until_the_final_group_signal", "test_guide_process_ownership.GuideOwnership.test_budget_is_capped_and_reserved_without_mutating_environments", "test_guide_process_ownership.GuideOwnership.test_callback_storage_error_does_not_mask_cancellation_or_restoration", "test_guide_process_ownership.GuideOwnership.test_cancellation_after_native_completion_never_signals_a_reaped_group", "test_guide_process_ownership.GuideOwnership.test_exhausted_or_malformed_budget_refuses_before_native_launch", "test_guide_process_ownership.GuideOwnership.test_exited_leader_does_not_spare_a_term_ignoring_grandchild", "test_guide_process_ownership.GuideOwnership.test_launch_cancellation_reaps_before_restoration_and_stops_its_group", "test_guide_process_ownership.GuideOwnership.test_missing_waitid_uses_bounded_grace_without_early_reaping", "test_guide_process_ownership.GuideOwnership.test_native_files_status_and_clean_import_environment_are_preserved", "test_guide_process_ownership.GuideOwnership.test_nested_cancellation_restores_both_owners_even_when_leaf_ignores_term", "test_guide_process_ownership.GuideOwnership.test_nested_timeout_restores_both_owners_even_when_leaf_ignores_term", "test_guide_process_ownership.GuideOwnership.test_recursive_cancellation_has_descending_cleanup_deadlines", "test_guide_process_ownership.GuideOwnership.test_recursive_timeout_has_descending_cleanup_deadlines", "test_guide_process_ownership.GuideOwnership.test_running_cancellation_reaps_before_restoration_and_stops_its_group", "test_guide_process_ownership.GuideOwnership.test_timeout_stops_same_group_grandchild_and_cannot_validate"], "assertion_failed": [], "body_errors": [], "executed": 15, "report_sha256": "83619bb1b306c1597643acfcdf934c7e239288e5db6a0c4c7646833aa32f6679"}
 
 baseline: 15 passed, 0 failed
@@ -69,11 +69,11 @@ AssertionError: {'running': [False, True], 'leader_exists': False} != {'running'
  : 
 
 ----------------------------------------------------------------------
-Ran 1 test in 2.710s
+Ran 1 test in 2.776s
 
 FAILED (failures=1)
 
-Python structured receipt: /tmp/pw-guide-ownership-tvjgpngh/pw-guide-result-a0h4jen8
+Python structured receipt: /tmp/pw-guide-ownership-ynl_we5y/pw-guide-result-obxx86_o
 {"valid": true, "reason": "complete", "passed": [], "assertion_failed": ["test_guide_process_ownership.GuideOwnership.test_timeout_stops_same_group_grandchild_and_cannot_validate"], "body_errors": [], "executed": 1, "report_sha256": "69f2fbc330143603000c0596bd7e415bad3ab0b73b3d50d0573ebc1ac4738856"}
 
 only the immediate child is stopped: KILLED by test_guide_process_ownership.GuideOwnership.test_timeout_stops_same_group_grandchild_and_cannot_validate (1 assertion methods fail)
@@ -93,11 +93,11 @@ Traceback (most recent call last):
 AssertionError: False is not true : ownership receipt is missing
 
 ----------------------------------------------------------------------
-Ran 1 test in 0.379s
+Ran 1 test in 0.464s
 
 FAILED (failures=1)
 
-Python structured receipt: /tmp/pw-guide-ownership-tvjgpngh/pw-guide-result-vj4d56l6
+Python structured receipt: /tmp/pw-guide-ownership-ynl_we5y/pw-guide-result-k51uh0y1
 {"valid": true, "reason": "complete", "passed": [], "assertion_failed": ["test_guide_process_ownership.GuideOwnership.test_launch_cancellation_reaps_before_restoration_and_stops_its_group"], "body_errors": [], "executed": 1, "report_sha256": "cf01e8bf09dcb13504a8bc3b3feae746cf329bfd120f3e09fa7f0b38e6ed0a07"}
 
 reaped cancellation has no retained native receipt: KILLED by test_guide_process_ownership.GuideOwnership.test_launch_cancellation_reaps_before_restoration_and_stops_its_group (1 assertion methods fail)
@@ -117,11 +117,11 @@ Traceback (most recent call last):
 AssertionError: -15 is not None
 
 ----------------------------------------------------------------------
-Ran 1 test in 0.679s
+Ran 1 test in 0.766s
 
 FAILED (failures=1)
 
-Python structured receipt: /tmp/pw-guide-ownership-tvjgpngh/pw-guide-result-kmop_t9x
+Python structured receipt: /tmp/pw-guide-ownership-ynl_we5y/pw-guide-result-saa3elos
 {"valid": true, "reason": "complete", "passed": [], "assertion_failed": ["test_guide_process_ownership.GuideOwnership.test_timeout_stops_same_group_grandchild_and_cannot_validate"], "body_errors": [], "executed": 1, "report_sha256": "69f2fbc330143603000c0596bd7e415bad3ab0b73b3d50d0573ebc1ac4738856"}
 
 timeout status is eligible for validation: KILLED by test_guide_process_ownership.GuideOwnership.test_timeout_stops_same_group_grandchild_and_cannot_validate (1 assertion methods fail)
@@ -141,11 +141,11 @@ AssertionError: '' != 'separate stderr\n'
 
 
 ----------------------------------------------------------------------
-Ran 1 test in 0.065s
+Ran 1 test in 0.102s
 
 FAILED (failures=1)
 
-Python structured receipt: /tmp/pw-guide-ownership-tvjgpngh/pw-guide-result-48oy1m0a
+Python structured receipt: /tmp/pw-guide-ownership-ynl_we5y/pw-guide-result-b5p5tl5g
 {"valid": true, "reason": "complete", "passed": [], "assertion_failed": ["test_guide_process_ownership.GuideOwnership.test_native_files_status_and_clean_import_environment_are_preserved"], "body_errors": [], "executed": 1, "report_sha256": "d95f2ebba5b5bab5ad6ae5d78b127f9a43c1518006553658706e2306d350d031"}
 
 native stderr is merged into stdout: KILLED by test_guide_process_ownership.GuideOwnership.test_native_files_status_and_clean_import_environment_are_preserved (1 assertion methods fail)
@@ -180,11 +180,11 @@ Traceback (most recent call last):
 AssertionError: False is not true : nested leaf did not launch
 
 ----------------------------------------------------------------------
-Ran 1 test in 10.736s
+Ran 1 test in 10.919s
 
 FAILED (failures=2)
 
-Python structured receipt: /tmp/pw-guide-ownership-tvjgpngh/pw-guide-result-n5un131f
+Python structured receipt: /tmp/pw-guide-ownership-ynl_we5y/pw-guide-result-y4nkrw6q
 {"valid": true, "reason": "complete", "passed": [], "assertion_failed": ["test_guide_process_ownership.GuideOwnership.test_nested_timeout_restores_both_owners_even_when_leaf_ignores_term"], "body_errors": [], "executed": 1, "report_sha256": "f7d7fc4de4b29cf3a6014c5357d2dfd9d689d2f613755e3c7232da9096adb537"}
 
 guide cancellation cannot unwind the nested direct owner: KILLED by test_guide_process_ownership.GuideOwnership.test_nested_timeout_restores_both_owners_even_when_leaf_ignores_term (1 assertion methods fail)
@@ -207,11 +207,11 @@ AssertionError: 'mutant' != 'original'
  : 
 
 ----------------------------------------------------------------------
-Ran 1 test in 1.918s
+Ran 1 test in 2.130s
 
 FAILED (failures=1)
 
-Python structured receipt: /tmp/pw-guide-ownership-tvjgpngh/pw-guide-result-bgq00nt6
+Python structured receipt: /tmp/pw-guide-ownership-ynl_we5y/pw-guide-result-sc21zrap
 {"valid": true, "reason": "complete", "passed": [], "assertion_failed": ["test_guide_process_ownership.GuideOwnership.test_recursive_cancellation_has_descending_cleanup_deadlines"], "body_errors": [], "executed": 1, "report_sha256": "a3468a0fdb10ee335a0a23d0f76a5900ef7f6b6541748024cfac2ee54cb3b133"}
 
 equal grace deadlines let the outer owner skip inner restoration: KILLED by test_guide_process_ownership.GuideOwnership.test_recursive_cancellation_has_descending_cleanup_deadlines (1 assertion methods fail)
@@ -258,11 +258,11 @@ AssertionError: {'running': [False, True], 'leader_exists': False} != {'running'
  : 
 
 ----------------------------------------------------------------------
-Ran 1 test in 5.698s
+Ran 1 test in 5.829s
 
 FAILED (failures=2)
 
-Python structured receipt: /tmp/pw-guide-ownership-tvjgpngh/pw-guide-result-0h0p7dz8
+Python structured receipt: /tmp/pw-guide-ownership-ynl_we5y/pw-guide-result-xt1bd29s
 {"valid": true, "reason": "complete", "passed": [], "assertion_failed": ["test_guide_process_ownership.GuideOwnership.test_exited_leader_does_not_spare_a_term_ignoring_grandchild"], "body_errors": [], "executed": 1, "report_sha256": "0a76eff907856db452c4ddc97cd2a2769b6ef86b06e5ccc2eb9cea62e7970a08"}
 
 exited leader spares its surviving group: KILLED by test_guide_process_ownership.GuideOwnership.test_exited_leader_does_not_spare_a_term_ignoring_grandchild (1 assertion methods fail)
@@ -291,7 +291,7 @@ Ran 1 test in 0.302s
 
 FAILED (failures=1)
 
-Python structured receipt: /tmp/pw-guide-ownership-tvjgpngh/pw-guide-result-ja_uyd2g
+Python structured receipt: /tmp/pw-guide-ownership-ynl_we5y/pw-guide-result-pv5losz8
 {"valid": true, "reason": "complete", "passed": [], "assertion_failed": ["test_guide_process_ownership.GuideOwnership.test_abort_retains_the_leader_until_the_final_group_signal"], "body_errors": [], "executed": 1, "report_sha256": "8de2e3769ab43ea9aabc68fa66591c4757a8bec50e601cd48a0041079dcd849e"}
 
 grace reaps the leader before the final group signal: KILLED by test_guide_process_ownership.GuideOwnership.test_abort_retains_the_leader_until_the_final_group_signal (1 assertion methods fail)
@@ -328,11 +328,11 @@ AssertionError: '1500' != '0'
 
 
 ----------------------------------------------------------------------
-Ran 1 test in 0.115s
+Ran 1 test in 0.132s
 
 FAILED (failures=2)
 
-Python structured receipt: /tmp/pw-guide-ownership-tvjgpngh/pw-guide-result-8zy2d0yc
+Python structured receipt: /tmp/pw-guide-ownership-ynl_we5y/pw-guide-result-oxa03jo0
 {"valid": true, "reason": "complete", "passed": [], "assertion_failed": ["test_guide_process_ownership.GuideOwnership.test_budget_is_capped_and_reserved_without_mutating_environments"], "body_errors": [], "executed": 1, "report_sha256": "f1c89680ef8bba04e8168b9460eb2c2e15f30be5c519a5ac7014f904d028ec79"}
 
 nested cleanup request ignores inherited cap: KILLED by test_guide_process_ownership.GuideOwnership.test_budget_is_capped_and_reserved_without_mutating_environments (1 assertion methods fail)
@@ -449,11 +449,11 @@ Traceback (most recent call last):
 AssertionError: True is not false : invalid authority launched a native child
 
 ----------------------------------------------------------------------
-Ran 1 test in 0.023s
+Ran 1 test in 0.028s
 
 FAILED (failures=10)
 
-Python structured receipt: /tmp/pw-guide-ownership-tvjgpngh/pw-guide-result-gd4196gj
+Python structured receipt: /tmp/pw-guide-ownership-ynl_we5y/pw-guide-result-ug0ig7ol
 {"valid": true, "reason": "complete", "passed": [], "assertion_failed": ["test_guide_process_ownership.GuideOwnership.test_exhausted_or_malformed_budget_refuses_before_native_launch"], "body_errors": [], "executed": 1, "report_sha256": "1c6c3e431b63debf953b6240e02b504edaf3e5521246f328008cb25e05147f62"}
 
 exhausted authority can still launch a native child: KILLED by test_guide_process_ownership.GuideOwnership.test_exhausted_or_malformed_budget_refuses_before_native_launch (1 assertion methods fail)
@@ -502,11 +502,11 @@ AssertionError: '9999' != '0'
 
 
 ----------------------------------------------------------------------
-Ran 1 test in 0.104s
+Ran 1 test in 0.133s
 
 FAILED (failures=3)
 
-Python structured receipt: /tmp/pw-guide-ownership-tvjgpngh/pw-guide-result-w_r6tbrq
+Python structured receipt: /tmp/pw-guide-ownership-ynl_we5y/pw-guide-result-e5fuz5g1
 {"valid": true, "reason": "complete", "passed": [], "assertion_failed": ["test_guide_process_ownership.GuideOwnership.test_budget_is_capped_and_reserved_without_mutating_environments"], "body_errors": [], "executed": 1, "report_sha256": "f18217f7b6e57bdf88211056705aac0dbba1d2c7d18bab873f04cd786bb49512"}
 
 caller environment resets inherited cleanup authority: KILLED by test_guide_process_ownership.GuideOwnership.test_budget_is_capped_and_reserved_without_mutating_environments (1 assertion methods fail)
@@ -528,7 +528,7 @@ Ran 1 test in 0.104s
 
 FAILED (failures=1)
 
-Python structured receipt: /tmp/pw-guide-ownership-tvjgpngh/pw-guide-result-xanb4byp
+Python structured receipt: /tmp/pw-guide-ownership-ynl_we5y/pw-guide-result-s8kg4twl
 {"valid": true, "reason": "complete", "passed": [], "assertion_failed": ["test_guide_process_ownership.GuideOwnership.test_callback_storage_error_does_not_mask_cancellation_or_restoration"], "body_errors": [], "executed": 1, "report_sha256": "9ad875ff2768761e27da5092f1ff1d5495ef0fff70b902429fa39497bc10d3d8"}
 
 receipt failure masks pending cancellation: KILLED by test_guide_process_ownership.GuideOwnership.test_callback_storage_error_does_not_mask_cancellation_or_restoration (1 assertion methods fail)
@@ -546,11 +546,11 @@ Traceback (most recent call last):
 AssertionError: 1 != 0 : a completed/reaped group identity must not be signalled
 
 ----------------------------------------------------------------------
-Ran 1 test in 0.038s
+Ran 1 test in 0.047s
 
 FAILED (failures=1)
 
-Python structured receipt: /tmp/pw-guide-ownership-tvjgpngh/pw-guide-result-98s4npyl
+Python structured receipt: /tmp/pw-guide-ownership-ynl_we5y/pw-guide-result-28etpyf6
 {"valid": true, "reason": "complete", "passed": [], "assertion_failed": ["test_guide_process_ownership.GuideOwnership.test_cancellation_after_native_completion_never_signals_a_reaped_group"], "body_errors": [], "executed": 1, "report_sha256": "7ec5aac36e1669cd215e0598ea29b5165fc281daf81b987b988c125399a19416"}
 
 late cancellation signals a reaped native group: KILLED by test_guide_process_ownership.GuideOwnership.test_cancellation_after_native_completion_never_signals_a_reaped_group (1 assertion methods fail)

@@ -1,8 +1,8 @@
 ADR-0366 - official TodoMVC cases with pinned Cypress compatibility patch v1, and static runner probes
 
 produced by: just e14-device-store-cypress
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 node: v22.21.1
 cypress: Cypress package version: 15.21.1 Cypress binary version: 15.21.1 Electron version: 37.6.0 Bundled Node version: 22.19.0 
 

@@ -1,8 +1,8 @@
 ADR-0084 - what a string interpolates has a text form
 
 produced by: just e10-string-holes
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == string holes (compiler/pw-core/tests/string_holes.rs)
@@ -10,7 +10,7 @@ rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 test an_attributes_string_is_the_templates ... ok
 test a_value_that_may_be_absent_is_taken_apart_first ... ok
 test a_strings_hole_has_a_text_form ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 
 == mutation controls (scripts/string_hole_mutations.py)
 

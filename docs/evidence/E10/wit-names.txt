@@ -1,17 +1,17 @@
 WIT's reserved names, escaped
 
 produced by: just e10-wit-names
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == through the E8 host (compiler/pw-conformance/tests/wit_names.rs)
 
+test a_type_and_a_query_of_one_name_are_two_things ... ok
 test a_field_named_by_a_keyword_is_named_unescaped ... ok
 test a_query_named_by_a_keyword_is_exported_under_its_name ... ok
-test a_type_and_a_query_of_one_name_are_two_things ... ok
 test a_case_named_by_a_keyword_is_built_and_named_unescaped ... ok
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.40s
 
 == mutation controls (scripts/wit_name_mutations.py)
 

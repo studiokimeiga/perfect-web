@@ -1,20 +1,20 @@
 a page that talks to no server starts a runtime with no server's code in it
 
 produced by: just e14-device-runtime
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
 
 == the page's decision, asked as pw-resume is asked (decision-agreement.test.mjs)
 
-✔ every change to one field of a manifest is answered as the module answers (43.46305ms)
-✔ every change to two fields is answered as the module answers (444.241346ms)
-✔ a walk over all nine fields is answered as the module answers (291.814403ms)
-✔ the manifests reach each answer this decision has (26.894062ms)
-✔ each recovery a refusal can name is one the module names (4.448738ms)
-✔ a handler's identity is not read as anything but the table's own lines (0.294268ms)
+✔ every change to one field of a manifest is answered as the module answers (36.375903ms)
+✔ every change to two fields is answered as the module answers (425.564197ms)
+✔ a walk over all nine fields is answered as the module answers (277.138535ms)
+✔ the manifests reach each answer this decision has (23.745343ms)
+✔ each recovery a refusal can name is one the module names (5.779649ms)
+✔ a handler's identity is not read as anything but the table's own lines (0.210786ms)
 ℹ tests 6
 ℹ suites 0
 ℹ pass 6
@@ -22,47 +22,50 @@ playwright: Version 1.58.0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 862.068209
+ℹ duration_ms 815.529061
 
 == what the packaging writes (optimize-assets.test.mjs)
 
-✔ the production build minifies and compresses only public client assets (50.5445ms)
-✔ a production build compresses its compiled modules beside themselves, unchanged (22.741262ms)
-✔ a production build says its pages warm what their presses need (12.334132ms)
-✔ a production build puts each page's code in one module, and leaves each module as it was (34.296727ms)
-✔ a production build's packaging writes each page's module (17.269051ms)
-✔ what a page's handlers write alike is in its module once (12.382556ms)
-✔ a helper is shared only with each name of a prelude it reads (0.674074ms)
-✔ a paragraph fewer than two handlers import is each one's (0.293185ms)
-✔ a paragraph that declares two names is shared whole (0.418362ms)
-✔ what is not one helper written alike stays each handler's (0.486867ms)
-✔ a page whose handler has no module is a build that did not finish (4.17432ms)
-✔ a build with no pages bundles nothing (0.767812ms)
-✔ a production build writes a runtime for a page that talks to no server (7.58497ms)
-✔ a build with no runtime says nothing of one (2.566462ms)
-✔ the runtime of a page that talks to no server holds none of a server's code (227.129731ms)
-✔ the runtime of a page with a server holds none of what only a page with no server runs (222.597139ms)
-✔ a production build minifies its stylesheets, and keeps what they draw (7.352306ms)
-✔ a graph any file of the build writes counts, and none its packaging wrote (624.480972ms)
-✔ the device's runtime holds what its pages use, and none of what they do not (1983.671258ms)
-✔ a list whose rows change shape has no plan (394.813071ms)
-✔ an autofocus a value decides counts (196.955405ms)
-✔ what a block or a conditional's arm holds counts (587.341652ms)
-✔ a page a reader decides, or one with a layout, keeps out of what is read (584.014024ms)
-✔ a view a page uses is read for what it uses (191.921468ms)
-✔ a build whose pages cannot be read keeps everything (233.39942ms)
-✔ a page alone in its build has its code and the device's runtime in one module (499.323905ms)
-✔ a build of two pages has no module alone: its pages share one runtime (206.546953ms)
-✔ a page a reader decides has no module alone: it is no page of the device's (198.10182ms)
-✔ a page with no code of its own has no module alone (195.060104ms)
-ℹ tests 29
+✔ the production build minifies and compresses only public client assets (44.417397ms)
+✔ a production build compresses its compiled modules beside themselves, unchanged (20.229965ms)
+✔ a production build says its pages warm what their presses need (6.091307ms)
+✔ a production build puts each page's code in one module, and leaves each module as it was (27.615194ms)
+✔ a production build's packaging writes each page's module (12.763274ms)
+✔ what a page's handlers write alike is in its module once (10.744883ms)
+✔ a helper is shared only with each name of a prelude it reads (0.60644ms)
+✔ a paragraph fewer than two handlers import is each one's (0.340221ms)
+✔ a paragraph that declares two names is shared whole (0.392329ms)
+✔ what is not one helper written alike stays each handler's (0.474052ms)
+✔ a page whose handler has no module is a build that did not finish (3.970021ms)
+✔ a build with no pages bundles nothing (0.675484ms)
+✔ a production build writes a runtime for a page that talks to no server (6.354602ms)
+✔ a build with no runtime says nothing of one (2.260044ms)
+✔ the runtime of a page that talks to no server holds none of a server's code (360.259661ms)
+✔ the runtime of a page with a server holds none of what only a page with no server runs (251.26251ms)
+✔ a production build holds none of what the page reports about itself (183.984192ms)
+✔ a build for a suite that reads the page's reports keeps them (207.793681ms)
+✔ each report is a statement labeled REPORT, and does nothing but report (18.30808ms)
+✔ a production build minifies its stylesheets, and keeps what they draw (6.76614ms)
+✔ a graph any file of the build writes counts, and none its packaging wrote (478.817503ms)
+✔ the device's runtime holds what its pages use, and none of what they do not (1563.13978ms)
+✔ a list whose rows change shape has no plan (310.924412ms)
+✔ an autofocus a value decides counts (155.081905ms)
+✔ what a block or a conditional's arm holds counts (558.836179ms)
+✔ a page a reader decides, or one with a layout, keeps out of what is read (493.750044ms)
+✔ a view a page uses is read for what it uses (153.224806ms)
+✔ a build whose pages cannot be read keeps everything (172.193298ms)
+✔ a page alone in its build has its code and the device's runtime in one module (384.377331ms)
+✔ a build of two pages has no module alone: its pages share one runtime (266.252306ms)
+✔ a page a reader decides has no module alone: it is no page of the device's (161.927099ms)
+✔ a page with no code of its own has no module alone (160.095818ms)
+ℹ tests 32
 ℹ suites 0
-ℹ pass 29
+ℹ pass 32
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 6594.746096
+ℹ duration_ms 6094.774399
 
 == what the host starts (tests::page_bundle::)
 
@@ -76,13 +79,13 @@ test tests::page_bundle::a_page_with_a_layout_starts_the_whole_runtime ... ok
 test tests::page_bundle::a_production_build_of_a_page_with_no_module_names_none ... ok
 test tests::page_bundle::a_production_build_of_the_page_fetches_its_code_beside_its_runtime ... ok
 test tests::page_bundle::a_production_build_of_the_page_starts_the_devices_runtime ... ok
+test tests::page_bundle::a_bundled_module_is_kept_a_year_at_its_delivery_and_revalidated_at_another ... ok
 test tests::page_bundle::a_bundled_build_names_its_pages_module_on_its_table ... ok
 test tests::page_bundle::only_a_page_no_reader_decides_and_with_no_layout_runs_on_the_device ... ok
 test tests::page_bundle::the_policy_allows_each_runtime_a_build_starts ... ok
-test tests::page_bundle::a_bundled_module_is_kept_a_year_at_its_delivery_and_revalidated_at_another ... ok
 test tests::page_bundle::a_build_that_does_not_say_so_names_no_module_and_serves_none ... ok
 test tests::page_bundle::only_a_module_its_packaging_wrote_is_served ... ok
-test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 1032 filtered out; finished in 3.31s
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 1032 filtered out; finished in 3.23s
 
 == a page alone in its build (tests::alone_page::)
 
@@ -90,25 +93,29 @@ test tests::alone_page::a_delivery_names_the_page_its_packaging_wrote_alone ... 
 test tests::alone_page::a_build_whose_contracts_name_no_component_is_served_with_none ... ok
 test tests::alone_page::a_build_that_computes_on_a_host_and_has_no_components_is_refused ... ok
 test tests::alone_page::a_build_whose_packaging_wrote_no_such_module_fetches_its_runtime_and_code ... ok
-test tests::alone_page::a_module_that_writes_comments_is_held_in_its_document ... ok
 test tests::alone_page::a_page_alone_in_its_build_holds_its_code_and_asks_for_nothing_as_it_boots ... ok
+test tests::alone_page::a_module_that_writes_comments_is_held_in_its_document ... ok
 test tests::alone_page::a_page_of_a_build_of_several_fetches_its_runtime_whatever_its_packaging_wrote ... ok
 test tests::alone_page::its_policy_allows_its_one_script_by_its_hash ... ok
 test tests::alone_page::its_table_is_the_one_its_host_answers_for_its_build ... ok
 test tests::alone_page::a_module_the_parser_would_not_read_as_one_script_is_fetched_as_before ... ok
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 1038 filtered out; finished in 1.98s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 1038 filtered out; finished in 2.11s
 
-== a production build, in three engines (e2e/todomvc.spec.mjs, e2e/device-runtime.spec.mjs)
+== a production build as it is served, in three engines (e2e/todomvc.spec.mjs, e2e/device-runtime.spec.mjs, e2e/nested-blocks.spec.mjs, e2e/rows.spec.mjs less its @report tests)
 
-  285 passed (3.0m)
+  252 passed (2.0m)
+
+== the large list built to report, in three engines (e2e/rows.spec.mjs, its @report tests)
+
+  36 passed (53.8s)
 
 == mutation controls (scripts/device_runtime_mutations.py)
 
 baseline (decision): 6 passed, 0 failed
 baseline (contract): 7 passed, 0 failed
-baseline (packaging): 54 passed, 0 failed
+baseline (packaging): 57 passed, 0 failed
 baseline (host): 27 passed, 0 failed
-baseline (browser): 11 passed, 0 failed
+baseline (browser): 12 passed, 0 failed
 baseline (nested): 2 passed, 0 failed
 baseline (rows): 28 passed, 0 failed
 a `#` line of the table is a handler [decision]: KILLED (1 of 6 tests fail)
@@ -142,19 +149,19 @@ a private slot is refetched [decision]: KILLED (4 of 6 tests fail)
 a pending command is refetched [decision]: KILLED (5 of 6 tests fail)
 an open resource is refetched [decision]: KILLED (5 of 6 tests fail)
 a region of private state is refetched [decision]: KILLED (4 of 6 tests fail)
-a device page decides nothing [browser]: KILLED (3 of 11 tests fail)
-a device page's table is not heard [browser]: KILLED (1 of 11 tests fail)
-a device page's decision is another page's [browser]: KILLED (1 of 11 tests fail)
-every render morphs the whole block [browser]: KILLED (1 of 11 tests fail)
+a device page decides nothing [browser]: KILLED (3 of 12 tests fail)
+a device page's table is not heard [browser]: KILLED (1 of 12 tests fail)
+a device page's decision is another page's [browser]: KILLED (1 of 12 tests fail)
+every render morphs the whole block [browser]: KILLED (1 of 12 tests fail)
 what a block rendered outlives its anchor [nested]: KILLED (1 of 2 tests fail)
 a block taken away this pass is rendered [nested]: KILLED (1 of 2 tests fail)
-a box in a row left alone is left [browser]: KILLED (1 of 11 tests fail)
-a box the page ticked is not looked for [browser]: KILLED (1 of 11 tests fail)
-a box the page unticked is not looked for [browser]: KILLED (1 of 11 tests fail)
-a box before the block is written [browser]: KILLED (1 of 11 tests fail)
-a box after the block is written [browser]: KILLED (1 of 11 tests fail)
-a block that can show a box is not looked over [browser]: KILLED (1 of 11 tests fail)
-a block's boxes are read from nothing [browser]: KILLED (1 of 11 tests fail)
+a box in a row left alone is left [browser]: KILLED (1 of 12 tests fail)
+a box the page ticked is not looked for [browser]: KILLED (1 of 12 tests fail)
+a box the page unticked is not looked for [browser]: KILLED (1 of 12 tests fail)
+a box before the block is written [browser]: KILLED (1 of 12 tests fail)
+a box after the block is written [browser]: KILLED (1 of 12 tests fail)
+a block that can show a box is not looked over [browser]: KILLED (1 of 12 tests fail)
+a block's boxes are read from nothing [browser]: KILLED (1 of 12 tests fail)
 a new row is taken for the first [contract]: KILLED (1 of 7 tests fail)
 a new row counts among those that stay [contract]: KILLED (2 of 7 tests fail)
 only the shortest run stays [contract]: KILLED (2 of 7 tests fail)
@@ -210,51 +217,62 @@ a press on a row's element is not heard [rows]: KILLED (6 of 28 tests fail)
 a handler that stops does not [rows]: KILLED (1 of 28 tests fail)
 an event that stays on its target rises [rows]: KILLED (1 of 28 tests fail)
 what a row holds is indexed [rows]: KILLED (1 of 28 tests fail)
-the source's flag is off [packaging]: KILLED (14 of 54 tests fail)
-a read is asked for [packaging]: KILLED (2 of 54 tests fail)
-the subscription starts [packaging]: KILLED (2 of 54 tests fail)
-a stream is watched [packaging]: KILLED (2 of 54 tests fail)
-a command can be sent [packaging]: KILLED (2 of 54 tests fail)
-a press speculates [packaging]: KILLED (2 of 54 tests fail)
-a handler can navigate [packaging]: KILLED (2 of 54 tests fail)
-a link is followed in place [packaging]: KILLED (2 of 54 tests fail)
-back and forward are heard [packaging]: KILLED (2 of 54 tests fail)
-the scroll is taken from the browser [packaging]: KILLED (2 of 54 tests fail)
-the frame hook holds the frames [packaging]: KILLED (2 of 54 tests fail)
-the batch hook holds the batches [packaging]: KILLED (2 of 54 tests fail)
-a value in a URL is not looked for [packaging]: KILLED (2 of 54 tests fail)
-a match is not looked for [packaging]: KILLED (2 of 54 tests fail)
-a view is not looked for [packaging]: KILLED (1 of 54 tests fail)
-a dialog is not looked for [packaging]: KILLED (4 of 54 tests fail)
-a view's own template is not read [packaging]: KILLED (2 of 54 tests fail)
-what is inside a part is not read [packaging]: KILLED (2 of 54 tests fail)
-a match's arms are not read [packaging]: KILLED (1 of 54 tests fail)
-a page a reader decides is read [packaging]: KILLED (1 of 54 tests fail)
-a page with a layout is read [packaging]: KILLED (1 of 54 tests fail)
-a server's runtime keeps what only a device runs [packaging]: KILLED (1 of 54 tests fail)
-a list a plan makes is not looked for [packaging]: KILLED (1 of 54 tests fail)
-a list whose rows change shape is planned [packaging]: KILLED (1 of 54 tests fail)
-an unkeyed list is planned [packaging]: KILLED (1 of 54 tests fail)
-a value the device keeps is not looked for [packaging]: KILLED (1 of 54 tests fail)
-a fragment is not looked for [packaging]: KILLED (1 of 54 tests fail)
-an autofocus written is not looked for [packaging]: KILLED (1 of 54 tests fail)
-an autofocus a value decides is not looked for [packaging]: KILLED (1 of 54 tests fail)
-what the device keeps is read on every page [packaging]: KILLED (1 of 54 tests fail)
-what the device keeps is written on every page [packaging]: KILLED (1 of 54 tests fail)
-a fragment is bound on every page [packaging]: KILLED (1 of 54 tests fail)
-autofocus is followed on every page [packaging]: KILLED (1 of 54 tests fail)
-a build that cannot be read keeps nothing [packaging]: KILLED (1 of 54 tests fail)
-every feature is always kept [packaging]: KILLED (4 of 54 tests fail)
-the flag is not replaced [packaging]: KILLED (15 of 54 tests fail)
-what is unused stays [packaging]: KILLED (5 of 54 tests fail)
-the device's runtime is not compressed [packaging]: KILLED (1 of 54 tests fail)
-the device's runtime is not gzipped [packaging]: KILLED (1 of 54 tests fail)
-a build does not say it has one [packaging]: KILLED (2 of 54 tests fail)
-a build says the runtime it packed, not what from [packaging]: KILLED (1 of 54 tests fail)
-a build with no runtime fails [packaging]: KILLED (2 of 54 tests fail)
-a production build is of any runtime [packaging]: KILLED (1 of 54 tests fail)
-a production build is of none [packaging]: KILLED (1 of 54 tests fail)
-a delivery that cannot be read is of any runtime [packaging]: KILLED (3 of 54 tests fail)
+the source's flag is off [packaging]: KILLED (16 of 57 tests fail)
+a read is asked for [packaging]: KILLED (2 of 57 tests fail)
+the subscription starts [packaging]: KILLED (2 of 57 tests fail)
+a stream is watched [packaging]: KILLED (2 of 57 tests fail)
+a command can be sent [packaging]: KILLED (2 of 57 tests fail)
+a press speculates [packaging]: KILLED (2 of 57 tests fail)
+a handler can navigate [packaging]: KILLED (2 of 57 tests fail)
+a link is followed in place [packaging]: KILLED (2 of 57 tests fail)
+back and forward are heard [packaging]: KILLED (2 of 57 tests fail)
+the scroll is taken from the browser [packaging]: KILLED (2 of 57 tests fail)
+the frame hook holds the frames [packaging]: KILLED (1 of 57 tests fail)
+the batch hook holds the batches [packaging]: KILLED (1 of 57 tests fail)
+a value in a URL is not looked for [packaging]: KILLED (2 of 57 tests fail)
+a match is not looked for [packaging]: KILLED (2 of 57 tests fail)
+a view is not looked for [packaging]: KILLED (1 of 57 tests fail)
+a dialog is not looked for [packaging]: KILLED (4 of 57 tests fail)
+a view's own template is not read [packaging]: KILLED (2 of 57 tests fail)
+what is inside a part is not read [packaging]: KILLED (2 of 57 tests fail)
+a match's arms are not read [packaging]: KILLED (1 of 57 tests fail)
+a page a reader decides is read [packaging]: KILLED (1 of 57 tests fail)
+a page with a layout is read [packaging]: KILLED (1 of 57 tests fail)
+a server's runtime keeps what only a device runs [packaging]: KILLED (1 of 57 tests fail)
+a list a plan makes is not looked for [packaging]: KILLED (1 of 57 tests fail)
+a list whose rows change shape is planned [packaging]: KILLED (1 of 57 tests fail)
+an unkeyed list is planned [packaging]: KILLED (1 of 57 tests fail)
+a value the device keeps is not looked for [packaging]: KILLED (1 of 57 tests fail)
+a fragment is not looked for [packaging]: KILLED (1 of 57 tests fail)
+an autofocus written is not looked for [packaging]: KILLED (1 of 57 tests fail)
+an autofocus a value decides is not looked for [packaging]: KILLED (1 of 57 tests fail)
+what the device keeps is read on every page [packaging]: KILLED (1 of 57 tests fail)
+what the device keeps is written on every page [packaging]: KILLED (1 of 57 tests fail)
+a fragment is bound on every page [packaging]: KILLED (1 of 57 tests fail)
+autofocus is followed on every page [packaging]: KILLED (1 of 57 tests fail)
+a build that cannot be read keeps nothing [packaging]: KILLED (1 of 57 tests fail)
+every feature is always kept [packaging]: KILLED (4 of 57 tests fail)
+the flag is not replaced [packaging]: KILLED (17 of 57 tests fail)
+what is unused stays [packaging]: KILLED (5 of 57 tests fail)
+the device's runtime is not compressed [packaging]: KILLED (1 of 57 tests fail)
+the device's runtime is not gzipped [packaging]: KILLED (1 of 57 tests fail)
+a build does not say it has one [packaging]: KILLED (2 of 57 tests fail)
+a build says the runtime it packed, not what from [packaging]: KILLED (1 of 57 tests fail)
+a build with no runtime fails [packaging]: KILLED (2 of 57 tests fail)
+a production build keeps what its pages report [packaging]: KILLED (2 of 57 tests fail)
+a build for a suite drops what its pages report [packaging]: KILLED (2 of 57 tests fail)
+the device's runtime keeps what its page reports [packaging]: KILLED (1 of 57 tests fail)
+a page alone in its build keeps what its page reports [packaging]: KILLED (1 of 57 tests fail)
+a server's page keeps what it reports [packaging]: KILLED (1 of 57 tests fail)
+a build does not say whether it reports [packaging]: KILLED (3 of 57 tests fail)
+a page alone in its build drops what a suite asked to keep [rows]: KILLED (12 of 28 tests fail)
+the packaging is asked to keep reports and does not [rows]: KILLED (12 of 28 tests fail)
+a reconciliation's move is a report's [packaging]: KILLED (1 of 57 tests fail)
+a page read again is a report's [packaging]: KILLED (1 of 57 tests fail)
+a report is not labeled [packaging]: KILLED (2 of 57 tests fail)
+a production build is of any runtime [packaging]: KILLED (1 of 57 tests fail)
+a production build is of none [packaging]: KILLED (1 of 57 tests fail)
+a delivery that cannot be read is of any runtime [packaging]: KILLED (3 of 57 tests fail)
 every prerendered page runs on the device [host]: KILLED (1 of 27 tests fail)
 a page with a layout runs on the device [host]: KILLED (2 of 27 tests fail)
 no page runs on the device [host]: KILLED (6 of 27 tests fail)
@@ -268,31 +286,31 @@ a page's code is named nowhere [host]: KILLED (2 of 27 tests fail)
 a page with no module names one [host]: KILLED (1 of 27 tests fail)
 the policy allows the whole runtime alone [host]: KILLED (1 of 27 tests fail)
 the policy allows the first of several [host]: KILLED (2 of 27 tests fail)
-a build of two pages has a module alone [packaging]: KILLED (1 of 54 tests fail)
-a page a reader decides has a module alone [packaging]: KILLED (1 of 54 tests fail)
-a page with no module of its own has a module alone [packaging]: KILLED (8 of 54 tests fail)
-a module alone asks its server for its table [packaging]: KILLED (1 of 54 tests fail)
-the device's runtime reads its table from its document [packaging]: KILLED (2 of 54 tests fail)
-a device's runtime holds a command's refusal [packaging]: KILLED (2 of 54 tests fail)
-a device's runtime holds a command no answer came for [packaging]: KILLED (2 of 54 tests fail)
-a build that writes no graph holds a graph's reading [packaging]: KILLED (2 of 54 tests fail)
-a build that writes no graph looks for one [packaging]: KILLED (1 of 54 tests fail)
-a build's graphs are not looked for [packaging]: KILLED (2 of 54 tests fail)
-what the packaging wrote is read for graphs [packaging]: KILLED (1 of 54 tests fail)
-a folder of the build is not read for graphs [packaging]: KILLED (2 of 54 tests fail)
-a component's graph is not read [packaging]: KILLED (1 of 54 tests fail)
-a page's handlers share nothing [packaging]: KILLED (1 of 54 tests fail)
-a helper is shared without a name it reads [packaging]: KILLED (1 of 54 tests fail)
-a handler imports a helper that reads one of its own [packaging]: KILLED (2 of 54 tests fail)
-a prelude in another form shares [packaging]: KILLED (1 of 54 tests fail)
-a second name at a prelude's margin is not looked for [packaging]: KILLED (1 of 54 tests fail)
-a function named by its place in its handler is shared [packaging]: KILLED (1 of 54 tests fail)
-a name two paragraphs declare otherwise is shared [packaging]: KILLED (1 of 54 tests fail)
-a paragraph one handler imports is shared [packaging]: KILLED (1 of 54 tests fail)
-a shared paragraph's second name is not exported [packaging]: KILLED (3 of 54 tests fail)
-a server's runtime keeps what a page alone runs [packaging]: KILLED (1 of 54 tests fail)
-a page alone reads no table [browser]: KILLED (7 of 11 tests fail)
-a page alone fetches its code [browser]: KILLED (1 of 11 tests fail)
+a build of two pages has a module alone [packaging]: KILLED (1 of 57 tests fail)
+a page a reader decides has a module alone [packaging]: KILLED (1 of 57 tests fail)
+a page with no module of its own has a module alone [packaging]: KILLED (8 of 57 tests fail)
+a module alone asks its server for its table [packaging]: KILLED (1 of 57 tests fail)
+the device's runtime reads its table from its document [packaging]: KILLED (2 of 57 tests fail)
+a device's runtime holds a command's refusal [packaging]: KILLED (2 of 57 tests fail)
+a device's runtime holds a command no answer came for [packaging]: KILLED (2 of 57 tests fail)
+a build that writes no graph holds a graph's reading [packaging]: KILLED (2 of 57 tests fail)
+a build that writes no graph looks for one [packaging]: KILLED (1 of 57 tests fail)
+a build's graphs are not looked for [packaging]: KILLED (2 of 57 tests fail)
+what the packaging wrote is read for graphs [packaging]: KILLED (1 of 57 tests fail)
+a folder of the build is not read for graphs [packaging]: KILLED (2 of 57 tests fail)
+a component's graph is not read [packaging]: KILLED (1 of 57 tests fail)
+a page's handlers share nothing [packaging]: KILLED (1 of 57 tests fail)
+a helper is shared without a name it reads [packaging]: KILLED (1 of 57 tests fail)
+a handler imports a helper that reads one of its own [packaging]: KILLED (2 of 57 tests fail)
+a prelude in another form shares [packaging]: KILLED (1 of 57 tests fail)
+a second name at a prelude's margin is not looked for [packaging]: KILLED (1 of 57 tests fail)
+a function named by its place in its handler is shared [packaging]: KILLED (1 of 57 tests fail)
+a name two paragraphs declare otherwise is shared [packaging]: KILLED (1 of 57 tests fail)
+a paragraph one handler imports is shared [packaging]: KILLED (1 of 57 tests fail)
+a shared paragraph's second name is not exported [packaging]: KILLED (3 of 57 tests fail)
+a server's runtime keeps what a page alone runs [packaging]: KILLED (1 of 57 tests fail)
+a page alone reads no table [browser]: KILLED (7 of 12 tests fail)
+a page alone fetches its code [browser]: KILLED (1 of 12 tests fail)
 a module that may open a script is held [host]: KILLED (1 of 27 tests fail)
 a module that may close its script is held [host]: KILLED (1 of 27 tests fail)
 a comment's opening keeps a module out [host]: KILLED (1 of 27 tests fail)
@@ -303,5 +321,5 @@ a build with no components is refused [host]: KILLED (1 of 27 tests fail)
 a build that lost its components is served [host]: KILLED (1 of 27 tests fail)
 a delivery of two modules alone has one [host]: KILLED (1 of 27 tests fail)
 a delivery with no device's runtime has a module alone [host]: KILLED (1 of 27 tests fail)
-192 of 192 mutants killed
+203 of 203 mutants killed
 memory bound: no process was stopped

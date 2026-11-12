@@ -1,8 +1,8 @@
 ADR-0225 - a String's length is an invariant
 
 produced by: just e14-string-invariants
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -12,8 +12,8 @@ playwright: Version 1.58.0
 test a_branch_is_either_of_its_values ... ok
 test a_let_is_its_initializer_where_the_let_is ... ok
 test a_literal_is_itself ... ok
-test a_piped_value_is_held_too ... ok
 test an_invariant_the_language_cannot_read_is_refused_where_it_is_written ... ok
+test a_piped_value_is_held_too ... ok
 test an_opaque_type_that_states_nothing_checks_nothing ... ok
 test a_conjunction_narrows_where_it_holds_and_only_there ... ok
 test a_test_narrows_what_it_tests ... ok
@@ -21,31 +21,31 @@ test arithmetic_on_bounded_values_is_exact ... ok
 test an_upper_bound_is_held_as_the_lower_is ... ok
 test the_store_s_contracts_state_where_a_count_comes_from_outside ... ok
 test the_store_builds_every_count_it_can_show ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.88s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.58s
 test a_handles_value_a_let_and_a_branch_keep_their_lengths ... ok
-test a_test_of_the_length_narrows_it ... ok
 test a_literal_is_its_length_in_code_points ... ok
+test a_test_of_the_length_narrows_it ... ok
 test a_length_invariant_the_language_cannot_read_is_refused_where_it_is_written ... ok
 test the_feeds_post_states_its_texts_length_at_the_boundary ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.95s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.91s
 
 == the host (runtime/pw-host/tests/bounded.rs)
 
+test a_case_the_path_does_not_name_holds_nothing_to_check ... ok
+test a_value_of_another_shape_than_the_contract_says_is_refused ... ok
 test a_strings_length_is_held_at_both_ends_in_code_points ... ok
 test an_argument_is_held_to_its_bounds_at_both_ends ... ok
 test each_item_of_a_list_and_each_field_is_reached ... ok
-test a_value_of_another_shape_than_the_contract_says_is_refused ... ok
-test a_case_the_path_does_not_name_holds_nothing_to_check ... ok
 test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
 == the server (spikes/own-renderer/server/src/main.rs)
 
 test tests::a_posts_text_is_held_to_its_length_where_it_arrives ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1047 filtered out; finished in 1.65s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1047 filtered out; finished in 2.13s
 
 == the feed in three engines (e2e/feed.spec.mjs)
 
-  72 passed (1.0m)
+  72 passed (1.2m)
 
 == mutation controls (scripts/string_invariants_mutations.py)
 

@@ -1,51 +1,54 @@
 a page's code is one module
 
 produced by: just e14-page-bundle
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
 
 == what the packaging writes (optimize-assets.test.mjs)
 
-✔ the production build minifies and compresses only public client assets (49.517726ms)
-✔ a production build compresses its compiled modules beside themselves, unchanged (20.816831ms)
-✔ a production build says its pages warm what their presses need (9.454442ms)
-✔ a production build puts each page's code in one module, and leaves each module as it was (33.723458ms)
-✔ a production build's packaging writes each page's module (16.749798ms)
-✔ what a page's handlers write alike is in its module once (12.068478ms)
-✔ a helper is shared only with each name of a prelude it reads (0.636692ms)
-✔ a paragraph fewer than two handlers import is each one's (0.284425ms)
-✔ a paragraph that declares two names is shared whole (0.394202ms)
-✔ what is not one helper written alike stays each handler's (0.482424ms)
-✔ a page whose handler has no module is a build that did not finish (3.793784ms)
-✔ a build with no pages bundles nothing (0.762785ms)
-✔ a production build writes a runtime for a page that talks to no server (6.918474ms)
-✔ a build with no runtime says nothing of one (2.638204ms)
-✔ the runtime of a page that talks to no server holds none of a server's code (226.632714ms)
-✔ the runtime of a page with a server holds none of what only a page with no server runs (217.643985ms)
-✔ a production build minifies its stylesheets, and keeps what they draw (7.437656ms)
-✔ a graph any file of the build writes counts, and none its packaging wrote (618.160433ms)
-✔ the device's runtime holds what its pages use, and none of what they do not (1981.6524ms)
-✔ a list whose rows change shape has no plan (393.657994ms)
-✔ an autofocus a value decides counts (195.462187ms)
-✔ what a block or a conditional's arm holds counts (593.306546ms)
-✔ a page a reader decides, or one with a layout, keeps out of what is read (588.224337ms)
-✔ a view a page uses is read for what it uses (194.489406ms)
-✔ a build whose pages cannot be read keeps everything (221.977472ms)
-✔ a page alone in its build has its code and the device's runtime in one module (489.897256ms)
-✔ a build of two pages has no module alone: its pages share one runtime (208.806702ms)
-✔ a page a reader decides has no module alone: it is no page of the device's (201.219309ms)
-✔ a page with no code of its own has no module alone (204.20251ms)
-ℹ tests 29
+✔ the production build minifies and compresses only public client assets (57.354619ms)
+✔ a production build compresses its compiled modules beside themselves, unchanged (24.354895ms)
+✔ a production build says its pages warm what their presses need (9.056293ms)
+✔ a production build puts each page's code in one module, and leaves each module as it was (36.110465ms)
+✔ a production build's packaging writes each page's module (16.253633ms)
+✔ what a page's handlers write alike is in its module once (12.337295ms)
+✔ a helper is shared only with each name of a prelude it reads (0.596399ms)
+✔ a paragraph fewer than two handlers import is each one's (0.356559ms)
+✔ a paragraph that declares two names is shared whole (0.458521ms)
+✔ what is not one helper written alike stays each handler's (0.590068ms)
+✔ a page whose handler has no module is a build that did not finish (5.895408ms)
+✔ a build with no pages bundles nothing (0.950475ms)
+✔ a production build writes a runtime for a page that talks to no server (7.704645ms)
+✔ a build with no runtime says nothing of one (3.060616ms)
+✔ the runtime of a page that talks to no server holds none of a server's code (447.950528ms)
+✔ the runtime of a page with a server holds none of what only a page with no server runs (212.517178ms)
+✔ a production build holds none of what the page reports about itself (217.930272ms)
+✔ a build for a suite that reads the page's reports keeps them (228.215491ms)
+✔ each report is a statement labeled REPORT, and does nothing but report (20.547627ms)
+✔ a production build minifies its stylesheets, and keeps what they draw (6.99487ms)
+✔ a graph any file of the build writes counts, and none its packaging wrote (593.797189ms)
+✔ the device's runtime holds what its pages use, and none of what they do not (1967.749426ms)
+✔ a list whose rows change shape has no plan (387.024691ms)
+✔ an autofocus a value decides counts (190.245237ms)
+✔ what a block or a conditional's arm holds counts (581.517828ms)
+✔ a page a reader decides, or one with a layout, keeps out of what is read (578.479486ms)
+✔ a view a page uses is read for what it uses (189.878873ms)
+✔ a build whose pages cannot be read keeps everything (213.133746ms)
+✔ a page alone in its build has its code and the device's runtime in one module (482.280361ms)
+✔ a build of two pages has no module alone: its pages share one runtime (205.462087ms)
+✔ a page a reader decides has no module alone: it is no page of the device's (198.475488ms)
+✔ a page with no code of its own has no module alone (195.847502ms)
+ℹ tests 32
 ℹ suites 0
-ℹ pass 29
+ℹ pass 32
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 6572.133748
+ℹ duration_ms 7179.912841
 
 == what the host names and serves (tests::page_bundle::)
 
@@ -65,29 +68,29 @@ test tests::page_bundle::the_policy_allows_each_runtime_a_build_starts ... ok
 test tests::page_bundle::a_bundled_module_is_kept_a_year_at_its_delivery_and_revalidated_at_another ... ok
 test tests::page_bundle::a_build_that_does_not_say_so_names_no_module_and_serves_none ... ok
 test tests::page_bundle::only_a_module_its_packaging_wrote_is_served ... ok
-test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 1032 filtered out; finished in 3.29s
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 1032 filtered out; finished in 4.41s
 
 == a page through it, in three engines (e2e/page-bundle.spec.mjs)
 
-  18 passed (23.6s)
+  18 passed (27.5s)
 
 == mutation controls (scripts/page_bundle_mutations.py)
 
-baseline (packaging): 29 passed, 0 failed
+baseline (packaging): 32 passed, 0 failed
 baseline (host): 16 passed, 0 failed
 baseline (browser): 6 passed, 0 failed
 a bundle without a handler leaves it undefined [browser]: KILLED (1 of 6 tests fail)
-a handler inside a block is left out [packaging]: KILLED (2 of 29 tests fail)
-a view's handlers are left out [packaging]: KILLED (2 of 29 tests fail)
-a handler named twice is bundled twice [packaging]: KILLED (6 of 29 tests fail)
-a handler with no module is passed over [packaging]: KILLED (1 of 29 tests fail)
-a page's computed values are left out [packaging]: KILLED (1 of 29 tests fail)
-a page's speculations are left out [packaging]: KILLED (1 of 29 tests fail)
-a page with no code has a bundle [packaging]: KILLED (2 of 29 tests fail)
-a bundle is not minified [packaging]: KILLED (1 of 29 tests fail)
-a bundle is not compressed with Brotli [packaging]: KILLED (1 of 29 tests fail)
-a build does not say it is bundled [packaging]: KILLED (1 of 29 tests fail)
-a packaging run bundles nothing [packaging]: KILLED (3 of 29 tests fail)
+a handler inside a block is left out [packaging]: KILLED (2 of 32 tests fail)
+a view's handlers are left out [packaging]: KILLED (2 of 32 tests fail)
+a handler named twice is bundled twice [packaging]: KILLED (6 of 32 tests fail)
+a handler with no module is passed over [packaging]: KILLED (1 of 32 tests fail)
+a page's computed values are left out [packaging]: KILLED (1 of 32 tests fail)
+a page's speculations are left out [packaging]: KILLED (1 of 32 tests fail)
+a page with no code has a bundle [packaging]: KILLED (2 of 32 tests fail)
+a bundle is not minified [packaging]: KILLED (1 of 32 tests fail)
+a bundle is not compressed with Brotli [packaging]: KILLED (1 of 32 tests fail)
+a build does not say it is bundled [packaging]: KILLED (1 of 32 tests fail)
+a packaging run bundles nothing [packaging]: KILLED (3 of 32 tests fail)
 the table names no module [host]: KILLED (1 of 16 tests fail)
 a build that does not say so names its modules [host]: KILLED (1 of 16 tests fail)
 a file no packaging wrote is served [host]: KILLED (1 of 16 tests fail)

@@ -1,28 +1,28 @@
 ADR-0053 - a lambda's parameters take the types its use declares
 
 produced by: just e10-callbacks
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the callback tests (compiler/pw-core/tests/callback_parameters.rs)
 
 test a_folds_accumulator_is_its_seeds_type ... ok
 test a_lambda_bound_with_a_written_type_takes_its_parameters_from_it ... ok
-test a_lambda_over_a_bound_list_is_typed_once_the_binding_is ... ok
 test a_name_two_lambdas_bind_is_still_not_guessed ... ok
 test a_folds_accumulator_and_element_are_each_checked ... ok
+test a_lambda_over_a_bound_list_is_typed_once_the_binding_is ... ok
 test a_parameter_known_in_part_is_checked_by_that_part ... ok
-test a_programs_own_callback_takes_its_declared_parameter_types ... ok
 test a_piped_lists_callback_still_takes_its_element ... ok
 test a_returned_lambda_takes_its_parameters_from_the_declared_result ... ok
-test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+test a_programs_own_callback_takes_its_declared_parameter_types ... ok
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s
 
 == an effect through a callback (compiler/pw-core/tests/causal_evidence.rs)
 
+test a_folds_accumulator_is_not_its_lists_element ... ok
 test a_receiver_with_no_such_member_produces_no_chain ... ok
 test no_conclusion_was_reached_by_a_program_wide_name ... ok
-test a_folds_accumulator_is_not_its_lists_element ... ok
 test a_callbacks_later_parameter_is_typed_by_the_callees_declaration ... ok
 test the_effect_is_caused_by_a_receiver_type_resolution ... ok
 test the_effect_travelled_through_the_callback ... ok

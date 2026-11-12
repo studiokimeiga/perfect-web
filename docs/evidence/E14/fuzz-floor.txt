@@ -1,8 +1,8 @@
 Track fuzz-floor - the coverage-guided fuzzer measures, or it fails
 
 produced by: just e14-fuzz-floor
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 python: Python 3.12.3
 host: Linux 7.0.0-1017-azure x86_64
@@ -49,11 +49,11 @@ test tests::what_never_ran_adds_nothing ... ok
 test tests::regions_fail_when_the_tool_is_missing ... ok
 test tests::the_real_llvm_profdata_reads_a_real_profile ... ok
 test tests::the_tool_is_in_the_active_toolchains_own_directory ... ok
-test result: ok. 40 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.29s
+test result: ok. 40 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.27s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
-test an_argument_it_does_not_know_stops_it ... ok
 test a_target_that_does_not_exist_stops_it_and_lists_the_ones_that_do ... ok
 test without_llvm_profdata_it_stops_and_says_what_is_missing ... ok
+test an_argument_it_does_not_know_stops_it ... ok
 test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 
 == 2. just doctor names the component, and the toolchain file lists it (scripts/tests/test_doctor_llvm_tools.py)
@@ -63,17 +63,17 @@ test_a_toolchain_with_the_component_is_said_to_have_it (scripts.tests.test_docto
 test_a_toolchain_without_it_is_said_to_miss_it_and_how_to_get_it (scripts.tests.test_doctor_llvm_tools.DoctorLlvmTools.test_a_toolchain_without_it_is_said_to_miss_it_and_how_to_get_it) ... ok
 test_the_component_by_its_old_name_is_the_component (scripts.tests.test_doctor_llvm_tools.DoctorLlvmTools.test_the_component_by_its_old_name_is_the_component) ... ok
 test_the_pinned_toolchain_lists_llvm_tools (scripts.tests.test_doctor_llvm_tools.ToolchainFile.test_the_pinned_toolchain_lists_llvm_tools) ... ok
-Ran 5 tests in 2.663s
+Ran 5 tests in 4.482s
 OK
 
 == 3. the fuzzer on this machine, 30 inputs a target: every target covers regions, the floor passes, the status is 0
 
-done [parser-to-hir] 30 execs, 1331 covered regions, 0 finding(s), 18.2 execs/s, 1s
-done [resolution-to-typing] 30 execs, 2406 covered regions, 0 finding(s), 18.1 execs/s, 1s
-done [labels-and-effects] 30 execs, 2686 covered regions, 0 finding(s), 17.3 execs/s, 1s
-done [exhaustiveness] 30 execs, 2203 covered regions, 0 finding(s), 18.0 execs/s, 1s
-done [manifest-decoding] 30 execs, 69 covered regions, 0 finding(s), 19.3 execs/s, 1s
-done [resume-compatibility] 30 execs, 81 covered regions, 0 finding(s), 19.2 execs/s, 1s
+done [parser-to-hir] 30 execs, 1331 covered regions, 0 finding(s), 19.4 execs/s, 1s
+done [resolution-to-typing] 30 execs, 2406 covered regions, 0 finding(s), 20.3 execs/s, 1s
+done [labels-and-effects] 30 execs, 2686 covered regions, 0 finding(s), 20.5 execs/s, 1s
+done [exhaustiveness] 30 execs, 2203 covered regions, 0 finding(s), 20.6 execs/s, 1s
+done [manifest-decoding] 30 execs, 69 covered regions, 0 finding(s), 22.3 execs/s, 1s
+done [resume-compatibility] 30 execs, 81 covered regions, 0 finding(s), 18.0 execs/s, 1s
   llvm-profdata: /home/runner/.rustup/toolchains/1.97.1-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/bin/llvm-profdata
   parser-to-hir                     30 execs    1331 covered regions  0 finding(s)
   resolution-to-typing              30 execs    2406 covered regions  0 finding(s)

@@ -1,19 +1,19 @@
 ADR-0287 - a handler is held where it runs
 
 produced by: just e14-handlers-where-they-run
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the compiler (handlers_where_they_run.rs, handlers_in_the_browser.rs)
 
 test a_handler_performs_only_what_the_browser_may ... ok
 test a_function_named_as_a_handler_performs_only_what_the_browser_may ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.94s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.95s
 test what_a_page_renders_is_still_held_to_its_placement ... ok
 test a_handler_that_writes_itself_is_still_refused_where_it_runs ... ok
 test a_page_built_ahead_may_have_a_button_that_sends_a_command ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.22s
 
 == mutation controls (scripts/handlers_where_they_run_mutations.py)
 

@@ -1,8 +1,8 @@
 ADR-0222 - a post is shown before the server answers
 
 produced by: just e14-optimistic-posts
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -11,7 +11,7 @@ playwright: Version 1.58.0
 
 test a_target_may_leave_a_key_unnamed ... ok
 test a_key_left_unnamed_is_a_targets_alone ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.21s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.58s
 
 == the server (spikes/own-renderer/server/src/main.rs)
 
@@ -19,11 +19,11 @@ test tests::a_speculating_page_is_sent_its_carts_value ... ok
 test tests::a_post_is_shown_before_the_server_answers_and_the_page_told_when_it_holds_it ... ok
 test tests::a_speculated_value_that_did_not_change_is_not_sent_again ... ok
 test tests::a_page_that_reads_more_holds_what_it_shows ... ok
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 1044 filtered out; finished in 2.06s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 1044 filtered out; finished in 4.09s
 
 == the feed in three engines (e2e/feed.spec.mjs)
 
-  72 passed (49.6s)
+  72 passed (1.3m)
 
 == mutation controls (scripts/optimistic_posts_mutations.py)
 

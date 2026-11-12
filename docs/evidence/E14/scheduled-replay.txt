@@ -1,7 +1,7 @@
 ADR0388 - scheduled generation consumed with its authoritative commit
 produced by: just e14-scheduled-replay
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 test_a_product_assertion_in_the_mixed_runtime_module_is_invalid (scripts.tests.test_scheduled_replay_results.Results.test_a_product_assertion_in_the_mixed_runtime_module_is_invalid) ... ok
 test_build_missing_zero_duplicate_skipped_and_contradictory_results_are_invalid (scripts.tests.test_scheduled_replay_results.Results.test_build_missing_zero_duplicate_skipped_and_contradictory_results_are_invalid) ... ok

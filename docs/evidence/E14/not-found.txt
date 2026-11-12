@@ -1,8 +1,8 @@
 ADR-0163 - a page says when it is absent
 
 produced by: just e14-not-found
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 playwright: Version 1.58.0
 
@@ -14,7 +14,7 @@ test an_error_imported_from_another_module_is_named_as_it_is_imported ... ok
 test the_plan_carries_the_case_on_the_bindings_that_can_answer_it ... ok
 test a_page_that_names_its_absence_is_the_control ... ok
 test the_clause_names_a_case_of_a_declared_type ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
 
 == the store declares it, and checks
 
@@ -24,11 +24,11 @@ pw check: 74 file(s), no diagnostics
 
 test tests::a_store_that_is_not_there_is_not_found ... ok
 test tests::each_store_is_served_at_its_route ... ok
-test result: ok. 1039 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 452.10s
+test result: ok. 1039 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 630.20s
 
 == a store that is not there, three engines (e2e/stores.spec.mjs)
 
-  24 passed (46.5s)
+  24 passed (52.7s)
 
 == mutation controls (scripts/not_found_mutations.py)
 

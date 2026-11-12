@@ -15,7 +15,10 @@ and 26 together: TodoMVC's first load as sent 19,975 (Svelte's 20,821);
 Pleris behind in 52 rows and best in 86. Trains 25 and 26 land together:
 GitHub's runners could not resolve the Ubuntu mirrors for hours, and
 train-25's own full verify (43053690319) failed in setup alone, so
-train-26's (43069176405, at `87446c10`, 24 shards) is the record of both.
+train-26's (43069176405, at `87446c10`, 24 shards) is the record of both:
+every recipe and the three browser suites green, in its second attempt, its
+first having passed them and three shards' evidence refused upload by
+GitHub's artifact service in its incident of that evening.
 
 **Train-25, 2026-11-11:** on train-24. A production page reports nothing to
 its tests (ADR-0430): each thing the runtime tells them, `window.__pw`, its
