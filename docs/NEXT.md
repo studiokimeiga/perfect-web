@@ -58,8 +58,9 @@ What is left, each measured, none decided:
    `--report` runs them, in `e14-device-runtime`. Either a development build
    of a page alone runs the device's runtime, as production does, or the
    header says what runs them.
-6. **Each row's handlers are noted in a weak map** (`rowOfHandler`), two
-   entries a row; a property of the element would be one store each.
+6. **Done: each row's handlers are noted on their element** (train-30,
+   ADR-0435, carried with trains 27 and 28), under a symbol of the
+   runtime's own, where a weak map (`rowOfHandler`) held two entries a row.
 7. **kiokun's whole-shard test counts 17,597 entries**
    (`spikes/kiokun/server/src/main.rs`), and the kiokun-data checkout it
    reads on this PC holds 17,688 now: `just e10-kiokun` with `KIOKUN_DATA`
