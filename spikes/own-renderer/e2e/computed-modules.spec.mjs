@@ -42,15 +42,20 @@ test("a computed values module that failed to load is loaded again at the next c
   page,
 }) => {
   let calls = 0;
+  const uncaught = [];
+  page.on("pageerror", (e) => uncaught.push(e.message));
   await page.route("**/computed/**", (route) => (++calls === 1 ? route.abort("failed") : route.continue()));
   try {
     const { draft, left } = await drafting(page, "/");
     await draft.fill("Hello");
     await expect.poll(() => logged(page, "computed values not loaded"), { timeout: 8_000 }).toBe(1);
+    // And the developer is told, as of an error nothing caught (ADR-0431).
+    await expect.poll(() => uncaught.length).toBe(1);
     // The next change asks the network again, and is computed.
     await draft.fill("Hello!");
     await expect(left).toHaveText("274 left");
     expect(calls).toBe(2);
+    expect(uncaught.length, "and the change computed told nothing").toBe(1);
   } finally {
     await page.unrouteAll({ behavior: "ignoreErrors" });
   }

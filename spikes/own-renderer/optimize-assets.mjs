@@ -17,12 +17,20 @@ const BR = {
 const ASSET = /\.(?:mjs|js|wasm|css|svg)$/;
 
 /**
+ * **What the page reports about itself, for its tests** (ADR-0430): each a
+ * statement of the runtime labeled `REPORT`, which a production build drops,
+ * its arguments with it, so that no page carries what only a suite reads. A
+ * build for a suite that reads them keeps them (`report`).
+ */
+const reports = (report) => (report ? [] : ["REPORT"]);
+
+/**
  * **The runtime of a page that talks to no server** (ADR-0413):
  * the runtime with `PW_SERVER` false, and what only a server's page
  * uses dropped with it. Its one source is the runtime's, so the two cannot
  * drift, and a page's document names which it runs.
  */
-async function packDeviceRuntime(directory, source) {
+async function packDeviceRuntime(directory, source, report) {
   const uses = await deviceFeatures(directory);
   let device = source.replace("const PW_SERVER = true;", "").replaceAll("PW_SERVER", "false");
   // Whether a press is heard at the document, as the views say: a literal, so
@@ -37,6 +45,7 @@ async function packDeviceRuntime(directory, source) {
     target: "es2022",
     minify: true,
     treeShaking: true,
+    dropLabels: reports(report),
     legalComments: "inline",
     charset: "utf8",
   });
@@ -65,9 +74,10 @@ function alone(source, is) {
  * it and its code from itself. Written where the build has exactly one page,
  * that page runs on the device (ADR-0413) and has its module; the host puts
  * it in that page's document. `deviceSource` is the device's runtime as
- * `packDeviceRuntime` folded it. Returns the page, or `null` for none.
+ * `packDeviceRuntime` folded it, its reports dropped as that one's are.
+ * Returns the page, or `null` for none.
  */
-async function aloneModule(directory, deviceSource) {
+async function aloneModule(directory, deviceSource, report) {
   // A runtime that declares no `PW_ALONE`, a test's stand-in, has none.
   if (deviceSource === null || !deviceSource.includes("const PW_ALONE = false;")) return null;
   const base = path.join(directory, "build");
@@ -88,6 +98,7 @@ async function aloneModule(directory, deviceSource) {
     target: "es2022",
     treeShaking: true,
     minify: true,
+    dropLabels: reports(report),
     charset: "utf8",
     legalComments: "inline",
     write: false,
@@ -219,18 +230,19 @@ function serverRuntimeSource(source) {
 
 /** One asset packed; the device's runtime's folded source where it was the
  * runtime, else `null`. */
-async function packAsset(directory, entry) {
+async function packAsset(directory, entry, report) {
   const file = path.join(directory, entry.name);
   let body = await readFile(file);
   let device = null;
   if (entry.name === "pw-runtime.mjs") {
-    device = await packDeviceRuntime(directory, body.toString("utf8"));
+    device = await packDeviceRuntime(directory, body.toString("utf8"), report);
     const result = await transform(serverRuntimeSource(body.toString("utf8")), {
       loader: "js",
       format: "esm",
       target: "es2022",
       minify: true,
       treeShaking: true,
+      dropLabels: reports(report),
       legalComments: "inline",
       charset: "utf8",
     });
@@ -498,7 +510,10 @@ export async function bundlePages(directory) {
   return done;
 }
 
-export async function optimizeAssets(directory) {
+/** A production build of `directory`, in place. With `report`, its runtimes
+ * keep what the page reports about itself, for a suite that reads it
+ * (ADR-0430); a build to serve has none. */
+export async function optimizeAssets(directory, { report = false } = {}) {
   const entries = await readdir(directory, { withFileTypes: true });
   // Deterministic order and only root-level shared assets. Compiled handler
   // modules have their own content/identity contract: they are compressed
@@ -507,23 +522,25 @@ export async function optimizeAssets(directory) {
   assets.sort((a, b) => a.name.localeCompare(b.name, "en"));
   const runtime = await readFile(path.join(directory, "pw-runtime.mjs")).catch(() => null);
   let device = null;
-  for (const asset of assets) device = (await packAsset(directory, asset)) ?? device;
+  for (const asset of assets) device = (await packAsset(directory, asset, report)) ?? device;
   await compressModules(directory);
   await bundlePages(directory);
-  await aloneModule(directory, device);
-  // What the runtime was before it was packed: the browser suite's word on
-  // whether this build is of the runtime it is testing (`host-metadata.mjs`).
-  const built = { ...DELIVERY, ...(runtime && { runtime: createHash("sha256").update(runtime).digest("hex") }) };
+  await aloneModule(directory, device, report);
+  // What the runtime was before it was packed, and whether it reports: the
+  // browser suite's word on whether this build is of the runtime it is
+  // testing (`host-metadata.mjs`), and of which build of it.
+  const built = { ...DELIVERY, report, ...(runtime && { runtime: createHash("sha256").update(runtime).digest("hex") }) };
   await writeFile(path.join(directory, "delivery.json"), `${JSON.stringify(built)}\n`);
   return assets.map((asset) => asset.name);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const directory = process.argv[2];
-  if (!directory) {
-    process.stderr.write("usage: node optimize-assets.mjs DIR\n");
+  const [directory, ...rest] = process.argv.slice(2);
+  const report = rest.length === 1 && rest[0] === "--report";
+  if (!directory || directory.startsWith("--") || (rest.length > 0 && !report)) {
+    process.stderr.write("usage: node optimize-assets.mjs DIR [--report]\n");
     process.exitCode = 2;
   } else {
-    await optimizeAssets(directory);
+    await optimizeAssets(directory, { report });
   }
 }

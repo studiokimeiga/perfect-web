@@ -1,8 +1,8 @@
 E10 gate item 5 - no ownership syntax for ordinary values; task 10 - deterministic resumable state
 
 produced by: just e10-ownership
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == what is affine, and what is not (compiler/pw-core/tests/ownership.rs)
@@ -16,7 +16,7 @@ not Pleris: fn f<'a>(x: Int) -> Int { x }
 not Pleris: fn f(x: 'a Int) -> Int { x }
 not Pleris: fn f(move x: Int) -> Int { x }
 not Pleris: fn f(x: Box<Int>) -> Int { *x }
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.75s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.52s
 
 == carried captures serialize deterministically (runtime/pw-render/tests/properties.rs)
 

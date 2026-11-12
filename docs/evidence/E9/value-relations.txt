@@ -1,8 +1,8 @@
 E9-V1..V6 - the ordinary value relations
 
 produced by: just e9-values
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the gate tests (compiler/pw-core/tests/value_relations.rs)
@@ -34,22 +34,22 @@ test v2_renaming_a_type_parameter_changes_nothing ... ok
 test v2_the_architects_discriminator_identity_of_a_store_is_a_store ... ok
 test the_accepted_corpus_disagrees_nowhere_and_decides_a_floor ... ok
 test v3_a_privacy_qualifier_is_not_the_type_it_qualifies ... ok
-test v4_a_question_mark_returns_its_error_and_the_error_types_must_agree ... ok
-test v4_a_unit_body_discards_its_last_value ... ok
 test v3_an_ordinary_program_cannot_pass_one_modules_tag_where_anothers_is_required ... ok
+test v4_a_unit_body_discards_its_last_value ... ok
+test v4_a_question_mark_returns_its_error_and_the_error_types_must_agree ... ok
 test v3_an_opaque_type_is_not_its_representation_in_either_direction ... ok
 test v4_each_match_arm_is_a_result ... ok
 test v4_the_reopening_case_wrong_return_is_refused ... ok
-test v5_a_declared_constructor_is_applied_to_exactly_its_parameters ... ok
 test v4_every_branch_and_every_return_is_a_result ... ok
-test v5_a_written_type_that_names_nothing_is_reported_once ... ok
 test v5_a_type_from_a_missing_import_is_the_imports_diagnostic_not_a_second_one ... ok
+test v5_a_declared_constructor_is_applied_to_exactly_its_parameters ... ok
 test v4_the_success_value_of_a_question_mark_is_what_flows_on ... ok
+test v5_a_written_type_that_names_nothing_is_reported_once ... ok
 test v5_no_relation_runs_on_an_unresolved_type ... ok
 test v6_a_phantom_parameter_distinguishes_values_with_one_layout ... ok
 test v6_two_opaque_types_with_one_representation_are_two_types ... ok
 test the_store_program_is_decided_not_merely_silent ... ok
-test result: ok. 42 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.40s
+test result: ok. 42 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.57s
 
 == what was decided: the store program
 

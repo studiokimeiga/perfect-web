@@ -215,6 +215,18 @@
       },
       {
         "files": [
+          "spikes/own-renderer/optimize-assets.test.mjs"
+        ],
+        "functions": [
+          "codeOf"
+        ],
+        "maxCyclomatic": 24,
+        "maxCognitive": 31,
+        "maxCrap": 553.0,
+        "reason": "A line of the runtime's code without the words of its strings, read a character at a time since a template may hold another, for the test that each report is a statement labeled REPORT and does nothing but report (ADR-0430). Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with and one (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
           "spikes/own-renderer/public/pw-runtime.mjs"
         ],
         "functions": [

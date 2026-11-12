@@ -1,35 +1,35 @@
 ADR-0306 - a navigation keeps the layout, and shows the next page in it
 
 produced by: just e14-soft-navigation
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
 
 == the store's pages, followed softly, in three engines (e2e/soft-navigation.spec.mjs)
 
-  45 passed (42.7s)
+  51 passed (53.7s)
 
 == a handler's navigation after its commit, in three engines (e2e/navigate.spec.mjs)
 
   2 skipped
-  28 passed (28.4s)
+  28 passed (35.7s)
 
 == mutation controls (scripts/soft_navigation_mutations.py)
 
-baseline: 15 passed, 0 failed
-every link loads its page whole: KILLED (7 of 15 tests fail)
-a handler's navigation after its commit loads its page whole: KILLED (1 of 15 tests fail)
-back and forward read nothing: KILLED (1 of 15 tests fail)
-a page of another build is kept: KILLED (1 of 15 tests fail)
-the page's markup is not shown in the slot: KILLED (6 of 15 tests fail)
-the layout's regions are not taken from the next document: KILLED (1 of 15 tests fail)
-focus is left where it was: KILLED (1 of 15 tests fail)
-the old runtime goes on after handing the page over: KILLED (1 of 15 tests fail)
-what a leaving page is told is applied: KILLED (1 of 15 tests fail)
-a reader's next choice waits for the navigation in flight: KILLED (1 of 15 tests fail)
-a page shown again from the back-forward cache does not listen: KILLED (1 of 15 tests fail)
-a page with no layout is shown in this one: KILLED (1 of 15 tests fail)
+baseline: 17 passed, 0 failed
+every link loads its page whole: KILLED (9 of 17 tests fail)
+a handler's navigation after its commit loads its page whole: KILLED (1 of 17 tests fail)
+back and forward read nothing: KILLED (1 of 17 tests fail)
+a page of another build is kept: KILLED (1 of 17 tests fail)
+the page's markup is not shown in the slot: KILLED (6 of 17 tests fail)
+the layout's regions are not taken from the next document: KILLED (1 of 17 tests fail)
+focus is left where it was: KILLED (1 of 17 tests fail)
+the old runtime goes on after handing the page over: KILLED (1 of 17 tests fail)
+what a leaving page is told is applied: KILLED (1 of 17 tests fail)
+a reader's next choice waits for the navigation in flight: KILLED (1 of 17 tests fail)
+a page shown again from the back-forward cache does not listen: KILLED (1 of 17 tests fail)
+a page with no layout is shown in this one: KILLED (1 of 17 tests fail)
 12 of 12 mutants killed
 memory bound: no process was stopped

@@ -1,8 +1,8 @@
 ADR-0239 - every code the compiler writes is registered, once
 
 produced by: just e14-registered-codes
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the registry (compiler/pw-core/src/codes.rs)
@@ -10,22 +10,22 @@ rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 test codes::tests::a_retired_code_is_never_reused ... ok
 test codes::tests::a_tracks_block_holds_only_its_tracks_codes ... ok
 test codes::tests::an_old_number_is_no_registered_rule ... ok
-test codes::tests::every_code_is_unique ... ok
 test codes::tests::every_alias_resolves_to_a_registered_code ... ok
 test codes::tests::an_invariant_reads_as_a_sentence_about_the_program ... ok
-test codes::tests::every_known_gap_names_an_owner_and_the_missing_analysis ... ok
-test codes::tests::every_corpus_rule_is_registered_or_an_owned_known_gap ... ok
 test codes::tests::every_code_sits_in_its_owner_range ... ok
+test codes::tests::every_code_is_unique ... ok
+test codes::tests::every_known_gap_names_an_owner_and_the_missing_analysis ... ok
 test codes::tests::every_retired_code_says_why_and_what_replaced_it ... ok
+test codes::tests::every_corpus_rule_is_registered_or_an_owned_known_gap ... ok
 test codes::tests::every_code_a_checker_writes_is_registered ... ok
 test codes::tests::every_registered_code_is_one_a_checker_can_emit ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 186 filtered out; finished in 2.29s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 186 filtered out; finished in 4.10s
 
 == the checker (compiler/pw-core/tests/registered_codes.rs)
 
 test each_code_has_one_meaning ... ok
 test a_readers_value_in_a_shared_cache_is_one_error ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
 
 == the corpus (corpus-check, checking_source.rs)
 
@@ -34,7 +34,7 @@ accepted: 44/44 charter §16 categories covered
 rejected: 97 files
 rejected: 97/97 charter §16 categories covered
 corpus-check: OK
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 83.55s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 201.63s
 
 == mutation controls (scripts/registered_codes_mutations.py)
 

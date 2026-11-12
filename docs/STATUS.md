@@ -2,6 +2,41 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**Train-26, 2026-11-11:** on train-25. A failure the runtime recovers from is
+told the developer (ADR-0431), as the platform tells an error nothing
+caught (`reportError`): a press that failed, the page's or a speculation's
+module that did not load, a rollback that could not render, a navigation
+that could not be finished in place, a boot that failed. A refusal, no
+answer and a full store, which the reader is told by name, are not. Each
+held by a test of the spec that drives it, in three engines; ten controls
+(`just e14-failures-told`). Seven calls: TodoMVC's one script 43 bytes more
+with Brotli, the large list's 12. The head-to-head at `87446c10`, trains 25
+and 26 together: TodoMVC's first load as sent 19,975 (Svelte's 20,821);
+Pleris behind in 52 rows and best in 86. Trains 25 and 26 land together:
+GitHub's runners could not resolve the Ubuntu mirrors for hours, and
+train-25's own full verify (43053690319) failed in setup alone, so
+train-26's (43069176405, at `87446c10`, 24 shards) is the record of both:
+every recipe and the three browser suites green, in its second attempt, its
+first having passed them and three shards' evidence refused upload by
+GitHub's artifact service in its incident of that evening.
+
+**Train-25, 2026-11-11:** on train-24. A production page reports nothing to
+its tests (ADR-0430): each thing the runtime tells them, `window.__pw`, its
+log and its hooks, is a statement labeled `REPORT`, which a production build
+drops, arguments and all, unless it is built `--report` for a suite that
+reads it; nothing the runtime does reads a report. TodoMVC's one script is
+46,090 bytes, 15,360 with Brotli, from 48,670 and 16,054; the large list's
+43,760 and 14,950, from 45,639 and 15,526; a server's page's runtime 66,522
+and 21,811, from 71,794 and 23,247. A test that reads a report is tagged
+`@report`; `e14-device-runtime` runs the rest on the builds as served. The
+head-to-head at `afb99fe3`: TodoMVC's first load as sent 19,908 (Svelte's
+20,821), decoded 63,178 (57,354); the large list's 16,507 (13,242) and
+48,399 (35,039); the store's 27,375 (SvelteKit's 35,020). Pleris is behind
+in 56 rows and best in 90, from 36 and 77: the rows that crossed to behind
+are presses and paints the train does not touch, each stack faster in this
+run, so that spreads which overlapped before no longer do. Its full verify
+(43053690319, at `afb99fe3`, 24 shards) is the train's record.
+
 **Train-24, 2026-11-11:** on train-23, landed with it. `pw build --dist`
 builds a whole app (ADR-0429): the standard packages added, a directory
 read for its `.pw` files, checked as `pw check` checks, its artifacts, its

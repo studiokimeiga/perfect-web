@@ -1,8 +1,8 @@
 ADR-0039 - pure computation in the component backend
 
 produced by: just e10-pure
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 koka: Koka 3.2.3, 01:25:33 Mar 18 2026 (ghc release version)
 
@@ -27,13 +27,13 @@ r.Q: `r.Q` did not lower: the backend does not lower `%` on a Float yet: its sem
 r.Q: `r.Q` did not lower: the backend does not lower a `return` inside a function value yet: the lambda a list operation runs is compiled into its loop; a `return` there would leave the function around it
 r.Q: `r.Q` did not lower: the backend does not lower an assignment inside a function value yet: a lambda a list operation runs does not change the bindings around it
 r.Q: the program does not check, so nothing is compiled: [PW0606] `r.Q` declares its result `Int` and this produces `Unit`
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.77s
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.21s
 
 == against Koka (compiler/pw-conformance/tests/koka_oracle.rs)
 
 oracle: 9 functions x 240 inputs: 1620 values identical to Koka's, 530 traps where a 64-bit result did not fit, 10 zero divisors (Koka: 0 and the dividend; Pleris: a trap)
 oracle: a Koka answer altered by one is not matched
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.31s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.15s
 
 == mutation controls (scripts/pure_mutations.py)
 

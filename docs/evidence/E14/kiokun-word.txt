@@ -1,8 +1,8 @@
 kiokun.com's word page, served by the development server
 
 produced by: just e14-kiokun-word
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -20,8 +20,8 @@ test kiokun::search::cache_tests::private_abandoned_stages_and_old_flat_sqlite_f
 test kiokun::search::tests::a_csv_record_holds_quotes_commas_and_line_breaks ... ok
 test kiokun::search::tests::a_query_fts5_cannot_read_raw_is_answered ... ok
 test kiokun::search::tests::a_query_is_words_whatever_it_holds ... ok
-test kiokun::search::cache_tests::an_open_reader_keeps_its_path_and_identity_after_another_version_publishes ... ok
 test kiokun::search::cache_tests::builders_of_one_digest_do_not_unlink_an_open_sqlite ... ok
+test kiokun::search::cache_tests::an_open_reader_keeps_its_path_and_identity_after_another_version_publishes ... ok
 test kiokun::search::cache_tests::publishing_another_digest_does_not_unlink_a_live_builder ... ok
 test tests::kiokun::a_file_answers_only_for_the_word_it_records ... ok
 test tests::kiokun::a_japanese_senses_examples_are_its_japanese_sentences ... ok
@@ -43,8 +43,8 @@ test tests::kiokun::an_equivalent_simplified_form_is_moved_to_its_traditional_pa
 test tests::kiokun::appears_in_ranks_each_languages_words_ten_at_a_time ... ok
 test tests::kiokun::an_inflected_word_shows_the_dictionary_form_it_is ... ok
 test tests::kiokun::contains_and_appears_in_match_kiokuns_own_on_a_sample ... ignored, reads kiokun.com's own answers, made locally by `just e14-kiokun-contains`
-test tests::kiokun::contains_breaks_the_word_down_and_cards_its_forms ... ok
 test tests::kiokun::a_code_is_shown_by_kiokuns_label_for_it ... ok
+test tests::kiokun::contains_breaks_the_word_down_and_cards_its_forms ... ok
 test tests::kiokun::deinflection_matches_kiokuns_own_on_a_sample ... ignored, reads kiokun.com's own answers, made locally by `just e14-kiokun-deinflection`
 test tests::kiokun::homophones_are_each_readings_words_but_the_pages_own ... ok
 test tests::kiokun::contains_and_appears_in_match_kiokuns_answers_for_the_sample ... ok
@@ -76,11 +76,11 @@ test tests::kiokun::a_unit_test_server_uses_the_sample_despite_deployment_paths 
 test tests::kiokun::the_page_head_matches_kiokuns_answers_for_the_sample ... ok
 test tests::kiokun::deinflection_matches_kiokuns_answers_for_the_sample has been running for over 60 seconds
 test tests::kiokun::deinflection_matches_kiokuns_answers_for_the_sample ... ok
-test result: ok. 56 passed; 0 failed; 9 ignored; 0 measured; 983 filtered out; finished in 99.28s
+test result: ok. 56 passed; 0 failed; 9 ignored; 0 measured; 983 filtered out; finished in 135.74s
 
 == the browser in three engines (e2e/kiokun-site.spec.mjs)
 
-  15 passed (57.9s)
+  15 passed (1.3m)
 
 == mutation controls (scripts/kiokun_word_mutations.py)
 

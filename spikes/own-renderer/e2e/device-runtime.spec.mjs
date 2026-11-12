@@ -5,7 +5,7 @@
 // its build did not compile, as every other page does. TodoMVC is a page
 // alone in its build (ADR-0426): its document holds that runtime,
 // its code and its build's handler table, and it asks for nothing else.
-import { statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "@playwright/test";
@@ -21,7 +21,7 @@ test.use({
 const SPIKE = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 /** What the device's runtime measured when this was written, as sent, and a
  * little over: it may not grow by accident. */
-const AT_MOST = 15_500;
+const AT_MOST = 14_000;
 
 /** Each path the page asks for. */
 function watch(page) {
@@ -41,8 +41,16 @@ async function add(page, title) {
 }
 
 const items = (page) => page.locator(".todo-list li");
-/** What the runtime logged. */
-const logged = (page) => page.evaluate(() => window.__pw.log.slice());
+/** Each handler the page would not attach, as its console tells a developer
+ * (ADR-0400): what a production build says, which reports nothing to its
+ * tests (ADR-0430). Watched from before the page is opened. */
+function refusals(page) {
+  const said = [];
+  page.on("console", (message) => {
+    if (message.type() === "warning" && message.text().startsWith("Pleris: handler ")) said.push(message.text());
+  });
+  return said;
+}
 
 test("a page alone in its build asks for its document and nothing else, and runs", async ({ page }) => {
   const asked = watch(page);
@@ -165,19 +173,20 @@ test("a box outside the block a render morphed keeps what it was given", async (
 });
 
 test("a handler its table names runs, on the decision the page made", async ({ page }) => {
+  const refused = refusals(page);
   await open(page);
-  expect((await logged(page)).filter((line) => line.startsWith("refused"))).toEqual([]);
   await add(page, "feed the cat");
   await expect(items(page)).toHaveCount(1);
   await expect(items(page).locator("label")).toHaveText("feed the cat");
+  expect(refused).toEqual([]);
 });
 
 test("a table that names no handler refuses each, and nothing runs", async ({ page }) => {
+  const refused = refusals(page);
   await tableChanged(page, () => JSON.stringify(""));
   await open(page);
-  const refused = (await logged(page)).filter((line) => line.startsWith("refused"));
-  expect(refused.length > 0).toBe(true);
-  expect(refused.filter((line) => !line.includes("code 4 recovery refetch-region"))).toEqual([]);
+  await expect.poll(() => refused.length > 0).toBe(true);
+  expect(refused.filter((line) => !line.endsWith(": PWR04, https://pleris.dev/e/PWR04, recovery refetch-region"))).toEqual([]);
   await page.locator(".new-todo").fill("never kept");
   await page.locator(".new-todo").press("Enter");
   await page.waitForFunction(() => document.documentElement.dataset.pwReady === "1");
@@ -185,21 +194,41 @@ test("a table that names no handler refuses each, and nothing runs", async ({ pa
 });
 
 test("a table that cannot be read refuses each, and nothing runs", async ({ page }) => {
+  const refused = refusals(page);
   await tableChanged(page, () => "no");
   await open(page);
-  const refused = (await logged(page)).filter((line) => line.startsWith("refused"));
-  expect(refused.length > 0).toBe(true);
+  await expect.poll(() => refused.length > 0).toBe(true);
 });
 
 test("a table of another document's schema refuses each, by that", async ({ page }) => {
+  const refused = refusals(page);
   await tableChanged(page, (table) => JSON.stringify(table.replace(/^(#page\|[^|]*\|)[^|]*/m, "$1another-schema")));
   await open(page);
-  const refused = (await logged(page)).filter((line) => line.startsWith("refused"));
-  expect(refused.length > 0).toBe(true);
-  expect(refused.filter((line) => !line.includes("code 6"))).toEqual([]);
+  await expect.poll(() => refused.length > 0).toBe(true);
+  expect(refused.filter((line) => !line.includes(": PWR06, "))).toEqual([]);
+});
+
+test("a boot that fails leaves the page to be read, and is told the developer", async ({ page }) => {
+  // A platform that refuses the first thing the runtime asks of it, as a
+  // broken extension might: the boot fails, and the developer is told as of
+  // an error nothing caught, on the build as it is served (ADR-0431).
+  await page.addInitScript(() => {
+    performance.mark = () => {
+      throw new TypeError("a mark the platform refused");
+    };
+  });
+  const uncaught = [];
+  page.on("pageerror", (e) => uncaught.push(e.message));
+  await page.goto("/");
+  await page.waitForFunction(() => document.documentElement.dataset.pwReady === "failed");
+  await expect.poll(() => uncaught.join("\n")).toBe("a mark the platform refused");
+  await expect(page.locator(".new-todo")).toBeVisible();
 });
 
 test("the device's runtime stays small as sent", () => {
+  // As a page is sent it: of a build that reports nothing (ADR-0430).
+  const { report } = JSON.parse(readFileSync(path.join(SPIKE, "dist-todomvc/delivery.json"), "utf8"));
+  expect(report).toBe(false);
   const sent = statSync(path.join(SPIKE, "dist-todomvc/pw-runtime-device.mjs.br")).size;
   expect(sent <= AT_MOST).toBe(true);
   const full = statSync(path.join(SPIKE, "dist-todomvc/pw-runtime.mjs.br")).size;

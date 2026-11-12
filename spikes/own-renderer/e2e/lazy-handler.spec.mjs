@@ -269,6 +269,8 @@ test("a handler that fails to load is visible and recoverable", async ({ page })
   // the next press retries.
   await ready(page);
   const ids = await identities(page);
+  const uncaught = [];
+  page.on("pageerror", (e) => uncaught.push(e.message));
 
   let failures = 0;
   await page.route(`**/handler/${ids.add_to_cart}.mjs*`, async (route) => {
@@ -288,6 +290,8 @@ test("a handler that fails to load is visible and recoverable", async ({ page })
     "This did not work. Try again.",
   );
   await expect(page.locator("#cart-count"), "and nothing happened").toHaveText("0");
+  // And the developer is told, as of an error nothing caught (ADR-0431): once.
+  await expect.poll(() => uncaught.length).toBe(1);
 
   // Recoverable: the failed load was forgotten, so pressing again retries.
   //
@@ -299,6 +303,7 @@ test("a handler that fails to load is visible and recoverable", async ({ page })
   await button.click();
   await expect(page.locator("#cart-count")).toHaveText("1");
   expect(failures, "the second press really did refetch").toBe(2);
+  expect(uncaught.length, "and the press that worked told nothing").toBe(1);
   await page.unrouteAll({ behavior: "ignoreErrors" }).catch(() => {});
 });
 

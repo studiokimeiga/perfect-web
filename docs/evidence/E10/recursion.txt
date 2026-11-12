@@ -1,20 +1,20 @@
 ADR-0050 - recursion and generic callees compile
 
 produced by: just e10-recursion
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
 == recursions through the host (pw-conformance/tests/recursion.rs)
 
-test a_recursion_builds_a_string_and_an_option ... ok
 test a_generic_recursion_is_compiled_once_per_instance ... ok
+test a_recursion_builds_a_string_and_an_option ... ok
 test an_exported_query_calls_itself ... ok
 test an_overflow_inside_a_recursion_traps ... ok
 test two_functions_call_each_other ... ok
 test a_function_calls_itself ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.93s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.32s
 
 == the component and the JavaScript module, on the same arguments
 

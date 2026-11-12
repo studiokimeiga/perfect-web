@@ -1,8 +1,8 @@
 ADR-0168 - a change reaches every part that reads it
 
 produced by: just e14-instance-changes
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 playwright: Version 1.58.0
 
@@ -10,11 +10,11 @@ playwright: Version 1.58.0
 
 test a_block_that_changed_renders_the_instance_again ... ok
 test a_match_that_shows_the_arm_it_showed_is_set_where_it_is ... ok
-test a_block_that_decides_as_it_did_is_set_where_it_is ... ok
 test a_renamed_item_sets_its_text_and_every_attribute_that_reads_the_name ... ok
-test an_unkeyed_list_inside_the_row_that_changed_renders_the_row_again ... ok
+test a_block_that_decides_as_it_did_is_set_where_it_is ... ok
 test an_attribute_is_set_as_the_document_writes_it_and_a_boolean_one_comes_and_goes ... ok
 test nothing_changed_is_no_change ... ok
+test an_unkeyed_list_inside_the_row_that_changed_renders_the_row_again ... ok
 test what_a_handler_captures_is_set_where_it_is ... ok
 test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
@@ -22,7 +22,7 @@ test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 test tests::a_list_moves_what_moved_and_sets_what_changed_where_it_is ... ok
 test tests::a_rename_sets_every_part_that_reads_the_name ... ok
-test result: ok. 1039 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 636.17s
+test result: ok. 1039 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 627.50s
 
 == each Add named by its item, renamed with it; an instance in place not moved (three engines)
 

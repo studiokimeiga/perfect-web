@@ -77,11 +77,11 @@ MUTANTS = [
         "a send held for the one before it counts as a retry",
         "browser",
         RUNTIME,
-        "        log.push(`${component} sent again: no answer within ${sendDeadline} ms, the one before it unanswered`);\n"
+        "        REPORT: log.push(`${component} sent again: no answer within ${sendDeadline} ms, the one before it unanswered`);\n"
         "        await Promise.all(before);\n"
         "        after = undefined;\n"
         "        attempt -= 1;\n",
-        "        log.push(`${component} sent again: no answer within ${sendDeadline} ms, the one before it unanswered`);\n"
+        "        REPORT: log.push(`${component} sent again: no answer within ${sendDeadline} ms, the one before it unanswered`);\n"
         "        await Promise.all(before);\n"
         "        after = undefined;\n",
     ),
@@ -89,19 +89,19 @@ MUTANTS = [
         "a send held for the one before it is sent again naming that one",
         "browser",
         RUNTIME,
-        "        log.push(`${component} sent again: no answer within ${sendDeadline} ms, the one before it unanswered`);\n"
+        "        REPORT: log.push(`${component} sent again: no answer within ${sendDeadline} ms, the one before it unanswered`);\n"
         "        await Promise.all(before);\n"
         "        after = undefined;\n",
-        "        log.push(`${component} sent again: no answer within ${sendDeadline} ms, the one before it unanswered`);\n"
+        "        REPORT: log.push(`${component} sent again: no answer within ${sendDeadline} ms, the one before it unanswered`);\n"
         "        await Promise.all(before);\n",
     ),
     (
         "a send held for the one before it does not wait its turn",
         "browser",
         RUNTIME,
-        "        log.push(`${component} sent again: no answer within ${sendDeadline} ms, the one before it unanswered`);\n"
+        "        REPORT: log.push(`${component} sent again: no answer within ${sendDeadline} ms, the one before it unanswered`);\n"
         "        await Promise.all(before);\n",
-        "        log.push(`${component} sent again: no answer within ${sendDeadline} ms, the one before it unanswered`);\n",
+        "        REPORT: log.push(`${component} sent again: no answer within ${sendDeadline} ms, the one before it unanswered`);\n",
     ),
     (
         "`?deadline=` raises the deadline",

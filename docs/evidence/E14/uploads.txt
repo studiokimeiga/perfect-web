@@ -1,8 +1,8 @@
 ADR-0260 (track uploads) - an image on a post: a typed upload, a deployment's blob storage, served safely
 
 produced by: just e14-uploads
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -19,14 +19,14 @@ test tests::uploads::a_malformed_image_is_refused_over_http_without_staging ... 
 test tests::uploads::a_command_that_does_not_commit_gives_its_claim_back ... ok
 test tests::uploads::a_photos_metadata_is_neither_kept_nor_served ... ok
 test tests::uploads::a_deleted_posts_image_is_not_served_and_its_blob_is_collected ... ok
-test tests::uploads::an_uploads_connection_is_closed_after_its_answer ... ok
 test tests::uploads::an_attached_image_removed_is_forgotten ... ok
-test tests::uploads::an_image_attached_is_posted_with_its_post_and_served ... ok
+test tests::uploads::an_uploads_connection_is_closed_after_its_answer ... ok
 test tests::uploads::an_upload_is_read_within_its_own_limits_not_a_commands ... ok
-test tests::uploads::on_postgres_an_attached_image_removed_is_forgotten ... ok
+test tests::uploads::an_image_attached_is_posted_with_its_post_and_served ... ok
 test tests::uploads::on_postgres_a_deleted_posts_image_is_not_served_and_its_blob_is_collected ... ok
-test tests::uploads::on_postgres_an_image_is_kept_with_its_post ... ok
+test tests::uploads::on_postgres_an_attached_image_removed_is_forgotten ... ok
 test tests::uploads::on_postgres_posting_an_image_with_none_attached_commits_nothing ... ok
+test tests::uploads::on_postgres_an_image_is_kept_with_its_post ... ok
 test uploads::icc::tests::a_profile_keeps_its_colour_and_names_nothing ... ok
 test uploads::icc::tests::a_profile_that_does_not_parse_is_not_kept ... ok
 test uploads::icc::tests::a_profiles_producer_signatures_are_not_kept ... ok
@@ -76,19 +76,19 @@ test uploads::strip::tests::a_jpeg_keeps_its_image_colour_and_turn_and_nothing_e
 test uploads::strip::tests::a_jpeg_that_does_not_parse_is_refused ... ok
 test uploads::strip::tests::a_jpeg_with_restart_markers_is_kept_whole ... ok
 test uploads::strip::tests::a_jpegs_density_is_not_kept ... ok
-test uploads::strip::tests::a_jpegs_icc_profile_is_read_as_libjpeg_reads_its_chunks ... ok
+test tests::uploads::what_is_not_an_image_is_refused_whatever_it_is_called ... ok
 test uploads::strip::tests::a_jpegs_turn_is_its_first_readable_exif_before_any_scan ... ok
 test uploads::strip::tests::a_png_keeps_its_image_colour_and_frames_and_nothing_else ... ok
 test uploads::strip::tests::a_png_that_does_not_parse_is_refused ... ok
-test uploads::strip::tests::a_pngs_single_icc_profile_is_rewritten_and_duplicates_refused ... ok
+test uploads::strip::tests::a_jpegs_icc_profile_is_read_as_libjpeg_reads_its_chunks ... ok
 test uploads::strip::tests::a_simple_webp_is_its_image_alone ... ok
 test uploads::strip::tests::a_webp_keeps_its_image_colour_and_alpha_and_nothing_else ... ok
-test uploads::strip::tests::a_webp_of_many_empty_chunks_is_walked_without_a_list ... ok
+test tests::uploads::posting_an_image_with_none_attached_commits_nothing ... ok
 test uploads::strip::tests::a_webp_that_does_not_parse_is_refused ... ok
 test uploads::strip::tests::a_webps_icc_profile_is_read_from_its_first_iccp ... ok
 test uploads::strip::tests::an_adobe_headers_flags_cannot_name_a_device ... ok
 test uploads::strip::tests::an_animated_webp_keeps_its_frames_and_nothing_else ... ok
-test tests::uploads::one_signed_out_attaches_nothing ... ok
+test uploads::strip::tests::a_webp_of_many_empty_chunks_is_walked_without_a_list ... ok
 test uploads::strip::tests::every_valid_jpeg_orientation_is_kept_alone ... ok
 test uploads::strip::tests::fill_bytes_before_a_jpeg_restart_stay_with_the_scan ... ok
 test uploads::strip::tests::fixed_png_chunks_refuse_undeclared_payload_bytes ... ok
@@ -118,33 +118,33 @@ test uploads::tests::an_image_is_leased_to_its_session_and_shown_to_it_alone ...
 test uploads::tests::an_image_is_measured_as_it_is_kept ... ok
 test uploads::tests::expansion_cannot_cross_the_staging_cap ... ok
 test uploads::tests::nothing_is_claimed_where_nothing_is_declared ... ok
+test uploads::strip::tests::a_pngs_single_icc_profile_is_rewritten_and_duplicates_refused ... ok
 test uploads::tests::privacy_refusals_leave_no_lease_staged_or_final_blob ... ok
-test uploads::tests::privacy_rewrite_is_the_preview_claim_storage_key_and_served_body ... ok
 test uploads::tests::session_authority_tests::a_lease_claimed_during_final_inspection_is_not_replaced ... ok
 test uploads::tests::session_authority_tests::a_lease_replaced_during_final_inspection_is_not_overwritten ... ok
-test uploads::tests::session_authority_tests::completed_logout_refuses_old_cookie_preview_shown_and_claim ... ok
+test tests::uploads::one_signed_out_attaches_nothing ... ok
 test uploads::tests::session_authority_tests::current_reader_can_preview_claim_rollback_and_publish_public_image ... ok
+test uploads::tests::session_authority_tests::completed_logout_refuses_old_cookie_preview_shown_and_claim ... ok
 test uploads::tests::session_authority_tests::local_expiry_after_staged_put_refuses_publication_and_releases_gate ... ok
 test uploads::tests::session_authority_tests::original_bound_reader_cannot_preview_after_completed_logout ... ok
 test uploads::tests::session_authority_tests::preview_live_inspection_follows_the_complete_staged_blob_read ... ok
-test uploads::tests::session_authority_tests::remote_revocation_while_upload_body_is_held_refuses_staging ... ok
 test uploads::tests::session_authority_tests::remote_revocation_without_local_refresh_cannot_serve_preview ... ok
-test uploads::tests::session_authority_tests::same_cookie_same_account_new_generation_cannot_preview_or_claim_old_lease ... ok
-test uploads::tests::session_authority_tests::source_failure_after_same_key_put_preserves_existing_lease_and_shared_bytes ... ok
+test uploads::tests::session_authority_tests::remote_revocation_while_upload_body_is_held_refuses_staging ... ok
+test uploads::tests::privacy_rewrite_is_the_preview_claim_storage_key_and_served_body ... ok
 test uploads::tests::session_authority_tests::source_failure_after_staged_put_refuses_new_lease_and_removes_unheld_bytes ... ok
-test uploads::tests::session_authority_tests::source_failure_while_upload_body_is_held_refuses_staging ... ok
+test uploads::tests::session_authority_tests::source_failure_after_same_key_put_preserves_existing_lease_and_shared_bytes ... ok
 test uploads::tests::session_authority_tests::stale_bound_reader_cannot_take_replacement_generations_lease ... ok
+test uploads::tests::session_authority_tests::same_cookie_same_account_new_generation_cannot_preview_or_claim_old_lease ... ok
+test uploads::tests::session_authority_tests::source_failure_while_upload_body_is_held_refuses_staging ... ok
 test uploads::tests::session_authority_tests::unavailable_source_cannot_serve_preview_from_cached_bound_reader ... ok
 test uploads::tests::session_authority_tests::upload_held_in_body_cannot_publish_a_lease_after_completed_logout ... ok
-test uploads::tests::staged_bytes_cover_expansion_but_hourly_bytes_count_the_upload ... ok
-test tests::uploads::posting_an_image_with_none_attached_commits_nothing ... ok
 test uploads::tests::the_kind_is_sniffed_and_never_the_senders ... ok
+test uploads::tests::staged_bytes_cover_expansion_but_hourly_bytes_count_the_upload ... ok
 test uploads::tests::the_same_image_attached_twice_is_kept ... ok
 test uploads::tests::the_size_is_held_before_and_after_the_body_is_read ... ok
 test uploads::tests::the_dimensions_are_held ... ok
-test tests::uploads::what_is_not_an_image_is_refused_whatever_it_is_called ... ok
 test uploads::strip::tests::any_bytes_are_refused_or_kept_and_kept_again_unchanged ... ok
-test result: ok. 134 passed; 0 failed; 0 ignored; 0 measured; 914 filtered out; finished in 12.83s
+test result: ok. 134 passed; 0 failed; 0 ignored; 0 measured; 914 filtered out; finished in 8.80s
 
 == the declaration and its checks (compiler/pw-core/tests/uploads.rs)
 
@@ -155,14 +155,14 @@ test a_form_that_sends_a_file_posts_it_to_an_upload ... ok
 test a_limit_is_a_literal_count ... ok
 test its_paths_are_literal_paths ... ok
 test every_clause_is_stated ... ok
-test two_uploads_are_at_two_paths ... ok
 test its_types_are_a_closed_set ... ok
+test two_uploads_are_at_two_paths ... ok
 test its_paths_are_no_pages ... ok
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.01s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.26s
 
 == an image on a post in three engines (e2e/uploads.spec.mjs)
 
-  15 passed (38.6s)
+  15 passed (31.8s)
 
 == mutation controls (scripts/uploads_mutations.py)
 

@@ -404,7 +404,8 @@ function applyList(key, scope, op) {
       // instance's nodes before its own start, and the list's anchors no
       // longer nested (found 2026-10-03, ADR-0168).
       if (nodes.includes(anchor)) return true;
-      window.__pw.moveKind = moveNodes(at.start.parentNode, nodes, anchor);
+      const moved = moveNodes(at.start.parentNode, nodes, anchor);
+      REPORT: window.__pw.moveKind = moved;
       return true;
     }
 
@@ -455,7 +456,10 @@ function usesBundle() {
 function pageBundle() {
   pageBundleLoading ??= (PW_ALONE ? Promise.resolve(alonePage) : import(delivered(pageBundleAt))).catch((error) => {
     pageBundleAt = null;
-    log.push(`the page's module was not loaded: ${error.message ?? error}`);
+    REPORT: log.push(`the page's module was not loaded: ${error.message ?? error}`);
+    // Told the developer once, as of an error nothing caught (ADR-0431):
+    // each press that asks for it is answered by its own module.
+    reportError(error);
     throw error;
   });
   return pageBundleLoading;
@@ -553,11 +557,11 @@ async function bootDecision() {
   );
   decide = decider(lines, PAGE);
   if (!PW_SERVER) return;
-  log.push(`knows ${lines.filter((l) => l && l[0] !== "#").length} handler(s)`);
+  REPORT: log.push(`knows ${lines.filter((l) => l && l[0] !== "#").length} handler(s)`);
   // What this build says of this page's documents (ADR-0300), from the same
   // table and never from the document.
   const [, , schema, scope] = lines.find((l) => l.startsWith(`#page|${PAGE}|`))?.split("|") ?? [];
-  if (schema !== undefined) log.push(`knows ${PAGE}'s documents: ${schema} ${scope}`);
+  REPORT: if (schema !== undefined) log.push(`knows ${PAGE}'s documents: ${schema} ${scope}`);
 }
 
 /** **The handler table a page alone in its build holds** (ADR-0426):
@@ -575,9 +579,15 @@ const tableAlone = !PW_ALONE ? null : function tableAlone() {
 
 // --- attaching -----------------------------------------------------------
 
-/** What the page reports about itself, for the tests to read. */
+/** **What the page reports about itself, for its tests to read**
+ * (ADR-0430): the object `window.__pw`, its log, what it counts and holds as
+ * it works, and the hooks a test drives it by. Each is a statement labeled
+ * `REPORT`, as written a statement like any other, so a development build
+ * reports. A production build drops each, its arguments with it, unless it
+ * is built for a suite that reads them (`pw build --report`). Nothing the
+ * runtime does reads a report. */
 const log = [];
-window.__pw = {
+REPORT: window.__pw = {
   log,
   parts,
   /** The `PartAddress`es the last interaction updated. */
@@ -687,12 +697,12 @@ function loadHandler(identity) {
     // What a load given up brings late is not used (ADR-0382).
     if (loaded.get(identity) === pending) {
       loaded.set(identity, module);
-      log.push(`loaded ${identity}`);
+      REPORT: log.push(`loaded ${identity}`);
     }
     return module;
   });
   loaded.set(identity, pending);
-  window.__pw.fetched = (window.__pw.fetched ?? 0) + 1;
+  REPORT: window.__pw.fetched = (window.__pw.fetched ?? 0) + 1;
   return pending;
 }
 
@@ -822,7 +832,7 @@ async function send(component, args, interaction, retry, after, before) {
       // been answered or failed. As an early answer is, it is no outcome and
       // no resend of the `retry` clause's.
       if (unheard.signal.aborted && after !== undefined) {
-        log.push(`${component} sent again: no answer within ${sendDeadline} ms, the one before it unanswered`);
+        REPORT: log.push(`${component} sent again: no answer within ${sendDeadline} ms, the one before it unanswered`);
         await Promise.all(before);
         after = undefined;
         attempt -= 1;
@@ -830,7 +840,7 @@ async function send(component, args, interaction, retry, after, before) {
       }
       if (!retry || attempt >= retry.max) throw new Unreachable(component, error);
       const why = unheard.signal.aborted ? ` within ${sendDeadline} ms` : ` (${error.message ?? error})`;
-      log.push(`resent ${component}: no answer${why}`);
+      REPORT: log.push(`resent ${component}: no answer${why}`);
       await new Promise((resolve) => setTimeout(resolve, resendDelay(retry, attempt)));
       continue;
     }
@@ -838,7 +848,7 @@ async function send(component, args, interaction, retry, after, before) {
     if (response.status === 409) {
       const early = await response.json().catch(() => null);
       if (early?.early) {
-        log.push(`${component} sent again: the one before it had not arrived`);
+        REPORT: log.push(`${component} sent again: the one before it had not arrived`);
         await Promise.all(before);
         after = undefined;
         attempt -= 1;
@@ -1031,7 +1041,8 @@ async function speculate(component, args, interaction) {
   try {
     module = await speculationsWithin();
   } catch (error) {
-    log.push(`${component} sent unspeculated: ${error.message ?? error}`);
+    REPORT: log.push(`${component} sent unspeculated: ${error.message ?? error}`);
+    reportError(error);
     return [];
   }
   const ids = [];
@@ -1043,7 +1054,7 @@ async function speculate(component, args, interaction) {
       state.pending.push({ id, transition: s.transition, args, until: undefined, interaction });
       ids.push([s.binding, id]);
       render(module, s.binding);
-      log.push(`speculated ${component} on ${s.binding}`);
+      REPORT: log.push(`speculated ${component} on ${s.binding}`);
     }
   } catch (error) {
     // The request has not been sent, and these IDs never reach its caller.
@@ -1065,11 +1076,11 @@ async function resolveSpeculation(ids, committed, basis) {
     const version = (basis ?? []).find((b) => b.entry === state.entry)?.version;
     if (!committed) {
       state.pending.splice(i, 1);
-      log.push(`restored ${binding}`);
+      REPORT: log.push(`restored ${binding}`);
     } else if (version === undefined || version <= state.version) {
       // The value the page holds already includes this commit.
       state.pending.splice(i, 1);
-      log.push(`reconciled ${binding} at version ${state.version}`);
+      REPORT: log.push(`reconciled ${binding} at version ${state.version}`);
     } else {
       state.pending[i].until = version;
     }
@@ -1086,7 +1097,8 @@ async function restoreSpeculation(ids) {
   try {
     await resolveSpeculation(ids, false);
   } catch (error) {
-    log.push(`speculation rollback failed: ${error.message ?? error}`);
+    REPORT: log.push(`speculation rollback failed: ${error.message ?? error}`);
+    reportError(error);
   }
 }
 
@@ -1106,7 +1118,7 @@ function entryValue(frame) {
       (p) => !applied.has(p.interaction) && (p.until === undefined || p.until > frame.version),
     );
     if (before !== state.pending.length) {
-      log.push(`reconciled ${binding} at version ${frame.version}`);
+      REPORT: log.push(`reconciled ${binding} at version ${frame.version}`);
     }
   }
 }
@@ -2854,7 +2866,7 @@ function settleStreams() {
   if (settled.length === 0) return;
   for (const id of settled) {
     pendingStreams.delete(id);
-    window.__pw.settled.push({ part: Number(id), by: filled.has(id) ? "runtime" : "browser" });
+    REPORT: window.__pw.settled.push({ part: Number(id), by: filled.has(id) ? "runtime" : "browser" });
   }
   buildIndex();
   bindEvents();
@@ -2870,7 +2882,7 @@ function watchStreams() {
   // fills: read again and bound, as one settling later is.
   const whileBooting = [...pendingAtIndex].filter((id) => !pendingStreams.has(id));
   if (whileBooting.length > 0) {
-    for (const id of whileBooting) window.__pw.settled.push({ part: Number(id), by: "browser" });
+    REPORT: for (const id of whileBooting) window.__pw.settled.push({ part: Number(id), by: "browser" });
     buildIndex();
     bindEvents();
   }
@@ -3662,7 +3674,7 @@ function computedValues() {
   const url = attempted(parts.computed, computedAttempts);
   computedModule = pageCode("computed", url, computedAttempts).then(
     (module) => {
-      log.push(`loaded ${parts.computed}`);
+      REPORT: log.push(`loaded ${parts.computed}`);
       // What each row of a list the browser renders computes (ADR-0424),
       // given to the renderer as the module arrives.
       if (parts.rowsComputed) renderer.rowsComputed(module.rows ?? {}, parts.rowsComputed);
@@ -3671,7 +3683,7 @@ function computedValues() {
     (error) => {
       computedModule = null;
       computedAttempts += 1;
-      log.push(`computed values not loaded: ${error.message ?? error}`);
+      REPORT: log.push(`computed values not loaded: ${error.message ?? error}`);
       throw error;
     },
   );
@@ -3720,15 +3732,15 @@ async function flushSignals() {
       const v = (await computedValues()).parts[live.part](...argsOf(live));
       if (live.kind === "text") setRange(addressOf([], live.part), textOf(v));
       else setAttributePart(live, from.get(live.signal), v);
-      log.push(`signal ${live.signal} -> computed part ${live.part}`);
+      REPORT: log.push(`signal ${live.signal} -> computed part ${live.part}`);
     } else if (live.kind === "text") {
       if (!changed.has(live.signal)) continue;
       setRange(addressOf([], live.part), textOf(signalAt(live.path)));
-      log.push(`signal ${live.signal} -> part ${live.part}`);
+      REPORT: log.push(`signal ${live.signal} -> part ${live.part}`);
     } else if (live.kind === "attribute" || live.kind === "boolean_attribute") {
       if (!changed.has(live.signal)) continue;
       setAttributePart(live, from.get(live.signal));
-      log.push(`signal ${live.signal} -> attribute ${live.attribute} of part ${live.part}`);
+      REPORT: log.push(`signal ${live.signal} -> attribute ${live.attribute} of part ${live.part}`);
     } else if ((live.reads ?? [live.signal]).some((s) => changed.has(s))) {
       // **A signal ends with its instance** (ADR-0130, R6; ADR-0144): when a
       // block shows another arm, what its arms held starts again, before the
@@ -3745,8 +3757,8 @@ async function flushSignals() {
       const block = await renderBlock(live.part);
       inserted.push(...morphBlock(live.part, block));
       rendered = true;
-      log.push(`signal ${[...changed].join(",")} -> block ${live.part}`);
-      if (!PW_SERVER) log.push(`block ${live.part} wrote ${block.written} of ${block.lists.reduce((n, l) => n + l.rows.length, 0)} rows`);
+      REPORT: log.push(`signal ${[...changed].join(",")} -> block ${live.part}`);
+      REPORT: if (!PW_SERVER) log.push(`block ${live.part} wrote ${block.written} of ${block.lists.reduce((n, l) => n + l.rows.length, 0)} rows`);
     }
   }
   if (rendered) {
@@ -3758,11 +3770,11 @@ async function flushSignals() {
     if (PW_DIALOGS) showDialogs(inserted);
   }
   if (PW_SERVER) readAgain(changed);
-  window.__pw.signals = Object.fromEntries(signals);
-  if (!PW_SERVER) log.push(`${index.size} indexed`);
+  REPORT: window.__pw.signals = Object.fromEntries(signals);
+  REPORT: if (!PW_SERVER) log.push(`${index.size} indexed`);
   // What the tests and a developer read, as far back as is any use: a page
   // left open keeps nothing without end.
-  if (log.length > 4000) log.splice(0, 2000);
+  REPORT: if (log.length > 4000) log.splice(0, 2000);
 }
 
 // --- the address's fragment, bound to a signal (track `todomvc`) ------------
@@ -3788,7 +3800,7 @@ function fragmentValue(binding) {
 function followFragment(binding) {
   const value = fragmentValue(binding);
   if (signals.get(binding.signal) === value) return;
-  log.push(`fragment ${location.hash || "(none)"} -> ${binding.signal} ${JSON.stringify(value)}`);
+  REPORT: log.push(`fragment ${location.hash || "(none)"} -> ${binding.signal} ${JSON.stringify(value)}`);
   setSignal(binding.signal, value, null);
 }
 
@@ -4045,7 +4057,7 @@ async function readKept(store, held) {
       store.setItem(key, wire(value));
       store.removeItem(deviceKey(held, v));
     } catch (error) {
-      log.push(`device: ${held.name} migrated from ${v}, not kept: ${error.name}`);
+      REPORT: log.push(`device: ${held.name} migrated from ${v}, not kept: ${error.name}`);
     }
     return { state: "migrated", from: v, value };
   }
@@ -4057,7 +4069,7 @@ function keep(held, value, source) {
   if (deviceState[held.signal] === "stale") {
     if (source?.el) tell(source.el, DEVICE_SAYS.stale, "device-stale");
     else say(DEVICE_SAYS.stale);
-    log.push(`device: ${held.name} not kept: a newer version holds it`);
+    REPORT: log.push(`device: ${held.name} not kept: a newer version holds it`);
     return;
   }
   const store = deviceStore();
@@ -4077,9 +4089,9 @@ function keep(held, value, source) {
     // before the map changes), and the page holds what the person did.
     if (source?.el) tell(source.el, DEVICE_SAYS.full, "device-full");
     else say(DEVICE_SAYS.full);
-    log.push(`device: ${held.name} not kept: ${error.name}`);
+    REPORT: log.push(`device: ${held.name} not kept: ${error.name}`);
   }
-  window.__pw.device = { state: { ...deviceState }, writes: deviceWrites };
+  REPORT: window.__pw.device = { state: { ...deviceState }, writes: deviceWrites };
 }
 
 /** What another tab's write of `held` says, decoded as a read is. */
@@ -4100,19 +4112,19 @@ async function heardKept(e) {
       // said: it waited for this tab to be idle.
       const got = e.key === null ? await readKept(store, held) : heardValue(held, store.getItem(e.key));
       deviceState[held.signal] = got.state;
-      if (got.state === "unreadable") log.push(`device: ${held.name} unreadable: ${got.why}`);
-      log.push(`device: ${held.name} heard from another tab`);
+      REPORT: if (got.state === "unreadable") log.push(`device: ${held.name} unreadable: ${got.why}`);
+      REPORT: log.push(`device: ${held.name} heard from another tab`);
       setSignal(held.signal, "value" in got ? got.value : firstValues.get(held.signal), null, false);
     } else if (e.key.startsWith(`${held.name}@`)) {
       const v = Number(e.key.slice(held.name.length + 1));
       if (Number.isInteger(v) && v > held.version && deviceState[held.signal] !== "stale") {
         deviceState[held.signal] = "stale";
         say(DEVICE_SAYS.stale);
-        log.push(`device: ${held.name} is held at version ${v} by another page`);
+        REPORT: log.push(`device: ${held.name} is held at version ${v} by another page`);
       }
     }
   }
-  window.__pw.device = { state: { ...deviceState }, writes: deviceWrites };
+  REPORT: window.__pw.device = { state: { ...deviceState }, writes: deviceWrites };
 }
 
 /** **The device read before what it decides is shown**: each value set,
@@ -4132,8 +4144,8 @@ async function readDevice() {
     for (const held of deviceHeld.values()) {
       const got = await readKept(store, held);
       deviceState[held.signal] = got.state;
-      if (got.state === "unreadable") log.push(`device: ${held.name} unreadable: ${got.why}`);
-      log.push(`device: ${held.name} ${got.state}`);
+      REPORT: if (got.state === "unreadable") log.push(`device: ${held.name} unreadable: ${got.why}`);
+      REPORT: log.push(`device: ${held.name} ${got.state}`);
       read.push([held, got]);
     }
     for (const [held, got] of read) {
@@ -4143,7 +4155,7 @@ async function readDevice() {
     if (flushing) await flushing;
   } finally {
     document.documentElement.dataset.pwDevice = "read";
-    window.__pw.device = { state: { ...deviceState }, writes: deviceWrites };
+    REPORT: window.__pw.device = { state: { ...deviceState }, writes: deviceWrites };
   }
   addEventListener("storage", heardLater, { signal: life.signal });
 }
@@ -4221,16 +4233,18 @@ function ask(binding, read, key) {
   const controller = new AbortController();
   read.inflight = controller;
   busy(binding, true);
-  window.__pw.reads = (window.__pw.reads ?? 0) + 1;
+  REPORT: window.__pw.reads = (window.__pw.reads ?? 0) + 1;
   const url =
     `/pw-read?binding=${encodeURIComponent(binding)}&seq=${seq}` +
     `&doc=${documentCursor}&key=${encodeURIComponent(key)}`;
   fetch(url, { signal: controller.signal })
     .then((r) => r.json())
-    .then((answer) => log.push(`read ${binding} #${seq}: ${JSON.stringify(answer)}`))
-    .catch((e) =>
-      log.push(`read ${binding} #${seq} ${e?.name === "AbortError" ? "aborted" : "failed"}`),
-    )
+    .then((answer) => {
+      REPORT: log.push(`read ${binding} #${seq}: ${JSON.stringify(answer)}`);
+    })
+    .catch((e) => {
+      REPORT: log.push(`read ${binding} #${seq} ${e?.name === "AbortError" ? "aborted" : "failed"}`);
+    })
     .finally(() => {
       if (read.inflight !== controller) return;
       read.inflight = null;
@@ -4343,7 +4357,7 @@ function tell(el, words, kind) {
   }
   el.dataset.pwHandlerError = kind;
   say(words);
-  log.push(`told ${kind}: ${words}`);
+  REPORT: log.push(`told ${kind}: ${words}`);
 }
 
 /** **Said by the page's announcer**: emptied, then written, so the same
@@ -4396,12 +4410,16 @@ function recoverOnPress(part, owners, verdict) {
   }
 }
 
+/** Whether this page is being read again: once, so that a second refusal or
+ * recovery does not read it twice. The runtime's own, not a report. */
+let reloading = false;
+
 /** A press of an element whose handler the decision refused. */
 function refusedPress(part, el, verdict, e) {
   const asks = verdict.recovery === "require-user-confirmation";
   if (!RELOADING.has(verdict.recovery) && !asks) {
     tell(el, PLATFORM_SAYS.stale, verdict.recovery);
-    log.push(`press on refused ${part.id}: ${verdict.recovery}, nothing to do`);
+    REPORT: log.push(`press on refused ${part.id}: ${verdict.recovery}, nothing to do`);
     return;
   }
   e.preventDefault();
@@ -4415,14 +4433,14 @@ function refusedPress(part, el, verdict, e) {
   } catch {}
   if (Date.now() - last < 10_000) {
     tell(el, PLATFORM_SAYS.stale, "reload-loop");
-    log.push(`press on refused ${part.id}: read again already; not again`);
+    REPORT: log.push(`press on refused ${part.id}: read again already; not again`);
     return;
   }
   try {
     sessionStorage.setItem(key, String(Date.now()));
   } catch {}
-  log.push(`press on refused ${part.id}: ${verdict.recovery}, reading the page again`);
-  window.__pw.reloading = true;
+  REPORT: log.push(`press on refused ${part.id}: ${verdict.recovery}, reading the page again`);
+  reloading = true;
   location.reload();
 }
 /** When the latest press's handler started (ADR-0152): the next press's
@@ -4476,7 +4494,7 @@ async function navigate(route, args, mine) {
   if (!taken(url)) return;
   navigating = true;
   await pressedBefore(mine);
-  log.push(`navigating to ${url}`);
+  REPORT: log.push(`navigating to ${url}`);
   leaveFor(url);
 }
 
@@ -4489,7 +4507,7 @@ async function navigate(route, args, mine) {
  */
 function taken(url, chosen = false) {
   if (navigating && !(chosen && pending)) {
-    log.push(`navigation to ${url} not taken: the page is already leaving`);
+    REPORT: log.push(`navigation to ${url} not taken: the page is already leaving`);
     return false;
   }
   return true;
@@ -4633,7 +4651,7 @@ function heardAtTheDocument() {
     if (part.kind !== "event") continue;
     const { event, listens } = eventOf(part);
     if (!listens) {
-      log.push(`no listener for event ${event} of part ${part.id}`);
+      REPORT: log.push(`no listener for event ${event} of part ${part.id}`);
       continue;
     }
     // Asked now: a refused handler's code is never fetched.
@@ -4700,7 +4718,7 @@ function decided(named, part) {
     // With its CODE: only the code tells an unknown handler from a widened
     // privacy scope from a stale document schema. The console says it to a
     // developer, and where it is explained.
-    log.push(`refused ${named}: code ${verdict.code} recovery ${verdict.recovery}`);
+    REPORT: log.push(`refused ${named}: code ${verdict.code} recovery ${verdict.recovery}`);
     console.warn(`Pleris: handler ${named} not attached: ${explained(verdict.code)}, recovery ${verdict.recovery}`);
   }
   return verdict;
@@ -4744,7 +4762,7 @@ function bindingOf(template, part) {
   const owners = addresses.map((a) => index.get(a).element).filter(Boolean);
   if (owners.length > 0) return listenerFor(part, named, addresses, owners);
   // A part in a block not rendered now (ADR-0130) is bound when it is.
-  if (!booted) log.push(`no element ${part.owner} for part ${named}`);
+  REPORT: if (!booted) log.push(`no element ${part.owner} for part ${named}`);
   return null;
 }
 
@@ -4765,7 +4783,7 @@ function listenerFor(part, named, addresses, owners) {
   // The event the part handles, and what to do before any code loads.
   const { event, listens } = eventOf(part);
   if (!listens) {
-    log.push(`no listener for event ${event} of part ${named}`);
+    REPORT: log.push(`no listener for event ${event} of part ${named}`);
     return null;
   }
   return { named, addresses, owners, event, listens, modifiers: part.modifiers ?? [] };
@@ -4781,7 +4799,7 @@ function bindEvent(template, part) {
   for (const el of fresh) el.addEventListener(listens, (e) => acted(part, event, modifiers, el, e));
   if (fresh.length > 0) {
     const { named, owners, addresses } = binding;
-    log.push(`attached ${named} to ${owners.length} instance(s): ${addresses.join(" ")}`);
+    REPORT: log.push(`attached ${named} to ${owners.length} instance(s): ${addresses.join(" ")}`);
   }
 }
 
@@ -4794,7 +4812,7 @@ async function acted(part, event, modifiers, el, e) {
   // gone to another page once its command committed, and that page is
   // loading. A press now would send what no one here would read.
   if (navigating) {
-    log.push(`press on ${part.value} not taken: the page is leaving`);
+    REPORT: log.push(`press on ${part.value} not taken: the page is leaving`);
     return;
   }
   lastActed = el;
@@ -4913,9 +4931,15 @@ async function acted(part, event, modifiers, el, e) {
       tell(el, PLATFORM_SAYS.unreachable, "unreachable");
     } else {
       tell(el, PLATFORM_SAYS.failed, "failed");
+      // **Told the developer, as of an error nothing caught** (ADR-0431):
+      // to the console and to whatever hears the window's errors. A
+      // refusal is the host's answer and no answer the network's, each
+      // told the reader by name above; this is a failure of the program,
+      // its build or the runtime.
+      reportError(error);
     }
-    log.push(`handler ${part.value} failed: ${error.message ?? error}`);
-    window.__pw.handlerErrors = (window.__pw.handlerErrors ?? 0) + 1;
+    REPORT: log.push(`handler ${part.value} failed: ${error.message ?? error}`);
+    REPORT: window.__pw.handlerErrors = (window.__pw.handlerErrors ?? 0) + 1;
   } finally {
     pressing.delete(done);
     finished();
@@ -4940,7 +4964,9 @@ function rendersInBrowser() {
 }
 
 function quietly(loading, what) {
-  loading?.catch((error) => log.push(`warming ${what} failed: ${error.message ?? error}`));
+  loading?.catch((error) => {
+    REPORT: log.push(`warming ${what} failed: ${error.message ?? error}`);
+  });
 }
 
 /** **Warm what this page's presses need**, in the order they need it: the
@@ -4950,7 +4976,7 @@ function warm() {
   warmSpeculation();
   const identities = warmable();
   for (const identity of identities) warmHandler(identity);
-  log.push(`warming ${identities.size} handler(s)`);
+  REPORT: log.push(`warming ${identities.size} handler(s)`);
 }
 
 // Each module forgets a failed load itself (ADR-0382), as for a press.
@@ -4992,7 +5018,7 @@ function warmHandler(identity) {
       loaded.delete(identity);
       attempts.set(identity, (attempts.get(identity) ?? 0) + 1);
     }
-    log.push(`warming ${identity} failed: ${error.message ?? error}`);
+    REPORT: log.push(`warming ${identity} failed: ${error.message ?? error}`);
   });
 }
 
@@ -5038,7 +5064,7 @@ async function warmBlock({ part, nodes }) {
   const copy = inert.createElement("div");
   for (const n of nodes) copy.append(inert.importNode(n, true));
   morphChildren(copy, [...copy.childNodes], parseInstance(html), null, []);
-  log.push(`warmed the paths of block ${part}`);
+  REPORT: log.push(`warmed the paths of block ${part}`);
 }
 
 /** The most elements a block's paths are warmed on: any block serves. */
@@ -5060,7 +5086,9 @@ function warmWhenIdle() {
     if (!(await idleAndLive())) return;
     warm();
     // Once what they run is loaded: `renderBlock` waits for it.
-    warmPaths().catch((e) => log.push(`warming the paths failed: ${e.message ?? e}`));
+    warmPaths().catch((e) => {
+      REPORT: log.push(`warming the paths failed: ${e.message ?? e}`);
+    });
   };
   if (document.readyState === "complete") idle();
   else addEventListener("load", idle, { once: true, signal: life.signal });
@@ -5078,7 +5106,7 @@ async function attach() {
   // The announcer a failed press is said by, there before anything is
   // (ADR-0302): a live region added with its words is not reliably said.
   announcerOf();
-  log.push(`indexed ${indexed} address(es)`);
+  REPORT: log.push(`indexed ${indexed} address(es)`);
   if (PW_SERVER) {
     for (const p of parts.parts ?? []) {
       if (p.kind === "stream" && streamPending(String(p.id))) pendingAtIndex.add(String(p.id));
@@ -5114,8 +5142,8 @@ async function attach() {
   if (PW_FRAGMENT && parts.fragment) bindFragment(parts.fragment);
   // What a block shows from here on, with `autofocus`, takes focus.
   if (PW_AUTOFOCUS) followAutofocus();
-  window.__pw.signals = Object.fromEntries(signals);
-  window.__pw.ready = true;
+  REPORT: window.__pw.signals = Object.fromEntries(signals);
+  REPORT: window.__pw.ready = true;
   document.documentElement.dataset.pwReady = "1";
   // What its presses will need, where its build warms (ADR-0399):
   // after it is interactive, never before.
@@ -5144,7 +5172,7 @@ const held = new Map();
 const known = new Map();
 
 /** The addresses the last frame batch updated, for the tests to read. */
-window.__pw.updated = [];
+REPORT: window.__pw.updated = [];
 
 /**
  * Would applying this basis move any dependency backward?
@@ -5223,7 +5251,7 @@ function applyFrame(frame) {
   if (frame.protocol !== undefined && frame.protocol !== 1) {
     // Incomparable, not different. A frame from another protocol version is
     // refused before anything it contains is interpreted.
-    log.push(`refused frame: protocol ${frame.protocol}`);
+    REPORT: log.push(`refused frame: protocol ${frame.protocol}`);
     return;
   }
   switch (frame.frame) {
@@ -5239,13 +5267,13 @@ function applyFrame(frame) {
       // What a notice is for: a subscriber with no patch coming may refetch,
       // and one that has already applied a patch learns nothing new.
       known.set(frame.entry, frame.version);
-      log.push(`resource ${frame.entry.slice(0, 8)} at ${frame.version}`);
+      REPORT: log.push(`resource ${frame.entry.slice(0, 8)} at ${frame.version}`);
       return;
 
     case "patch": {
       if (!isNewer(frame.basis)) {
-        window.__pw.ignored = (window.__pw.ignored ?? 0) + 1;
-        log.push(`ignored a patch that advances nothing`);
+        REPORT: window.__pw.ignored = (window.__pw.ignored ?? 0) + 1;
+        REPORT: log.push(`ignored a patch that advances nothing`);
         return;
       }
       for (const r of frame.basis.resources) held.set(r.entry, r.version);
@@ -5255,15 +5283,15 @@ function applyFrame(frame) {
 
       if (op.op === "replace_text") {
         if (setRange(key, op.text)) {
-          window.__pw.updated.push(key);
-          log.push(`updated ${key} at version ${at}`);
+          REPORT: window.__pw.updated.push(key);
+          REPORT: log.push(`updated ${key} at version ${at}`);
         }
         return;
       }
       if (isAttributeOp(op)) {
         if (setAttributeAt(frame.target, op)) {
-          window.__pw.updated.push(`${key}:${op.name}`);
-          log.push(`${op.op} ${op.name} on ${key} at version ${at}`);
+          REPORT: window.__pw.updated.push(`${key}:${op.name}`);
+          REPORT: log.push(`${op.op} ${op.name} on ${key} at version ${at}`);
         }
         return;
       }
@@ -5277,11 +5305,11 @@ function applyFrame(frame) {
         // tracked its own edits is a second model of the document, and the
         // document is right here to be read.
         buildIndex();
-        window.__pw.updated.push(`${key}:${op.op}`);
-        log.push(`${op.op} on ${key} at version ${at}`);
+        REPORT: window.__pw.updated.push(`${key}:${op.op}`);
+        REPORT: log.push(`${op.op} on ${key} at version ${at}`);
       } else {
-        log.push(`refused ${op.op}: no instance ${op.instance}`);
-        window.__pw.refused = (window.__pw.refused ?? 0) + 1;
+        REPORT: log.push(`refused ${op.op}: no instance ${op.instance}`);
+        REPORT: window.__pw.refused = (window.__pw.refused ?? 0) + 1;
       }
       return;
     }
@@ -5290,8 +5318,8 @@ function applyFrame(frame) {
       // **One change, every place it reaches** (ADR-0145): applied in order,
       // and the version held once all of them applied.
       if (!isNewer(frame.basis)) {
-        window.__pw.ignored = (window.__pw.ignored ?? 0) + 1;
-        log.push(`ignored a patch set that advances nothing`);
+        REPORT: window.__pw.ignored = (window.__pw.ignored ?? 0) + 1;
+        REPORT: log.push(`ignored a patch set that advances nothing`);
         return;
       }
       const at = frame.basis.resources.map((r) => r.version).join(",");
@@ -5310,10 +5338,10 @@ function applyFrame(frame) {
           // every later change would be derived from it too. Never "try
           // anyway": the version is not held, and a fresh document comes with
           // a fresh queue, as a `reload` recovery does.
-          window.__pw.refused = (window.__pw.refused ?? 0) + 1;
-          log.push(`refused ${op.op} on ${key}: the document disagrees; reloading`);
-          if (!window.__pw.reloading) {
-            window.__pw.reloading = true;
+          REPORT: window.__pw.refused = (window.__pw.refused ?? 0) + 1;
+          REPORT: log.push(`refused ${op.op} on ${key}: the document disagrees; reloading`);
+          if (!reloading) {
+            reloading = true;
             showAgain();
           }
           return;
@@ -5324,17 +5352,17 @@ function applyFrame(frame) {
           shownBlocks.set(target.part, op.html);
         }
         if (op.op === "replace_text") {
-          window.__pw.updated.push(key);
-          log.push(`updated ${key} at version ${at}`);
+          REPORT: window.__pw.updated.push(key);
+          REPORT: log.push(`updated ${key} at version ${at}`);
         } else if (isAttributeOp(op)) {
-          window.__pw.updated.push(`${key}:${op.name}`);
-          log.push(`${op.op} ${op.name} on ${key} at version ${at}`);
+          REPORT: window.__pw.updated.push(`${key}:${op.name}`);
+          REPORT: log.push(`${op.op} ${op.name} on ${key} at version ${at}`);
         } else {
           // A structural change moves nodes: the index is read again, so the
           // next patch in the set finds what this one put in place.
           buildIndex();
-          window.__pw.updated.push(`${key}:${op.op}`);
-          log.push(`${op.op} on ${key} at version ${at}`);
+          REPORT: window.__pw.updated.push(`${key}:${op.op}`);
+          REPORT: log.push(`${op.op} on ${key} at version ${at}`);
         }
       }
       for (const r of frame.basis.resources) held.set(r.entry, r.version);
@@ -5349,21 +5377,21 @@ function applyFrame(frame) {
 
     case "recovery":
       // Never "try anyway".
-      log.push(`recovery: ${JSON.stringify(frame.recovery)}`);
+      REPORT: log.push(`recovery: ${JSON.stringify(frame.recovery)}`);
       // A reload is the one recovery the page performs by itself. The server
       // sends it when it can no longer say what this document missed: the
       // subscriber fell too far behind, or was forgotten while idle (E10 gate
       // item 3). Applying later frames to this document would be exactly
       // "try anyway"; a fresh document comes with a fresh queue. Once, so a
       // second reload frame in the same batch does not queue a second one.
-      if (frame.recovery?.recovery === "reload" && !window.__pw.reloading) {
-        window.__pw.reloading = true;
+      if (frame.recovery?.recovery === "reload" && !reloading) {
+        reloading = true;
         showAgain();
       }
       return;
 
     default:
-      log.push(`unknown frame`);
+      REPORT: log.push(`unknown frame`);
   }
 }
 
@@ -5391,7 +5419,7 @@ function applyBatch(batch) {
   // loaded whole, is applied to nothing: a reload it asked for, or a patch
   // that missed, would load this page again, and the navigation with it.
   if (life.signal.aborted || navigating) return;
-  window.__pw.updated = [];
+  REPORT: window.__pw.updated = [];
   // The page's patches are derived from what it holds (ADR-0172), and focus
   // in a row stays with its row through them.
   const focused = focusedRow();
@@ -5401,7 +5429,7 @@ function applyBatch(batch) {
   // Advanced only AFTER applying. Advancing on receipt would acknowledge
   // frames a mid-batch failure never applied, and the server would drop them.
   cursor = batch.cursor ?? cursor;
-  window.__pw.cursor = cursor;
+  REPORT: window.__pw.cursor = cursor;
 }
 
 /**
@@ -5531,7 +5559,7 @@ async function subscribe() {
   askToHoldLong();
   let transport = chosenTransport();
   const pinned = new URLSearchParams(location.search).has("transport");
-  window.__pw.transport = transport;
+  REPORT: window.__pw.transport = transport;
   let failures = 0;
   for (;;) {
     try {
@@ -5546,12 +5574,12 @@ async function subscribe() {
       // untestable. A test that pins the adapter keeps it.
       if (transport === "stream" && failures >= 2 && !pinned) {
         transport = "poll";
-        window.__pw.transport = "poll (fell back)";
-        log.push("transport fell back to long poll");
+        REPORT: window.__pw.transport = "poll (fell back)";
+        REPORT: log.push("transport fell back to long poll");
       }
       const pause = Math.min(250 * 2 ** (failures - 1), 5000);
-      window.__pw.reconnects = (window.__pw.reconnects ?? 0) + 1;
-      log.push(`subscription failed; asking again in ${pause} ms`);
+      REPORT: window.__pw.reconnects = (window.__pw.reconnects ?? 0) + 1;
+      REPORT: log.push(`subscription failed; asking again in ${pause} ms`);
       await new Promise((resolve) => setTimeout(resolve, pause));
       if (leaving || life.signal.aborted) return;
     }
@@ -5561,26 +5589,26 @@ async function subscribe() {
 // Exposed so a test can deliver a frame out of order. A transport cannot be
 // made to do that on demand, and the property is about the page's guard rather
 // than about the transport.
-if (PW_SERVER) window.__pwTestApply = applyFrame;
+REPORT: if (PW_SERVER) window.__pwTestApply = applyFrame;
 // And a batch, as a transport delivers one: what a page leaving does with
 // it is the batch's guard, not a frame's (ADR-0306).
-if (PW_SERVER) window.__pwTestBatch = applyBatch;
-window.__pwHeld = () => Object.fromEntries(held);
-window.__pwKnown = () => Object.fromEntries(known);
+REPORT: if (PW_SERVER) window.__pwTestBatch = applyBatch;
+REPORT: window.__pwHeld = () => Object.fromEntries(held);
+REPORT: window.__pwKnown = () => Object.fromEntries(known);
 
 /** Update every part whose value the resource carries. */
 function apply(values) {
-  window.__pw.updated = [];
+  REPORT: window.__pw.updated = [];
   for (const p of parts.parts ?? []) {
     if (p.kind !== "text") continue;
     if (!(p.value in values)) continue;
     for (const address of addressesFor(String(p.id))) {
       if (setRange(address, String(values[p.value]))) {
-        window.__pw.updated.push(address);
+        REPORT: window.__pw.updated.push(address);
       }
     }
   }
-  if (window.__pw.updated.length) {
+  REPORT: if (window.__pw.updated.length) {
     log.push(`updated ${window.__pw.updated.join(",")} at version ${values.version}`);
   }
 }
@@ -5738,7 +5766,7 @@ function focusPage(slot) {
 /** The page the address names, loaded whole, as the browser would have;
  * nothing, where the browser is already loading another. */
 function loadWhole(url, how) {
-  log.push(`navigation to ${url} loaded whole`);
+  REPORT: log.push(`navigation to ${url} loaded whole`);
   delete document.documentElement.dataset.pwNavigating;
   if (!window.__pwUnloading) leaveFor(url, how === "pop");
 }
@@ -5776,7 +5804,7 @@ async function softNavigate(url, how, mine, chosen = false) {
   // its commit (ADR-0280).
   await pressedBefore(mine);
   if (going.signal.aborted) return;
-  log.push(`navigating softly to ${url}`);
+  REPORT: log.push(`navigating softly to ${url}`);
   let response, text;
   try {
     response = await fetch(url, {
@@ -5835,7 +5863,8 @@ async function softNavigate(url, how, mine, chosen = false) {
     else scrollTo(0, 0);
     if (!focusPage(here)) say(document.title);
   } catch (e) {
-    log.push(`navigation to ${at} failed in place: ${e}`);
+    REPORT: log.push(`navigation to ${at} failed in place: ${e}`);
+    reportError(e);
     showAgain();
     return;
   }
@@ -5855,7 +5884,8 @@ function handOver() {
   // At this runtime's delivery, where it has one (ADR-0399).
   const next = delivered("/pw-runtime.mjs");
   import(`${next}${next.includes("?") ? "&" : "?"}document=${window.__pwSoftNavigations}`).catch((e) => {
-    log.push(`the next runtime did not load: ${e}`);
+    REPORT: log.push(`the next runtime did not load: ${e}`);
+    reportError(e);
     showAgain();
   });
 }
@@ -5911,7 +5941,8 @@ if (PW_SERVER) addEventListener(
 );
 
 attach().catch((e) => {
-  log.push(`boot failed: ${e}`);
+  REPORT: log.push(`boot failed: ${e}`);
+  reportError(e);
   // Deliberately NOT re-thrown into a state where handlers attach anyway. A
   // runtime that failed to boot leaves an inert page, which is a page that
   // works for reading and does nothing surprising.

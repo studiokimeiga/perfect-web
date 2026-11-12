@@ -1,16 +1,16 @@
 ADR-0268 - a command outlives the page that sent it
 
 produced by: just e14-keepalive
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
 
 == kept alive, in three engines (e2e/keepalive.spec.mjs; e2e/feed.spec.mjs, a post by its bytes)
 
-  15 passed (25.4s)
-  3 passed (6.5s)
+  15 passed (24.5s)
+  3 passed (7.2s)
 
 == mutation controls (scripts/keepalive_mutations.py)
 

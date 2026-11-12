@@ -869,6 +869,8 @@ test("a rollback that cannot render keeps no unsent reply", async ({ page }, tes
   await page.getByLabel("Your reply").fill(reply);
   await expect(page.getByRole("button", { name: "Reply" })).toBeEnabled();
   const heal = await failingReplyRenderer(page);
+  const uncaught = [];
+  page.on("pageerror", (e) => uncaught.push(e.message));
   let sent = 0;
   let release;
   const held = new Promise((resolve) => (release = resolve));
@@ -884,6 +886,10 @@ test("a rollback that cannot render keeps no unsent reply", async ({ page }, tes
     await expect.poll(() => page.evaluate((start) => window.__pw.log.slice(start).some(
       (line) => /handler .*failed:.*UnrepresentedConstruct/i.test(line),
     ), logStart)).toBe(true);
+    // Each told the developer, as of an error nothing caught (ADR-0431): the
+    // rollback that could not render, and the press it rolled back.
+    await expect.poll(() => uncaught.length).toBe(2);
+    expect(uncaught).toEqual(["UnrepresentedConstruct: test", "UnrepresentedConstruct: test"]);
     expect(sent).toBe(0);
     await expect(page.getByLabel("Your reply")).toHaveValue(reply);
     await heal();

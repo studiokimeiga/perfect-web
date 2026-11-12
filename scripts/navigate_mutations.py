@@ -118,9 +118,9 @@ MUTANTS = [
         BROWSER,
         RUNTIME,
         "  if (navigating) {\n"
-        "    log.push(`press on ${part.value} not taken: the page is leaving`);\n",
+        "    REPORT: log.push(`press on ${part.value} not taken: the page is leaving`);\n",
         "  if (false) {\n"
-        "    log.push(`press on ${part.value} not taken: the page is leaving`);\n",
+        "    REPORT: log.push(`press on ${part.value} not taken: the page is leaving`);\n",
     ),
     (
         "a second navigation is taken",
@@ -129,9 +129,9 @@ MUTANTS = [
         # Re-anchored by ADR-0306: one rule for both ways a
         # page leaves, which the store's pages, shown in a layout, reach softly.
         "  if (navigating && !(chosen && pending)) {\n"
-        "    log.push(`navigation to ${url} not taken: the page is already leaving`);\n",
+        "    REPORT: log.push(`navigation to ${url} not taken: the page is already leaving`);\n",
         "  if (false) {\n"
-        "    log.push(`navigation to ${url} not taken: the page is already leaving`);\n",
+        "    REPORT: log.push(`navigation to ${url} not taken: the page is already leaving`);\n",
     ),
     (
         "a navigation goes before the presses made before it",

@@ -1,18 +1,18 @@
 ADR-0159 - a handler handles what its command answers
 
 produced by: just e14-handler-failures
-commit: 1de391393d7364eae718a4f5715c3b1d183f0710
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42969400003 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 87446c1012226450232bc96362b314c11dc8b825
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the rule (compiler/pw-core/tests/results_handled.rs)
 
 test a_discarded_value_is_not_a_result ... ok
 test a_handler_gives_the_runtime_no_failure_to_drop ... ok
-test a_handler_that_handles_its_failure_is_the_control ... ok
 test a_returned_result_is_used ... ok
+test a_handler_that_handles_its_failure_is_the_control ... ok
 test a_statements_result_is_handled ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 
 == the compiled handlers, a discard by name among them (compiler/pw-core/tests/handlers.rs)
 
@@ -38,7 +38,7 @@ test a_program_that_does_not_check_compiles_no_handlers ... ok
 test a_handler_calls_its_commands_by_the_contracts_own_ids ... ok
 test the_stores_handlers_compile_to_the_calls_their_bodies_make ... ok
 test a_module_and_its_event_part_name_one_handler ... ok
-test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.12s
+test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.63s
 
 == the canonical store with its demos, the benchmark's store, kiokun
 

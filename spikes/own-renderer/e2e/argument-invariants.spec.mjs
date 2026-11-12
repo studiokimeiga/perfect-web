@@ -139,6 +139,8 @@ test("a press sends only what the page's own constructors build", async ({ page 
 
 test("a press whose request is altered on the way is refused, and says so", async ({ page }) => {
   await ready(page);
+  const uncaught = [];
+  page.on("pageerror", (e) => uncaught.push(e.message));
   // The page sends three stars; the request arrives claiming six. The route
   // sends it on, keeps what the host answered, and gives the page that.
   // (Read here, not from the page's response: the runtime reads no body of
@@ -161,4 +163,7 @@ test("a press whose request is altered on the way is refused, and says so", asyn
   });
   await expect(page.locator("#send + .pw-refusal")).toHaveText("This did not work. Try again.");
   await expect(page.locator("#said")).toHaveText("");
+  // A command the host refused as malformed is no answer the program gave:
+  // the developer is told, as of an error nothing caught (ADR-0431).
+  await expect.poll(() => uncaught.join("\n")).toBe("command demo.invariants.rate refused: HTTP 400");
 });

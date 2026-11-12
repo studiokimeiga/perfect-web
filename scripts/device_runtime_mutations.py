@@ -8,6 +8,9 @@ Each mutant undoes one piece:
 - the runtime: a guard that keeps a server's code out, the page's use of the
   decision, the source's flag;
 - the packaging: the flag's replacing, the tree shaking, what it writes;
+- what the page reports about itself (ADR-0430): dropped from each runtime
+  of a production build and kept where a suite asks, labeled, and doing
+  none of the runtime's work;
 - the host: which page runs on the device, what its document asks for, what
   its policy allows, what a build must say and hold;
 - the suite: what makes a production build one of this runtime.
@@ -400,13 +403,39 @@ MUTANTS = [
     ("a build says the runtime it packed, not what from", "packaging", PACKAGING,
      '  const runtime = await readFile(path.join(directory, "pw-runtime.mjs")).catch(() => null);\n'
      "  let device = null;\n"
-     "  for (const asset of assets) device = (await packAsset(directory, asset)) ?? device;\n",
+     "  for (const asset of assets) device = (await packAsset(directory, asset, report)) ?? device;\n",
      "  let device = null;\n"
-     "  for (const asset of assets) device = (await packAsset(directory, asset)) ?? device;\n"
+     "  for (const asset of assets) device = (await packAsset(directory, asset, report)) ?? device;\n"
      '  const runtime = await readFile(path.join(directory, "pw-runtime.mjs")).catch(() => null);\n'),
     ("a build with no runtime fails", "packaging", PACKAGING,
      '  const runtime = await readFile(path.join(directory, "pw-runtime.mjs")).catch(() => null);\n',
      '  const runtime = await readFile(path.join(directory, "pw-runtime.mjs"));\n'),
+    # -- what the page reports about itself (ADR-0430)
+    ("a production build keeps what its pages report", "packaging", PACKAGING,
+     'const reports = (report) => (report ? [] : ["REPORT"]);\n', "const reports = (report) => [];\n"),
+    ("a build for a suite drops what its pages report", "packaging", PACKAGING,
+     'const reports = (report) => (report ? [] : ["REPORT"]);\n', 'const reports = (report) => ["REPORT"];\n'),
+    ("the device's runtime keeps what its page reports", "packaging", PACKAGING,
+     '    treeShaking: true,\n    dropLabels: reports(report),\n    legalComments: "inline",\n    charset: "utf8",\n  });\n  const file',
+     '    treeShaking: true,\n    legalComments: "inline",\n    charset: "utf8",\n  });\n  const file'),
+    ("a page alone in its build keeps what its page reports", "packaging", PACKAGING,
+     '    minify: true,\n    dropLabels: reports(report),\n    charset: "utf8",\n',
+     '    minify: true,\n    charset: "utf8",\n'),
+    ("a server's page keeps what it reports", "packaging", PACKAGING,
+     "      treeShaking: true,\n      dropLabels: reports(report),\n", "      treeShaking: true,\n"),
+    ("a build does not say whether it reports", "packaging", PACKAGING,
+     "  const built = { ...DELIVERY, report, ", "  const built = { ...DELIVERY, "),
+    ("a page alone in its build drops what a suite asked to keep", "rows", PACKAGING,
+     "  await aloneModule(directory, device, report);\n", "  await aloneModule(directory, device);\n"),
+    ("the packaging is asked to keep reports and does not", "rows", PACKAGING,
+     "    await optimizeAssets(directory, { report });\n", "    await optimizeAssets(directory, {});\n"),
+    ("a reconciliation's move is a report's", "packaging", RUNTIME,
+     "      const moved = moveNodes(at.start.parentNode, nodes, anchor);\n      REPORT: window.__pw.moveKind = moved;\n",
+     "      REPORT: window.__pw.moveKind = moveNodes(at.start.parentNode, nodes, anchor);\n"),
+    ("a page read again is a report's", "packaging", RUNTIME,
+     "  reloading = true;\n  location.reload();\n", "  REPORT: reloading = true;\n  location.reload();\n"),
+    ("a report is not labeled", "packaging", RUNTIME,
+     "  REPORT: log.push(`indexed ${indexed} address(es)`);\n", "  log.push(`indexed ${indexed} address(es)`);\n"),
     # -- the suite
     ("a production build is of any runtime", "packaging", HOSTS,
      '    return packed === createHash("sha256").update(runtime).digest("hex");\n', "    return true;\n"),
@@ -623,19 +652,24 @@ def nested():
 
 
 def rows():
-    """The large list, on a production build."""
-    env = {**os.environ, "PW_PRODUCTION_ASSETS": "1"}
-    for script in ("spikes/own-renderer/rows.sh", "spikes/own-renderer/row-events.sh"):
-        _, code = bounded(["bash", script], cwd=ROOT, env=env)
-        if code != 0:
-            return False, 0, 0
-    out, code = bounded(["pnpm", "exec", "playwright", "test", "e2e/rows.spec.mjs", "--project=chromium", "--reporter=line"],
-                        cwd=ROOT / "spikes/own-renderer", env=env)
-    if code is None:
-        return True, 0, 1
-    out = re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", out)
-    passed = sum(int(n) for n in re.findall(r"(\d+) passed", out))
-    failed = sum(int(n) for n in re.findall(r"(\d+) failed", out))
+    """The large list, on a production build: as it is served, less the tests
+    that read what the page reports, and built to report for those
+    (`@report`, ADR-0430)."""
+    passed = failed = 0
+    for report, select in (("0", "--grep-invert"), ("1", "--grep")):
+        env = {**os.environ, "PW_PRODUCTION_ASSETS": "1", "PW_REPORT": report}
+        for script in ("spikes/own-renderer/rows.sh", "spikes/own-renderer/row-events.sh"):
+            _, code = bounded(["bash", script], cwd=ROOT, env=env)
+            if code != 0:
+                return False, 0, 0
+        out, code = bounded(["pnpm", "exec", "playwright", "test", "e2e/rows.spec.mjs", select, "@report",
+                             "--project=chromium", "--reporter=line"],
+                            cwd=ROOT / "spikes/own-renderer", env=env)
+        if code is None:
+            return True, passed, failed + 1
+        out = re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", out)
+        passed += sum(int(n) for n in re.findall(r"(\d+) passed", out))
+        failed += sum(int(n) for n in re.findall(r"(\d+) failed", out))
     return passed + failed > 0, passed, failed
 
 

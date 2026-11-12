@@ -116,6 +116,8 @@ test("a page with a handler the decision refuses asks for no bundle", async ({ p
 
 test("a bundle that does not load leaves the press to fetch its own module", async ({ page }) => {
   const asked = watch(page);
+  const uncaught = [];
+  page.on("pageerror", (e) => uncaught.push(e.message));
   await tableNamesTheBundle(page);
   await page.route(`**${BUNDLE}`, (route) => route.abort("failed"));
   await ready(page);
@@ -131,6 +133,9 @@ test("a bundle that does not load leaves the press to fetch its own module", asy
   // Told once: the browser keeps a failed module under its address, so
   // asking again would only fail again.
   expect(await page.evaluate(() => window.__pw.log.filter((l) => l.startsWith("the page's module was not loaded")).length)).toBe(1);
+  // And the developer is told it once, as of an error nothing caught
+  // (ADR-0431): the presses that worked told nothing.
+  expect(uncaught.length).toBe(1);
 });
 
 test("a build with no bundle asks for each module, as it did", async ({ page }) => {

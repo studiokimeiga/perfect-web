@@ -5,6 +5,11 @@
 // `examples/rows/app.pw`, and the fixture `examples/rows/events.pw`, which
 // is a build of its own (`row-events.sh`): the large list's is the app alone,
 // as the head-to-head measures it, and a page alone in its build (ADR-0426).
+// A test that reads what the page reports about itself, its signals, its log
+// or its index, is tagged `@report`, and runs on a build that reports: a
+// development build, or a production one built with `--report`. Every other
+// test runs on the build as it is served too, which reports nothing
+// (ADR-0430): `just e14-device-runtime` runs them so.
 import { test } from "@playwright/test";
 import { expect } from "../assertion-expect.mjs";
 import { ROWS_PORTS, ROW_EVENTS_PORTS } from "../host-metadata.mjs";
@@ -21,6 +26,10 @@ async function open(page, path = "/") {
   const events = `http://127.0.0.1:${ROW_EVENTS_PORTS[test.info().project.name]}`;
   await page.goto(path.startsWith("/events") ? `${events}${path}` : path);
   await page.waitForFunction(() => document.documentElement.dataset.pwReady === "1");
+  if (test.info().tags.includes("@report")) {
+    const reports = await page.evaluate(() => "__pw" in window);
+    expect(reports, "a test that reads the page's reports needs a build that keeps them: PW_REPORT=1 (pw build --report)").toBe(true);
+  }
 }
 
 /** What the page's signals say each row is, beside what the document shows. */
@@ -72,7 +81,7 @@ async function created(page) {
   await counted(page, 1000);
 }
 
-test("whatever is pressed, in any order, the page shows what its rows say", async ({ page }) => {
+test("whatever is pressed, in any order, the page shows what its rows say", { tag: "@report" }, async ({ page }) => {
   // Sixty presses over as many as several thousand rows, each step compared
   // whole: under ten seconds on a workstation, several times that on a
   // shared runner with three engines at once.
@@ -137,7 +146,7 @@ test("two rows swapped are the same two rows, moved", async ({ page }) => {
   expect(await marks(page)).toEqual(expected);
 });
 
-test("a press on a row reaches the handler of that row", async ({ page }) => {
+test("a press on a row reaches the handler of that row", { tag: "@report" }, async ({ page }) => {
   await open(page);
   await created(page);
   await page.click("#swaprows");
@@ -179,7 +188,7 @@ test("a press that changes a row parses no row: its plan sets what changed", asy
   await expect(page.locator("#tbody tr").nth(9)).toHaveClass("danger");
 });
 
-test("a row a plan made shows what parsing it shows, whatever its text holds", async ({ page }) => {
+test("a row a plan made shows what parsing it shows, whatever its text holds", { tag: "@report" }, async ({ page }) => {
   await open(page, "/events");
   await page.click("#note");
   await expect(page.locator("#items .note").nth(0)).toHaveText("second");
@@ -288,7 +297,7 @@ test("an event that stays on its element does not reach a handler around it", as
   await expect(page.locator("#wrapped")).toHaveText("0");
 });
 
-test("a press writes the text of the rows it changed and indexes nothing inside them", async ({ page }) => {
+test("a press writes the text of the rows it changed and indexes nothing inside them", { tag: "@report" }, async ({ page }) => {
   await open(page);
   await created(page);
   const before = await page.evaluate(() => window.__pw.log.length);
@@ -325,7 +334,7 @@ async function shownAgain(page) {
   return { hidden, parsed: await page.evaluate(() => window.__parsed.join("")) };
 }
 
-test("a row the document holds is set by its holes: renaming it parses no row", async ({ page }) => {
+test("a row the document holds is set by its holes: renaming it parses no row", { tag: "@report" }, async ({ page }) => {
   await page.addInitScript(() => {
     window.__parsed = [];
     const set = Object.getOwnPropertyDescriptor(Element.prototype, "innerHTML").set;
@@ -350,12 +359,12 @@ test("a row the document holds is set by its holes: renaming it parses no row", 
   expect(parsed.includes(">renamed<")).toBe(false);
 });
 
-test("a list a block shows again is made by its plan: no row of it is parsed", async ({ page }) => {
+test("a list a block shows again is made by its plan: no row of it is parsed", { tag: "@report" }, async ({ page }) => {
   const { parsed } = await shownAgain(page);
   expect(parsed.includes(">7</button>")).toBe(false);
 });
 
-test("a block shown again indexes nothing inside its list's rows", async ({ page }) => {
+test("a block shown again indexes nothing inside its list's rows", { tag: "@report" }, async ({ page }) => {
   const { hidden } = await shownAgain(page);
   const shown = await page.evaluate(() => window.__pw.indexSize());
   // The block's own anchors and its list's: none of the twenty rows' handlers.
@@ -377,7 +386,7 @@ test("a row a plan made reads a return as a line, as the parser would", async ({
   expect(parsed).toBe(html);
 });
 
-test("a row's handler is given what its row holds, whatever its text holds", async ({ page }) => {
+test("a row's handler is given what its row holds, whatever its text holds", { tag: "@report" }, async ({ page }) => {
   await listRendered(page);
   await page.click("#rename-cr");
   await expect(page.locator("#items .name").nth(1)).toHaveText("x\ny\nz");
@@ -406,7 +415,7 @@ test("a row whose value changed is written again", async ({ page }) => {
 
 // --- what a row's handlers capture (ADR-0427) --------------------------------
 
-test("a thousand rows a plan made hold no captured text, and a press on one reaches its row", async ({ page }) => {
+test("a thousand rows a plan made hold no captured text, and a press on one reaches its row", { tag: "@report" }, async ({ page }) => {
   await open(page);
   await created(page);
   await expect(page.locator("#tbody [data-pw-captures]")).toHaveCount(0);
@@ -428,7 +437,7 @@ async function tagsRendered(page) {
 
 const picked = (page) => page.evaluate(() => window.__pw.signals.picked);
 
-test("what a row's handler captures follows its row where nothing the row shows changed", async ({ page }) => {
+test("what a row's handler captures follows its row where nothing the row shows changed", { tag: "@report" }, async ({ page }) => {
   await tagsRendered(page);
   await page.click("#rehide");
   await expect.poll(() => page.evaluate(() => window.__pw.signals.tags[1].unseen)).toBe("second!");
@@ -438,7 +447,7 @@ test("what a row's handler captures follows its row where nothing the row shows 
   await expect.poll(() => picked(page)).toBe("first!");
 });
 
-test("a row the plan takes over from the document keeps no captured text", async ({ page }) => {
+test("a row the plan takes over from the document keeps no captured text", { tag: "@report" }, async ({ page }) => {
   await tagsRendered(page);
   await expect(page.locator("#tags .tag").nth(1)).toHaveAttribute("data-pw-captures", /second/);
   await page.click("#rehide");
@@ -446,7 +455,7 @@ test("a row the plan takes over from the document keeps no captured text", async
   await expect(page.locator("#tags .tag").nth(1)).not.toHaveAttribute("data-pw-captures");
 });
 
-test("a row a plan made is pressed with what its row holds, then and after it changes", async ({ page }) => {
+test("a row a plan made is pressed with what its row holds, then and after it changes", { tag: "@report" }, async ({ page }) => {
   await tagsRendered(page);
   await page.click("#add-tag");
   await expect(page.locator("#tags .shown").nth(0)).toHaveText("three");

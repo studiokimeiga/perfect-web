@@ -3403,3 +3403,9 @@ What a device's page holds is what its build reaches: its runtime holds no comma
 
 [ADR-0429](DECISIONS/ADR-0429-pw-build-builds-a-whole-app.md):
 `pw build --dist` builds a whole app: the standard packages added, a directory read for its `.pw` files, checked as `pw check` checks, its artifacts, its runtime and each asset written, packed for production on asking, and last its sources by their digests; only an app's build is replaced. Each app's build script is one command.
+
+[ADR-0430](DECISIONS/ADR-0430-a-production-page-reports-nothing-to-its-tests.md):
+A production page reports nothing to its tests: each thing the runtime tells them, `window.__pw`, its log and its hooks, is a statement labeled `REPORT`, which a production build drops, arguments and all, unless built `--report` for a suite that reads it; nothing the runtime does reads a report, and a test that reads one is tagged `@report` and run on a build that reports, the rest on the build as served.
+
+[ADR-0431](DECISIONS/ADR-0431-a-failure-the-runtime-recovers-from-is-told-the-developer.md):
+A failure the runtime recovers from is told the developer as the platform tells an error nothing caught (`reportError`): a press that failed, the page's or a speculation's module that did not load, a rollback that could not render, a navigation that could not be finished, a boot that failed; a refusal, no answer and a full store, which the reader is told by name, are not.
