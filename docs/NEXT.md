@@ -66,6 +66,16 @@ What is left, each measured, none decided:
    set fails there, as it did before train-28. CI sets no `KIOKUN_DATA` and
    skips it. The count is the data's, not the code's: read from the shard's
    manifest, or the test says which checkout it was written against.
+8. **Rows found from both ends: tried, and not worth its bytes.** A
+   keyed list's rows matched from both ends before the general way, as Vue
+   2's are (branch `perf/train-29-20261112`, `2b8a117b`, every test and
+   twelve mutants passing): against train-28, the builds visited in turn,
+   eleven rounds a cell, "swap two rows" 1.0 ms quicker in Firefox and "remove
+   a row" 1.0, under Slow 4G 3.8 and 2.5, nothing in Chromium unthrottled;
+   300 bytes more with Brotli on every page's runtime, and no row of the
+   record turned. What a swap or a remove still spends is each of the
+   thousand rows kept (`rowsKept`, `holdsStill`), which a page's own code
+   would not.
 
 ## After train-26, 2026-11-11
 
