@@ -240,7 +240,7 @@ MUTANTS = [
     # What a row's handlers capture, held for the row a plan made or set
     # (ADR-0427).
     ("a row a plan made holds no captures for its press", "rows", RUNTIME,
-     '      if (plan.kinds[h] === "event") rowOfHandler.set(n, nodes);\n',
+     '      if (plan.kinds[h] === "event") n[ROW_OF] = nodes;\n',
      '      if (plan.kinds[h] === "event") continue;\n'),
     ("what a row the plan set captures does not follow it", "rows", RUNTIME,
      "    nodes[3] = row;\n", ""),
@@ -249,7 +249,7 @@ MUTANTS = [
     ("a handler's element the plan takes over keeps its captured text", "rows", RUNTIME,
      '  el.removeAttribute("data-pw-captures");\n', ""),
     ("a handler's element the plan takes over holds no captures for its press", "rows", RUNTIME,
-     "  rowOfHandler.set(el, nodes);\n", ""),
+     "  el[ROW_OF] = nodes;\n", ""),
     ("a row the plan takes over is not taken over", "rows", RUNTIME,
      '    if (found) plan.kinds.forEach((kind, h) => kind === "event" && capturesHeld(nodes[2][h], nodes));\n', ""),
     ("a press reads no captures a plan holds", "rows", RUNTIME,

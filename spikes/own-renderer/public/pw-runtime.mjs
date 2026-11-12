@@ -3392,13 +3392,15 @@ function holeSet(kind, node, raw, was) {
 /** **The row each handler's element a plan made or set captures for**
  * (ADR-0427): the row's nodes, `[its anchors, the node of each hole, its
  * row]`, the row the one the plan last made or set. A row morphed has no
- * holes and no row, and its markup holds what it captures. */
-const rowOfHandler = !PW_PLANS ? null : new WeakMap();
+ * holes and no row, and its markup holds what it captures. Held on the
+ * element, under a symbol of the runtime's own: a weak map held two entries
+ * a row, each one an engine's collector visits apart (ADR-0435). */
+const ROW_OF = !PW_PLANS ? null : Symbol("pw row");
 
 /** **What `el`'s handlers capture, where no attribute holds it**: as the row
  * a plan made or set shows it, computed now; `undefined` where none did. */
 function heldCaptures(el) {
-  const nodes = rowOfHandler.get(el);
+  const nodes = el[ROW_OF];
   return nodes?.[3] ? renderer.capturesOf(nodes[3], nodes[2], el) : undefined;
 }
 
@@ -3407,7 +3409,7 @@ function heldCaptures(el) {
  * otherwise. */
 function capturesHeld(el, nodes) {
   el.removeAttribute("data-pw-captures");
-  rowOfHandler.set(el, nodes);
+  el[ROW_OF] = nodes;
 }
 
 /** New rows, each a clone of its plan given its values, noted in `shown` with
@@ -3428,7 +3430,7 @@ function rowsPlanned(rows, plan, shown, inserted) {
         for (let k = path[d]; k > 0; k--) n = n.nextSibling;
       }
       holes[h] = n;
-      if (plan.kinds[h] === "event") rowOfHandler.set(n, nodes);
+      if (plan.kinds[h] === "event") n[ROW_OF] = nodes;
       else if (!holeSet(plan.kinds[h], n, row.raws[h])) return null;
     }
     nodes[0] = document.createComment(`pw:s${row.key}`);
