@@ -41,7 +41,10 @@ anywhere but an assertion is no kill):
    trimmed; the host never sweeping, or sweeping at every pass, sessions or
    sign-ins never swept, a sweep unbounded or waiting for a row a command
    holds; a rolled-back commit answered as unknown, by the layer or by the
-   host, and an unanswered one answered refused.
+   host, and an unanswered one answered refused;
+7. the landing on master (L1, ADR-0397): a run's key leaving out the user
+   whose command scheduled it, as it did before ADR-0334's amendment of
+   2026-11-07, which master landed after this layer was written.
 
 The tests: the adapter's (`runtime/pw-table-postgres/tests/platform.rs`),
 the server's on PostgreSQL (`tests::tables_pg::`, the conformance suite over
@@ -256,6 +259,10 @@ MUTANTS = [
     ("a commit never answered is answered refused", LAYER,
      "            ) => return Err(format!(\"the tables did not commit: {e:?}\")),\n",
      "            ) => return self.refuse(format!(\"the tables did not commit: {e:?}\")),\n"),
+    # 7. the landing on master: ADR-0334's amendment held on this layer
+    ("a run's key leaves out the user whose command scheduled it", LAYER,
+     "                key: s.key.clone(),\n",
+     "                key: format!(\"{}\\u{1f}{}\", s.command, s.args),\n"),
 ]
 
 # Each Cargo test binary apart: names can repeat between binaries, and the

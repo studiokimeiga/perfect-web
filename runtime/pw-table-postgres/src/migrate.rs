@@ -69,8 +69,9 @@ const PLATFORM: &[(&str, &str)] = &[
                WHERE get_byte($1, i) & 192 <> 128 $$;",
     ),
     // Track `durable-tables` (ADR-0338 5.2): the runs commands schedule
-    // (ADR-0334), one pending for each command and its arguments (`key`), a
-    // run scheduled again a new id; and the sessions and sign-ins a
+    // (ADR-0334), one pending for each user, command and arguments (`key`,
+    // the host's, as ADR-0334's amendment of 2026-11-07 makes it), a run
+    // scheduled again a new id; and the sessions and sign-ins a
     // deployment keeps where its hosts share them (ADR-0369), each by its
     // secret's SHA-256, never the secret (`platform.rs`).
     (

@@ -743,6 +743,60 @@ fn a_commands_scheduled_run_commits_with_its_rows() {
     assert_eq!(s.run_due().0, 0, "a run runs once");
 }
 
+/// **A run's key names the user whose command scheduled it, on PostgreSQL
+/// too** (ADR-0334, amended 2026-11-07, which master landed after this
+/// layer was written; ADR-0397's landing): two readers scheduling one
+/// command with the same arguments keep two runs, each its reader's, and a
+/// reader's scheduling again moves their own run and leaves the other's.
+/// The layer keeps the key the host gives it; a key of the command and its
+/// arguments alone would let one reader's scheduling replace another's
+/// pending run, which would then run on the other's behalf.
+#[test]
+fn a_runs_key_names_the_user_whose_command_scheduled_it_on_postgresql() {
+    let Some(url) = database() else { return };
+    let (_dir, out) = super::tables::built(&[], &[("Notes.pw", NOTES), ("later.pw", LATER)]);
+    let schema = Schema::new(&url, "keys");
+    let s = serve(&out, &schema);
+    let note_later = |session: &str| {
+        let noted = s
+            .command_answered(NOTE_LATER, session, &[Val::String("x".into())], None)
+            .asserted("answered");
+        assert!(noted.committed, "{noted:?}");
+    };
+    // The runs kept, each by its user, all of one command and arguments.
+    let runs = || -> BTreeMap<String, i64> {
+        let all = s.runs().all_runs().asserted("the runs");
+        assert!(
+            all.iter()
+                .all(|r| r.command == "durable.later.remind" && r.args == "[\"x\"]"),
+            "{all:?}"
+        );
+        all.into_iter().map(|r| (r.user, r.id)).collect()
+    };
+    note_later("a");
+    let first = runs();
+    assert_eq!(first.len(), 1, "{first:?}");
+    note_later("b");
+    let both = runs();
+    assert_eq!(both.len(), 2, "one run a reader: {first:?} then {both:?}");
+    assert!(
+        first.iter().all(|(user, id)| both.get(user) == Some(id)),
+        "the first reader's run kept as it was: {first:?} then {both:?}"
+    );
+    // The first reader's scheduling again: their run moved, the other's not.
+    note_later("a");
+    let again = runs();
+    assert_eq!(again.len(), 2, "still one run a reader: {again:?}");
+    for (user, id) in &both {
+        let moved = first.contains_key(user);
+        assert_eq!(
+            again.get(user).is_some_and(|now| now != id),
+            moved,
+            "{user}'s run moved only where it was theirs: {both:?} then {again:?}"
+        );
+    }
+}
+
 /// **A run's old generation does not run**: one replaced as its command
 /// begins (another host's retry, after the scheduler found it current) is
 /// taken by no transaction, so nothing of its command commits; one
