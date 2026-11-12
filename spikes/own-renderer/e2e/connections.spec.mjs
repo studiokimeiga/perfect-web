@@ -22,11 +22,20 @@ const logged = (page, prefix) =>
  * session cookies, so the page asks as a new visitor and is rightly told to
  * reload, its cart a new session's (run 42772395298, WebKit, the cut-off
  * test). What follows says nothing of the server's, and the test is skipped
- * saying why, rather than failed as if the server had erred. */
+ * saying why, rather than failed as if the server had erred.
+ *
+ * Heard from the request as it fails, and from the console. The console can
+ * say it late: in run 43044988596 (WebKit, the cut-off test) the press's
+ * handler module failed so as it was clicked, and the console said so six
+ * seconds later, after the expectation had failed and been judged a finding. */
 function networkWatched(page) {
   const failed = [];
+  const heard = (said) => {
+    if (said.includes("WebKit encountered an internal error")) failed.push(said);
+  };
+  page.on("requestfailed", (r) => heard(`${r.url()}: ${r.failure()?.errorText ?? ""}`));
   page.on("console", (m) => {
-    if (m.type() === "error" && m.text().includes("WebKit encountered an internal error")) failed.push(m.text());
+    if (m.type() === "error") heard(m.text());
   });
   return failed;
 }
