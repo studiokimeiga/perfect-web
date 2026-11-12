@@ -530,3 +530,103 @@ fn table_host_refuses_wrong_table_capability_even_when_admitted() {
         Err(Error::Input(_))
     ));
 }
+
+// A real adapter-level differential test for the optimizer's first rewrite.
+// get-many deduplicates and sorts; the logical read must not silently change
+// the caller's original key order, duplicates, or missing-key semantics.
+#[test]
+fn proof_guided_set_read_reassembles_the_same_result_as_individual_lookups() {
+    use pw_core::read_plans::{self, BatchCapability, Costs, ReadContext, Strategy};
+    use std::cell::Cell;
+
+    let description = manifest();
+    let candidates = read_plans::families(&description);
+    assert!(
+        candidates
+            .iter()
+            .any(|p| p.keyed() == "get" && p.set() == "get_many")
+    );
+    let family = candidates.iter().find(|p| p.keyed() == "get").unwrap();
+    assert_eq!(family.fields(), ["from", "to"]);
+
+    let db = MemoryTables::new(description).assert_ok("valid domain");
+    db.transaction(|tx| {
+        tx.write(&call("insert"), &[like("a", "c", 10)])?;
+        tx.write(&call("insert"), &[like("a", "b", 2)])?;
+        tx.write(&call("insert"), &[like("d", "c", 5)])?;
+        Ok(())
+    })
+    .assert_ok("seed");
+
+    let keys = vec![
+        ("a".to_owned(), "c".to_owned()),
+        ("missing".to_owned(), "z".to_owned()),
+        ("a".to_owned(), "b".to_owned()),
+        ("a".to_owned(), "c".to_owned()),
+        ("d".to_owned(), "c".to_owned()),
+        ("missing".to_owned(), "z".to_owned()),
+    ];
+    let context = ReadContext {
+        one_snapshot: true,
+        pure_key_projection: true,
+        no_observable_per_key_effects: true,
+        same_privacy_partition: true,
+        error_equivalent: true,
+    };
+    let d = read_plans::choose(
+        family,
+        context,
+        BatchCapability::OneCall,
+        keys.len() as u64,
+        Costs::default(),
+    );
+    assert_eq!(d.strategy(), Strategy::Batched);
+
+    let keyed_calls = Cell::new(0);
+    let set_calls = Cell::new(0);
+    let actual = read_plans::execute(
+        &d,
+        &keys,
+        BatchCapability::OneCall,
+        |(from, to)| {
+            keyed_calls.set(keyed_calls.get() + 1);
+            let v = db.read(&call("get"), &[json!(from), json!(to)])?;
+            Ok::<Vec<Value>, Error>(if v.is_null() { vec![] } else { vec![v] })
+        },
+        |batch| {
+            set_calls.set(set_calls.get() + 1);
+            let input: Vec<_> = batch
+                .iter()
+                .map(|(from, to)| json!({"from": from, "to": to}))
+                .collect();
+            let answer = db.read(&call("get-many"), &[json!(input)])?;
+            Ok::<Vec<Value>, Error>(answer.as_array().unwrap().clone())
+        },
+        |row| {
+            (
+                row["from"].as_str().unwrap().to_owned(),
+                row["to"].as_str().unwrap().to_owned(),
+            )
+        },
+    )
+    .assert_ok("batch");
+    let baseline: Vec<Vec<Value>> = keys
+        .iter()
+        .map(|(from, to)| {
+            let result = db
+                .read(&call("get"), &[json!(from), json!(to)])
+                .assert_ok("keyed");
+            if result.is_null() {
+                vec![]
+            } else {
+                vec![result]
+            }
+        })
+        .collect();
+
+    assert_eq!(actual, baseline);
+    assert_eq!(set_calls.get(), 1);
+    assert_eq!(keyed_calls.get(), 0);
+    assert!(actual[1].is_empty());
+    assert_eq!(actual[0], actual[3]);
+}

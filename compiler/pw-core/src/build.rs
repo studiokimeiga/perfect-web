@@ -93,6 +93,8 @@ impl Build {
     ///                               host binds their imports, and the
     ///                               migration from the schema released
     ///                               (ADR-0338); none where it declares none
+    /// DIR/read-plans.json           candidate keyed/set read pairs with provenance;
+    ///                               not an executed runtime optimization
     /// DIR/schema.lock               the schema the build declares: committed
     ///                               beside the program when it is released
     /// DIR/speculations/<page>.*     each page's speculations (ADR-0122)
@@ -215,6 +217,11 @@ impl Build {
         if !self.tables.tables.is_empty() {
             let tables = serde_json::to_string_pretty(&self.tables).map_err(|e| e.to_string())?;
             write("tables.json", format!("{tables}\n").as_bytes())?;
+            // An inspectable, non-executing inventory of legal read-plan pairs.
+            // Runtime plan selection requires separately verified semantic context.
+            let plans = serde_json::to_string_pretty(&crate::read_plans::inventory(&self.tables))
+                .map_err(|e| e.to_string())?;
+            write("read-plans.json", format!("{plans}\n").as_bytes())?;
             write("schema.lock", self.schema.written().as_bytes())?;
             lines.push(format!(
                 "  tables     {} table(s), schema {}, {} migration step(s) from {}",
@@ -230,7 +237,7 @@ impl Build {
         } else {
             // Rebuilding into an existing directory must not leave a prior
             // program's tables available to the host.
-            for name in ["tables.json", "schema.lock"] {
+            for name in ["tables.json", "read-plans.json", "schema.lock"] {
                 match std::fs::remove_file(dir.join(name)) {
                     Ok(()) => {}
                     Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}

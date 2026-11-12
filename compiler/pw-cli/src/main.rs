@@ -2191,6 +2191,41 @@ fn run() -> ExitCode {
         }
     }
 
+    if cmd == "explain" && errors == 0 {
+        // Reuse the executable program's declaration authority. Do not infer
+        // optimizable host operations by guessing from function spellings.
+        if let Ok(build) =
+            pw_core::program::validate_sources_with(&all, released.as_ref()).into_build()
+        {
+            let inventory = pw_core::read_plans::inventory(&build.tables);
+            if !inventory.families.is_empty() {
+                println!(
+                    "── generated table read-plan candidates (schema {})",
+                    inventory.schema_hash
+                );
+                for family in &inventory.families {
+                    println!(
+                        "  {}: {} / {} by [{}], ordered by [{}]",
+                        family.table(),
+                        family.keyed(),
+                        family.set(),
+                        family.fields().join(", "),
+                        family.order().join(", ")
+                    );
+                    for fact in family.facts() {
+                        println!(
+                            "    {}: {:?} ({})",
+                            fact.property, fact.provenance, fact.witness
+                        );
+                    }
+                }
+                println!(
+                    "  candidates only: source-loop rewrites require checked snapshot, effects, privacy and error equivalence"
+                );
+            }
+        }
+    }
+
     if cmd == "check" {
         if errors == 0 && warnings == 0 {
             println!("pw check: {files} file(s), no diagnostics");
