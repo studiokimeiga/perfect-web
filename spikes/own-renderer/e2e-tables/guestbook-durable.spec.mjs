@@ -31,6 +31,16 @@ const DATABASE = process.env.PW_TABLES_DATABASE_URL ?? "";
 // The development server the recipe built, where the main suite's is.
 const SERVER = resolve(ROOT, "../../", process.env.CARGO_TARGET_DIR ?? "target", "debug", "pw-dev-server");
 
+/** Whether a host answers its page at `origin`; not yet, while nothing
+ * listens there. */
+async function answers(origin) {
+  try {
+    return (await fetch(`${origin}/`)).ok;
+  } catch {
+    return false;
+  }
+}
+
 /** **One host**: the guestbook's development server on `port`, its tables
  * in `schema`. */
 class Host {
@@ -66,15 +76,12 @@ class Host {
       if (this.child.exitCode !== null) {
         throw new Error(`host ${this.name} exited (${this.child.exitCode}): see ${this.log}`);
       }
-      try {
-        if ((await fetch(`${this.origin}/`)).ok) {
-          expect(readFileSync(this.log, "utf8")).toContain(
-            `pw dev server tables: on PostgreSQL, schema ${this.schema}`,
-          );
-          return;
-        }
-      } catch {
-        // Not listening yet.
+      if (await answers(this.origin)) {
+        // Said at its start, before it answers anyone.
+        expect(readFileSync(this.log, "utf8")).toContain(
+          `pw dev server tables: on PostgreSQL, schema ${this.schema}`,
+        );
+        return;
       }
       await new Promise((resolve) => setTimeout(resolve, 200));
     }
