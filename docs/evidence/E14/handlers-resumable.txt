@@ -1,18 +1,18 @@
 ADR-0134 - every handler is resumable, and what it captures is what it reads
 
 produced by: just e14-handlers-resumable
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the compiler (compiler/pw-core/tests/every_handler_is_resumable.rs)
 
-test a_listed_capture_is_still_held_to_what_the_handler_reads ... ok
 test a_handler_named_by_a_local_is_refused_when_checked ... ok
+test a_listed_capture_is_still_held_to_what_the_handler_reads ... ok
 test a_handler_written_as_a_lambda_has_code ... ok
 test an_event_part_with_no_code_is_refused_at_build ... ok
 test a_handler_captures_what_it_reads_of_the_page ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 29.62s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 28.12s
 
 == mutation controls (scripts/handlers_resumable_mutations.py)
 

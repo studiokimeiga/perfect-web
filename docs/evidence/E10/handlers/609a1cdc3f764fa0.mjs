@@ -4,17 +4,18 @@ function trap(what) {
   throw new Error("trap: " + what);
 }
 
-// An Int sent to a command as a JSON number (ADR-0058): exact within
-// ±2^53, and a trap past it rather than a different number.
+// An Int as JSON carries it (ADR-0058, ADR-0433): a number already within
+// ±2^53, and a trap past it, where it is a BigInt, rather than a
+// different number.
 function exact(v) {
-  if (v < -9007199254740992n || v > 9007199254740992n) trap("an Int a JavaScript number cannot carry exactly");
-  return Number(v);
+  if (typeof v === "bigint") trap("an Int a JavaScript number cannot carry exactly");
+  return v;
 }
 
 export const name = "";
 export const handler = "609a1cdc3f764fa0";
 export async function run(context) {
-  const v0 = 1n;
+  const v0 = 1;
   context.set("stars", exact(v0));
   const v1 = undefined;
   return v1;

@@ -1,24 +1,24 @@
 ADR-0136 - a view is written where it is used
 
 produced by: just e14-views-compose
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == composition (compiler/pw-core/tests/views_compose.rs)
 
 test a_signal_a_view_captures_is_refused ... ok
-test a_page_plans_a_composed_view_as_its_own_markup ... ok
 test a_name_the_view_binds_hides_nothing_it_was_given ... ok
+test a_page_plans_a_composed_view_as_its_own_markup ... ok
 test a_handler_in_a_view_captures_what_the_page_gave_it ... ok
 test a_view_that_cannot_compose_is_reported_where_it_is_used ... ok
-test a_view_s_part_and_handler_are_the_page_s_to_speculate ... ok
-test a_view_used_twice_has_parts_of_its_own_each_time ... ok
 test a_signal_a_view_shows_is_live_as_the_page_s_own ... ok
+test a_view_used_twice_has_parts_of_its_own_each_time ... ok
+test a_view_s_part_and_handler_are_the_page_s_to_speculate ... ok
 test a_view_is_written_where_it_is_used ... ok
 test what_cannot_be_composed_is_refused_by_name ... ok
 test what_a_view_captures_is_checked_where_it_is_given ... ok
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 20.03s
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 25.04s
 
 == a view's props (compiler/pw-core/tests/view_elements.rs)
 
@@ -32,8 +32,8 @@ test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 test a_captured_value_survives_the_attribute_exactly ... ok
 test a_capture_that_cannot_be_carried_blocks_the_render ... ok
-test carried_captures_serialize_deterministically ... ok
 test a_capture_a_view_names_otherwise_is_read_where_it_is ... ok
+test carried_captures_serialize_deterministically ... ok
 test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 28 filtered out; finished in 0.00s
 
 == mutation controls (scripts/views_compose_mutations.py)

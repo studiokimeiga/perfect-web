@@ -59,7 +59,8 @@ fn two_pages_of_one_shape_in_two_files_keep_their_own_handlers() {
     let b = pw_core::build::build(&units).expect("builds");
 
     // Each page's event part names a module whose body adds that page's step.
-    for (page, adds) in [("a.P~ui", "1n"), ("b.P~ui", "2n")] {
+    // Each step a literal, a number as an `Int` within ±2^53 is (ADR-0433).
+    for (page, adds) in [("a.P~ui", "1"), ("b.P~ui", "2")] {
         let t = b
             .templates
             .iter()

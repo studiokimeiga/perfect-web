@@ -4,11 +4,45 @@ function trap(what) {
   throw new Error("trap: " + what);
 }
 
-// An Int is 64 bits, and a result that does not fit traps (ADR-0039):
-// one that 64 bits wrap is not itself (ADR-0427).
-function int(v) {
+// An Int is a number within 2^53 of zero and a BigInt past it, 64 bits
+// at most (ADR-0039, ADR-0433): one form for each value, so that two
+// equal ones are `===`, and the form JSON gives each Int it carries. A
+// result 64 bits do not hold traps: one they wrap is not itself.
+function big(v) {
   if (BigInt.asIntN(64, v) !== v) trap("Int overflow");
-  return v;
+  return v >= -9007199254740992n && v <= 9007199254740992n ? Number(v) : v;
+}
+
+// Two numbers' sum, difference or product is exact where it is a safe
+// integer, the nearest double to one past 2^53 - 1 being at least 2^53;
+// past that it is made again as a BigInt.
+function add(a, b) {
+  if (typeof a === "number" && typeof b === "number") {
+    const r = a + b;
+    if (r >= -9007199254740991 && r <= 9007199254740991) return r;
+  }
+  return big(BigInt(a) + BigInt(b));
+}
+
+function sub(a, b) {
+  if (typeof a === "number" && typeof b === "number") {
+    const r = a - b;
+    if (r >= -9007199254740991 && r <= 9007199254740991) return r;
+  }
+  return big(BigInt(a) - BigInt(b));
+}
+
+// A product of 0 is 0, never -0.
+function mul(a, b) {
+  if (typeof a === "number" && typeof b === "number") {
+    const r = a * b;
+    if (r >= -9007199254740991 && r <= 9007199254740991) return r + 0;
+  }
+  return big(BigInt(a) * BigInt(b));
+}
+
+function neg(a) {
+  return typeof a === "number" ? 0 - a : big(-a);
 }
 
 function some(value) {
@@ -18,7 +52,7 @@ function some(value) {
 const none = Object.freeze({ $case: "none" });
 
 function codepoints(s) {
-  return Array.from(s, (c) => BigInt(c.codePointAt(0)));
+  return Array.from(s, (c) => c.codePointAt(0));
 }
 
 // Unicode White_Space, as Rust's `str::trim` and the component's
@@ -38,17 +72,18 @@ function trim(s) {
 // `start` up to `end`, each clamped to the array, as `List.slice` and
 // `String.slice` (ADR-0055).
 function slice(xs, start, end) {
-  const n = BigInt(xs.length);
-  const clamp = (i) => (i < 0n ? 0n : i > n ? n : i);
+  const n = xs.length;
+  const clamp = (i) => (i < 0 ? 0 : i > n ? n : i);
   const a = clamp(start), b = clamp(end);
-  return b > a ? xs.slice(Number(a), Number(b)) : [];
+  return b > a ? xs.slice(a, b) : [];
 }
 
-// An Int sent to a command as a JSON number (ADR-0058): exact within
-// ±2^53, and a trap past it rather than a different number.
+// An Int as JSON carries it (ADR-0058, ADR-0433): a number already within
+// ±2^53, and a trap past it, where it is a BigInt, rather than a
+// different number.
 function exact(v) {
-  if (v < -9007199254740992n || v > 9007199254740992n) trap("an Int a JavaScript number cannot carry exactly");
-  return Number(v);
+  if (typeof v === "bigint") trap("an Int a JavaScript number cannot carry exactly");
+  return v;
 }
 
 export const name = "dollars_typed";
@@ -57,18 +92,18 @@ export async function run(context) {
   const v0 = context.get("tip_typed");
   const v2 = trim(v0);
   const v3 = codepoints(v2);
-  const v4 = 0n;
-  const v5 = v4 >= 0n && v4 < BigInt(v3.length) ? some(v3[Number(v4)]) : none;
+  const v4 = 0;
+  const v5 = v4 >= 0 && v4 < v3.length ? some(v3[v4]) : none;
   let v12;
   switch (v5.$case) {
     case "some": {
       const v6 = v5.value;
-      const v9 = 36n;
+      const v9 = 36;
       const v10 = v6 === v9;
       let v11;
       if (v10) {
-        const v7 = 1n;
-        const v8 = slice(v3, v7, BigInt(v3.length));
+        const v7 = 1;
+        const v8 = slice(v3, v7, v3.length);
         v11 = v8;
       } else {
         v11 = v3;
@@ -82,9 +117,9 @@ export async function run(context) {
     }
     default: trap("no arm takes this case");
   }
-  const v13 = 0n;
-  const v14 = 1n;
-  const v15 = int(-v14);
+  const v13 = 0;
+  const v14 = 1;
+  const v15 = neg(v14);
   const v16 = { "cents": v13, "after": v15 };
   const v17 = some(v16);
   const v73 = v12.reduce((v18, v19) => {
@@ -97,12 +132,12 @@ export async function run(context) {
       }
       case "some": {
         const v21 = v18.value;
-        const v22 = 46n;
+        const v22 = 46;
         const v23 = v19 === v22;
         let v71;
         if (v23) {
           const v24 = v21["after"];
-          const v25 = 0n;
+          const v25 = 0;
           const v26 = v24 >= v25;
           let v32;
           if (v26) {
@@ -110,18 +145,18 @@ export async function run(context) {
             v32 = v27;
           } else {
             const v28 = v21["cents"];
-            const v29 = 0n;
+            const v29 = 0;
             const v30 = { "cents": v28, "after": v29 };
             const v31 = some(v30);
             v32 = v31;
           }
           v71 = v32;
         } else {
-          const v33 = 48n;
+          const v33 = 48;
           const v34 = v19 >= v33;
           let v38;
           if (v34) {
-            const v35 = 57n;
+            const v35 = 57;
             const v36 = v19 <= v35;
             v38 = v36;
           } else {
@@ -131,7 +166,7 @@ export async function run(context) {
           let v70;
           if (v38) {
             const v39 = v21["after"];
-            const v40 = 2n;
+            const v40 = 2;
             const v41 = v39 >= v40;
             let v68;
             if (v41) {
@@ -139,31 +174,31 @@ export async function run(context) {
               v68 = v42;
             } else {
               const v43 = v21["after"];
-              const v44 = 0n;
+              const v44 = 0;
               const v45 = v43 >= v44;
               let v67;
               if (v45) {
                 const v46 = v21["cents"];
-                const v47 = 10n;
-                const v48 = int(v46 * v47);
-                const v49 = 48n;
-                const v50 = int(v19 - v49);
-                const v51 = int(v48 + v50);
+                const v47 = 10;
+                const v48 = mul(v46, v47);
+                const v49 = 48;
+                const v50 = sub(v19, v49);
+                const v51 = add(v48, v50);
                 const v52 = v21["after"];
-                const v53 = 1n;
-                const v54 = int(v52 + v53);
+                const v53 = 1;
+                const v54 = add(v52, v53);
                 const v55 = { "cents": v51, "after": v54 };
                 const v56 = some(v55);
                 v67 = v56;
               } else {
                 const v57 = v21["cents"];
-                const v58 = 10n;
-                const v59 = int(v57 * v58);
-                const v60 = 48n;
-                const v61 = int(v19 - v60);
-                const v62 = int(v59 + v61);
-                const v63 = 1n;
-                const v64 = int(-v63);
+                const v58 = 10;
+                const v59 = mul(v57, v58);
+                const v60 = 48;
+                const v61 = sub(v19, v60);
+                const v62 = add(v59, v61);
+                const v63 = 1;
+                const v64 = neg(v63);
                 const v65 = { "cents": v62, "after": v64 };
                 const v66 = some(v65);
                 v67 = v66;
@@ -188,8 +223,8 @@ export async function run(context) {
   switch (v73.$case) {
     case "some": {
       const v74 = v73.value;
-      const v75 = BigInt(v12.length);
-      const v76 = 0n;
+      const v75 = v12.length;
+      const v76 = 0;
       const v77 = v75 === v76;
       let v114;
       if (v77) {
@@ -197,38 +232,38 @@ export async function run(context) {
         v114 = v78;
       } else {
         const v79 = v74["after"];
-        const v80 = 1n;
-        const v81 = int(-v80);
+        const v80 = 1;
+        const v81 = neg(v80);
         const v82 = v79 === v81;
         let v113;
         if (v82) {
           const v83 = v74["cents"];
-          const v84 = 100n;
-          const v85 = int(v83 * v84);
+          const v84 = 100;
+          const v85 = mul(v83, v84);
           const v87 = v85;
           const v88 = some(v87);
           v113 = v88;
         } else {
           const v89 = v74["after"];
-          const v90 = 0n;
+          const v90 = 0;
           const v91 = v89 === v90;
           let v112;
           if (v91) {
             const v92 = v74["cents"];
-            const v93 = 100n;
-            const v94 = int(v92 * v93);
+            const v93 = 100;
+            const v94 = mul(v92, v93);
             const v96 = v94;
             const v97 = some(v96);
             v112 = v97;
           } else {
             const v98 = v74["after"];
-            const v99 = 1n;
+            const v99 = 1;
             const v100 = v98 === v99;
             let v111;
             if (v100) {
               const v101 = v74["cents"];
-              const v102 = 10n;
-              const v103 = int(v101 * v102);
+              const v102 = 10;
+              const v103 = mul(v101, v102);
               const v105 = v103;
               const v106 = some(v105);
               v111 = v106;
@@ -259,7 +294,7 @@ export async function run(context) {
     case "some": {
       const v117 = v116.value;
       const v118 = { $case: "tip-amount", value: v117 };
-      const v119_answer = await context.command("store.page.choose_tip", [((c) => { switch (c.$case) { case "no-tip": return { $case: "no-tip" }; case "fifteen": return { $case: "fifteen" }; case "eighteen": return { $case: "eighteen" }; case "twenty": return { $case: "twenty" }; case "tip-amount": return { $case: "tip-amount", value: exact(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(v118)], { retry: { max: 2, jitter: true } });
+      const v119_answer = await context.command("store.page.choose_tip", [((w) => { if (w.$case === "tip-amount") { exact(w.value); } return w; })(v118)], { retry: { max: 2, jitter: true } });
       const v119 = ((c) => { switch (c.$case) { case "ok": return { $case: "ok", value: undefined }; case "err": return { $case: "err", value: ((c) => { switch (c.$case) { case "negative-tip": return { $case: "negative-tip" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(v119_answer);
       let v126;
       switch (v119.$case) {

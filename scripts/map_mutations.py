@@ -101,8 +101,8 @@ MUTANTS = [
     (
         "the module orders Int keys backwards",
         JS,
-        "(a < b ? -1 : a > b ? 1 : 0)",
-        "(a < b ? 1 : a > b ? -1 : 0)",
+        "compare(a, b) : a < b ? -1 : a > b ? 1 : 0;",
+        "compare(a, b) : a < b ? 1 : a > b ? -1 : 0;",
     ),
     (
         "the module keeps the first of a repeated key",

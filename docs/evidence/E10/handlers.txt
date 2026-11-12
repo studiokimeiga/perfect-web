@@ -1,13 +1,13 @@
 E10 - resumable handlers, compiled to JavaScript modules
 
 produced by: just e10-handlers
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the store's handlers, as pw emit-handlers writes them
 
-handler ce4501910ab2a49a `add_to_cart` in `store.page.StorePage~ui` calls `store.page.add_to_cart` (2967 bytes)
+handler ce4501910ab2a49a `add_to_cart` in `store.page.StorePage~ui` calls `store.page.add_to_cart` (2521 bytes)
 handler 15483a28f370066a `decrease_in_cart` in `store.page.StorePage~ui` calls `store.page.decrease_in_cart` (1456 bytes)
 handler e54d74c7f76a6a78 `increase_in_cart` in `store.page.StorePage~ui` calls `store.page.increase_in_cart` (1946 bytes)
 handler 0884d13a19812a03 `remove_from_cart` in `store.page.StorePage~ui` calls `store.page.remove_from_cart` (1456 bytes)
@@ -15,32 +15,32 @@ handler b5c3e56ff370a6a8 `clear_cart` in `store.page.StorePage~ui` calls `store.
 handler 15483a28f370066a `decrease_in_cart` in `store.page.CartPage~ui` calls `store.page.decrease_in_cart` (1456 bytes)
 handler e54d74c7f76a6a78 `increase_in_cart` in `store.page.CartPage~ui` calls `store.page.increase_in_cart` (1946 bytes)
 handler 0884d13a19812a03 `remove_from_cart` in `store.page.CartPage~ui` calls `store.page.remove_from_cart` (1456 bytes)
-handler 029fa6a984724f1c `` in `store.page.CartPage~ui` calls `` (330 bytes)
-handler a1b9d04f6c3d6962 `apply_promo` in `store.page.CartPage~ui` calls `store.page.apply_promo` (6426 bytes)
-handler 481e071528717f3b `remove_promo` in `store.page.CartPage~ui` calls `store.page.remove_promo` (6390 bytes)
-handler dc95ff389eaac1f1 `choose_tip` in `store.page.CartPage~ui` calls `store.page.choose_tip` (1842 bytes)
-handler 1788d84a81fb0dc3 `choose_tip` in `store.page.CartPage~ui` calls `store.page.choose_tip` (1843 bytes)
-handler 6157a6a5babb44ef `choose_tip` in `store.page.CartPage~ui` calls `store.page.choose_tip` (1844 bytes)
-handler 8e028bbd31639049 `choose_tip` in `store.page.CartPage~ui` calls `store.page.choose_tip` (1842 bytes)
-handler 55314a08032a0a1d `` in `store.page.CartPage~ui` calls `` (335 bytes)
-handler 18a30e7eda6408b5 `dollars_typed` in `store.page.CartPage~ui` calls `store.page.choose_tip` (8920 bytes)
+handler 029fa6a984724f1c `` in `store.page.CartPage~ui` calls `` (294 bytes)
+handler a1b9d04f6c3d6962 `apply_promo` in `store.page.CartPage~ui` calls `store.page.apply_promo` (7339 bytes)
+handler 481e071528717f3b `remove_promo` in `store.page.CartPage~ui` calls `store.page.remove_promo` (7303 bytes)
+handler dc95ff389eaac1f1 `choose_tip` in `store.page.CartPage~ui` calls `store.page.choose_tip` (1567 bytes)
+handler 1788d84a81fb0dc3 `choose_tip` in `store.page.CartPage~ui` calls `store.page.choose_tip` (1568 bytes)
+handler 6157a6a5babb44ef `choose_tip` in `store.page.CartPage~ui` calls `store.page.choose_tip` (1569 bytes)
+handler 8e028bbd31639049 `choose_tip` in `store.page.CartPage~ui` calls `store.page.choose_tip` (1567 bytes)
+handler 55314a08032a0a1d `` in `store.page.CartPage~ui` calls `` (299 bytes)
+handler 18a30e7eda6408b5 `dollars_typed` in `store.page.CartPage~ui` calls `store.page.choose_tip` (9685 bytes)
 handler b5c3e56ff370a6a8 `clear_cart` in `store.page.CartPage~ui` calls `store.page.clear_cart` (1391 bytes)
-handler 0567c01c8c1d4702 `place_order` in `store.page.CartPage~ui` calls `store.page.place_order` (21081 bytes)
-handler 88497d21af8270bf `choose_time` in `store.page.TimePage~ui` calls `store.page.choose_time` (3752 bytes)
-handler 54002ec8f031143d `choose_time` in `store.page.TimePage~ui` calls `store.page.choose_time` (4473 bytes)
+handler 0567c01c8c1d4702 `place_order` in `store.page.CartPage~ui` calls `store.page.place_order` (21912 bytes)
+handler 88497d21af8270bf `choose_time` in `store.page.TimePage~ui` calls `store.page.choose_time` (3582 bytes)
+handler 54002ec8f031143d `choose_time` in `store.page.TimePage~ui` calls `store.page.choose_time` (4295 bytes)
 handler 6f4329b46ef92224 `cancel_order` in `store.page.OrderPage~ui` calls `store.page.cancel_order` (1909 bytes)
-handler 8ef712ee855dff03 `` in `store.page.AddressPage~ui` calls `` (331 bytes)
+handler 8ef712ee855dff03 `` in `store.page.AddressPage~ui` calls `` (295 bytes)
 handler 8d96aa03266aae5b `choose_address` in `store.page.AddressPage~ui` calls `store.page.choose_address` (1380 bytes)
-handler 26058453d2c7def8 `address_label` in `store.page.AddressPage~ui` calls `store.page.rename_address` (2346 bytes)
+handler 26058453d2c7def8 `address_label` in `store.page.AddressPage~ui` calls `store.page.rename_address` (2328 bytes)
 handler 2a2607ad200b08c0 `remove_address` in `store.page.AddressPage~ui` calls `store.page.remove_address` (1344 bytes)
-handler 9b11646e3891a94e `address_label` in `store.page.AddressPage~ui` calls `store.page.add_address` (2875 bytes)
-handler 609a1cdc3f764fa0 `` in `store.rate.RatePage~ui` calls `` (613 bytes)
-handler 137b05e28516165a `` in `store.rate.RatePage~ui` calls `` (613 bytes)
-handler caef098036bb24e4 `` in `store.rate.RatePage~ui` calls `` (613 bytes)
-handler 144ae10590824570 `` in `store.rate.RatePage~ui` calls `` (613 bytes)
-handler 8c99633129a756a0 `` in `store.rate.RatePage~ui` calls `` (613 bytes)
-handler b2ef12af35e8d84f `` in `store.rate.RatePage~ui` calls `` (333 bytes)
-handler 8d037e136bada386 `stars_of` in `store.rate.RatePage~ui` calls `store.rate.rate_order` (4787 bytes)
+handler 9b11646e3891a94e `address_label` in `store.page.AddressPage~ui` calls `store.page.add_address` (2857 bytes)
+handler 609a1cdc3f764fa0 `` in `store.rate.RatePage~ui` calls `` (609 bytes)
+handler 137b05e28516165a `` in `store.rate.RatePage~ui` calls `` (609 bytes)
+handler caef098036bb24e4 `` in `store.rate.RatePage~ui` calls `` (609 bytes)
+handler 144ae10590824570 `` in `store.rate.RatePage~ui` calls `` (609 bytes)
+handler 8c99633129a756a0 `` in `store.rate.RatePage~ui` calls `` (609 bytes)
+handler b2ef12af35e8d84f `` in `store.rate.RatePage~ui` calls `` (297 bytes)
+handler 8d037e136bada386 `stars_of` in `store.rate.RatePage~ui` calls `store.rate.rate_order` (4765 bytes)
 34 handler(s) written to docs/evidence/E10/handlers
 
 -- docs/evidence/E10/handlers/029fa6a984724f1c.mjs
@@ -49,7 +49,7 @@ handler 8d037e136bada386 `stars_of` in `store.rate.RatePage~ui` calls `store.rat
 export const name = "";
 export const handler = "029fa6a984724f1c";
 export async function run(context) {
-  const v0 = ((o) => ({ "value": o["value"] }))(context.event);
+  const v0 = context.event;
   const v1 = v0["value"];
   context.set("code", v1);
   const v2 = undefined;
@@ -63,52 +63,76 @@ function trap(what) {
   throw new Error("trap: " + what);
 }
 
-// An Int is 64 bits, and a result that does not fit traps (ADR-0039):
-// one that 64 bits wrap is not itself (ADR-0427).
-function int(v) {
+// An Int is a number within 2^53 of zero and a BigInt past it, 64 bits
+// at most (ADR-0039, ADR-0433): one form for each value, so that two
+// equal ones are `===`, and the form JSON gives each Int it carries. A
+// result 64 bits do not hold traps: one they wrap is not itself.
+function big(v) {
   if (BigInt.asIntN(64, v) !== v) trap("Int overflow");
-  return v;
+  return v >= -9007199254740992n && v <= 9007199254740992n ? Number(v) : v;
 }
 
-// Euclidean: the remainder is in [0, |b|), so -7 / 2 is -4.
+function sub(a, b) {
+  if (typeof a === "number" && typeof b === "number") {
+    const r = a - b;
+    if (r >= -9007199254740991 && r <= 9007199254740991) return r;
+  }
+  return big(BigInt(a) - BigInt(b));
+}
+
+// Euclidean: the remainder is in [0, |b|), so -7 / 2 is -4. Exact on two
+// numbers: `a % b` is, and `a - a % b` is a multiple of `b` no larger
+// than `a`, so their quotient is the whole number it is.
 function div(a, b) {
-  if (b === 0n) trap("division by zero");
-  let q = a / b;
-  if (a % b < 0n) q = b > 0n ? q - 1n : q + 1n;
-  return int(q);
+  if (b == 0) trap("division by zero");
+  if (typeof a === "number" && typeof b === "number") {
+    const r = a % b;
+    const q = (a - r) / b;
+    return (r < 0 ? (b > 0 ? q - 1 : q + 1) : q) + 0;
+  }
+  const x = BigInt(a), y = BigInt(b);
+  let q = x / y;
+  if (x % y < 0n) q = y > 0n ? q - 1n : q + 1n;
+  return big(q);
 }
 
 function rem(a, b) {
-  if (b === 0n) trap("division by zero");
-  const r = a % b;
-  return r < 0n ? (b > 0n ? r + b : r - b) : r;
+  if (b == 0) trap("division by zero");
+  if (typeof a === "number" && typeof b === "number") {
+    const r = a % b;
+    return (r < 0 ? (b > 0 ? r + b : r - b) : r) + 0;
+  }
+  const x = BigInt(a), y = BigInt(b);
+  const r = x % y;
+  return big(r < 0n ? (y > 0n ? r + y : r - y) : r);
 }
 
-// An Int sent to a command as a JSON number (ADR-0058): exact within
-// ±2^53, and a trap past it rather than a different number.
+// An Int as JSON carries it (ADR-0058, ADR-0433): a number already within
+// ±2^53, and a trap past it, where it is a BigInt, rather than a
+// different number.
 function exact(v) {
-  if (v < -9007199254740992n || v > 9007199254740992n) trap("an Int a JavaScript number cannot carry exactly");
-  return Number(v);
+  if (typeof v === "bigint") trap("an Int a JavaScript number cannot carry exactly");
+  return v;
 }
 
 function callee0(v0) {
-  const v1 = 1000n;
+  const v1 = 1000;
   const v2 = v0 < v1;
   let v22;
   if (v2) {
     const v3 = v0.toString();
     v22 = v3;
   } else {
-    const v4 = 1000n;
+    const v4 = 1000;
     const v5 = rem(v0, v4);
-    const v6 = 10n;
+    const v6 = 10;
     const v7 = v5 < v6;
     let v14;
     if (v7) {
       const v8 = "00";
       v14 = v8;
     } else {
-      const v9 = 100n;
+      const v9 = 100;
       const v10 = v5 < v9;
       let v13;
       if (v10) {
@@ -120,7 +144,7 @@ function callee0(v0) {
       }
       v14 = v13;
     }
-    const v15 = 1000n;
+    const v15 = 1000;
     const v16 = div(v0, v15);
     const v18 = callee0(v16);
     const v19 = ",";
@@ -134,9 +158,9 @@ function callee0(v0) {
 export const name = "place_order";
 export const handler = "0567c01c8c1d4702";
 export async function run(context) {
-  const v0 = BigInt(context.captures["checkout"]["charges"]["total"]);
+  const v0 = context.captures["checkout"]["charges"]["total"];
   const v1_answer = await context.command("store.page.place_order", [exact(v0)], { retry: { max: 2, jitter: true } });
-  const v1 = ((c) => { switch (c.$case) { case "ok": return { $case: "ok", value: undefined }; case "err": return { $case: "err", value: ((c) => { switch (c.$case) { case "nothing-to-order": return { $case: "nothing-to-order" }; case "no-coverage": return { $case: "no-coverage" }; case "closed": return { $case: "closed", value: ((c) => { switch (c.$case) { case "closed-now": return { $case: "closed-now", value: ((c) => { switch (c.$case) { case "some": return { $case: "some", value: ((o) => ({ "day": ((c) => { switch (c.$case) { case "today": return { $case: "today" }; case "tomorrow": return { $case: "tomorrow" }; case "on": return { $case: "on", value: ((c) => { switch (c.$case) { case "monday": return { $case: "monday" }; case "tuesday": return { $case: "tuesday" }; case "wednesday": return { $case: "wednesday" }; case "thursday": return { $case: "thursday" }; case "friday": return { $case: "friday" }; case "saturday": return { $case: "saturday" }; case "sunday": return { $case: "sunday" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(o["day"]), "at": BigInt(o["at"]) }))(c.value) }; case "none": return { $case: "none" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; case "past-last-order": return { $case: "past-last-order", value: BigInt(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; case "promo": return { $case: "promo", value: ((c) => { switch (c.$case) { case "unknown-code": return { $case: "unknown-code" }; case "expired": return { $case: "expired" }; case "below-minimum": return { $case: "below-minimum", value: BigInt(c.value) }; case "already-used": return { $case: "already-used" }; case "not-in-cart": return { $case: "not-in-cart" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; case "total-changed": return { $case: "total-changed", value: BigInt(c.value) }; case "awaiting-payment": return { $case: "awaiting-payment" }; case "payment-unavailable": return { $case: "payment-unavailable" }; case "not-offered": return { $case: "not-offered", value: BigInt(c.value) }; case "scheduled": return { $case: "scheduled" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(v1_answer);
+  const v1 = ((c) => { switch (c.$case) { case "ok": return { $case: "ok", value: undefined }; case "err": return { $case: "err", value: ((c) => { switch (c.$case) { case "nothing-to-order": return { $case: "nothing-to-order" }; case "no-coverage": return { $case: "no-coverage" }; case "closed": return { $case: "closed", value: ((c) => { switch (c.$case) { case "closed-now": return { $case: "closed-now", value: ((c) => { switch (c.$case) { case "some": return { $case: "some", value: ((o) => ({ "day": ((c) => { switch (c.$case) { case "today": return { $case: "today" }; case "tomorrow": return { $case: "tomorrow" }; case "on": return { $case: "on", value: ((c) => { switch (c.$case) { case "monday": return { $case: "monday" }; case "tuesday": return { $case: "tuesday" }; case "wednesday": return { $case: "wednesday" }; case "thursday": return { $case: "thursday" }; case "friday": return { $case: "friday" }; case "saturday": return { $case: "saturday" }; case "sunday": return { $case: "sunday" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(o["day"]), "at": o["at"] }))(c.value) }; case "none": return { $case: "none" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; case "past-last-order": return { $case: "past-last-order", value: c.value }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; case "promo": return { $case: "promo", value: ((c) => { switch (c.$case) { case "unknown-code": return { $case: "unknown-code" }; case "expired": return { $case: "expired" }; case "below-minimum": return { $case: "below-minimum", value: c.value }; case "already-used": return { $case: "already-used" }; case "not-in-cart": return { $case: "not-in-cart" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; case "total-changed": return { $case: "total-changed", value: c.value }; case "awaiting-payment": return { $case: "awaiting-payment" }; case "payment-unavailable": return { $case: "payment-unavailable" }; case "not-offered": return { $case: "not-offered", value: c.value }; case "scheduled": return { $case: "scheduled" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(v1_answer);
   let v259;
   switch (v1.$case) {
     case "ok": {
@@ -238,30 +262,30 @@ export async function run(context) {
                   const v34 = " at ";
                   const v35 = v16["at"];
                   const v37 = v35;
-                  const v39 = 60n;
+                  const v39 = 60;
                   const v40 = div(v37, v39);
-                  const v41 = 60n;
+                  const v41 = 60;
                   const v42 = rem(v37, v41);
-                  const v43 = 0n;
+                  const v43 = 0;
                   const v44 = v40 === v43;
                   let v51;
                   if (v44) {
-                    const v45 = 12n;
+                    const v45 = 12;
                     v51 = v45;
                   } else {
-                    const v46 = 12n;
+                    const v46 = 12;
                     const v47 = v40 > v46;
                     let v50;
                     if (v47) {
-                      const v48 = 12n;
-                      const v49 = int(v40 - v48);
+                      const v48 = 12;
+                      const v49 = sub(v40, v48);
                       v50 = v49;
                     } else {
                       v50 = v40;
                     }
                     v51 = v50;
                   }
-                  const v52 = 12n;
+                  const v52 = 12;
                   const v53 = v40 < v52;
                   let v56;
                   if (v53) {
@@ -271,7 +295,7 @@ export async function run(context) {
                     const v55 = "pm";
                     v56 = v55;
                   }
-                  const v57 = 10n;
+                  const v57 = 10;
                   const v58 = v42 < v57;
                   let v61;
                   if (v58) {
@@ -305,30 +329,30 @@ export async function run(context) {
               const v71 = v4.value;
               const v72 = "took its last orders at ";
               const v74 = v71;
-              const v76 = 60n;
+              const v76 = 60;
               const v77 = div(v74, v76);
-              const v78 = 60n;
+              const v78 = 60;
               const v79 = rem(v74, v78);
-              const v80 = 0n;
+              const v80 = 0;
               const v81 = v77 === v80;
               let v88;
               if (v81) {
-                const v82 = 12n;
+                const v82 = 12;
                 v88 = v82;
               } else {
-                const v83 = 12n;
+                const v83 = 12;
                 const v84 = v77 > v83;
                 let v87;
                 if (v84) {
-                  const v85 = 12n;
-                  const v86 = int(v77 - v85);
+                  const v85 = 12;
+                  const v86 = sub(v77, v85);
                   v87 = v86;
                 } else {
                   v87 = v77;
                 }
                 v88 = v87;
               }
-              const v89 = 12n;
+              const v89 = 12;
               const v90 = v77 < v89;
               let v93;
               if (v90) {
@@ -338,7 +362,7 @@ export async function run(context) {
                 const v92 = "pm";
                 v93 = v92;
               }
-              const v94 = 10n;
+              const v94 = 10;
               const v95 = v79 < v94;
               let v98;
               if (v95) {
@@ -384,40 +408,40 @@ export async function run(context) {
               const v112 = v5.value;
               const v113 = "That code needs a subtotal of at least ";
               const v114 = v112;
-              const v115 = 100n;
+              const v115 = 100;
               const v116 = div(v114, v115);
-              const v117 = 100n;
+              const v117 = 100;
               const v118 = rem(v114, v117);
-              const v119 = 0n;
+              const v119 = 0;
               const v120 = v114 >= v119;
               let v130;
               if (v120) {
                 v130 = v116;
               } else {
-                const v121 = 0n;
+                const v121 = 0;
                 const v122 = v118 === v121;
                 let v129;
                 if (v122) {
-                  const v123 = 0n;
-                  const v124 = int(v123 - v116);
+                  const v123 = 0;
+                  const v124 = sub(v123, v116);
                   v129 = v124;
                 } else {
-                  const v125 = 0n;
-                  const v126 = int(v125 - v116);
-                  const v127 = 1n;
-                  const v128 = int(v126 - v127);
+                  const v125 = 0;
+                  const v126 = sub(v125, v116);
+                  const v127 = 1;
+                  const v128 = sub(v126, v127);
                   v129 = v128;
                 }
                 v130 = v129;
               }
-              const v131 = 0n;
+              const v131 = 0;
               const v132 = v114 >= v131;
               let v136;
               if (v132) {
                 const v135 = true;
                 v136 = v135;
               } else {
-                const v133 = 0n;
+                const v133 = 0;
                 const v134 = v118 === v133;
                 v136 = v134;
               }
@@ -425,11 +449,11 @@ export async function run(context) {
               if (v136) {
                 v139 = v118;
               } else {
-                const v137 = 100n;
-                const v138 = int(v137 - v118);
+                const v137 = 100;
+                const v138 = sub(v137, v118);
                 v139 = v138;
               }
-              const v140 = 0n;
+              const v140 = 0;
               const v141 = v114 < v140;
               let v144;
               if (v141) {
@@ -439,7 +463,7 @@ export async function run(context) {
                 const v143 = "";
                 v144 = v143;
               }
-              const v145 = 10n;
+              const v145 = 10;
               const v146 = v139 < v145;
               let v149;
               if (v146) {
@@ -450,23 +474,23 @@ export async function run(context) {
                 v149 = v148;
               }
               const v150 = "$";
-              const v152 = 1000n;
+              const v152 = 1000;
               const v153 = v130 < v152;
               let v173;
               if (v153) {
                 const v154 = v130.toString();
                 v173 = v154;
               } else {
-                const v155 = 1000n;
+                const v155 = 1000;
                 const v156 = rem(v130, v155);
-                const v157 = 10n;
+                const v157 = 10;
                 const v158 = v156 < v157;
                 let v165;
                 if (v158) {
                   const v159 = "00";
                   v165 = v159;
                 } else {
-                  const v160 = 100n;
+                  const v160 = 100;
                   const v161 = v156 < v160;
                   let v164;
                   if (v161) {
@@ -478,7 +502,7 @@ export async function run(context) {
                   }
                   v165 = v164;
                 }
-                const v166 = 1000n;
+                const v166 = 1000;
                 const v167 = div(v130, v166);
                 const v169 = callee0(v167);
                 const v170 = ",";
@@ -515,40 +539,40 @@ export async function run(context) {
           const v6 = v3.value;
           const v183 = "Your total is now ";
           const v184 = v6;
-          const v185 = 100n;
+          const v185 = 100;
           const v186 = div(v184, v185);
-          const v187 = 100n;
+          const v187 = 100;
           const v188 = rem(v184, v187);
-          const v189 = 0n;
+          const v189 = 0;
           const v190 = v184 >= v189;
           let v200;
           if (v190) {
             v200 = v186;
           } else {
-            const v191 = 0n;
+            const v191 = 0;
             const v192 = v188 === v191;
             let v199;
             if (v192) {
-              const v193 = 0n;
-              const v194 = int(v193 - v186);
+              const v193 = 0;
+              const v194 = sub(v193, v186);
               v199 = v194;
             } else {
-              const v195 = 0n;
-              const v196 = int(v195 - v186);
-              const v197 = 1n;
-              const v198 = int(v196 - v197);
+              const v195 = 0;
+              const v196 = sub(v195, v186);
+              const v197 = 1;
+              const v198 = sub(v196, v197);
               v199 = v198;
             }
             v200 = v199;
           }
-          const v201 = 0n;
+          const v201 = 0;
           const v202 = v184 >= v201;
           let v206;
           if (v202) {
             const v205 = true;
             v206 = v205;
           } else {
-            const v203 = 0n;
+            const v203 = 0;
             const v204 = v188 === v203;
             v206 = v204;
           }
@@ -556,11 +580,11 @@ export async function run(context) {
           if (v206) {
             v209 = v188;
           } else {
-            const v207 = 100n;
-            const v208 = int(v207 - v188);
+            const v207 = 100;
+            const v208 = sub(v207, v188);
             v209 = v208;
           }
-          const v210 = 0n;
+          const v210 = 0;
           const v211 = v184 < v210;
           let v214;
           if (v211) {
@@ -570,7 +594,7 @@ export async function run(context) {
             const v213 = "";
             v214 = v213;
           }
-          const v215 = 10n;
+          const v215 = 10;
           const v216 = v209 < v215;
           let v219;
           if (v216) {
@@ -581,23 +605,23 @@ export async function run(context) {
             v219 = v218;
           }
           const v220 = "$";
-          const v222 = 1000n;
+          const v222 = 1000;
           const v223 = v200 < v222;
           let v243;
           if (v223) {
             const v224 = v200.toString();
             v243 = v224;
           } else {
-            const v225 = 1000n;
+            const v225 = 1000;
             const v226 = rem(v200, v225);
-            const v227 = 10n;
+            const v227 = 10;
             const v228 = v226 < v227;
             let v235;
             if (v228) {
               const v229 = "00";
               v235 = v229;
             } else {
-              const v230 = 100n;
+              const v230 = 100;
               const v231 = v226 < v230;
               let v234;
               if (v231) {
@@ -609,7 +633,7 @@ export async function run(context) {
               }
               v235 = v234;
             }
-            const v236 = 1000n;
+            const v236 = 1000;
             const v237 = div(v200, v236);
             const v239 = callee0(v237);
             const v240 = ",";
@@ -709,17 +733,18 @@ function trap(what) {
   throw new Error("trap: " + what);
 }
 
-// An Int sent to a command as a JSON number (ADR-0058): exact within
-// ±2^53, and a trap past it rather than a different number.
+// An Int as JSON carries it (ADR-0058, ADR-0433): a number already within
+// ±2^53, and a trap past it, where it is a BigInt, rather than a
+// different number.
 function exact(v) {
-  if (v < -9007199254740992n || v > 9007199254740992n) trap("an Int a JavaScript number cannot carry exactly");
-  return Number(v);
+  if (typeof v === "bigint") trap("an Int a JavaScript number cannot carry exactly");
+  return v;
 }
 
 export const name = "";
 export const handler = "137b05e28516165a";
 export async function run(context) {
-  const v0 = 2n;
+  const v0 = 2;
   context.set("stars", exact(v0));
   const v1 = undefined;
   return v1;
@@ -732,17 +757,18 @@ function trap(what) {
   throw new Error("trap: " + what);
 }
 
-// An Int sent to a command as a JSON number (ADR-0058): exact within
-// ±2^53, and a trap past it rather than a different number.
+// An Int as JSON carries it (ADR-0058, ADR-0433): a number already within
+// ±2^53, and a trap past it, where it is a BigInt, rather than a
+// different number.
 function exact(v) {
-  if (v < -9007199254740992n || v > 9007199254740992n) trap("an Int a JavaScript number cannot carry exactly");
-  return Number(v);
+  if (typeof v === "bigint") trap("an Int a JavaScript number cannot carry exactly");
+  return v;
 }
 
 export const name = "";
 export const handler = "144ae10590824570";
 export async function run(context) {
-  const v0 = 4n;
+  const v0 = 4;
   context.set("stars", exact(v0));
   const v1 = undefined;
   return v1;
@@ -791,18 +817,19 @@ function trap(what) {
   throw new Error("trap: " + what);
 }
 
-// An Int sent to a command as a JSON number (ADR-0058): exact within
-// ±2^53, and a trap past it rather than a different number.
+// An Int as JSON carries it (ADR-0058, ADR-0433): a number already within
+// ±2^53, and a trap past it, where it is a BigInt, rather than a
+// different number.
 function exact(v) {
-  if (v < -9007199254740992n || v > 9007199254740992n) trap("an Int a JavaScript number cannot carry exactly");
-  return Number(v);
+  if (typeof v === "bigint") trap("an Int a JavaScript number cannot carry exactly");
+  return v;
 }
 
 export const name = "choose_tip";
 export const handler = "1788d84a81fb0dc3";
 export async function run(context) {
   const v0 = { $case: "fifteen" };
-  const v1_answer = await context.command("store.page.choose_tip", [((c) => { switch (c.$case) { case "no-tip": return { $case: "no-tip" }; case "fifteen": return { $case: "fifteen" }; case "eighteen": return { $case: "eighteen" }; case "twenty": return { $case: "twenty" }; case "tip-amount": return { $case: "tip-amount", value: exact(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(v0)], { retry: { max: 2, jitter: true } });
+  const v1_answer = await context.command("store.page.choose_tip", [((w) => { if (w.$case === "tip-amount") { exact(w.value); } return w; })(v0)], { retry: { max: 2, jitter: true } });
   const v1 = ((c) => { switch (c.$case) { case "ok": return { $case: "ok", value: undefined }; case "err": return { $case: "err", value: ((c) => { switch (c.$case) { case "negative-tip": return { $case: "negative-tip" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(v1_answer);
   let v8;
   switch (v1.$case) {
@@ -834,11 +861,45 @@ function trap(what) {
   throw new Error("trap: " + what);
 }
 
-// An Int is 64 bits, and a result that does not fit traps (ADR-0039):
-// one that 64 bits wrap is not itself (ADR-0427).
-function int(v) {
+// An Int is a number within 2^53 of zero and a BigInt past it, 64 bits
+// at most (ADR-0039, ADR-0433): one form for each value, so that two
+// equal ones are `===`, and the form JSON gives each Int it carries. A
+// result 64 bits do not hold traps: one they wrap is not itself.
+function big(v) {
   if (BigInt.asIntN(64, v) !== v) trap("Int overflow");
-  return v;
+  return v >= -9007199254740992n && v <= 9007199254740992n ? Number(v) : v;
+}
+
+// Two numbers' sum, difference or product is exact where it is a safe
+// integer, the nearest double to one past 2^53 - 1 being at least 2^53;
+// past that it is made again as a BigInt.
+function add(a, b) {
+  if (typeof a === "number" && typeof b === "number") {
+    const r = a + b;
+    if (r >= -9007199254740991 && r <= 9007199254740991) return r;
+  }
+  return big(BigInt(a) + BigInt(b));
+}
+
+function sub(a, b) {
+  if (typeof a === "number" && typeof b === "number") {
+    const r = a - b;
+    if (r >= -9007199254740991 && r <= 9007199254740991) return r;
+  }
+  return big(BigInt(a) - BigInt(b));
+}
+
+// A product of 0 is 0, never -0.
+function mul(a, b) {
+  if (typeof a === "number" && typeof b === "number") {
+    const r = a * b;
+    if (r >= -9007199254740991 && r <= 9007199254740991) return r + 0;
+  }
+  return big(BigInt(a) * BigInt(b));
+}
+
+function neg(a) {
+  return typeof a === "number" ? 0 - a : big(-a);
 }
 
 function some(value) {
@@ -848,7 +909,7 @@ function some(value) {
 const none = Object.freeze({ $case: "none" });
 
 function codepoints(s) {
-  return Array.from(s, (c) => BigInt(c.codePointAt(0)));
+  return Array.from(s, (c) => c.codePointAt(0));
 }
 
 // Unicode White_Space, as Rust's `str::trim` and the component's
@@ -868,17 +929,18 @@ function trim(s) {
 // `start` up to `end`, each clamped to the array, as `List.slice` and
 // `String.slice` (ADR-0055).
 function slice(xs, start, end) {
-  const n = BigInt(xs.length);
-  const clamp = (i) => (i < 0n ? 0n : i > n ? n : i);
+  const n = xs.length;
+  const clamp = (i) => (i < 0 ? 0 : i > n ? n : i);
   const a = clamp(start), b = clamp(end);
-  return b > a ? xs.slice(Number(a), Number(b)) : [];
+  return b > a ? xs.slice(a, b) : [];
 }
 
-// An Int sent to a command as a JSON number (ADR-0058): exact within
-// ±2^53, and a trap past it rather than a different number.
+// An Int as JSON carries it (ADR-0058, ADR-0433): a number already within
+// ±2^53, and a trap past it, where it is a BigInt, rather than a
+// different number.
 function exact(v) {
-  if (v < -9007199254740992n || v > 9007199254740992n) trap("an Int a JavaScript number cannot carry exactly");
-  return Number(v);
+  if (typeof v === "bigint") trap("an Int a JavaScript number cannot carry exactly");
+  return v;
 }
 
 export const name = "dollars_typed";
@@ -887,18 +949,18 @@ export async function run(context) {
   const v0 = context.get("tip_typed");
   const v2 = trim(v0);
   const v3 = codepoints(v2);
-  const v4 = 0n;
-  const v5 = v4 >= 0n && v4 < BigInt(v3.length) ? some(v3[Number(v4)]) : none;
+  const v4 = 0;
+  const v5 = v4 >= 0 && v4 < v3.length ? some(v3[v4]) : none;
   let v12;
   switch (v5.$case) {
     case "some": {
       const v6 = v5.value;
-      const v9 = 36n;
+      const v9 = 36;
       const v10 = v6 === v9;
       let v11;
       if (v10) {
-        const v7 = 1n;
-        const v8 = slice(v3, v7, BigInt(v3.length));
+        const v7 = 1;
+        const v8 = slice(v3, v7, v3.length);
         v11 = v8;
       } else {
         v11 = v3;
@@ -912,9 +974,9 @@ export async function run(context) {
     }
     default: trap("no arm takes this case");
   }
-  const v13 = 0n;
-  const v14 = 1n;
-  const v15 = int(-v14);
+  const v13 = 0;
+  const v14 = 1;
+  const v15 = neg(v14);
   const v16 = { "cents": v13, "after": v15 };
   const v17 = some(v16);
   const v73 = v12.reduce((v18, v19) => {
@@ -927,12 +989,12 @@ export async function run(context) {
       }
       case "some": {
         const v21 = v18.value;
-        const v22 = 46n;
+        const v22 = 46;
         const v23 = v19 === v22;
         let v71;
         if (v23) {
           const v24 = v21["after"];
-          const v25 = 0n;
+          const v25 = 0;
           const v26 = v24 >= v25;
           let v32;
           if (v26) {
@@ -940,18 +1002,18 @@ export async function run(context) {
             v32 = v27;
           } else {
             const v28 = v21["cents"];
-            const v29 = 0n;
+            const v29 = 0;
             const v30 = { "cents": v28, "after": v29 };
             const v31 = some(v30);
             v32 = v31;
           }
           v71 = v32;
         } else {
-          const v33 = 48n;
+          const v33 = 48;
           const v34 = v19 >= v33;
           let v38;
           if (v34) {
-            const v35 = 57n;
+            const v35 = 57;
             const v36 = v19 <= v35;
             v38 = v36;
           } else {
@@ -961,7 +1023,7 @@ export async function run(context) {
           let v70;
           if (v38) {
             const v39 = v21["after"];
-            const v40 = 2n;
+            const v40 = 2;
             const v41 = v39 >= v40;
             let v68;
             if (v41) {
@@ -969,31 +1031,31 @@ export async function run(context) {
               v68 = v42;
             } else {
               const v43 = v21["after"];
-              const v44 = 0n;
+              const v44 = 0;
               const v45 = v43 >= v44;
               let v67;
               if (v45) {
                 const v46 = v21["cents"];
-                const v47 = 10n;
-                const v48 = int(v46 * v47);
-                const v49 = 48n;
-                const v50 = int(v19 - v49);
-                const v51 = int(v48 + v50);
+                const v47 = 10;
+                const v48 = mul(v46, v47);
+                const v49 = 48;
+                const v50 = sub(v19, v49);
+                const v51 = add(v48, v50);
                 const v52 = v21["after"];
-                const v53 = 1n;
-                const v54 = int(v52 + v53);
+                const v53 = 1;
+                const v54 = add(v52, v53);
                 const v55 = { "cents": v51, "after": v54 };
                 const v56 = some(v55);
                 v67 = v56;
               } else {
                 const v57 = v21["cents"];
-                const v58 = 10n;
-                const v59 = int(v57 * v58);
-                const v60 = 48n;
-                const v61 = int(v19 - v60);
-                const v62 = int(v59 + v61);
-                const v63 = 1n;
-                const v64 = int(-v63);
+                const v58 = 10;
+                const v59 = mul(v57, v58);
+                const v60 = 48;
+                const v61 = sub(v19, v60);
+                const v62 = add(v59, v61);
+                const v63 = 1;
+                const v64 = neg(v63);
                 const v65 = { "cents": v62, "after": v64 };
                 const v66 = some(v65);
                 v67 = v66;
@@ -1018,8 +1080,8 @@ export async function run(context) {
   switch (v73.$case) {
     case "some": {
       const v74 = v73.value;
-      const v75 = BigInt(v12.length);
-      const v76 = 0n;
+      const v75 = v12.length;
+      const v76 = 0;
       const v77 = v75 === v76;
       let v114;
       if (v77) {
@@ -1027,38 +1089,38 @@ export async function run(context) {
         v114 = v78;
       } else {
         const v79 = v74["after"];
-        const v80 = 1n;
-        const v81 = int(-v80);
+        const v80 = 1;
+        const v81 = neg(v80);
         const v82 = v79 === v81;
         let v113;
         if (v82) {
           const v83 = v74["cents"];
-          const v84 = 100n;
-          const v85 = int(v83 * v84);
+          const v84 = 100;
+          const v85 = mul(v83, v84);
           const v87 = v85;
           const v88 = some(v87);
           v113 = v88;
         } else {
           const v89 = v74["after"];
-          const v90 = 0n;
+          const v90 = 0;
           const v91 = v89 === v90;
           let v112;
           if (v91) {
             const v92 = v74["cents"];
-            const v93 = 100n;
-            const v94 = int(v92 * v93);
+            const v93 = 100;
+            const v94 = mul(v92, v93);
             const v96 = v94;
             const v97 = some(v96);
             v112 = v97;
           } else {
             const v98 = v74["after"];
-            const v99 = 1n;
+            const v99 = 1;
             const v100 = v98 === v99;
             let v111;
             if (v100) {
               const v101 = v74["cents"];
-              const v102 = 10n;
-              const v103 = int(v101 * v102);
+              const v102 = 10;
+              const v103 = mul(v101, v102);
               const v105 = v103;
               const v106 = some(v105);
               v111 = v106;
@@ -1089,7 +1151,7 @@ export async function run(context) {
     case "some": {
       const v117 = v116.value;
       const v118 = { $case: "tip-amount", value: v117 };
-      const v119_answer = await context.command("store.page.choose_tip", [((c) => { switch (c.$case) { case "no-tip": return { $case: "no-tip" }; case "fifteen": return { $case: "fifteen" }; case "eighteen": return { $case: "eighteen" }; case "twenty": return { $case: "twenty" }; case "tip-amount": return { $case: "tip-amount", value: exact(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(v118)], { retry: { max: 2, jitter: true } });
+      const v119_answer = await context.command("store.page.choose_tip", [((w) => { if (w.$case === "tip-amount") { exact(w.value); } return w; })(v118)], { retry: { max: 2, jitter: true } });
       const v119 = ((c) => { switch (c.$case) { case "ok": return { $case: "ok", value: undefined }; case "err": return { $case: "err", value: ((c) => { switch (c.$case) { case "negative-tip": return { $case: "negative-tip" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(v119_answer);
       let v126;
       switch (v119.$case) {
@@ -1144,13 +1206,13 @@ export const handler = "26058453d2c7def8";
 export async function run(context) {
   const v0 = context.captures["a"]["id"];
   const v1 = context.get("label");
-  const v3 = BigInt(Array.from(v1).length);
-  const v4 = 1n;
+  const v3 = Array.from(v1).length;
+  const v4 = 1;
   const v5 = v3 >= v4;
   let v10;
   if (v5) {
-    const v6 = BigInt(Array.from(v1).length);
-    const v7 = 40n;
+    const v6 = Array.from(v1).length;
+    const v7 = 40;
     const v8 = v6 <= v7;
     v10 = v8;
   } else {
@@ -1250,45 +1312,68 @@ function trap(what) {
   throw new Error("trap: " + what);
 }
 
-// An Int is 64 bits, and a result that does not fit traps (ADR-0039):
-// one that 64 bits wrap is not itself (ADR-0427).
-function int(v) {
+// An Int is a number within 2^53 of zero and a BigInt past it, 64 bits
+// at most (ADR-0039, ADR-0433): one form for each value, so that two
+// equal ones are `===`, and the form JSON gives each Int it carries. A
+// result 64 bits do not hold traps: one they wrap is not itself.
+function big(v) {
   if (BigInt.asIntN(64, v) !== v) trap("Int overflow");
-  return v;
+  return v >= -9007199254740992n && v <= 9007199254740992n ? Number(v) : v;
 }
 
-// Euclidean: the remainder is in [0, |b|), so -7 / 2 is -4.
+function sub(a, b) {
+  if (typeof a === "number" && typeof b === "number") {
+    const r = a - b;
+    if (r >= -9007199254740991 && r <= 9007199254740991) return r;
+  }
+  return big(BigInt(a) - BigInt(b));
+}
+
+// Euclidean: the remainder is in [0, |b|), so -7 / 2 is -4. Exact on two
+// numbers: `a % b` is, and `a - a % b` is a multiple of `b` no larger
+// than `a`, so their quotient is the whole number it is.
 function div(a, b) {
-  if (b === 0n) trap("division by zero");
-  let q = a / b;
-  if (a % b < 0n) q = b > 0n ? q - 1n : q + 1n;
-  return int(q);
+  if (b == 0) trap("division by zero");
+  if (typeof a === "number" && typeof b === "number") {
+    const r = a % b;
+    const q = (a - r) / b;
+    return (r < 0 ? (b > 0 ? q - 1 : q + 1) : q) + 0;
+  }
+  const x = BigInt(a), y = BigInt(b);
+  let q = x / y;
+  if (x % y < 0n) q = y > 0n ? q - 1n : q + 1n;
+  return big(q);
 }
 
 function rem(a, b) {
-  if (b === 0n) trap("division by zero");
-  const r = a % b;
-  return r < 0n ? (b > 0n ? r + b : r - b) : r;
+  if (b == 0) trap("division by zero");
+  if (typeof a === "number" && typeof b === "number") {
+    const r = a % b;
+    return (r < 0 ? (b > 0 ? r + b : r - b) : r) + 0;
+  }
+  const x = BigInt(a), y = BigInt(b);
+  const r = x % y;
+  return big(r < 0n ? (y > 0n ? r + y : r - y) : r);
 }
 
 function callee0(v0) {
-  const v1 = 1000n;
+  const v1 = 1000;
   const v2 = v0 < v1;
   let v22;
   if (v2) {
     const v3 = v0.toString();
     v22 = v3;
   } else {
-    const v4 = 1000n;
+    const v4 = 1000;
     const v5 = rem(v0, v4);
-    const v6 = 10n;
+    const v6 = 10;
     const v7 = v5 < v6;
     let v14;
     if (v7) {
       const v8 = "00";
       v14 = v8;
     } else {
-      const v9 = 100n;
+      const v9 = 100;
       const v10 = v5 < v9;
       let v13;
       if (v10) {
@@ -1300,7 +1385,7 @@ function callee0(v0) {
       }
       v14 = v13;
     }
-    const v15 = 1000n;
+    const v15 = 1000;
     const v16 = div(v0, v15);
     const v18 = callee0(v16);
     const v19 = ",";
@@ -1315,7 +1400,7 @@ export const name = "remove_promo";
 export const handler = "481e071528717f3b";
 export async function run(context) {
   const v0_answer = await context.command("store.page.remove_promo", [], { retry: { max: 2, jitter: true } });
-  const v0 = ((c) => { switch (c.$case) { case "ok": return { $case: "ok", value: undefined }; case "err": return { $case: "err", value: ((c) => { switch (c.$case) { case "unknown-code": return { $case: "unknown-code" }; case "expired": return { $case: "expired" }; case "below-minimum": return { $case: "below-minimum", value: BigInt(c.value) }; case "already-used": return { $case: "already-used" }; case "not-in-cart": return { $case: "not-in-cart" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(v0_answer);
+  const v0 = ((c) => { switch (c.$case) { case "ok": return { $case: "ok", value: undefined }; case "err": return { $case: "err", value: ((c) => { switch (c.$case) { case "unknown-code": return { $case: "unknown-code" }; case "expired": return { $case: "expired" }; case "below-minimum": return { $case: "below-minimum", value: c.value }; case "already-used": return { $case: "already-used" }; case "not-in-cart": return { $case: "not-in-cart" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(v0_answer);
   let v79;
   switch (v0.$case) {
     case "ok": {
@@ -1344,40 +1429,40 @@ export async function run(context) {
           const v8 = v4.value;
           const v9 = "That code needs a subtotal of at least ";
           const v10 = v8;
-          const v11 = 100n;
+          const v11 = 100;
           const v12 = div(v10, v11);
-          const v13 = 100n;
+          const v13 = 100;
           const v14 = rem(v10, v13);
-          const v15 = 0n;
+          const v15 = 0;
           const v16 = v10 >= v15;
           let v26;
           if (v16) {
             v26 = v12;
           } else {
-            const v17 = 0n;
+            const v17 = 0;
             const v18 = v14 === v17;
             let v25;
             if (v18) {
-              const v19 = 0n;
-              const v20 = int(v19 - v12);
+              const v19 = 0;
+              const v20 = sub(v19, v12);
               v25 = v20;
             } else {
-              const v21 = 0n;
-              const v22 = int(v21 - v12);
-              const v23 = 1n;
-              const v24 = int(v22 - v23);
+              const v21 = 0;
+              const v22 = sub(v21, v12);
+              const v23 = 1;
+              const v24 = sub(v22, v23);
               v25 = v24;
             }
             v26 = v25;
           }
-          const v27 = 0n;
+          const v27 = 0;
           const v28 = v10 >= v27;
           let v32;
           if (v28) {
             const v31 = true;
             v32 = v31;
           } else {
-            const v29 = 0n;
+            const v29 = 0;
             const v30 = v14 === v29;
             v32 = v30;
           }
@@ -1385,11 +1470,11 @@ export async function run(context) {
           if (v32) {
             v35 = v14;
           } else {
-            const v33 = 100n;
-            const v34 = int(v33 - v14);
+            const v33 = 100;
+            const v34 = sub(v33, v14);
             v35 = v34;
           }
-          const v36 = 0n;
+          const v36 = 0;
           const v37 = v10 < v36;
           let v40;
           if (v37) {
@@ -1399,7 +1484,7 @@ export async function run(context) {
             const v39 = "";
             v40 = v39;
           }
-          const v41 = 10n;
+          const v41 = 10;
           const v42 = v35 < v41;
           let v45;
           if (v42) {
@@ -1410,23 +1495,23 @@ export async function run(context) {
             v45 = v44;
           }
           const v46 = "$";
-          const v48 = 1000n;
+          const v48 = 1000;
           const v49 = v26 < v48;
           let v69;
           if (v49) {
             const v50 = v26.toString();
             v69 = v50;
           } else {
-            const v51 = 1000n;
+            const v51 = 1000;
             const v52 = rem(v26, v51);
-            const v53 = 10n;
+            const v53 = 10;
             const v54 = v52 < v53;
             let v61;
             if (v54) {
               const v55 = "00";
               v61 = v55;
             } else {
-              const v56 = 100n;
+              const v56 = 100;
               const v57 = v52 < v56;
               let v60;
               if (v57) {
@@ -1438,7 +1523,7 @@ export async function run(context) {
               }
               v61 = v60;
             }
-            const v62 = 1000n;
+            const v62 = 1000;
             const v63 = div(v26, v62);
             const v65 = callee0(v63);
             const v66 = ",";
@@ -1487,20 +1572,21 @@ function some(value) {
   return { $case: "some", value };
 }
 
-// An Int sent to a command as a JSON number (ADR-0058): exact within
-// ±2^53, and a trap past it rather than a different number.
+// An Int as JSON carries it (ADR-0058, ADR-0433): a number already within
+// ±2^53, and a trap past it, where it is a BigInt, rather than a
+// different number.
 function exact(v) {
-  if (v < -9007199254740992n || v > 9007199254740992n) trap("an Int a JavaScript number cannot carry exactly");
-  return Number(v);
+  if (typeof v === "bigint") trap("an Int a JavaScript number cannot carry exactly");
+  return v;
 }
 
 export const name = "choose_time";
 export const handler = "54002ec8f031143d";
 export async function run(context) {
-  const v0 = BigInt(context.captures["w"]["start"]);
+  const v0 = context.captures["w"]["start"];
   const v1 = some(v0);
-  const v2_answer = await context.command("store.page.choose_time", [((c) => { switch (c.$case) { case "some": return { $case: "some", value: exact(c.value) }; case "none": return { $case: "none" }; default: throw new Error("trap: no such case " + c.$case); } })(v1)], { retry: { max: 2, jitter: true } });
-  const v2 = ((c) => { switch (c.$case) { case "ok": return { $case: "ok", value: undefined }; case "err": return { $case: "err", value: ((c) => { switch (c.$case) { case "nothing-to-order": return { $case: "nothing-to-order" }; case "no-coverage": return { $case: "no-coverage" }; case "closed": return { $case: "closed", value: ((c) => { switch (c.$case) { case "closed-now": return { $case: "closed-now", value: ((c) => { switch (c.$case) { case "some": return { $case: "some", value: ((o) => ({ "day": ((c) => { switch (c.$case) { case "today": return { $case: "today" }; case "tomorrow": return { $case: "tomorrow" }; case "on": return { $case: "on", value: ((c) => { switch (c.$case) { case "monday": return { $case: "monday" }; case "tuesday": return { $case: "tuesday" }; case "wednesday": return { $case: "wednesday" }; case "thursday": return { $case: "thursday" }; case "friday": return { $case: "friday" }; case "saturday": return { $case: "saturday" }; case "sunday": return { $case: "sunday" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(o["day"]), "at": BigInt(o["at"]) }))(c.value) }; case "none": return { $case: "none" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; case "past-last-order": return { $case: "past-last-order", value: BigInt(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; case "promo": return { $case: "promo", value: ((c) => { switch (c.$case) { case "unknown-code": return { $case: "unknown-code" }; case "expired": return { $case: "expired" }; case "below-minimum": return { $case: "below-minimum", value: BigInt(c.value) }; case "already-used": return { $case: "already-used" }; case "not-in-cart": return { $case: "not-in-cart" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; case "total-changed": return { $case: "total-changed", value: BigInt(c.value) }; case "awaiting-payment": return { $case: "awaiting-payment" }; case "payment-unavailable": return { $case: "payment-unavailable" }; case "not-offered": return { $case: "not-offered", value: BigInt(c.value) }; case "scheduled": return { $case: "scheduled" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(v2_answer);
+  const v2_answer = await context.command("store.page.choose_time", [((w) => { if (w.$case === "some") { exact(w.value); } return w; })(v1)], { retry: { max: 2, jitter: true } });
+  const v2 = ((c) => { switch (c.$case) { case "ok": return { $case: "ok", value: undefined }; case "err": return { $case: "err", value: ((c) => { switch (c.$case) { case "nothing-to-order": return { $case: "nothing-to-order" }; case "no-coverage": return { $case: "no-coverage" }; case "closed": return { $case: "closed", value: ((c) => { switch (c.$case) { case "closed-now": return { $case: "closed-now", value: ((c) => { switch (c.$case) { case "some": return { $case: "some", value: ((o) => ({ "day": ((c) => { switch (c.$case) { case "today": return { $case: "today" }; case "tomorrow": return { $case: "tomorrow" }; case "on": return { $case: "on", value: ((c) => { switch (c.$case) { case "monday": return { $case: "monday" }; case "tuesday": return { $case: "tuesday" }; case "wednesday": return { $case: "wednesday" }; case "thursday": return { $case: "thursday" }; case "friday": return { $case: "friday" }; case "saturday": return { $case: "saturday" }; case "sunday": return { $case: "sunday" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(o["day"]), "at": o["at"] }))(c.value) }; case "none": return { $case: "none" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; case "past-last-order": return { $case: "past-last-order", value: c.value }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; case "promo": return { $case: "promo", value: ((c) => { switch (c.$case) { case "unknown-code": return { $case: "unknown-code" }; case "expired": return { $case: "expired" }; case "below-minimum": return { $case: "below-minimum", value: c.value }; case "already-used": return { $case: "already-used" }; case "not-in-cart": return { $case: "not-in-cart" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; case "total-changed": return { $case: "total-changed", value: c.value }; case "awaiting-payment": return { $case: "awaiting-payment" }; case "payment-unavailable": return { $case: "payment-unavailable" }; case "not-offered": return { $case: "not-offered", value: c.value }; case "scheduled": return { $case: "scheduled" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(v2_answer);
   let v12;
   switch (v2.$case) {
     case "ok": {
@@ -1552,7 +1638,7 @@ export async function run(context) {
 export const name = "";
 export const handler = "55314a08032a0a1d";
 export async function run(context) {
-  const v0 = ((o) => ({ "value": o["value"] }))(context.event);
+  const v0 = context.event;
   const v1 = v0["value"];
   context.set("tip_typed", v1);
   const v2 = undefined;
@@ -1566,17 +1652,18 @@ function trap(what) {
   throw new Error("trap: " + what);
 }
 
-// An Int sent to a command as a JSON number (ADR-0058): exact within
-// ±2^53, and a trap past it rather than a different number.
+// An Int as JSON carries it (ADR-0058, ADR-0433): a number already within
+// ±2^53, and a trap past it, where it is a BigInt, rather than a
+// different number.
 function exact(v) {
-  if (v < -9007199254740992n || v > 9007199254740992n) trap("an Int a JavaScript number cannot carry exactly");
-  return Number(v);
+  if (typeof v === "bigint") trap("an Int a JavaScript number cannot carry exactly");
+  return v;
 }
 
 export const name = "";
 export const handler = "609a1cdc3f764fa0";
 export async function run(context) {
-  const v0 = 1n;
+  const v0 = 1;
   context.set("stars", exact(v0));
   const v1 = undefined;
   return v1;
@@ -1589,18 +1676,19 @@ function trap(what) {
   throw new Error("trap: " + what);
 }
 
-// An Int sent to a command as a JSON number (ADR-0058): exact within
-// ±2^53, and a trap past it rather than a different number.
+// An Int as JSON carries it (ADR-0058, ADR-0433): a number already within
+// ±2^53, and a trap past it, where it is a BigInt, rather than a
+// different number.
 function exact(v) {
-  if (v < -9007199254740992n || v > 9007199254740992n) trap("an Int a JavaScript number cannot carry exactly");
-  return Number(v);
+  if (typeof v === "bigint") trap("an Int a JavaScript number cannot carry exactly");
+  return v;
 }
 
 export const name = "choose_tip";
 export const handler = "6157a6a5babb44ef";
 export async function run(context) {
   const v0 = { $case: "eighteen" };
-  const v1_answer = await context.command("store.page.choose_tip", [((c) => { switch (c.$case) { case "no-tip": return { $case: "no-tip" }; case "fifteen": return { $case: "fifteen" }; case "eighteen": return { $case: "eighteen" }; case "twenty": return { $case: "twenty" }; case "tip-amount": return { $case: "tip-amount", value: exact(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(v0)], { retry: { max: 2, jitter: true } });
+  const v1_answer = await context.command("store.page.choose_tip", [((w) => { if (w.$case === "tip-amount") { exact(w.value); } return w; })(v0)], { retry: { max: 2, jitter: true } });
   const v1 = ((c) => { switch (c.$case) { case "ok": return { $case: "ok", value: undefined }; case "err": return { $case: "err", value: ((c) => { switch (c.$case) { case "negative-tip": return { $case: "negative-tip" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(v1_answer);
   let v8;
   switch (v1.$case) {
@@ -1690,19 +1778,20 @@ function trap(what) {
 
 const none = Object.freeze({ $case: "none" });
 
-// An Int sent to a command as a JSON number (ADR-0058): exact within
-// ±2^53, and a trap past it rather than a different number.
+// An Int as JSON carries it (ADR-0058, ADR-0433): a number already within
+// ±2^53, and a trap past it, where it is a BigInt, rather than a
+// different number.
 function exact(v) {
-  if (v < -9007199254740992n || v > 9007199254740992n) trap("an Int a JavaScript number cannot carry exactly");
-  return Number(v);
+  if (typeof v === "bigint") trap("an Int a JavaScript number cannot carry exactly");
+  return v;
 }
 
 export const name = "choose_time";
 export const handler = "88497d21af8270bf";
 export async function run(context) {
   const v0 = none;
-  const v1_answer = await context.command("store.page.choose_time", [((c) => { switch (c.$case) { case "some": return { $case: "some", value: exact(c.value) }; case "none": return { $case: "none" }; default: throw new Error("trap: no such case " + c.$case); } })(v0)], { retry: { max: 2, jitter: true } });
-  const v1 = ((c) => { switch (c.$case) { case "ok": return { $case: "ok", value: undefined }; case "err": return { $case: "err", value: ((c) => { switch (c.$case) { case "nothing-to-order": return { $case: "nothing-to-order" }; case "no-coverage": return { $case: "no-coverage" }; case "closed": return { $case: "closed", value: ((c) => { switch (c.$case) { case "closed-now": return { $case: "closed-now", value: ((c) => { switch (c.$case) { case "some": return { $case: "some", value: ((o) => ({ "day": ((c) => { switch (c.$case) { case "today": return { $case: "today" }; case "tomorrow": return { $case: "tomorrow" }; case "on": return { $case: "on", value: ((c) => { switch (c.$case) { case "monday": return { $case: "monday" }; case "tuesday": return { $case: "tuesday" }; case "wednesday": return { $case: "wednesday" }; case "thursday": return { $case: "thursday" }; case "friday": return { $case: "friday" }; case "saturday": return { $case: "saturday" }; case "sunday": return { $case: "sunday" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(o["day"]), "at": BigInt(o["at"]) }))(c.value) }; case "none": return { $case: "none" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; case "past-last-order": return { $case: "past-last-order", value: BigInt(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; case "promo": return { $case: "promo", value: ((c) => { switch (c.$case) { case "unknown-code": return { $case: "unknown-code" }; case "expired": return { $case: "expired" }; case "below-minimum": return { $case: "below-minimum", value: BigInt(c.value) }; case "already-used": return { $case: "already-used" }; case "not-in-cart": return { $case: "not-in-cart" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; case "total-changed": return { $case: "total-changed", value: BigInt(c.value) }; case "awaiting-payment": return { $case: "awaiting-payment" }; case "payment-unavailable": return { $case: "payment-unavailable" }; case "not-offered": return { $case: "not-offered", value: BigInt(c.value) }; case "scheduled": return { $case: "scheduled" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(v1_answer);
+  const v1_answer = await context.command("store.page.choose_time", [((w) => { if (w.$case === "some") { exact(w.value); } return w; })(v0)], { retry: { max: 2, jitter: true } });
+  const v1 = ((c) => { switch (c.$case) { case "ok": return { $case: "ok", value: undefined }; case "err": return { $case: "err", value: ((c) => { switch (c.$case) { case "nothing-to-order": return { $case: "nothing-to-order" }; case "no-coverage": return { $case: "no-coverage" }; case "closed": return { $case: "closed", value: ((c) => { switch (c.$case) { case "closed-now": return { $case: "closed-now", value: ((c) => { switch (c.$case) { case "some": return { $case: "some", value: ((o) => ({ "day": ((c) => { switch (c.$case) { case "today": return { $case: "today" }; case "tomorrow": return { $case: "tomorrow" }; case "on": return { $case: "on", value: ((c) => { switch (c.$case) { case "monday": return { $case: "monday" }; case "tuesday": return { $case: "tuesday" }; case "wednesday": return { $case: "wednesday" }; case "thursday": return { $case: "thursday" }; case "friday": return { $case: "friday" }; case "saturday": return { $case: "saturday" }; case "sunday": return { $case: "sunday" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(o["day"]), "at": o["at"] }))(c.value) }; case "none": return { $case: "none" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; case "past-last-order": return { $case: "past-last-order", value: c.value }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; case "promo": return { $case: "promo", value: ((c) => { switch (c.$case) { case "unknown-code": return { $case: "unknown-code" }; case "expired": return { $case: "expired" }; case "below-minimum": return { $case: "below-minimum", value: c.value }; case "already-used": return { $case: "already-used" }; case "not-in-cart": return { $case: "not-in-cart" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; case "total-changed": return { $case: "total-changed", value: c.value }; case "awaiting-payment": return { $case: "awaiting-payment" }; case "payment-unavailable": return { $case: "payment-unavailable" }; case "not-offered": return { $case: "not-offered", value: c.value }; case "scheduled": return { $case: "scheduled" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(v1_answer);
   let v7;
   switch (v1.$case) {
     case "ok": {
@@ -1732,17 +1821,18 @@ function trap(what) {
   throw new Error("trap: " + what);
 }
 
-// An Int sent to a command as a JSON number (ADR-0058): exact within
-// ±2^53, and a trap past it rather than a different number.
+// An Int as JSON carries it (ADR-0058, ADR-0433): a number already within
+// ±2^53, and a trap past it, where it is a BigInt, rather than a
+// different number.
 function exact(v) {
-  if (v < -9007199254740992n || v > 9007199254740992n) trap("an Int a JavaScript number cannot carry exactly");
-  return Number(v);
+  if (typeof v === "bigint") trap("an Int a JavaScript number cannot carry exactly");
+  return v;
 }
 
 export const name = "";
 export const handler = "8c99633129a756a0";
 export async function run(context) {
-  const v0 = 5n;
+  const v0 = 5;
   context.set("stars", exact(v0));
   const v1 = undefined;
   return v1;
@@ -1775,23 +1865,24 @@ function trim(s) {
   return cs.slice(a, b).join("");
 }
 
-// An Int sent to a command as a JSON number (ADR-0058): exact within
-// ±2^53, and a trap past it rather than a different number.
+// An Int as JSON carries it (ADR-0058, ADR-0433): a number already within
+// ±2^53, and a trap past it, where it is a BigInt, rather than a
+// different number.
 function exact(v) {
-  if (v < -9007199254740992n || v > 9007199254740992n) trap("an Int a JavaScript number cannot carry exactly");
-  return Number(v);
+  if (typeof v === "bigint") trap("an Int a JavaScript number cannot carry exactly");
+  return v;
 }
 
 export const name = "stars_of";
 export const handler = "8d037e136bada386";
 export async function run(context) {
   const v0 = context.captures["id"];
-  const v1 = BigInt(context.get("stars"));
-  const v3 = 1n;
+  const v1 = context.get("stars");
+  const v3 = 1;
   const v4 = v1 >= v3;
   let v8;
   if (v4) {
-    const v5 = 5n;
+    const v5 = 5;
     const v6 = v1 <= v5;
     v8 = v6;
   } else {
@@ -1813,8 +1904,8 @@ export async function run(context) {
       const v13 = v12.value;
       const v14 = context.get("comment");
       const v16 = trim(v14);
-      const v17 = BigInt(Array.from(v16).length);
-      const v18 = 500n;
+      const v17 = Array.from(v16).length;
+      const v18 = 500;
       const v19 = v17 <= v18;
       let v23;
       if (v19) {
@@ -1943,18 +2034,19 @@ function trap(what) {
   throw new Error("trap: " + what);
 }
 
-// An Int sent to a command as a JSON number (ADR-0058): exact within
-// ±2^53, and a trap past it rather than a different number.
+// An Int as JSON carries it (ADR-0058, ADR-0433): a number already within
+// ±2^53, and a trap past it, where it is a BigInt, rather than a
+// different number.
 function exact(v) {
-  if (v < -9007199254740992n || v > 9007199254740992n) trap("an Int a JavaScript number cannot carry exactly");
-  return Number(v);
+  if (typeof v === "bigint") trap("an Int a JavaScript number cannot carry exactly");
+  return v;
 }
 
 export const name = "choose_tip";
 export const handler = "8e028bbd31639049";
 export async function run(context) {
   const v0 = { $case: "twenty" };
-  const v1_answer = await context.command("store.page.choose_tip", [((c) => { switch (c.$case) { case "no-tip": return { $case: "no-tip" }; case "fifteen": return { $case: "fifteen" }; case "eighteen": return { $case: "eighteen" }; case "twenty": return { $case: "twenty" }; case "tip-amount": return { $case: "tip-amount", value: exact(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(v0)], { retry: { max: 2, jitter: true } });
+  const v1_answer = await context.command("store.page.choose_tip", [((w) => { if (w.$case === "tip-amount") { exact(w.value); } return w; })(v0)], { retry: { max: 2, jitter: true } });
   const v1 = ((c) => { switch (c.$case) { case "ok": return { $case: "ok", value: undefined }; case "err": return { $case: "err", value: ((c) => { switch (c.$case) { case "negative-tip": return { $case: "negative-tip" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(v1_answer);
   let v8;
   switch (v1.$case) {
@@ -1985,7 +2077,7 @@ export async function run(context) {
 export const name = "";
 export const handler = "8ef712ee855dff03";
 export async function run(context) {
-  const v0 = ((o) => ({ "value": o["value"] }))(context.event);
+  const v0 = context.event;
   const v1 = v0["value"];
   context.set("label", v1);
   const v2 = undefined;
@@ -2011,13 +2103,13 @@ export async function run(context) {
   const v0 = context.captures["id"];
   const v1 = context.captures["p"]["id"];
   const v2 = context.get("label");
-  const v4 = BigInt(Array.from(v2).length);
-  const v5 = 1n;
+  const v4 = Array.from(v2).length;
+  const v5 = 1;
   const v6 = v4 >= v5;
   let v11;
   if (v6) {
-    const v7 = BigInt(Array.from(v2).length);
-    const v8 = 40n;
+    const v7 = Array.from(v2).length;
+    const v8 = 40;
     const v9 = v7 <= v8;
     v11 = v9;
   } else {
@@ -2096,45 +2188,68 @@ function trap(what) {
   throw new Error("trap: " + what);
 }
 
-// An Int is 64 bits, and a result that does not fit traps (ADR-0039):
-// one that 64 bits wrap is not itself (ADR-0427).
-function int(v) {
+// An Int is a number within 2^53 of zero and a BigInt past it, 64 bits
+// at most (ADR-0039, ADR-0433): one form for each value, so that two
+// equal ones are `===`, and the form JSON gives each Int it carries. A
+// result 64 bits do not hold traps: one they wrap is not itself.
+function big(v) {
   if (BigInt.asIntN(64, v) !== v) trap("Int overflow");
-  return v;
+  return v >= -9007199254740992n && v <= 9007199254740992n ? Number(v) : v;
 }
 
-// Euclidean: the remainder is in [0, |b|), so -7 / 2 is -4.
+function sub(a, b) {
+  if (typeof a === "number" && typeof b === "number") {
+    const r = a - b;
+    if (r >= -9007199254740991 && r <= 9007199254740991) return r;
+  }
+  return big(BigInt(a) - BigInt(b));
+}
+
+// Euclidean: the remainder is in [0, |b|), so -7 / 2 is -4. Exact on two
+// numbers: `a % b` is, and `a - a % b` is a multiple of `b` no larger
+// than `a`, so their quotient is the whole number it is.
 function div(a, b) {
-  if (b === 0n) trap("division by zero");
-  let q = a / b;
-  if (a % b < 0n) q = b > 0n ? q - 1n : q + 1n;
-  return int(q);
+  if (b == 0) trap("division by zero");
+  if (typeof a === "number" && typeof b === "number") {
+    const r = a % b;
+    const q = (a - r) / b;
+    return (r < 0 ? (b > 0 ? q - 1 : q + 1) : q) + 0;
+  }
+  const x = BigInt(a), y = BigInt(b);
+  let q = x / y;
+  if (x % y < 0n) q = y > 0n ? q - 1n : q + 1n;
+  return big(q);
 }
 
 function rem(a, b) {
-  if (b === 0n) trap("division by zero");
-  const r = a % b;
-  return r < 0n ? (b > 0n ? r + b : r - b) : r;
+  if (b == 0) trap("division by zero");
+  if (typeof a === "number" && typeof b === "number") {
+    const r = a % b;
+    return (r < 0 ? (b > 0 ? r + b : r - b) : r) + 0;
+  }
+  const x = BigInt(a), y = BigInt(b);
+  const r = x % y;
+  return big(r < 0n ? (y > 0n ? r + y : r - y) : r);
 }
 
 function callee0(v0) {
-  const v1 = 1000n;
+  const v1 = 1000;
   const v2 = v0 < v1;
   let v22;
   if (v2) {
     const v3 = v0.toString();
     v22 = v3;
   } else {
-    const v4 = 1000n;
+    const v4 = 1000;
     const v5 = rem(v0, v4);
-    const v6 = 10n;
+    const v6 = 10;
     const v7 = v5 < v6;
     let v14;
     if (v7) {
       const v8 = "00";
       v14 = v8;
     } else {
-      const v9 = 100n;
+      const v9 = 100;
       const v10 = v5 < v9;
       let v13;
       if (v10) {
@@ -2146,7 +2261,7 @@ function callee0(v0) {
       }
       v14 = v13;
     }
-    const v15 = 1000n;
+    const v15 = 1000;
     const v16 = div(v0, v15);
     const v18 = callee0(v16);
     const v19 = ",";
@@ -2162,7 +2277,7 @@ export const handler = "a1b9d04f6c3d6962";
 export async function run(context) {
   const v0 = context.get("code");
   const v1_answer = await context.command("store.page.apply_promo", [v0], { retry: { max: 2, jitter: true } });
-  const v1 = ((c) => { switch (c.$case) { case "ok": return { $case: "ok", value: undefined }; case "err": return { $case: "err", value: ((c) => { switch (c.$case) { case "unknown-code": return { $case: "unknown-code" }; case "expired": return { $case: "expired" }; case "below-minimum": return { $case: "below-minimum", value: BigInt(c.value) }; case "already-used": return { $case: "already-used" }; case "not-in-cart": return { $case: "not-in-cart" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(v1_answer);
+  const v1 = ((c) => { switch (c.$case) { case "ok": return { $case: "ok", value: undefined }; case "err": return { $case: "err", value: ((c) => { switch (c.$case) { case "unknown-code": return { $case: "unknown-code" }; case "expired": return { $case: "expired" }; case "below-minimum": return { $case: "below-minimum", value: c.value }; case "already-used": return { $case: "already-used" }; case "not-in-cart": return { $case: "not-in-cart" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(v1_answer);
   let v80;
   switch (v1.$case) {
     case "ok": {
@@ -2191,40 +2306,40 @@ export async function run(context) {
           const v9 = v5.value;
           const v10 = "That code needs a subtotal of at least ";
           const v11 = v9;
-          const v12 = 100n;
+          const v12 = 100;
           const v13 = div(v11, v12);
-          const v14 = 100n;
+          const v14 = 100;
           const v15 = rem(v11, v14);
-          const v16 = 0n;
+          const v16 = 0;
           const v17 = v11 >= v16;
           let v27;
           if (v17) {
             v27 = v13;
           } else {
-            const v18 = 0n;
+            const v18 = 0;
             const v19 = v15 === v18;
             let v26;
             if (v19) {
-              const v20 = 0n;
-              const v21 = int(v20 - v13);
+              const v20 = 0;
+              const v21 = sub(v20, v13);
               v26 = v21;
             } else {
-              const v22 = 0n;
-              const v23 = int(v22 - v13);
-              const v24 = 1n;
-              const v25 = int(v23 - v24);
+              const v22 = 0;
+              const v23 = sub(v22, v13);
+              const v24 = 1;
+              const v25 = sub(v23, v24);
               v26 = v25;
             }
             v27 = v26;
           }
-          const v28 = 0n;
+          const v28 = 0;
           const v29 = v11 >= v28;
           let v33;
           if (v29) {
             const v32 = true;
             v33 = v32;
           } else {
-            const v30 = 0n;
+            const v30 = 0;
             const v31 = v15 === v30;
             v33 = v31;
           }
@@ -2232,11 +2347,11 @@ export async function run(context) {
           if (v33) {
             v36 = v15;
           } else {
-            const v34 = 100n;
-            const v35 = int(v34 - v15);
+            const v34 = 100;
+            const v35 = sub(v34, v15);
             v36 = v35;
           }
-          const v37 = 0n;
+          const v37 = 0;
           const v38 = v11 < v37;
           let v41;
           if (v38) {
@@ -2246,7 +2361,7 @@ export async function run(context) {
             const v40 = "";
             v41 = v40;
           }
-          const v42 = 10n;
+          const v42 = 10;
           const v43 = v36 < v42;
           let v46;
           if (v43) {
@@ -2257,23 +2372,23 @@ export async function run(context) {
             v46 = v45;
           }
           const v47 = "$";
-          const v49 = 1000n;
+          const v49 = 1000;
           const v50 = v27 < v49;
           let v70;
           if (v50) {
             const v51 = v27.toString();
             v70 = v51;
           } else {
-            const v52 = 1000n;
+            const v52 = 1000;
             const v53 = rem(v27, v52);
-            const v54 = 10n;
+            const v54 = 10;
             const v55 = v53 < v54;
             let v62;
             if (v55) {
               const v56 = "00";
               v62 = v56;
             } else {
-              const v57 = 100n;
+              const v57 = 100;
               const v58 = v53 < v57;
               let v61;
               if (v58) {
@@ -2285,7 +2400,7 @@ export async function run(context) {
               }
               v62 = v61;
             }
-            const v63 = 1000n;
+            const v63 = 1000;
             const v64 = div(v27, v63);
             const v66 = callee0(v64);
             const v67 = ",";
@@ -2329,7 +2444,7 @@ export async function run(context) {
 export const name = "";
 export const handler = "b2ef12af35e8d84f";
 export async function run(context) {
-  const v0 = ((o) => ({ "value": o["value"] }))(context.event);
+  const v0 = context.event;
   const v1 = v0["value"];
   context.set("comment", v1);
   const v2 = undefined;
@@ -2378,17 +2493,18 @@ function trap(what) {
   throw new Error("trap: " + what);
 }
 
-// An Int sent to a command as a JSON number (ADR-0058): exact within
-// ±2^53, and a trap past it rather than a different number.
+// An Int as JSON carries it (ADR-0058, ADR-0433): a number already within
+// ±2^53, and a trap past it, where it is a BigInt, rather than a
+// different number.
 function exact(v) {
-  if (v < -9007199254740992n || v > 9007199254740992n) trap("an Int a JavaScript number cannot carry exactly");
-  return Number(v);
+  if (typeof v === "bigint") trap("an Int a JavaScript number cannot carry exactly");
+  return v;
 }
 
 export const name = "";
 export const handler = "caef098036bb24e4";
 export async function run(context) {
-  const v0 = 3n;
+  const v0 = 3;
   context.set("stars", exact(v0));
   const v1 = undefined;
   return v1;
@@ -2401,20 +2517,21 @@ function trap(what) {
   throw new Error("trap: " + what);
 }
 
-// An Int sent to a command as a JSON number (ADR-0058): exact within
-// ±2^53, and a trap past it rather than a different number.
+// An Int as JSON carries it (ADR-0058, ADR-0433): a number already within
+// ±2^53, and a trap past it, where it is a BigInt, rather than a
+// different number.
 function exact(v) {
-  if (v < -9007199254740992n || v > 9007199254740992n) trap("an Int a JavaScript number cannot carry exactly");
-  return Number(v);
+  if (typeof v === "bigint") trap("an Int a JavaScript number cannot carry exactly");
+  return v;
 }
 
 export const name = "add_to_cart";
 export const handler = "ce4501910ab2a49a";
 export async function run(context) {
-  const v0 = ((o) => ({ "id": o["id"], "store_id": o["store_id"], "name": o["name"], "description": o["description"], "price": BigInt(o["price"]), "available": o["available"], "category": ((o) => ({ "id": o["id"], "name": o["name"] }))(o["category"]) }))(context.captures["item"]);
-  const v1 = 1n;
+  const v0 = context.captures["item"];
+  const v1 = 1;
   const v2 = v1;
-  const v3_answer = await context.command("store.page.add_to_cart", [((o) => ({ "id": o["id"], "store_id": o["store_id"], "name": o["name"], "description": o["description"], "price": exact(o["price"]), "available": o["available"], "category": ((o) => ({ "id": o["id"], "name": o["name"] }))(o["category"]) }))(v0), exact(v2)], { retry: { max: 2, jitter: true } });
+  const v3_answer = await context.command("store.page.add_to_cart", [((w) => { exact(w["price"]); return w; })(v0), exact(v2)], { retry: { max: 2, jitter: true } });
   const v3 = ((c) => { switch (c.$case) { case "ok": return { $case: "ok", value: undefined }; case "err": return { $case: "err", value: ((c) => { switch (c.$case) { case "item-unavailable": return { $case: "item-unavailable", value: c.value }; case "quantity-too-large": return { $case: "quantity-too-large" }; case "cart-expired": return { $case: "cart-expired" }; case "out-of-range": return { $case: "out-of-range", value: c.value }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(v3_answer);
   let v17;
   switch (v3.$case) {
@@ -2471,18 +2588,19 @@ function trap(what) {
   throw new Error("trap: " + what);
 }
 
-// An Int sent to a command as a JSON number (ADR-0058): exact within
-// ±2^53, and a trap past it rather than a different number.
+// An Int as JSON carries it (ADR-0058, ADR-0433): a number already within
+// ±2^53, and a trap past it, where it is a BigInt, rather than a
+// different number.
 function exact(v) {
-  if (v < -9007199254740992n || v > 9007199254740992n) trap("an Int a JavaScript number cannot carry exactly");
-  return Number(v);
+  if (typeof v === "bigint") trap("an Int a JavaScript number cannot carry exactly");
+  return v;
 }
 
 export const name = "choose_tip";
 export const handler = "dc95ff389eaac1f1";
 export async function run(context) {
   const v0 = { $case: "no-tip" };
-  const v1_answer = await context.command("store.page.choose_tip", [((c) => { switch (c.$case) { case "no-tip": return { $case: "no-tip" }; case "fifteen": return { $case: "fifteen" }; case "eighteen": return { $case: "eighteen" }; case "twenty": return { $case: "twenty" }; case "tip-amount": return { $case: "tip-amount", value: exact(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(v0)], { retry: { max: 2, jitter: true } });
+  const v1_answer = await context.command("store.page.choose_tip", [((w) => { if (w.$case === "tip-amount") { exact(w.value); } return w; })(v0)], { retry: { max: 2, jitter: true } });
   const v1 = ((c) => { switch (c.$case) { case "ok": return { $case: "ok", value: undefined }; case "err": return { $case: "err", value: ((c) => { switch (c.$case) { case "negative-tip": return { $case: "negative-tip" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(v1_answer);
   let v8;
   switch (v1.$case) {
@@ -2589,7 +2707,7 @@ test an_int_a_javascript_number_cannot_carry_stops_the_handler_before_it_sends .
 test an_opaque_constructor_sends_its_representation ... // Generated by pw: resumable handler 162e3a04bd01d79e. Do not edit.
 test each_path_read_is_read_where_the_document_carries_it ... // Generated by pw: resumable handler 539ed8c99ab0286b. Do not edit.
 test the_stores_handlers_compile_to_the_calls_their_bodies_make ... // Generated by pw: resumable handler ce4501910ab2a49a. Do not edit.
-test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.20s
+test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.14s
 
 == the committed modules are the compiler's current output
 
@@ -2598,18 +2716,18 @@ test the_committed_contracts_are_what_the_compiler_derives_now ... ok
 test the_committed_kiokun_build_is_what_the_compiler_builds_now ... ok
 test the_committed_handlers_are_what_the_compiler_emits_now ... ok
 test the_committed_components_are_what_the_compiler_builds_now ... ok
-test the_committed_wit_is_what_the_compiler_emits_now ... ok
 test a_component_the_build_adds_fails_the_check_until_it_is_committed_current ... ok
+test the_committed_wit_is_what_the_compiler_emits_now ... ok
 test the_committed_page_plan_is_what_the_compiler_plans_now ... ok
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.21s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.04s
 
 == the renderer carries exactly the paths a handler reads (runtime/pw-render/tests/properties.rs)
 
 test a_capture_that_cannot_be_carried_blocks_the_render ... ok
 test a_captured_value_survives_the_attribute_exactly ... ok
 test a_capture_a_view_names_otherwise_is_read_where_it_is ... ok
-test an_element_carries_exactly_the_paths_its_handler_reads ... ok
 test an_element_local_part_anchors_on_the_element_not_on_a_comment ... ok
+test an_element_carries_exactly_the_paths_its_handler_reads ... ok
 test an_element_s_handlers_carry_one_attribute_between_them ... ok
 test an_event_part_emits_nothing_because_behaviour_is_not_markup ... ok
 test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
@@ -2627,7 +2745,7 @@ test json_arguments_are_typed_by_the_export_they_are_for ... [Object {"available
 [Object {"available": Bool(true), "category": Object {"id": String("coffee"), "name": String("Coffee")}, "description": String("Short."), "id": String("cortado"), "name": String("Cortado"), "price": Number(375), "store_id": String("47")}, Bool(true)]: argument 2 (`arg1`): expected an integer, got true
 [Object {"available": Bool(true), "category": Object {"id": String("coffee"), "name": String("Coffee")}, "description": String("Short."), "id": String("cortado"), "name": String("Cortado"), "price": Number(375), "store_id": String("47")}, Null]: argument 2 (`arg1`): expected an integer, got null
 [Object {"available": Bool(true), "category": Object {"id": String("coffee"), "name": String("Coffee")}, "description": String("Short."), "id": String("cortado"), "name": String("Cortado"), "price": Number(375), "store_id": String("47")}, Number(18446744073709551615)]: argument 2 (`arg1`): 18446744073709551615 is outside -9223372036854775808..=9223372036854775807
-test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 18.58s
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 18.46s
 
 == the development server: one command path, compiled handlers only (pw-dev-server)
 
@@ -2683,14 +2801,14 @@ test identity::tests::the_guest_model_runs_only_in_development_on_this_machine .
 test identity::tests::two_overlapping_admissions_of_one_session_are_each_answered ... ok
 test accounts::tests::a_password_is_kept_only_as_its_argon2id_hash ... ok
 test kiokun::search::cache_tests::a_cached_wrong_fingerprint_is_refused_without_deleting_its_file ... ok
-test accounts::tests::a_code_is_exchanged_once_by_its_verifier ... ok
 test kiokun::search::cache_tests::a_cached_wrong_fts_schema_is_refused_without_deleting_its_file ... ok
-test kiokun::search::cache_tests::a_small_index_stays_in_memory_and_a_published_index_is_read_only ... ok
+test accounts::tests::a_code_is_exchanged_once_by_its_verifier ... ok
 test kiokun::search::cache_tests::a_delayed_builder_reuses_the_same_digest_winners_file ... ok
+test kiokun::search::cache_tests::a_small_index_stays_in_memory_and_a_published_index_is_read_only ... ok
 test kiokun::search::cache_tests::a_failed_builder_cleans_itself_without_touching_another_builders_stage ... ok
 test kiokun::search::cache_tests::an_incomplete_concurrent_winner_is_refused_without_replacement ... ok
-test accounts::tests::signing_in_takes_the_password_and_says_nothing_of_who_exists ... ok
 test kiokun::search::cache_tests::an_open_reader_keeps_its_path_and_identity_after_another_version_publishes ... ok
+test kiokun::search::cache_tests::private_abandoned_stages_and_old_flat_sqlite_files_remain_untouched ... ok
 test kiokun::search::tests::a_csv_record_holds_quotes_commas_and_line_breaks ... ok
 test kiokun::search::tests::a_query_fts5_cannot_read_raw_is_answered ... ok
 test kiokun::search::tests::a_query_is_words_whatever_it_holds ... ok
@@ -2708,28 +2826,28 @@ test notifications::tests::a_users_notifications_are_theirs_alone_newest_first .
 test notifications::tests::ones_own_act_notifies_no_one ... ok
 test notifications::tests::the_account_operation_answers_the_readers_account_for_their_handle_alone ... ok
 test notifications::tests::the_principal_operation_answers_the_sessions_user_and_a_guests_where_none_signed_in ... ok
-test kiokun::search::cache_tests::private_abandoned_stages_and_old_flat_sqlite_files_remain_untouched ... ok
+test kiokun::search::cache_tests::builders_of_one_digest_do_not_unlink_an_open_sqlite ... ok
 test order::tests::a_command_that_vanished_is_waited_for_again ... ok
 test order::tests::a_command_waits_for_the_one_it_names_to_arrive_and_run ... ok
-test kiokun::search::cache_tests::builders_of_one_digest_do_not_unlink_an_open_sqlite ... ok
+test order::tests::a_command_still_here_is_kept_past_the_bound ... ok
 test order::tests::a_command_whose_named_one_was_answered_early_is_answered_early ... ok
 test order::tests::a_command_whose_named_one_was_answered_runs ... ok
-test order::tests::a_command_still_here_is_kept_past_the_bound ... ok
+test accounts::tests::signing_in_takes_the_password_and_says_nothing_of_who_exists ... ok
 test order::tests::a_command_whose_named_one_never_comes_is_answered_early_after_the_wait ... ok
 test payload_tests::an_arm_reads_its_cases_payload_and_another_cases_value_has_none ... ok
 test payments::answer_tests::a_begin_refusal_does_not_echo_provider_secrets ... ok
 test payments::answer_tests::a_cancel_refusal_does_not_echo_provider_secrets ... ok
 test payments::answer_tests::a_cancel_refusal_only_carries_a_declared_payment_status ... ok
-test payments::answer_tests::a_provider_that_does_not_answer_in_time_is_not_reached ... ok
+test order::tests::a_session_forgotten_takes_its_fates ... ok
 test payments::answer_tests::an_answer_is_read_by_its_length_not_its_close ... ok
 test payments::answer_tests::an_undefined_provider_status_never_enters_a_payment_diagnostic ... ok
 test payments::cancel_tests::a_payment_is_canceled_by_its_reader_alone ... ok
 test payments::configured_tests::the_configured_provider_and_host_agree_on_their_secret ... ok
 test payments::configured_tests::the_development_provider_runs_only_in_development_here ... ok
 test payments::hearing_tests::an_intent_whose_amount_changed_at_the_provider_settles_nothing ... ok
-test order::tests::a_session_forgotten_takes_its_fates ... ok
 test payments::hearing_tests::an_outcome_the_host_could_not_settle_is_settled_when_sent_again ... ok
 test payments::hearing_tests::the_host_acts_on_the_intent_as_the_provider_says_it_now ... ok
+test order::tests::another_sessions_command_of_the_same_name_is_not_the_one_named ... ok
 test payments::https_tests::a_provider_whose_certificate_is_not_trusted_is_not_reached ... ok
 test payments::https_tests::an_id_that_would_make_another_request_is_never_sent ... ok
 test payments::https_tests::an_interaction_that_would_split_the_providers_request_is_never_sent ... ok
@@ -2737,21 +2855,21 @@ test payments::https_tests::the_payments_reach_their_provider_alone ... ok
 test payments::invoked_tests::a_command_the_platform_invokes_is_told_by_its_contract ... ok
 test payments::operation_tests::a_payment_is_begun_once_per_interaction ... ok
 test payments::https_tests::a_provider_at_an_https_origin_is_reached_over_tls ... ok
-test payments::origin_tests::the_provider_can_send_twice_and_out_of_order ... ok
+test payments::origin_tests::a_card_paid_in_the_hosted_fields_is_told_to_the_host_signed ... ok
 test payments::provider_tests::a_cards_outcome_is_its_test_numbers ... ok
 test payments::provider_tests::an_event_sent_is_signed_for_the_host ... ok
 test payments::provider_tests::an_intent_is_canceled_until_it_is_paid ... ok
 test payments::provider_tests::an_intent_is_made_once_per_key ... ok
+test payments::origin_tests::the_provider_can_send_twice_and_out_of_order ... ok
 test payments::tests::a_webhook_is_the_providers_only_as_it_signed_it ... ok
 test payments::tests::hmac_sha256_is_rfc_4231s ... ok
 test payments::tests::signatures_are_compared_whole ... ok
 test places::tests::a_store_delivers_within_its_radius_and_not_past_it ... ok
 test places::tests::each_place_is_one_and_in_the_bay_area ... ok
 test places::tests::the_distance_is_the_great_circle_one ... ok
-test payments::origin_tests::a_card_paid_in_the_hosted_fields_is_told_to_the_host_signed ... ok
 test places::tests::travel_is_four_minutes_a_kilometre_rounded_up ... ok
-test render_merge::tests::a_render_of_one_layer_answers_for_no_other ... ok
 test render_merge::tests::a_render_begun_inside_another_is_that_one_whatever_its_session ... ok
+test render_merge::tests::a_render_of_one_layer_answers_for_no_other ... ok
 test render_merge::tests::a_render_reads_one_snapshot_and_keeps_nothing_past_it ... ok
 test render_merge::tests::a_renders_call_for_another_session_is_its_own ... ok
 test render_merge::tests::a_renders_calls_with_other_arguments_are_each_made ... ok
@@ -2762,17 +2880,16 @@ test scheduled_orders::tests::an_orders_time_is_read_as_given_and_refused_where_
 test schedules::tests::a_duration_is_counted_from_the_commit ... ok
 test schedules::tests::a_failed_run_waits_two_seconds_doubling_to_a_minute ... ok
 test schedules::tests::a_runs_key_names_the_user_whose_command_scheduled_it ... ok
-test search::tests::a_pattern_escapes_what_like_reads ... ok
 test search::tests::a_blank_or_long_text_is_a_declared_error ... ok
+test search::tests::a_pattern_escapes_what_like_reads ... ok
 test search::tests::a_term_is_lowered_a_character_at_a_time ... ok
 test search::tests::each_character_held_back_is_one_rusts_tables_lower ... ok
-test search::tests::a_tier_says_where_the_terms_were_found ... ok
-test search::tests::in_memory_the_layer_answers_the_programs_cases ... ok
 test search::tests::found_lists_the_first_and_counts_the_rest ... ok
+test search::tests::in_memory_the_layer_answers_the_programs_cases ... ok
+test search::tests::a_tier_says_where_the_terms_were_found ... ok
 test search::tests::in_memory_the_seed_is_searched ... ok
 test search::tests::on_postgres_a_search_is_two_statements_whatever_the_stores ... ok
 test search::tests::on_postgres_each_stores_cuisine_is_memorys ... ok
-test order::tests::another_sessions_command_of_the_same_name_is_not_the_one_named ... ok
 test search::tests::on_postgres_every_character_is_lowered_alike ... ok
 test search::tests::on_postgres_the_seed_is_searched_through_the_layer ... ok
 test search::tests::on_postgres_the_table_is_answered_alike ... ok
@@ -2781,10 +2898,11 @@ test store::joins::a_guests_lines_are_summed_into_the_users_or_appended ... ok
 test store::joins::a_sum_past_a_bigint_is_refused_and_nothing_moves ... ok
 test tables::tests::a_handle_is_named_wherever_a_fields_type_holds_it ... ok
 test search::tests::in_memory_the_table_is_answered ... ok
+test payments::answer_tests::a_provider_that_does_not_answer_in_time_is_not_reached ... ok
 test kiokun::search::cache_tests::publishing_another_digest_does_not_unlink_a_live_builder ... ok
 test tests::a_block_a_query_decides_is_rendered ... ok
-test tests::a_block_a_speculation_renders_is_rendered_again_whole ... ok
 test tests::a_block_that_shows_the_arm_it_showed_is_told_part_by_part ... ok
+test tests::a_block_a_speculation_renders_is_rendered_again_whole ... ok
 test tests::a_block_whose_rendering_changed_is_rendered_again ... ok
 test tests::a_browser_that_leaves_lets_go_of_its_read ... ok
 test tests::a_build_warms_only_where_its_delivery_says_so ... ok
@@ -2798,28 +2916,28 @@ test tests::a_change_that_reaches_a_session_while_its_page_is_read_is_not_lost .
 test tests::a_build_importing_what_no_data_layer_supplies_is_refused ... ok
 test tests::a_change_sends_what_changed_unannounced_with_it ... ok
 test tests::a_change_waiting_for_one_tab_survives_another_tab_being_served ... ok
-test tests::a_change_reaches_each_page_that_reads_it_by_its_own_plan ... ok
-test tests::a_change_to_one_stores_menu_reaches_that_stores_pages_only ... ok
 test tests::a_command_commits_the_events_it_computes ... ok
+test tests::a_change_reaches_each_page_that_reads_it_by_its_own_plan ... ok
 test tests::a_command_is_refused_on_a_node_that_does_not_grant_its_capability ... ok
-test tests::a_command_whose_events_cannot_be_kept_is_not_run ... ok
 test tests::a_command_drops_the_entry_it_invalidates_and_no_other ... ok
+test tests::a_command_whose_events_cannot_be_kept_is_not_run ... ok
+test tests::a_change_to_one_stores_menu_reaches_that_stores_pages_only ... ok
 test tests::a_command_asks_only_the_queries_its_page_shows_once ... ok
 test tests::a_compiled_module_is_sent_as_its_packaging_wrote_it ... ok
 test tests::a_commit_while_a_reader_is_told_is_told_after_it ... ok
 test tests::a_cut_wakes_a_held_subscription_at_once ... ok
 test tests::a_declared_error_and_a_host_s_failure_are_shown_apart ... ok
-test tests::a_declared_error_is_given_and_not_kept ... ok
 test tests::a_condition_a_host_computes_decides_its_block_and_again_when_it_changes ... ok
+test tests::a_declared_error_is_given_and_not_kept ... ok
 test tests::a_delay_slows_what_it_names_and_nothing_else ... ok
 test tests::a_development_build_names_its_files_as_they_are ... ok
-test tests::a_condition_the_browser_computes_is_rendered_at_its_first_value ... ok
 test tests::a_command_that_emits_nothing_tells_nothing ... ok
+test tests::a_condition_the_browser_computes_is_rendered_at_its_first_value ... ok
 test tests::a_document_changed_at_every_attempt_is_still_told ... ok
-test tests::a_document_no_page_asks_for_is_told_when_one_asks ... ok
-test tests::a_document_changed_while_its_change_is_derived_is_derived_against_again ... ok
 test tests::a_delivery_estimate_is_a_range ... ok
+test tests::a_document_changed_while_its_change_is_derived_is_derived_against_again ... ok
 test tests::a_document_whose_handlers_were_not_compiled_is_refused ... ok
+test tests::a_document_no_page_asks_for_is_told_when_one_asks ... ok
 test tests::a_dropped_command_connection_is_answered_by_nothing ... ok
 test tests::a_failed_estimate_fills_its_region_and_the_page_is_served ... ok
 test tests::a_failed_origin_is_answered_with_the_last_public_value_kept ... ok
@@ -2829,8 +2947,8 @@ test tests::a_flight_another_reader_waits_for_is_not_stopped ... ok
 test tests::a_documents_trail_says_what_happened_to_its_frames ... ok
 test tests::a_forgotten_page_that_polls_is_told_to_reload ... ok
 test tests::a_forced_reconnect_ends_a_subscription_and_refuses_new_ones_for_its_window ... ok
-test tests::a_frame_a_stream_wrote_to_a_dropped_connection_still_reaches_its_page ... ok
 test tests::a_document_read_behind_a_change_shows_what_the_open_pages_show ... ok
+test tests::a_frame_a_stream_wrote_to_a_dropped_connection_still_reaches_its_page ... ok
 test tests::a_guests_post_names_the_guest_to_every_reader ... ok
 test tests::a_frame_pushed_for_a_held_subscription_wakes_it ... ok
 test tests::a_kept_answer_is_the_answer_it_kept ... ok
@@ -2839,11 +2957,11 @@ test tests::a_keyed_read_is_applied_as_one_patch_set ... ok
 test tests::a_held_command_connection_is_answered_by_nothing_until_it_is_given_up ... ok
 test tests::a_line_records_the_stores_name_and_price_not_the_requests ... ok
 test tests::a_lines_steps_reach_the_data_layer ... ok
-test tests::a_handlers_captures_at_the_top_of_the_page_are_set_again ... ok
 test tests::a_list_a_session_s_query_fills_is_rendered ... ok
-test tests::a_keyed_read_whose_document_changed_while_it_derived_is_derived_again ... ok
+test tests::a_handlers_captures_at_the_top_of_the_page_are_set_again ... ok
 test tests::a_list_inside_a_querys_value_is_rendered_and_patched_where_it_is ... ok
 test tests::a_list_moves_what_moved_and_sets_what_changed_where_it_is ... ok
+test tests::a_keyed_read_whose_document_changed_while_it_derived_is_derived_again ... ok
 test tests::a_member_read_inside_a_block_is_computed_and_told_where_it_is ... ok
 test tests::a_member_read_inside_a_speculated_block_is_rendered_with_it ... ok
 test tests::a_kept_value_past_its_instant_is_read_again ... ok
@@ -2859,8 +2977,8 @@ test tests::a_menu_change_drops_that_stores_recommendations_only ... ok
 test tests::a_menu_is_grouped_by_its_category ... ok
 test tests::a_page_of_signals_alone_computes_at_their_first_values ... ok
 test tests::a_page_and_its_layout_show_one_entry_by_one_value ... ok
-test tests::a_page_reading_nothing_dropped_is_told_nothing ... ok
 test tests::a_page_is_told_when_the_instant_it_compared_passes ... ok
+test tests::a_page_reading_nothing_dropped_is_told_nothing ... ok
 test tests::a_page_served_is_asking_for_as_long_as_a_test_takes ... ok
 test tests::a_page_that_binds_a_query_is_rendered_with_its_parameters ... ok
 test tests::a_page_carries_its_data_layers_style_and_no_other ... ok
@@ -2879,23 +2997,23 @@ test tests::a_post_is_shown_before_the_server_answers_and_the_page_told_when_it_
 test tests::a_post_over_http_reaches_another_reader_after_its_answer ... ok
 test tests::a_production_build_names_its_files_at_one_version ... ok
 test tests::a_post_reaches_every_open_timeline ... ok
-test tests::a_posts_text_is_held_to_its_length_where_it_arrives ... ok
 test tests::a_page_s_canonical_address_is_written_with_the_deployment_s_origin ... ok
+test tests::a_posts_text_is_held_to_its_length_where_it_arrives ... ok
 test tests::a_query_is_read_as_a_browsers_form_writes_it ... ok
 test tests::a_query_posted_as_a_command_is_not_found ... ok
 test tests::a_querys_retry_reaches_its_cache_as_declared ... ok
-test tests::a_read_older_than_the_latest_is_not_applied ... ok
 test tests::a_production_build_serves_its_page_and_table_at_its_delivery ... ok
+test tests::a_read_older_than_the_latest_is_not_applied ... ok
 test tests::a_regeneration_that_fails_sends_nothing_and_is_tried_again ... ok
 test tests::a_reader_is_told_while_another_readers_telling_takes_its_time ... ok
 test tests::a_region_past_its_budget_is_given_the_host_s_failure_when_its_budget_is_spent ... ok
-test tests::a_program_naming_a_host_operation_is_refused ... ok
-test tests::a_retried_interaction_runs_its_command_once ... ok
 test tests::a_reply_is_its_threads_to_every_reader_and_no_timelines ... ok
-test tests::a_served_page_whose_values_fail_is_told_to_read_itself_again ... ok
+test tests::a_retried_interaction_runs_its_command_once ... ok
+test tests::a_program_naming_a_host_operation_is_refused ... ok
 test tests::a_quantity_that_is_no_positive_int_is_refused_at_the_boundary ... ok
-test tests::a_session_is_forgotten_with_its_last_document ... ok
 test tests::a_session_forgotten_takes_its_commands_order ... ok
+test tests::a_session_is_forgotten_with_its_last_document ... ok
+test tests::a_served_page_whose_values_fail_is_told_to_read_itself_again ... ok
 test tests::a_session_s_change_reaches_its_own_document_alone ... ok
 test tests::a_session_s_estimate_is_its_estimator_s ... ok
 test tests::a_row_a_change_renders_reads_the_pages_parameters ... ok
@@ -2908,30 +3026,30 @@ test tests::a_rename_sets_every_part_that_reads_the_name ... ok
 test tests::a_speculated_thread_is_named_by_its_page_parameter ... ok
 test tests::a_speculated_value_that_did_not_change_is_not_sent_again ... ok
 test tests::a_sessions_own_change_reaches_no_other_session ... ok
-test tests::a_speculating_page_is_sent_its_carts_value ... ok
 test tests::a_sold_out_item_is_shown_so_and_has_no_add ... ok
+test tests::a_speculating_page_is_sent_its_carts_value ... ok
 test tests::a_session_s_response_is_kept_by_no_cache_and_a_build_s_names_no_session ... ok
 test tests::a_speculating_document_carries_its_parameters ... ok
 test tests::a_stock_change_drops_the_menu_and_not_the_recommendations ... ok
 test tests::a_stock_change_told_renders_its_row_again_where_it_is ... ok
-test tests::a_store_s_page_describes_itself_in_its_head ... ok
 test tests::a_store_page_is_shown_in_its_layout_and_its_count_is_told ... ok
+test tests::a_store_s_page_describes_itself_in_its_head ... ok
 test tests::a_stream_drops_what_its_page_says_it_applied ... ok
 test tests::a_streamed_region_follows_its_document_in_the_same_response ... ok
 test tests::a_subscriber_that_falls_behind_is_told_to_reload ... ok
-test tests::a_telling_that_panics_does_not_silence_the_reader ... ok
 test tests::a_stored_line_of_nothing_is_a_failed_read ... ok
+test tests::a_telling_that_panics_does_not_silence_the_reader ... ok
 test tests::a_value_computed_in_a_row_is_each_rows_and_sent_with_it ... ok
 test tests::a_value_that_contains_itself_is_written_as_its_nodes ... ok
-test tests::a_store_s_page_is_titled_by_its_name ... ok
+test tests::a_title_that_changed_is_set_as_its_text ... ok
 test tests::address_fragment::the_document_of_a_page_of_signals_alone_names_its_binding ... ok
 test tests::address_fragment::the_document_of_a_page_that_reads_queries_names_its_binding ... ok
 test tests::address_fragment::the_host_renders_the_first_value_whatever_the_fragment ... ok
-test tests::a_title_that_changed_is_set_as_its_text ... ok
+test tests::a_store_s_page_is_titled_by_its_name ... ok
 test tests::a_value_the_template_computes_is_the_hosts_and_sent_when_it_changes ... ok
-test tests::addresses::a_readers_addresses_are_theirs_to_add_rename_remove_and_choose ... ok
 test tests::addresses::a_reader_keeps_at_most_ten_addresses ... ok
 test tests::addresses::a_store_out_of_reach_says_so_and_refuses_the_add_and_the_order ... ok
+test tests::addresses::a_readers_addresses_are_theirs_to_add_rename_remove_and_choose ... ok
 test tests::a_store_that_is_not_there_is_not_found ... ok
 test tests::addresses::an_address_saved_reaches_the_users_other_sessions_and_no_one_elses ... ok
 test tests::alone_page::a_build_that_computes_on_a_host_and_has_no_components_is_refused ... ok
@@ -2940,30 +3058,30 @@ test tests::alone_page::a_build_whose_packaging_wrote_no_such_module_fetches_its
 test tests::alone_page::a_delivery_names_the_page_its_packaging_wrote_alone ... ok
 test tests::alone_page::a_module_that_writes_comments_is_held_in_its_document ... ok
 test tests::addresses::the_estimate_gains_the_travel_to_the_chosen_address ... ok
-test tests::alone_page::a_page_alone_in_its_build_holds_its_code_and_asks_for_nothing_as_it_boots ... ok
-test tests::alone_page::a_module_the_parser_would_not_read_as_one_script_is_fetched_as_before ... ok
-test tests::alone_page::a_page_of_a_build_of_several_fetches_its_runtime_whatever_its_packaging_wrote ... ok
-test tests::alone_page::its_policy_allows_its_one_script_by_its_hash ... ok
-test tests::an_attribute_that_reads_a_query_is_set_again_when_it_changes ... ok
-test tests::alone_page::its_table_is_the_one_its_host_answers_for_its_build ... ok
 test tests::addresses::the_places_are_the_fixed_tables ... ok
+test tests::alone_page::a_page_of_a_build_of_several_fetches_its_runtime_whatever_its_packaging_wrote ... ok
+test tests::alone_page::a_page_alone_in_its_build_holds_its_code_and_asks_for_nothing_as_it_boots ... ok
+test tests::alone_page::its_policy_allows_its_one_script_by_its_hash ... ok
+test tests::alone_page::its_table_is_the_one_its_host_answers_for_its_build ... ok
+test tests::an_attribute_that_reads_a_query_is_set_again_when_it_changes ... ok
+test tests::alone_page::a_module_the_parser_would_not_read_as_one_script_is_fetched_as_before ... ok
 test tests::an_entry_key_is_scoped_by_session_only_when_private ... ok
 test tests::an_attributes_computed_value_is_the_hosts_and_set_again ... ok
 test tests::an_idle_subscription_waits_on_the_table_rather_than_asking_it ... ok
 test tests::an_empty_cart_places_no_order ... ok
 test tests::an_interactions_record_answers_it_for_a_day ... ok
-test tests::an_insert_and_what_changed_with_it_are_derived_from_the_menu ... ok
 test tests::addresses::the_page_the_estimate_and_the_commands_read_one_rule ... ok
+test tests::an_insert_and_what_changed_with_it_are_derived_from_the_menu ... ok
 test tests::an_item_that_leaves_is_removed ... ok
-test tests::an_invalidated_entry_is_dropped_by_the_key_the_command_computed ... ok
 test tests::an_item_that_stays_is_set_in_place ... ok
 test tests::an_inserted_item_arrives_with_its_price ... ok
+test tests::an_invalidated_entry_is_dropped_by_the_key_the_command_computed ... ok
 test tests::an_opaque_value_compares_as_its_representation ... ok
-test tests::an_opaque_values_representation_is_rendered ... ok
-test tests::an_unknown_component_is_refused_rather_than_defaulted ... ok
 test tests::an_order_the_kitchen_sets_is_the_order_query_s_value ... ok
-test tests::argument_invariants::a_commands_arguments_are_held_at_both_ends_of_each_invariant ... ok
+test tests::an_unknown_component_is_refused_rather_than_defaulted ... ok
+test tests::an_opaque_values_representation_is_rendered ... ok
 test tests::an_item_sold_out_since_the_page_is_refused_by_name ... ok
+test tests::argument_invariants::a_commands_arguments_are_held_at_both_ends_of_each_invariant ... ok
 test tests::argument_invariants::a_pages_parameters_are_held_where_its_address_gives_them ... ok
 test tests::argument_invariants::a_value_inside_an_argument_is_held_where_it_is ... ok
 test tests::argument_invariants::a_value_the_host_built_is_held_as_one_a_browser_sent ... ok
@@ -2978,16 +3096,16 @@ test tests::bounded_statements::scheduled_state_writes_feed_retry_waits_for_a_co
 test tests::bounded_statements::scheduled_state_writes_store_ran_waits_for_a_command ... ok
 test tests::bounded_statements::scheduled_state_writes_store_retry_waits_for_a_command ... ok
 test tests::bounded_statements::sweep_cleanup_and_payment_commit_share_the_same_write_guard ... ok
-test tests::an_order_is_placed_from_the_cart_and_reaches_its_open_page ... ok
+test tests::browser_rows::a_signals_rows_are_served_with_what_each_computes ... ok
 test tests::clear_cart_is_authorised_separately ... ok
 test tests::concurrent_commands_on_one_session_all_commit ... ok
-test tests::browser_rows::a_signals_rows_are_served_with_what_each_computes ... ok
+test tests::an_order_is_placed_from_the_cart_and_reaches_its_open_page ... ok
 test tests::conformance::each_idempotent_command_sent_again_is_answered_once ... ok
 test tests::conformance::the_suite_holds_for_the_guestbooks_tables ... ok
-test tests::conformance::each_query_reads_its_tables_a_fixed_number_of_times_at_two_sizes ... ok
 test tests::conformance::the_suite_holds_for_the_lists_apps_tables ... ok
-test tests::device_store::a_page_whose_one_computing_is_a_step_between_versions_is_served_its_steps ... ok
+test tests::conformance::each_query_reads_its_tables_a_fixed_number_of_times_at_two_sizes ... ok
 test tests::an_untold_stock_change_reaches_the_open_pages_when_the_menu_is_read_again ... ok
+test tests::device_store::a_page_whose_one_computing_is_a_step_between_versions_is_served_its_steps ... ok
 test tests::each_change_is_derived_from_the_last_one_sent ... ok
 test tests::every_command_commits_its_state_and_its_event_together ... ok
 test tests::argument_invariants::a_label_the_stores_type_refuses_never_reaches_its_data_layer ... ok
@@ -3008,34 +3126,34 @@ test tests::feed_pg::on_postgres_serializable_against_a_read_committed_default_i
 test tests::feed_pg::on_postgres_the_database_provides_what_the_feed_states ... ok
 test tests::feed_pg::on_postgres_the_feed_serves_what_it_serves_in_memory ... ok
 test tests::feed_pg::on_postgres_the_timeline_loads_more ... ok
-test tests::each_menu_row_shows_its_price ... ok
 test tests::each_store_is_served_at_its_route ... ok
+test tests::each_menu_row_shows_its_price ... ok
 test tests::follows::a_users_page_counts_who_follows_them ... ok
 test tests::follows::on_postgres_a_users_page_counts_who_follows_them ... ok
 test tests::follows::on_postgres_following_brings_their_posts_into_your_timeline ... ok
 test tests::follows::on_postgres_following_yourself_or_no_one_is_not_found ... ok
 test tests::follows::on_postgres_the_button_is_what_the_reader_is_to_the_user ... ok
-test tests::follows::following_brings_their_posts_into_your_timeline ... ok
 test tests::follows::following_yourself_or_no_one_is_not_found ... ok
+test tests::follows::following_brings_their_posts_into_your_timeline ... ok
 test tests::guestbook::a_commit_failing_after_its_rows_are_published_closes_the_tables ... ok
 test tests::guestbook::a_removed_entrys_number_is_never_given_again ... ok
 test tests::follows::the_button_is_what_the_reader_is_to_the_user ... ok
 test tests::every_event_a_commit_stages_is_consumed_once_delivered ... ok
 test tests::guestbook::a_render_reads_one_state_of_the_tables ... ok
-test tests::guestbook::a_signing_sent_twice_is_one_entry ... ok
-test tests::guestbook::each_digest_of_a_session_is_its_own_domains ... ok
 test tests::guestbook::a_signing_reaches_every_other_open_page_of_the_entries ... ok
+test tests::guestbook::each_digest_of_a_session_is_its_own_domains ... ok
+test tests::guestbook::a_signing_sent_twice_is_one_entry ... ok
 test tests::guestbook::an_entry_is_its_authors_alone_to_remove ... ok
 test tests::guestbook::an_outbox_that_refuses_a_signings_event_publishes_none_of_its_rows ... ok
-test tests::guestbook::the_composer_is_a_reader_with_an_accounts_alone ... ok
+test tests::guestbook::nothing_the_host_keeps_or_logs_holds_a_session_cookie ... ok
 test tests::inline_styles::a_build_that_does_not_say_so_keeps_its_links ... ok
 test tests::inline_styles::a_link_in_the_head_keeps_its_place_among_the_heads_styles ... ok
 test tests::inline_styles::a_link_that_says_more_than_its_address_keeps_them_all ... ok
 test tests::inline_styles::a_link_written_another_way_keeps_them_all ... ok
-test tests::guestbook::nothing_the_host_keeps_or_logs_holds_a_session_cookie ... ok
+test tests::guestbook::the_composer_is_a_reader_with_an_accounts_alone ... ok
 test tests::inline_styles::a_page_with_no_stylesheet_is_as_it_was ... ok
 test tests::inline_styles::a_pages_stylesheets_small_together_are_in_its_head_in_their_order ... ok
-test tests::guestbook::the_guestbook_is_served_from_the_tables_it_declares ... ok
+test tests::inline_styles::a_page_rendered_for_each_reader_keeps_its_links ... ok
 test tests::inline_styles::a_style_between_two_links_keeps_them_all ... ok
 test tests::inline_styles::a_style_of_the_pages_own_after_them_keeps_its_place ... ok
 test tests::inline_styles::a_style_of_the_pages_own_keeps_them_all_where_the_order_would_change ... ok
@@ -3045,10 +3163,10 @@ test tests::inline_styles::an_address_that_means_the_same_from_the_document_can_
 test tests::inline_styles::one_stylesheet_that_cannot_move_keeps_them_all ... ok
 test tests::inline_styles::stylesheets_exactly_at_the_bound_are_inlined ... ok
 test tests::inline_styles::stylesheets_too_large_together_stay_links ... ok
-test tests::inline_styles::a_page_rendered_for_each_reader_keeps_its_links ... ok
+test tests::guestbook::the_guestbook_is_served_from_the_tables_it_declares ... ok
 test tests::inline_styles::a_production_page_holds_its_stylesheets_and_its_policy_allows_them ... ok
-test tests::guestbook::the_guestbook_keeps_its_bound_and_its_page_is_measured_at_it ... ok
 test tests::interactions_kept_are_bounded_per_session ... ok
+test tests::guestbook::the_guestbook_keeps_its_bound_and_its_page_is_measured_at_it ... ok
 test tests::keep_alive::a_commands_body_read_whole_keeps_its_connection ... ok
 test tests::keep_alive::a_commit_is_told_after_its_answer_while_its_connection_is_kept ... ok
 test tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on ... ok
@@ -3061,12 +3179,12 @@ test tests::keep_alive::a_head_past_its_size_is_refused_and_closed ... ok
 test tests::keep_alive::a_folded_header_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed ... ok
 test tests::keep_alive::a_head_request_is_answered_with_no_body_and_closed ... ok
-test tests::keep_alive::a_kept_connection_is_closed_after_its_idle_wait ... ok
 test tests::keep_alive::a_kept_connections_answers_wait_on_no_acknowledgement ... ok
+test tests::keep_alive::a_kept_connection_is_closed_after_its_idle_wait ... ok
 test tests::keep_alive::a_second_answer_to_one_request_closes_its_connection ... ok
 test tests::keep_alive::a_request_answered_with_nothing_closes_its_connection ... ok
-test tests::keep_alive::a_head_that_trickles_past_its_deadline_is_refused_and_closed ... ok
 test tests::keep_alive::a_request_that_asks_to_close_is_answered_and_closed ... ok
+test tests::keep_alive::a_head_that_trickles_past_its_deadline_is_refused_and_closed ... ok
 test tests::keep_alive::a_streams_connection_is_closed_with_it ... ok
 test tests::keep_alive::an_answer_before_its_body_is_read_closes_the_connection ... ok
 test tests::keep_alive::an_http_1_0_request_is_answered_and_closed ... ok
@@ -3075,8 +3193,8 @@ test tests::keep_alive::the_keep_alive_header_says_the_idle_wait ... ok
 test tests::keep_alive::arming_a_drop_closes_the_kept_connections_waiting ... ok
 test tests::keep_alive::past_the_cap_an_answer_closes_its_connection ... ok
 test tests::keep_alive::requests_sent_together_are_answered_in_turn ... ok
-test tests::keep_alive::while_a_dropped_command_is_armed_no_answer_keeps_its_connection ... ok
 test tests::keep_alive::transfer_encoding_is_refused_and_its_connection_closed ... ok
+test tests::keep_alive::while_a_dropped_command_is_armed_no_answer_keeps_its_connection ... ok
 test tests::keep_alive::two_content_lengths_are_refused_and_closed ... ok
 test tests::keep_alive::whitespace_before_a_headers_colon_is_refused_and_closed ... ok
 test tests::keep_alive::the_next_request_waits_on_no_telling ... ok
@@ -3094,8 +3212,8 @@ test tests::kiokun::a_stubs_redirect_is_followed_to_the_entry_it_names ... ok
 test tests::kiokun::a_page_with_edrdg_data_acknowledges_the_group ... ok
 test tests::kiokun::a_word_too_long_to_be_a_file_name_is_not_found ... ok
 test tests::kiokun::an_app_without_its_label_table_is_refused ... ok
-test tests::kiokun::an_equivalent_forms_words_are_shown_on_the_canonical_page ... ok
 test tests::kiokun::a_word_kiokun_lacks_is_not_found ... ok
+test tests::kiokun::an_equivalent_forms_words_are_shown_on_the_canonical_page ... ok
 test tests::kiokun::an_equivalent_simplified_form_is_moved_to_its_traditional_page ... ok
 test tests::kiokun::appears_in_ranks_each_languages_words_ten_at_a_time ... ok
 test tests::kiokun::an_inflected_word_shows_the_dictionary_form_it_is ... ok
@@ -3129,11 +3247,11 @@ test tests::kiokun::the_word_page_shows_each_languages_words_as_kiokun_does ... 
 test tests::kiokun::what_kiokun_com_does_not_show_is_not_shown ... ok
 test tests::kiokun::what_kiokun_com_leaves_out_is_left_out ... ok
 test tests::kiokun::word_pages_with_long_lists_are_timed ... ignored, reads a kiokun-data checkout named by KIOKUN_DATA; a measurement, run by `just e14-kiokun-contains`
-test tests::kiokun::the_page_head_matches_kiokuns_answers_for_the_sample ... ok
+test tests::kiokun::a_unit_test_server_uses_the_sample_despite_deployment_paths ... ok
 test tests::longer_holds::a_held_poll_keeps_its_page_live ... ok
 test tests::longer_holds::a_host_holds_a_subscription_twenty_five_seconds ... ok
 test tests::longer_holds::a_long_hold_gives_its_place_back ... ok
-test tests::kiokun::a_unit_test_server_uses_the_sample_despite_deployment_paths ... ok
+test tests::kiokun::the_page_head_matches_kiokuns_answers_for_the_sample ... ok
 test tests::longer_holds::a_pages_next_request_tries_a_failed_regeneration_again ... ok
 test tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is ... ok
 test tests::longer_holds::a_poll_that_does_not_ask_is_not_held_long ... ok
@@ -3143,19 +3261,20 @@ test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hel
 test tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills ... ok
 test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold ... ok
 test tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_held_stream_keeps_its_page_live ... ok
 test tests::longer_holds::a_stream_that_asks_is_held_long ... ok
 test tests::longer_holds::a_streams_page_gone_ends_its_hold ... ok
-test tests::longer_holds::a_held_stream_keeps_its_page_live ... ok
 test tests::longer_holds::an_idle_poll_is_held_its_whole_hold ... ok
-test tests::materializations::a_document_that_reads_another_key_is_told_nothing ... ok
 test tests::materializations::a_change_makes_the_chain_again_in_its_order_and_tells_its_readers ... ok
+test tests::materializations::a_document_that_reads_another_key_is_told_nothing ... ok
 test tests::materializations::a_page_is_served_what_a_chain_derives_every_readers ... ok
 test tests::messages::a_follow_opens_the_composer_of_the_open_conversation ... ok
-test tests::materializations::an_entry_made_again_with_its_value_tells_no_one ... ok
 test tests::messages::a_message_drops_both_users_entries_alone ... ok
+test tests::materializations::an_entry_made_again_with_its_value_tells_no_one ... ok
 test tests::materializations::what_could_not_be_made_again_is_served_its_last_good_value ... ok
-test tests::messages::a_message_is_shown_on_both_sides_and_counted_for_its_recipient ... ok
+test tests::kiokun::deinflection_matches_kiokuns_answers_for_the_sample has been running for over 60 seconds
 test tests::messages::a_message_reaches_both_users_sessions_and_no_third_users ... ok
+test tests::messages::a_message_is_shown_on_both_sides_and_counted_for_its_recipient ... ok
 test tests::messages::on_postgres_a_follow_opens_the_composer_of_the_open_conversation ... ok
 test tests::messages::on_postgres_a_message_drops_both_users_entries_alone ... ok
 test tests::messages::on_postgres_a_message_is_shown_on_both_sides_and_counted_for_its_recipient ... ok
@@ -3164,7 +3283,6 @@ test tests::messages::on_postgres_a_third_user_signed_in_and_not_sees_none_of_it
 test tests::messages::on_postgres_reading_a_conversation_reaches_each_of_the_readers_sessions ... ok
 test tests::messages::on_postgres_who_may_message_whom_is_xs_rule ... ok
 test tests::messages::a_messages_text_is_held_to_its_length_where_it_arrives ... ok
-test tests::kiokun::deinflection_matches_kiokuns_answers_for_the_sample has been running for over 60 seconds
 test tests::messages::a_third_user_signed_in_and_not_sees_none_of_it ... ok
 test tests::messages::reading_a_conversation_reaches_each_of_the_readers_sessions ... ok
 test tests::messages::who_may_message_whom_is_xs_rule ... ok
@@ -3182,8 +3300,8 @@ test tests::notifications::on_postgres_reading_them_tells_no_other_users_page ..
 test tests::notifications::an_event_naming_a_user_drops_that_users_entries_alone ... ok
 test tests::notifications::another_users_session_sees_none_of_it ... ok
 test tests::notifications::ones_own_act_notifies_no_one ... ok
-test tests::notifications::reading_them_tells_no_other_users_page ... ok
 test tests::notifications::reading_them_reaches_each_of_the_readers_sessions ... ok
+test tests::notifications::reading_them_tells_no_other_users_page ... ok
 test tests::order_total::a_store_funded_discount_lowers_the_tax_and_a_platform_funded_one_does_not ... ok
 test tests::order_total::a_tip_is_never_taxed_and_never_a_default ... ok
 test tests::order_total::each_promo_refusal_is_by_name ... ok
@@ -3194,8 +3312,8 @@ test tests::order_total::the_order_is_charged_the_total_its_page_showed ... ok
 test tests::order_total::the_service_fee_is_clamped_at_its_least_and_its_most ... ok
 test tests::page_bundle::a_build_with_no_device_runtime_leaves_a_document_as_it_was ... ok
 test tests::page_bundle::a_bundle_is_one_of_what_a_delivery_digests ... ok
-test tests::page_bundle::a_build_that_does_not_say_so_names_no_module_and_serves_none ... ok
 test tests::order_total::the_small_order_fee_is_charged_under_its_threshold_and_not_at_it ... ok
+test tests::page_bundle::a_build_that_does_not_say_so_names_no_module_and_serves_none ... ok
 test tests::page_bundle::a_delivery_that_says_so_with_no_file_has_no_device_runtime ... ok
 test tests::page_bundle::a_file_its_delivery_does_not_name_is_no_device_runtime ... ok
 test tests::page_bundle::a_page_that_talks_to_no_server_fetches_its_code_beside_its_runtime ... ok
@@ -3217,26 +3335,26 @@ test tests::page_policy::a_streamed_document_carries_its_policy_in_its_head ... 
 test tests::page_policy::a_sign_in_at_another_origin_is_a_forms_to_reach ... ok
 test tests::page_policy::every_other_html_answer_runs_nothing ... ok
 test tests::page_policy::the_runtime_is_started_by_the_text_its_policy_hashes ... ok
-test tests::pages_read_at_once_each_ask_when_their_query_says_parallel ... ok
 test tests::page_policy::the_host_writes_no_style_attribute ... ok
+test tests::pages_read_at_once_each_ask_when_their_query_says_parallel ... ok
 test tests::prerender::a_browser_that_holds_a_representation_is_told_so ... ok
 test tests::prerender::a_gzip_trailers_checksum_is_crc_32 ... ok
-test tests::prerender::a_head_is_answered_as_its_get_is ... ok
 test tests::pages_read_at_once_share_an_ask_their_query_says_is_one_per_key ... ok
+test tests::prerender::a_head_is_answered_as_its_get_is ... ok
 test tests::page_policy::every_answers_type_is_its_type ... ok
 test tests::prerender::a_host_route_keeps_its_place ... ok
-test tests::prerender::a_page_that_does_not_render_stops_the_host ... ok
 test tests::prerender::a_page_someone_decides_is_as_it_was ... ok
+test tests::prerender::a_page_that_does_not_render_stops_the_host ... ok
 test tests::prerender::a_page_with_no_rows_is_the_same_bytes_as_a_request_would_have_been ... ok
-test tests::prerender::a_validator_is_the_first_128_bits_of_its_digest ... ok
 test tests::prerender::a_request_with_a_session_is_admitted_as_every_request_is ... ok
+test tests::prerender::a_validator_is_the_first_128_bits_of_its_digest ... ok
 test tests::prerender::a_versioned_build_says_its_delivery_and_names_its_files_at_it ... ok
-test tests::prerender::each_representation_holds_the_document ... ok
 test tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing ... ok
+test tests::prerender::each_representation_holds_the_document ... ok
 test tests::prerender::it_is_rendered_in_the_public_partition ... ok
 test tests::prerender::it_is_the_document_a_request_would_have_been_rendered ... ok
-test tests::prerender::nothing_is_one_document_until_it_is_rendered ... ok
 test tests::prerender::it_says_what_a_document_says_of_itself ... ok
+test tests::prerender::nothing_is_one_document_until_it_is_rendered ... ok
 test tests::prerender::what_it_says_of_itself_is_part_of_its_validator ... ok
 test tests::prerender::the_address_that_still_renders_is_as_it_was ... ok
 test tests::receiver_identity::a_local_receiver_getter_runs_instead_of_a_namesake_type_constructor ... ok
@@ -3248,8 +3366,8 @@ test tests::redirects::a_route_with_a_query_part_is_moved_by_its_path ... ok
 test tests::redirects::a_page_at_another_address_of_the_page_is_moved_there_for_good ... ok
 test tests::render_merge::a_deployment_states_its_renders_seats_or_its_host_is_refused ... ok
 test tests::render_merge::a_document_that_could_not_be_read_is_said_so_after_its_render ... ok
-test tests::redirects::a_temporary_move_is_answered_307 ... ok
 test tests::redirects::the_plan_carries_the_move_on_the_binding_that_can_answer_it ... ok
+test tests::redirects::a_temporary_move_is_answered_307 ... ok
 test tests::render_merge::a_feed_sessions_documents_are_read_in_one_render_each_identical_call_once ... ok
 test tests::render_merge::a_commits_documents_are_read_in_one_render_each_identical_call_once ... ok
 test tests::render_merge::on_postgres_a_deployments_seats_bound_its_renders_and_their_wait ... ok
@@ -3267,9 +3385,9 @@ test tests::render_merge::on_postgres_the_renders_bound_holds_under_many_renders
 test tests::render_merge::on_postgres_the_stores_snapshot_is_a_renders_read_transaction ... ok
 test tests::render_merge::the_memory_feeds_snapshot_is_the_feed_as_a_render_first_read_it ... ok
 test tests::render_merge::the_memory_stores_snapshot_is_the_store_as_a_render_first_read_it ... ok
-test tests::render_merge::a_render_reads_alone_what_a_commit_invalidated_since_it_began ... ok
-test tests::render_merge::a_renders_queries_each_note_what_the_clock_holds_them_until ... ok
 test tests::render_merge::a_session_whose_count_could_not_be_read_is_said_so_after_its_render ... ok
+test tests::render_merge::a_renders_queries_each_note_what_the_clock_holds_them_until ... ok
+test tests::render_merge::a_render_reads_alone_what_a_commit_invalidated_since_it_began ... ok
 test tests::render_merge::two_bindings_of_one_render_read_one_snapshot ... ok
 test tests::render_merge::two_renders_straddle_a_commit_between_them ... ok
 test tests::reviews::a_rating_is_told_to_the_pages_that_show_it ... ok
@@ -3282,12 +3400,12 @@ test tests::reviews::a_stores_mean_is_said_from_ten_ratings ... ok
 test tests::reviews::each_store_of_an_order_is_rated_once ... ok
 test tests::reviews::only_the_orders_owner_rates_it ... ok
 test tests::reviews::reviews_show_without_their_reviewer ... ok
+test tests::reviews::the_checker_keeps_the_reader_out_of_a_stores_shared_ratings ... ok
 test tests::reviews::the_latest_order_alone_is_rated ... ok
 test tests::reviews::the_layer_holds_its_rules_without_the_predicate ... ok
-test tests::reviews::the_checker_keeps_the_reader_out_of_a_stores_shared_ratings ... ok
 test tests::reviews::the_ratings_of_a_list_of_stores_are_read_at_once ... ok
-test tests::scheduled_memory::clock_jobs_do_not_retain_synthetic_presentations_or_private_query_values ... ok
 test tests::scheduled_memory::memory_cancellation_after_evaluation_is_fenced_before_publication ... ok
+test tests::scheduled_memory::clock_jobs_do_not_retain_synthetic_presentations_or_private_query_values ... ok
 test tests::scheduled_memory::memory_completion_refusal_rolls_back_publication_and_recovers ... ok
 test tests::scheduled_memory::memory_consumed_work_is_fenced_after_all_client_receipts_are_pruned ... ok
 test tests::scheduled_memory::memory_old_generation_does_not_execute_or_remove_its_replacement ... ok
@@ -3296,8 +3414,8 @@ test tests::scheduled_orders::a_cart_across_two_zones_is_offered_the_windows_bot
 test tests::scheduled_memory::memory_foreign_materializer_selection_is_not_rebound_to_another_server ... ok
 test tests::scheduled_orders::a_cart_of_two_stores_is_sent_by_its_longest_estimate ... ok
 test tests::scheduled_orders::a_readers_press_of_the_send_is_not_a_command ... ok
-test tests::scheduled_orders::a_second_order_waits_for_a_scheduled_one_to_be_sent ... ok
 test tests::scheduled_orders::a_cart_for_as_soon_as_possible_asks_no_estimate ... ok
+test tests::scheduled_orders::a_second_order_waits_for_a_scheduled_one_to_be_sent ... ok
 test tests::scheduled_orders::a_send_before_its_order_is_paid_places_nothing ... ok
 test tests::scheduled_orders::a_send_places_only_its_own_order ... ok
 test tests::scheduled_orders::a_stores_hours_offer_the_windows_it_is_open_at ... ok
@@ -3307,13 +3425,13 @@ test tests::scheduled_orders::a_time_the_hours_no_longer_cover_is_refused ... ok
 test tests::scheduled_orders::a_window_is_offered_exactly_where_an_order_for_as_soon_as_possible_is_taken_when_told ... ok
 test tests::scheduled_orders::a_time_no_longer_offered_is_refused_when_the_order_is_placed ... ok
 test tests::scheduled_orders::a_window_is_offered_where_its_store_takes_an_order_when_it_is_told ... ok
-test tests::scheduled_orders::an_order_for_a_time_is_taken_while_its_store_is_closed ... ok
-test tests::scheduled_orders::an_order_for_a_time_awaiting_its_payment_is_swept ... ok
 test tests::scheduled_orders::an_order_for_a_time_is_paid_now_and_its_page_says_when ... ok
+test tests::scheduled_orders::an_order_for_a_time_awaiting_its_payment_is_swept ... ok
 test tests::scheduled_orders::an_order_is_sent_its_estimates_most_and_five_minutes_before ... ok
+test tests::scheduled_orders::an_order_for_a_time_is_taken_while_its_store_is_closed ... ok
 test tests::scheduled_orders::estimates_read_together_preserve_each_stores_result ... ok
-test tests::scheduled_orders::hours_past_midnight_offer_windows_across_it ... ok
 test tests::scheduled_orders::an_order_is_sent_to_its_stores_when_its_preparation_is_due ... ok
+test tests::scheduled_orders::hours_past_midnight_offer_windows_across_it ... ok
 test tests::scheduled_orders::the_estimate_moves_the_windows ... ok
 test tests::scheduled_orders::the_page_of_times_is_held_until_the_first_windows_hour ... ok
 test tests::second_host::a_commit_is_told_once_on_each_host ... ok
@@ -3348,23 +3466,23 @@ test tests::second_host::outbox_ids_are_taken_in_commit_order ... ok
 test tests::second_host::signing_in_rotates_the_session_on_every_host ... ok
 test tests::second_host::the_feeds_schema_is_a_tests_setting ... ok
 test tests::scheduled_orders::the_page_of_times_lists_a_days_windows_and_its_days ... ok
-test tests::scheduled_orders::the_seeds_hours_offer_every_quarter_hour_from_an_hour_to_a_week_ahead ... ok
 test tests::scheduled_orders::the_time_chosen_is_kept_with_the_readers_choices ... ok
+test tests::scheduled_orders::the_seeds_hours_offer_every_quarter_hour_from_an_hour_to_a_week_ahead ... ok
 test tests::session_commands::a_logged_out_cookie_cannot_recall_an_old_page_receipt ... ok
 test tests::session_commands::a_reopened_cookie_cannot_borrow_or_reexecute_an_old_generations_receipt ... ok
 test tests::session_commands::an_admitted_memory_command_holds_authority_until_publication ... ok
 test tests::session_commands::an_initial_page_uses_its_admitted_reader_after_a_later_cache_installation ... ok
-test tests::session_commands::a_browser_order_helper_cannot_commit_as_a_revoked_admitted_reader ... ok
-test tests::session_commands::an_old_document_cannot_authorize_a_fresh_interaction_after_same_cookie_reopen ... ok
-test tests::session_commands::command_traces_disclose_only_bounded_outcome_metadata ... ok
 test tests::session_commands::an_unbound_legacy_receipt_refuses_without_returning_or_reexecuting_it ... ok
+test tests::session_commands::a_browser_order_helper_cannot_commit_as_a_revoked_admitted_reader ... ok
+test tests::session_commands::command_traces_disclose_only_bounded_outcome_metadata ... ok
+test tests::session_commands::an_old_document_cannot_authorize_a_fresh_interaction_after_same_cookie_reopen ... ok
 test tests::session_commands::another_cookie_cannot_recall_a_page_owners_committed_receipt ... ok
 test tests::session_commands::invalid_interaction_metadata_is_a_known_refusal_before_any_execution ... ok
-test tests::session_commands::memory_expiry_during_evaluation_rolls_back_rows_events_and_receipt ... ok
-test tests::session_commands::automatic_delivery_polls_do_not_renew_client_idle_time ... ok
 test tests::session_commands::logout_after_commit_refuses_private_delivery_without_claiming_rollback ... ok
-test tests::session_commands::one_render_does_not_merge_principal_operations_between_actor_generations ... ok
+test tests::session_commands::automatic_delivery_polls_do_not_renew_client_idle_time ... ok
+test tests::session_commands::memory_expiry_during_evaluation_rolls_back_rows_events_and_receipt ... ok
 test tests::session_commands::memory_revocation_before_fence_refuses_the_captured_actor_and_all_writes ... ok
+test tests::session_commands::one_render_does_not_merge_principal_operations_between_actor_generations ... ok
 test tests::session_commands::same_cookie_reopening_does_not_inherit_prior_interaction_acknowledgements_or_basis ... ok
 test tests::session_overlap::a_host_that_keeps_sessions_warms_and_its_warm_up_is_each_answered ... ok
 test tests::session_overlap::on_postgres_a_due_touch_is_skipped_under_a_commands_lock_and_made_once_free ... ok
@@ -3385,22 +3503,22 @@ test tests::session_revocation::a_logged_out_document_poll_receives_no_queued_pr
 test tests::session_revocation::a_logged_out_document_ndjson_receives_no_queued_private_frames ... ok
 test tests::session_revocation::a_new_actor_cannot_join_the_old_generations_private_read_in_flight ... ok
 test tests::session_revocation::a_new_actor_generation_cannot_reuse_the_old_private_session_query_cache ... ok
-test tests::session_revocation::a_stream_worker_keeps_its_render_actor_across_a_concurrent_account_change ... ok
 test tests::session_revocation::a_private_initial_document_cannot_finish_after_its_session_is_revoked ... ok
+test tests::session_revocation::a_stream_worker_keeps_its_render_actor_across_a_concurrent_account_change ... ok
+test tests::session_revocation::absolute_expiry_refuses_the_previously_queued_private_batch ... ok
 test tests::session_revocation::an_anonymous_render_never_borrows_a_transient_authenticated_actor ... ok
 test tests::session_revocation::an_anonymous_stream_worker_cannot_borrow_the_live_account ... ok
-test tests::session_revocation::absolute_expiry_refuses_the_previously_queued_private_batch ... ok
 test tests::session_revocation::generation_partitions_keep_wildcard_invalidation_and_session_cleanup_exact ... ok
-test tests::session_revocation::another_session_of_the_same_user_keeps_its_own_private_delivery ... ok
 test tests::session_revocation::an_explicit_anonymous_document_still_receives_its_public_feed ... ok
 test tests::session_revocation::idle_expiry_refuses_the_previously_queued_private_batch ... ok
+test tests::session_revocation::another_session_of_the_same_user_keeps_its_own_private_delivery ... ok
 test tests::session_revocation::internal_reads_and_inspections_do_not_renew_client_activity ... ok
 test tests::session_revocation::reopening_the_same_cookie_and_actor_cannot_rebind_its_old_document ... ok
 test tests::session_upload_authority::upload_http_dispatch_keeps_admitted_reader_when_same_cookie_is_reopened ... ok
 test tests::session_upload_reserved_routes::a_declared_upload_under_command_prefix_is_admitted_before_dispatch ... ok
-test tests::session_commands::tracing_an_actual_store_command_never_discloses_private_state ... ok
 test tests::session_upload_reserved_routes::a_declared_upload_at_stream_path_is_admitted_before_dispatch ... ok
 test tests::sign_in::a_callback_another_browser_started_is_refused ... ok
+test tests::session_commands::tracing_an_actual_store_command_never_discloses_private_state ... ok
 test tests::sign_in::a_command_from_another_origin_is_refused ... ok
 test tests::sign_in::a_control_is_shown_where_its_commands_predicate_holds ... ok
 test tests::sign_in::a_documents_answers_are_its_own_for_its_life ... ok
@@ -3409,9 +3527,9 @@ test tests::sign_in::a_page_holds_its_announcer_from_the_first_byte ... ok
 test tests::sign_in::a_post_and_a_reply_are_their_signed_in_authors ... ok
 test tests::sign_in::a_refusal_says_the_programs_words_for_its_predicate ... ok
 test tests::sign_in::a_refused_press_sent_again_is_refused_again ... ok
+test tests::sign_in::a_refusal_the_program_gives_no_words_is_told_in_the_deployments ... ok
 test tests::sign_in::a_predicate_the_deployment_cannot_evaluate_is_refused_at_start ... ok
 test tests::sign_in::a_session_is_no_one_until_a_provider_vouches_for_it ... ok
-test tests::sign_in::a_refusal_the_program_gives_no_words_is_told_in_the_deployments ... ok
 test tests::sign_in::an_answer_is_read_by_the_compilers_name_for_it ... ok
 test tests::sign_in::a_sign_in_rotates_the_session_and_the_old_one_is_no_one ... ok
 test tests::sign_in::a_signed_out_reader_reads_and_cannot_post ... ok
@@ -3421,10 +3539,10 @@ test tests::sign_in::on_postgres::each_feed_operation_answers_its_requests_sessi
 test tests::sign_in::on_postgres::nothing_kept_on_postgres_holds_a_session_cookie ... ok
 test tests::sign_in::each_feed_operation_answers_its_requests_session_alone ... ok
 test tests::sign_in::nothing_the_feed_keeps_holds_a_session_cookie ... ok
-test tests::sign_in::signing_out_forgets_the_principal ... ok
 test tests::sign_in::only_its_author_deletes_a_post ... ok
-test tests::sign_in::the_relying_party_answers_the_routes_the_compiler_knows ... ok
+test tests::sign_in::signing_out_forgets_the_principal ... ok
 test tests::sign_in::the_guest_models_reader_is_its_sessions_guest ... ok
+test tests::sign_in::the_relying_party_answers_the_routes_the_compiler_knows ... ok
 test tests::sign_in::the_development_provider_signs_up_and_in_through_the_flow ... ok
 test tests::sign_in::a_token_not_this_sign_ins_is_refused ... ok
 test tests::sign_in::two_users_pages_never_share_private_parts ... ok
@@ -3435,8 +3553,8 @@ test tests::store_accounts::a_join_past_a_bigint_is_refused_and_the_sign_in_comp
 test tests::store_accounts::a_signed_in_sessions_cart_is_not_joined_to_the_next_user ... ok
 test tests::store_accounts::a_retry_of_a_press_that_committed_is_answered_from_what_was_kept ... ok
 test tests::store_accounts::a_shared_entry_still_reaches_every_reader ... ok
-test tests::store_accounts::a_stale_press_is_refused_before_the_order_waits ... ok
 test tests::store_accounts::nothing_a_session_keyed_store_keeps_holds_a_session_cookie ... ok
+test tests::store_accounts::a_stale_press_is_refused_before_the_order_waits ... ok
 test tests::store_commands_carry_and_enforce_their_signed_in_precondition ... ok
 test tests::store_accounts::a_users_cart_reaches_each_of_their_sessions_and_no_one_elses ... ok
 test tests::store_accounts::an_order_is_no_other_users_to_read ... ok
@@ -3444,26 +3562,26 @@ test tests::store_accounts::two_users_carts_never_share_a_line ... ok
 test tests::store_hours::a_cut_off_across_midnight_and_a_store_that_never_closes ... ok
 test tests::store_hours::a_repeated_store_in_a_set_read_keeps_all_of_its_hours ... ok
 test tests::store_hours::a_day_the_clocks_go_forward ... ok
-test tests::store_hours::a_set_reads_back_ordered_the_last_of_each_kept ... ok
 test tests::store_hours::a_days_periods_are_taken_by_opening_whatever_the_order_listed ... ok
+test tests::store_hours::a_set_reads_back_ordered_the_last_of_each_kept ... ok
 test tests::store_hours::a_period_past_midnight_overlapping_the_next_days_is_one_span ... ok
 test tests::store_hours::a_store_page_is_told_at_the_closing_instant ... ok
-test tests::store_hours::a_special_date_closes_the_store ... ok
 test tests::store_hours::an_order_is_refused_past_the_last_order_and_while_closed ... ok
 test tests::store_hours::hours_a_store_cannot_have_are_refused ... ok
+test tests::store_hours::a_special_date_closes_the_store ... ok
+test tests::store_hours::the_home_page_and_a_search_show_each_stores_hours ... ok
 test tests::store_hours::the_hours_read_back_alike_on_this_layer ... ok
 test tests::store_hours::hours_run_past_midnight ... ok
-test tests::store_hours::the_home_page_and_a_search_show_each_stores_hours ... ok
 test tests::store_hours::overlapping_periods_are_open_as_their_union ... ok
-test tests::store_payments::a_code_an_order_taken_back_used_is_the_readers_again ... ok
 test tests::store_payments::a_card_declined_leaves_the_order_awaiting_and_the_payment_takes_another ... ok
 test tests::store_payments::a_card_paid_places_the_order_and_its_open_page_is_told ... ok
+test tests::store_payments::a_code_an_order_taken_back_used_is_the_readers_again ... ok
 test tests::store_payments::a_payment_for_an_order_the_reader_has_not_placed_changes_nothing ... ok
+test tests::store_payments::a_payment_paid_before_it_is_canceled_stands ... ok
 test tests::store_payments::a_provider_that_cannot_be_reached_places_nothing ... ok
 test tests::store_payments::a_providers_own_cancel_takes_the_order_back ... ok
-test tests::store_payments::a_payment_paid_before_it_is_canceled_stands ... ok
 test tests::store_payments::a_reader_takes_back_an_order_awaiting_its_payment ... ok
-test tests::store_payments::a_session_opened_on_a_readers_behalf_is_no_browsers_to_present ... ok
+test tests::store_payments::a_readers_press_of_the_settling_command_is_not_a_command ... ok
 test tests::store_pg::on_postgres_a_cart_change_commits_with_its_event_in_one_transaction ... ok
 test tests::store_pg::on_postgres_a_cart_change_reaches_the_sessions_open_page ... ok
 test tests::store_pg::on_postgres_a_refused_commit_commits_neither_its_state_nor_its_event ... ok
@@ -3485,47 +3603,47 @@ test tests::store_pg::on_postgres_the_database_provides_what_the_store_states ..
 test tests::store_pg::on_postgres_the_stores_schema_is_its_own_beside_the_feeds ... ok
 test tests::store_pg::on_postgres_the_two_layers_answer_alike ... ok
 test tests::store_pg::on_postgres_two_hosts_commit_a_run_once ... ok
-test tests::store_payments::a_readers_press_of_the_settling_command_is_not_a_command ... ok
+test tests::store_payments::a_session_opened_on_a_readers_behalf_is_no_browsers_to_present ... ok
 test tests::store_payments::an_order_awaits_its_payment_on_the_providers_page ... ok
 test tests::store_payments::an_order_no_longer_awaiting_its_payment_is_not_taken_back ... ok
 test tests::store_scheduled::a_command_that_answers_an_error_schedules_nothing ... ok
 test tests::store_scheduled::a_paid_order_is_not_swept_and_a_declined_card_keeps_its_sweep ... ok
 test tests::store_scheduled::a_readers_press_of_the_sweep_is_not_a_command ... ok
 test tests::store_scheduled::a_run_refused_runs_again_and_is_then_kept_failed ... ok
-test tests::store_scheduled::a_run_scheduled_again_moves ... ok
 test tests::store_scheduled::a_run_runs_at_its_time_on_its_schedulers_behalf_and_once ... ok
+test tests::store_scheduled::a_run_scheduled_again_moves ... ok
 test tests::store_scheduled::a_sweep_takes_back_only_its_own_order ... ok
 test tests::store_scheduled::an_order_no_one_pays_is_taken_back_thirty_minutes_on ... ok
+test tests::store_scheduled::an_order_swept_is_told_to_its_readers_open_page ... ok
 test tests::store_scheduled::an_order_taken_back_by_its_reader_is_not_swept ... ok
 test tests::store_scheduled::another_readers_scheduling_moves_no_run_of_mine ... ok
-test tests::store_scheduled::an_order_swept_is_told_to_its_readers_open_page ... ok
 test tests::store_search::a_menu_change_reaches_a_kept_search ... ok
+test tests::store_search::a_menu_change_tells_the_stores_page_once ... ok
 test tests::store_search::a_search_lists_the_stores_and_dishes_that_match ... ok
 test tests::store_search::a_search_lists_the_stores_that_reach_the_chosen_address ... ok
-test tests::store_search::a_menu_change_tells_the_stores_page_once ... ok
 test tests::store_search::a_stores_cuisine_is_shown_on_the_home_page_and_its_page ... ok
-test tests::store_search::no_text_fails_the_page ... ok
 test tests::store_search::an_open_search_page_is_told_of_a_menu_change ... ok
 test tests::store_search::case_is_ignored_and_accents_are_not ... ok
+test tests::store_search::no_text_fails_the_page ... ok
 test tests::tables::a_build_whose_row_names_a_handle_is_refused_where_it_is_served ... ok
 test tests::tables::a_command_that_does_not_commit_keeps_nothing ... ok
+test tests::store_search::the_search_is_at_its_routes_query ... ok
 test tests::tables::a_commits_rows_and_records_are_kept_together_or_not_at_all ... ok
 test tests::tables::a_guarded_command_writes_its_tables_once_its_predicate_holds ... ok
-test tests::tables::a_program_mixing_its_tables_with_a_hand_written_layer_is_refused ... ok
 test tests::tables::a_program_of_tables_declaring_an_upload_is_refused_where_it_is_served ... ok
-test tests::store_search::the_search_is_at_its_routes_query ... ok
-test tests::tables::a_run_on_a_readers_behalf_is_answered_their_account_and_never_their_session ... ok
+test tests::tables::a_program_mixing_its_tables_with_a_hand_written_layer_is_refused ... ok
 test tests::tables::a_program_that_declares_its_tables_is_served_by_the_generic_adapter ... ok
+test tests::tables::a_run_on_a_readers_behalf_is_answered_their_account_and_never_their_session ... ok
 test tests::tables::a_staged_write_is_invisible_until_its_commit ... ok
 test tests::tables::closed_tables_refuse_a_renders_remembered_operations ... ok
-test tests::tables::closed_tables_refuse_an_answer_closed_while_its_query_was_in_flight ... ok
 test tests::tables::closed_tables_refuse_cached_answers_outside_the_failed_commands_invalidations ... ok
-test tests::tables::each_components_host_map_holds_its_own_table_functions_alone ... ok
-test tests::the_commands_and_handlers_are_the_compilers ... ok
+test tests::tables::closed_tables_refuse_an_answer_closed_while_its_query_was_in_flight ... ok
 test tests::tables::closed_tables_refuse_fresh_and_last_known_good_materializations ... ok
+test tests::store_search::the_sentence_inside_its_arm_is_told_where_it_is ... ok
+test tests::the_commands_and_handlers_are_the_compilers ... ok
 test tests::the_delivery_id_changes_with_the_build_and_with_any_file ... ok
 test tests::the_compiled_command_carries_its_arguments_to_the_data_layer ... ok
-test tests::store_search::the_sentence_inside_its_arm_is_told_where_it_is ... ok
+test tests::tables::each_components_host_map_holds_its_own_table_functions_alone ... ok
 test tests::the_feed_is_served_by_the_host_its_data_the_deployments ... ok
 test tests::the_hosts_clock_moves_forward_as_a_test_says ... ok
 test tests::the_handler_table_says_whether_its_build_warms ... ok
@@ -3536,33 +3654,33 @@ test tests::the_feeds_page_opening_its_stream_is_not_told_to_reload ... ok
 test tests::the_store_renders_its_signals_at_their_first_values ... ok
 test tests::the_store_s_document_carries_its_signals ... ok
 test tests::the_store_and_each_item_say_what_they_are ... ok
-test tests::the_store_sends_its_slots_after_its_own_content ... ok
 test tests::the_store_moving_an_order_along_reaches_its_open_page ... ok
+test tests::the_store_sends_its_slots_after_its_own_content ... ok
 test tests::the_table_is_free_while_a_keyed_read_derives ... ok
-test tests::todomvc::no_host_holds_a_todo ... ok
 test tests::the_table_is_free_while_a_telling_derives ... ok
+test tests::todomvc::no_host_holds_a_todo ... ok
 test tests::todomvc::the_document_says_what_the_device_keeps ... ok
 test tests::todomvc::the_host_renders_the_default_and_hides_what_the_device_decides ... ok
 test tests::todomvc::the_page_has_the_templates_markup ... ok
 test tests::under_cancel_a_newer_key_stops_the_old_keys_read ... ok
-test tests::the_stores_are_the_home_page ... ok
 test tests::under_keep_the_new_key_is_read_after_the_old_one_ends ... ok
+test tests::the_stores_are_the_home_page ... ok
 test tests::under_supersede_the_old_keys_read_runs_on_unshown ... ok
 test tests::uploads::a_command_that_does_not_commit_gives_its_claim_back ... ok
 test tests::uploads::a_deleted_posts_image_is_not_served_and_its_blob_is_collected ... ok
 test tests::uploads::a_malformed_image_is_refused_over_http_without_staging ... ok
-test tests::uploads::an_attached_image_removed_is_forgotten ... ok
 test tests::uploads::a_photos_metadata_is_neither_kept_nor_served ... ok
+test tests::uploads::an_attached_image_removed_is_forgotten ... ok
 test tests::uploads::an_image_attached_is_posted_with_its_post_and_served ... ok
 test tests::uploads::on_postgres_a_deleted_posts_image_is_not_served_and_its_blob_is_collected ... ok
 test tests::uploads::on_postgres_an_attached_image_removed_is_forgotten ... ok
 test tests::uploads::on_postgres_an_image_is_kept_with_its_post ... ok
 test tests::uploads::on_postgres_posting_an_image_with_none_attached_commits_nothing ... ok
-test tests::uploads::an_uploads_connection_is_closed_after_its_answer ... ok
 test tests::uploads::an_upload_is_read_within_its_own_limits_not_a_commands ... ok
+test tests::uploads::an_uploads_connection_is_closed_after_its_answer ... ok
 test tests::uploads::one_signed_out_attaches_nothing ... ok
-test tests::uploads::what_is_not_an_image_is_refused_whatever_it_is_called ... ok
 test tests::uploads::posting_an_image_with_none_attached_commits_nothing ... ok
+test tests::uploads::what_is_not_an_image_is_refused_whatever_it_is_called ... ok
 test uploads::icc::tests::a_profile_keeps_its_colour_and_names_nothing ... ok
 test uploads::icc::tests::a_profile_that_does_not_parse_is_not_kept ... ok
 test uploads::icc::tests::a_profiles_producer_signatures_are_not_kept ... ok
@@ -3681,7 +3799,7 @@ test uploads::strip::tests::any_bytes_are_refused_or_kept_and_kept_again_unchang
 test tests::what_a_shared_cache_keeps_holds_nothing_a_session_put_in_it ... ok
 test tests::sustained_load_leaves_the_server_bounded has been running for over 60 seconds
 test tests::sustained_load_leaves_the_server_bounded ... ok
-test result: ok. 1039 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 623.01s
+test result: ok. 1039 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 634.93s
 
 NOT CLAIMED: captures are a patched part. An element carries what its
 handler reads as rendered; the store reads only item.id, the loop key.

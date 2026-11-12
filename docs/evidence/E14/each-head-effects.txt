@@ -1,39 +1,39 @@
 ADR-0345 - an each head's list and key are expressions every walker of a view reads
 
 produced by: just e14-each-head-effects
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the holes, and the neighbours that stay accepted (compiler/pw-core/tests/each_head_effects.rs)
 
-test a_member_read_from_a_computed_lists_row_is_found ... ok
 test a_list_read_through_an_effectful_member_is_refused ... ok
+test a_member_read_from_a_computed_lists_row_is_found ... ok
 test a_dialog_in_a_loop_over_a_modules_signal_is_shown_by_it ... ok
 test a_loop_over_what_a_view_may_read_is_accepted ... ok
 test an_effect_in_a_nested_each_head_is_refused ... ok
 test marko_reads_a_list_from_a_parameter_from_input ... ok
+test a_secret_reached_through_a_computed_list_is_refused ... ok
 test an_effect_in_an_each_key_is_refused_at_the_key ... ok
 test an_effectful_call_in_an_each_head_is_refused_at_the_head ... ok
-test a_secret_reached_through_a_computed_list_is_refused ... ok
-test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.74s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.90s
 
 == every analysis at every position (compiler/pw-core/tests/view_positions.rs)
 
 test node_exprs_finds_each_position_where_it_is_written ... ok
 test every_analysis_reads_every_position ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.51s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.21s
 
 == the readers the change reached (each_heads, template_values, template_text, dialogs, marko_adapter, lexical_scope, every_name_resolves, session_to_browser)
 
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.33s
-test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
-test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.03s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.41s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.48s
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.34s
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.34s
 test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.51s
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.22s
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.37s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.65s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.50s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.03s
 
 == the corpus at C26 (corpus-check, corpus_history.rs, generality.rs, checking_source.rs)
 
@@ -42,9 +42,9 @@ accepted: 44/44 charter §16 categories covered
 rejected: 97 files
 rejected: 97/97 charter §16 categories covered
 corpus-check: OK
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 130.95s
-test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.48s
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 126.86s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 169.62s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.91s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 165.11s
 
 == mutation controls (scripts/each_head_effects_mutations.py)
 

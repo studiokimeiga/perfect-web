@@ -225,7 +225,9 @@ fn a_value_computed_from_a_signal_is_the_browsers_and_its_first_the_hosts() {
             "{source}"
         );
     }
-    assert!(source.contains("BigInt(Array.from(v0).length)"), "{source}");
+    // A length is a number, as an `Int` within ±2^53 is (ADR-0433).
+    assert!(source.contains("Array.from(v0).length"), "{source}");
+    assert!(!source.contains("BigInt(Array.from"), "{source}");
     // The thread page's, since its reply form (ADR-0231): its button's
     // `disabled`, from the reply's draft, alone.
     let thread = plan_of(&b, "feed.app.PostPage~ui");
@@ -288,7 +290,8 @@ fn an_attribute_and_a_views_field_of_a_signal_are_computed_as_well() {
         .and_then(|c| c.module.as_ref().ok())
         .expect("the page's module");
     assert_eq!(source.matches("(j) => f").count(), 2, "{source}");
-    // An `Int` is held in its wire form, and decoded for the function.
+    // An `Int` is held in its wire form, which is the function's: it is
+    // read as it is (ADR-0433).
     let b = build(&page("<p>{count * 2}</p>")).unwrap_or_else(|e| panic!("{e}"));
     let source = b
         .computed
@@ -296,7 +299,7 @@ fn an_attribute_and_a_views_field_of_a_signal_are_computed_as_well() {
         .find(|c| c.page == "t.P~ui")
         .and_then(|c| c.module.as_ref().ok())
         .expect("the page's module");
-    assert!(source.contains("(j) => f0(BigInt(j))"), "{source}");
+    assert!(source.contains("(j) => f0(j)"), "{source}");
     // Control: the same values read as they are compute nothing.
     let b = build(&page("<p title={panel.label}>{open}</p>")).unwrap_or_else(|e| panic!("{e}"));
     assert!(
@@ -306,6 +309,44 @@ fn an_attribute_and_a_views_field_of_a_signal_are_computed_as_well() {
             .all(|l| l.derived.is_empty())
     );
     assert!(b.computed.is_empty(), "{:?}", b.computed);
+}
+
+/// **A signal the wire holds otherwise than the module is decoded for its
+/// function** (ADR-0433): the `()` of a `Result<(), String>` is nothing on
+/// the wire and `undefined` in the module, so its case is read from the wire
+/// case by case. An `Int`, a record of them or a list is read as it is. No
+/// handler writes such a signal yet, the wire carrying no `()`: its first
+/// value is the one decoded.
+#[test]
+fn a_signal_the_wire_holds_otherwise_is_decoded_for_its_function() {
+    let files = program(&[(
+        "t.pw",
+        "module t\n\n\
+         fn said(r: Result<(), String>) -> String !{} {\n    match r {\n        \
+         Ok(_) => \"saved\",\n        Err(why) => why,\n    }\n}\n\n\
+         page P() {\n    route \"/p\"\n    cache private\n\n    \
+         signal outcome: Result<(), String> = Err(\"unsaved\")\n\n    \
+         view {\n        <title>P</title>\n        <main>\n            \
+         <p>{said(outcome)}</p>\n        </main>\n    }\n}\n"
+            .to_string(),
+    )]);
+    let b = built(&files);
+    let source = b
+        .computed
+        .iter()
+        .find(|c| c.page == "t.P~ui")
+        .and_then(|c| c.module.as_ref().ok())
+        .expect("the page's module");
+    // The function is given the module's case, its `()` read as `undefined`.
+    assert!(
+        source.contains(
+            "(j) => f0(((c) => { switch (c.$case) { case \"ok\": return { $case: \"ok\", value: \
+             undefined };"
+        ),
+        "{source}"
+    );
+    // Control: not the wire's value as it is.
+    assert!(!source.contains("(j) => f0(j)"), "{source}");
 }
 
 #[test]

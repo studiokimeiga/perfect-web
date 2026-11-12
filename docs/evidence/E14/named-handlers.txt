@@ -1,8 +1,8 @@
 ADR-0199 - a function or a command named as a handler is the lambda that calls it
 
 produced by: just e14-named-handlers
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
@@ -15,22 +15,22 @@ test a_named_handler_is_built_with_an_identity_and_a_module ... ok
 test a_command_named_as_a_handler_is_compiled_as_the_lambda_that_calls_it ... ok
 test a_name_that_is_no_function_or_command_is_refused_when_checked ... ok
 test a_named_handler_is_held_to_its_event_by_any_path ... ok
-test a_named_handlers_identity_is_what_its_name_resolves_to ... ok
 test a_named_handler_is_given_its_event ... ok
+test a_named_handlers_identity_is_what_its_name_resolves_to ... ok
 test a_named_handler_is_named_as_its_lambda_forms_call_is ... ok
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 32.83s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 32.29s
 
 == what it performs, and a local (handlers_in_the_browser.rs, every_handler_is_resumable.rs)
 
 test a_handler_performs_only_what_the_browser_may ... ok
 test a_function_named_as_a_handler_performs_only_what_the_browser_may ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.96s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.94s
 test a_handler_named_by_a_local_is_refused_when_checked ... ok
 test a_listed_capture_is_still_held_to_what_the_handler_reads ... ok
 test an_event_part_with_no_code_is_refused_at_build ... ok
 test a_handler_written_as_a_lambda_has_code ... ok
 test a_handler_captures_what_it_reads_of_the_page ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 27.96s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 28.35s
 
 == mutation controls (scripts/named_handlers_mutations.py)
 

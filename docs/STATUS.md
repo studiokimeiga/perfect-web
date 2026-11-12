@@ -2,6 +2,29 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**Trains 27 and 28, 2026-11-12:** on train-26, landing together. A list's
+rows are made as they changed (ADR-0432): an update, a list made from none
+and rows added at its end change the rows in place and put the new ones in
+after them as one; a list replaced or cleared goes at once; a planned row is
+a plain object, its text written when first read. An `Int` is a number in a
+browser's module, as on its wire, and a value the page holds is read as it
+is (ADR-0433): no handler copies a list to read it or to write it, and a row
+it leaves alone is the very object it read. The two builds of the large list
+and train-26's visited in turn by the head-to-head's own visit, eleven rounds
+a cell: every press of a cold visit 9.5 ms quicker in Chromium and 61.6
+under Slow 4G, a warm visit's within the rounds' spread, and a warm append's
+frame later in some rounds, its cause not found (NEXT). TodoMVC's document
+128 bytes lighter with Brotli and 1,286 decoded; the large list's 134
+heavier with Brotli and 74 decoded. The head-to-head at `8096c4e7`: Pleris
+behind in 31 rows and best in 80 (52 and 86 at `87446c10`), the large list's
+presses behind in 11 where they were in 29; most of the rows no longer
+losses are so because this run's spreads overlap, the other stacks slower in
+it too, not because Pleris passed them (ADR-0433's result). Train-30 with
+them, after their full verify: a planned row's handlers are noted on their
+element, not in a weak map (ADR-0435), the runtime 48 bytes lighter with
+Brotli and "create 1,000 rows" 3.4 ms quicker cold in Chromium. A page's own
+code rendering its templates is proposed (ADR-0434), nothing of it built.
+
 **Train-26, 2026-11-11:** on train-25. A failure the runtime recovers from is
 told the developer (ADR-0431), as the platform tells an error nothing
 caught (`reportError`): a press that failed, the page's or a speculation's

@@ -1,31 +1,31 @@
 ADR-0051 - an early return, ?, and for loops compile
 
 produced by: just e10-control-flow
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
 == compiled bodies through the host (pw-conformance/tests/control_flow.rs)
 
-test a_callee_that_returns_early_returns_from_itself ... ok
 test a_branch_that_returns_takes_the_other_branchs_type ... ok
+test a_callee_that_returns_early_returns_from_itself ... ok
 test a_question_mark_returns_the_failure ... ok
 test a_read_is_a_copy_a_later_assignment_does_not_change ... ok
 test a_loop_updates_a_mutable_binding ... ok
 test a_return_leaves_a_loop_and_the_body ... ok
 test a_return_leaves_the_body_early ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.89s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.91s
 
 == what may be assigned (compiler/pw-core/tests/assignments.rs)
 
-test a_binding_without_mut_is_not ... ok
 test a_let_mut_binding_is_assigned ... ok
 test a_module_level_let_mut_is_assigned_and_a_let_is_not ... ok
+test a_binding_without_mut_is_not ... ok
 test a_parameter_and_a_loop_variable_are_not ... ok
-test the_innermost_binding_decides ... ok
 test an_assignment_keeps_the_bindings_type ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test the_innermost_binding_decides ... ok
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
 == the component and the JavaScript module, on the same arguments
 

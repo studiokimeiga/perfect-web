@@ -4,56 +4,91 @@ function trap(what) {
   throw new Error("trap: " + what);
 }
 
-// An Int is 64 bits, and a result that does not fit traps (ADR-0039):
-// one that 64 bits wrap is not itself (ADR-0427).
-function int(v) {
+// An Int is a number within 2^53 of zero and a BigInt past it, 64 bits
+// at most (ADR-0039, ADR-0433): one form for each value, so that two
+// equal ones are `===`, and the form JSON gives each Int it carries. A
+// result 64 bits do not hold traps: one they wrap is not itself.
+function big(v) {
   if (BigInt.asIntN(64, v) !== v) trap("Int overflow");
-  return v;
+  return v >= -9007199254740992n && v <= 9007199254740992n ? Number(v) : v;
 }
 
-// Euclidean: the remainder is in [0, |b|), so -7 / 2 is -4.
+// Two numbers' sum, difference or product is exact where it is a safe
+// integer, the nearest double to one past 2^53 - 1 being at least 2^53;
+// past that it is made again as a BigInt.
+function add(a, b) {
+  if (typeof a === "number" && typeof b === "number") {
+    const r = a + b;
+    if (r >= -9007199254740991 && r <= 9007199254740991) return r;
+  }
+  return big(BigInt(a) + BigInt(b));
+}
+
+// A product of 0 is 0, never -0.
+function mul(a, b) {
+  if (typeof a === "number" && typeof b === "number") {
+    const r = a * b;
+    if (r >= -9007199254740991 && r <= 9007199254740991) return r + 0;
+  }
+  return big(BigInt(a) * BigInt(b));
+}
+
+// Euclidean: the remainder is in [0, |b|), so -7 / 2 is -4. Exact on two
+// numbers: `a % b` is, and `a - a % b` is a multiple of `b` no larger
+// than `a`, so their quotient is the whole number it is.
 function div(a, b) {
-  if (b === 0n) trap("division by zero");
-  let q = a / b;
-  if (a % b < 0n) q = b > 0n ? q - 1n : q + 1n;
-  return int(q);
+  if (b == 0) trap("division by zero");
+  if (typeof a === "number" && typeof b === "number") {
+    const r = a % b;
+    const q = (a - r) / b;
+    return (r < 0 ? (b > 0 ? q - 1 : q + 1) : q) + 0;
+  }
+  const x = BigInt(a), y = BigInt(b);
+  let q = x / y;
+  if (x % y < 0n) q = y > 0n ? q - 1n : q + 1n;
+  return big(q);
 }
 
 function rem(a, b) {
-  if (b === 0n) trap("division by zero");
-  const r = a % b;
-  return r < 0n ? (b > 0n ? r + b : r - b) : r;
+  if (b == 0) trap("division by zero");
+  if (typeof a === "number" && typeof b === "number") {
+    const r = a % b;
+    return (r < 0 ? (b > 0 ? r + b : r - b) : r) + 0;
+  }
+  const x = BigInt(a), y = BigInt(b);
+  const r = x % y;
+  return big(r < 0n ? (y > 0n ? r + y : r - y) : r);
 }
 
 function codepoints(s) {
-  return Array.from(s, (c) => BigInt(c.codePointAt(0)));
+  return Array.from(s, (c) => c.codePointAt(0));
 }
 
 // A value that is not a Unicode scalar value traps (ADR-0040).
 function from_codepoints(points) {
   let s = "";
   for (const p of points) {
-    if (p < 0n || p > 0x10FFFFn || (p >= 0xD800n && p <= 0xDFFFn)) trap("not a Unicode scalar value");
-    s += String.fromCodePoint(Number(p));
+    if (p < 0 || p > 0x10FFFF || (p >= 0xD800 && p <= 0xDFFF)) trap("not a Unicode scalar value");
+    s += String.fromCodePoint(p);
   }
   return s;
 }
 
 export function run(v0) {
   const v4 = codepoints(v0);
-  const v5 = 0n;
+  const v5 = 0;
   const v13 = v4.reduce((v6, v7) => {
-    const v8 = 31n;
-    const v9 = int(v6 * v8);
-    const v10 = int(v9 + v7);
-    const v11 = 4294967296n;
+    const v8 = 31;
+    const v9 = mul(v6, v8);
+    const v10 = add(v9, v7);
+    const v11 = 4294967296;
     const v12 = rem(v10, v11);
     return v12;
   }, v5);
   const v14 = codepoints(v0);
   const v122 = v14.filter((v15) => {
-    const v16 = 19968n;
-    const v17 = 40959n;
+    const v16 = 19968;
+    const v17 = 40959;
     const v19 = v15 >= v16;
     let v22;
     if (v19) {
@@ -68,8 +103,8 @@ export function run(v0) {
       const v30 = true;
       v31 = v30;
     } else {
-      const v23 = 13312n;
-      const v24 = 19903n;
+      const v23 = 13312;
+      const v24 = 19903;
       const v26 = v15 >= v23;
       let v29;
       if (v26) {
@@ -86,8 +121,8 @@ export function run(v0) {
       const v39 = true;
       v40 = v39;
     } else {
-      const v32 = 131072n;
-      const v33 = 173791n;
+      const v32 = 131072;
+      const v33 = 173791;
       const v35 = v15 >= v32;
       let v38;
       if (v35) {
@@ -104,8 +139,8 @@ export function run(v0) {
       const v48 = true;
       v49 = v48;
     } else {
-      const v41 = 173824n;
-      const v42 = 177983n;
+      const v41 = 173824;
+      const v42 = 177983;
       const v44 = v15 >= v41;
       let v47;
       if (v44) {
@@ -122,8 +157,8 @@ export function run(v0) {
       const v57 = true;
       v58 = v57;
     } else {
-      const v50 = 177984n;
-      const v51 = 178207n;
+      const v50 = 177984;
+      const v51 = 178207;
       const v53 = v15 >= v50;
       let v56;
       if (v53) {
@@ -140,8 +175,8 @@ export function run(v0) {
       const v66 = true;
       v67 = v66;
     } else {
-      const v59 = 178208n;
-      const v60 = 183983n;
+      const v59 = 178208;
+      const v60 = 183983;
       const v62 = v15 >= v59;
       let v65;
       if (v62) {
@@ -158,8 +193,8 @@ export function run(v0) {
       const v75 = true;
       v76 = v75;
     } else {
-      const v68 = 183984n;
-      const v69 = 191471n;
+      const v68 = 183984;
+      const v69 = 191471;
       const v71 = v15 >= v68;
       let v74;
       if (v71) {
@@ -176,8 +211,8 @@ export function run(v0) {
       const v84 = true;
       v85 = v84;
     } else {
-      const v77 = 196608n;
-      const v78 = 201551n;
+      const v77 = 196608;
+      const v78 = 201551;
       const v80 = v15 >= v77;
       let v83;
       if (v80) {
@@ -194,8 +229,8 @@ export function run(v0) {
       const v93 = true;
       v94 = v93;
     } else {
-      const v86 = 201552n;
-      const v87 = 205743n;
+      const v86 = 201552;
+      const v87 = 205743;
       const v89 = v15 >= v86;
       let v92;
       if (v89) {
@@ -212,8 +247,8 @@ export function run(v0) {
       const v102 = true;
       v103 = v102;
     } else {
-      const v95 = 191472n;
-      const v96 = 192095n;
+      const v95 = 191472;
+      const v96 = 192095;
       const v98 = v15 >= v95;
       let v101;
       if (v98) {
@@ -230,8 +265,8 @@ export function run(v0) {
       const v111 = true;
       v112 = v111;
     } else {
-      const v104 = 63744n;
-      const v105 = 64255n;
+      const v104 = 63744;
+      const v105 = 64255;
       const v107 = v15 >= v104;
       let v110;
       if (v107) {
@@ -248,8 +283,8 @@ export function run(v0) {
       const v120 = true;
       v121 = v120;
     } else {
-      const v113 = 194560n;
-      const v114 = 195103n;
+      const v113 = 194560;
+      const v114 = 195103;
       const v116 = v15 >= v113;
       let v119;
       if (v116) {
@@ -263,51 +298,51 @@ export function run(v0) {
     }
     return v121;
   });
-  const v123 = BigInt(v122.length);
-  const v124 = 0n;
+  const v123 = v122.length;
+  const v124 = 0;
   const v125 = v123 === v124;
   let v160;
   if (v125) {
     const v126 = "non-han-";
-    const v127 = 4n;
+    const v127 = 4;
     const v128 = rem(v13, v127);
-    const v129 = 1n;
-    const v130 = int(v128 + v129);
+    const v129 = 1;
+    const v130 = add(v128, v129);
     const v131 = v130.toString();
     const v132 = "" + v126 + v131;
     v160 = v132;
   } else {
-    const v133 = 1n;
+    const v133 = 1;
     const v134 = v123 === v133;
     let v159;
     if (v134) {
       const v135 = "han-1char-";
-      const v136 = 8n;
+      const v136 = 8;
       const v137 = rem(v13, v136);
-      const v138 = 1n;
-      const v139 = int(v137 + v138);
+      const v138 = 1;
+      const v139 = add(v137, v138);
       const v140 = v139.toString();
       const v141 = "" + v135 + v140;
       v159 = v141;
     } else {
-      const v142 = 2n;
+      const v142 = 2;
       const v143 = v123 === v142;
       let v158;
       if (v143) {
         const v144 = "han-2char-";
-        const v145 = 8n;
+        const v145 = 8;
         const v146 = rem(v13, v145);
-        const v147 = 1n;
-        const v148 = int(v146 + v147);
+        const v147 = 1;
+        const v148 = add(v146, v147);
         const v149 = v148.toString();
         const v150 = "" + v144 + v149;
         v158 = v150;
       } else {
         const v151 = "han-3plus-";
-        const v152 = 8n;
+        const v152 = 8;
         const v153 = rem(v13, v152);
-        const v154 = 1n;
-        const v155 = int(v153 + v154);
+        const v154 = 1;
+        const v155 = add(v153, v154);
         const v156 = v155.toString();
         const v157 = "" + v151 + v156;
         v158 = v157;
@@ -317,43 +352,43 @@ export function run(v0) {
     v160 = v159;
   }
   const v163 = codepoints(v0);
-  const v164 = 0n;
+  const v164 = 0;
   const v172 = v163.reduce((v165, v166) => {
-    const v167 = 31n;
-    const v168 = int(v165 * v167);
-    const v169 = int(v168 + v166);
-    const v170 = 4294967296n;
+    const v167 = 31;
+    const v168 = mul(v165, v167);
+    const v169 = add(v168, v166);
+    const v170 = 4294967296;
     const v171 = rem(v169, v170);
     return v171;
   }, v164);
-  const v173 = 256n;
+  const v173 = 256;
   const v174 = rem(v172, v173);
-  const v175 = 16n;
+  const v175 = 16;
   const v176 = div(v174, v175);
-  const v178 = 10n;
+  const v178 = 10;
   const v179 = v176 < v178;
   let v184;
   if (v179) {
-    const v180 = 48n;
-    const v181 = int(v180 + v176);
+    const v180 = 48;
+    const v181 = add(v180, v176);
     v184 = v181;
   } else {
-    const v182 = 87n;
-    const v183 = int(v182 + v176);
+    const v182 = 87;
+    const v183 = add(v182, v176);
     v184 = v183;
   }
-  const v185 = 16n;
+  const v185 = 16;
   const v186 = rem(v174, v185);
-  const v188 = 10n;
+  const v188 = 10;
   const v189 = v186 < v188;
   let v194;
   if (v189) {
-    const v190 = 48n;
-    const v191 = int(v190 + v186);
+    const v190 = 48;
+    const v191 = add(v190, v186);
     v194 = v191;
   } else {
-    const v192 = 87n;
-    const v193 = int(v192 + v186);
+    const v192 = 87;
+    const v193 = add(v192, v186);
     v194 = v193;
   }
   const v195 = [v184, v194];

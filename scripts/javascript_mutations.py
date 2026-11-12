@@ -35,8 +35,8 @@ MUTANTS = [
     (
         "String.length counts UTF-16 units",
         JS,
-        'format!("BigInt(Array.from({}).length)", arg(0))',
-        'format!("BigInt({}.length)", arg(0))',
+        'format!("Array.from({}).length", arg(0))',
+        'format!("{}.length", arg(0))',
     ),
     (
         "an Int does not trap on overflow",
@@ -92,21 +92,34 @@ MUTANTS = [
         "",
     ),
     (
-        "`/` truncates toward zero, as BigInt's does",
+        # Two ways since ADR-0433: on two numbers, and past 2^53.
+        "`/` truncates toward zero, as a number's does",
         JS,
-        "if (a % b < 0n) q = b > 0n ? q - 1n : q + 1n;",
+        "return (r < 0 ? (b > 0 ? q - 1 : q + 1) : q) + 0;",
+        "return q + 0;",
+    ),
+    (
+        "`/` past 2^53 truncates toward zero, as BigInt's does",
+        JS,
+        "if (x % y < 0n) q = y > 0n ? q - 1n : q + 1n;",
         "/* truncated */",
     ),
     (
-        "`%` takes the dividend's sign, as BigInt's does",
+        "`%` takes the dividend's sign, as a number's does",
         JS,
-        "return r < 0n ? (b > 0n ? r + b : r - b) : r;",
-        "return r;",
+        "return (r < 0 ? (b > 0 ? r + b : r - b) : r) + 0;",
+        "return r + 0;",
+    ),
+    (
+        "`%` past 2^53 takes the dividend's sign, as BigInt's does",
+        JS,
+        "return big(r < 0n ? (y > 0n ? r + y : r - y) : r);",
+        "return big(r);",
     ),
     (
         "from_codepoints accepts surrogates",
         JS,
-        " || (p >= 0xD800n && p <= 0xDFFFn)",
+        " || (p >= 0xD800 && p <= 0xDFFF)",
         "",
     ),
     (
@@ -118,13 +131,13 @@ MUTANTS = [
     (
         "List.get reads one past the end",
         JS,
-        "{i} >= 0n && {i} < BigInt({xs}.length)",
-        "{i} >= 0n && {i} <= BigInt({xs}.length)",
+        "{i} >= 0 && {i} < {xs}.length",
+        "{i} >= 0 && {i} <= {xs}.length",
     ),
     (
         "List.take reads a negative count from the end",
         JS,
-        "{n} < 0n ? 0 : ",
+        "{n} < 0 ? 0 : ",
         "",
     ),
 ]

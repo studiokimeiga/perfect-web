@@ -3,7 +3,7 @@
 export const name = "";
 export const handler = "029fa6a984724f1c";
 export async function run(context) {
-  const v0 = ((o) => ({ "value": o["value"] }))(context.event);
+  const v0 = context.event;
   const v1 = v0["value"];
   context.set("code", v1);
   const v2 = undefined;

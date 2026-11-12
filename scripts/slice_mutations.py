@@ -60,7 +60,7 @@ MUTANTS = [
     (
         "the module clamps no negative bound",
         JS,
-        "const clamp = (i) => (i < 0n ? 0n : i > n ? n : i);",
+        "const clamp = (i) => (i < 0 ? 0 : i > n ? n : i);",
         "const clamp = (i) => (i > n ? n : i);",
     ),
     (
@@ -138,8 +138,8 @@ MUTANTS = [
         # no assertion counted it).
         "the module's range starts at zero",
         JS,
-        "out[k] = start + BigInt(k);",
-        "out[k] = BigInt(k);",
+        "out[k] = start + k;",
+        "out[k] = k;",
     ),
     # `List.swap`.
     (
@@ -171,14 +171,14 @@ MUTANTS = [
     (
         "the module swaps the list it was given",
         JS,
-        "const out = [...xs];\\n  const a = Number(i);",
-        "const out = xs;\\n  const a = Number(i);",
+        "const out = [...xs];\\n  [out[i], out[j]] = [out[j], out[i]];",
+        "const out = xs;\\n  [out[i], out[j]] = [out[j], out[i]];",
     ),
     (
         "the module takes a negative place",
         JS,
-        "if (i < 0n || j < 0n || i >= n || j >= n) return xs;",
-        "if (i >= n || j >= n) return xs;",
+        "if (i < 0 || j < 0 || i >= xs.length || j >= xs.length) return xs;",
+        "if (i >= xs.length || j >= xs.length) return xs;",
     ),
 ]
 
