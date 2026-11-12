@@ -135,6 +135,15 @@ MUTANTS = [
     ("the server's false boolean attribute leaves its space", SERVER, """            } else if out.ends_with(' ') {\n""", """            } else if false {\n"""),
     ("the server takes a new list's repeated key", SERVER, """        if !seen.insert(raw.clone()) {\n""", """        if !seen.insert(raw.clone()) && false {\n"""),
     ("the server's duplicate key is rendered", SERVER, """                        if seen.insert(raw.clone(), raw.clone()).is_some() {\n""", """                        if false && seen.insert(raw.clone(), raw.clone()).is_some() {\n"""),
+    # --- a planned row that is one element is its own anchor (ADR-0438) --------
+    ("a row its own anchor is written between comments", RUNTIME, """    if (p.row_anchor === "element") {\n      const [head, rest, tail] = rowHead(p);\n""", """    if (false) {\n      const [head, rest, tail] = rowHead(p);\n"""),
+    ("a row's key is written before its element's name", RUNTIME, """      out.html.push(head, ` data-pw-row="${at}"`, rest);\n""", """      out.html.push(` data-pw-row="${at}"`, head, rest);\n"""),
+    ("a tag's name ends at a space alone", RUNTIME, "/^<[A-Za-z][^\\t\\n\\f\\r />]*/", "/^<[A-Za-z][^ />]*/"),
+    ("a row that begins with no element is written", RUNTIME, """      if (!name) throw unrepresented("a row that is its own anchor begins with no element");\n""", ""),
+    ("the server writes a row its own anchor between comments", SERVER, """    if anchor == RowAnchor::Comments {\n""", """    if anchor != RowAnchor::Comments || true {\n"""),
+    ("the server writes a row's key before its element's name", SERVER, """    out.push_str(&first[..at]);\n    out.push_str(&format!(" data-pw-row=\\"{id}@{token}\\""));\n""", """    out.push_str(&format!(" data-pw-row=\\"{id}@{token}\\""));\n    out.push_str(&first[..at]);\n"""),
+    ("the server ends a tag's name at a space alone", SERVER, """.find(['\\t', '\\n', '\\u{c}', '\\r', ' ', '/', '>'])""", """.find([' ', '/', '>'])"""),
+    ("the server writes a row whose markup is no element's", SERVER, """        .filter(|name| name.starts_with(|c: char| c.is_ascii_alphabetic()));\n""", """        .filter(|_| true);\n"""),
 ]
 
 

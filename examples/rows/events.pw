@@ -68,6 +68,15 @@ page Events() {
     // the first's holes by the general walk, and keeps none of the second.
     signal cells: List<Item> = [Item { id: 1, name: "one" }, Item { id: 2, name: "two" }]
     signal maybe: Option<Int> = Some(1)
+    // Rows that are each one element, their own anchors (ADR-0438): a
+    // table's rows, which are written with no space beside them, shown by
+    // the document first, in a block whose text around them changes too; and
+    // a table whose rows' attribute holds what no plan reads back, so that
+    // they are parsed and morphed as text.
+    signal cards: List<Item> = [Item { id: 1, name: "one" }, Item { id: 2, name: "two" }, Item { id: 3, name: "three" }]
+    signal deck: Int = 0
+    signal decked: Bool = true
+    signal dropped: List<Item> = [Item { id: 1, name: "one" }, Item { id: 2, name: "two" }]
 
     view {
         <title>Events</title>
@@ -136,6 +145,35 @@ page Events() {
                 </ol>
             {:None}
             {/match}
+            <button id="deal" type="button" on:press={() => deck = deck + 1}>Deal</button>
+            <button id="rename-card" type="button" on:press={() => cards = renamed(cards, 2)}>Rename a card</button>
+            <button id="rename-first-card" type="button" on:press={() => cards = renamed(cards, 1)}>Rename the first card</button>
+            <button id="shuffle" type="button" on:press={() => {
+                cards = List.reverse(cards)
+                deck = deck + 1
+            }}>Shuffle</button>
+            <button id="add-card" type="button" on:press={() => cards = List.concat(cards, [Item { id: 4, name: "four" }])}>Add a card</button>
+            <button id="hide-cards" type="button" on:press={() => decked = false}>Hide the cards</button>
+            <button id="show-cards" type="button" on:press={() => decked = true}>Show the cards</button>
+            {#if decked}
+                <p id="deck">{deck}</p>
+                <table>
+                    <tbody id="cards">
+                        {#each cards as c (c.id)}
+                            <tr class={c.name}><td class="cname">{c.name}</td><td><button class="cpick" type="button" on:press={resumable(captures = { c }) => picked = c.name}>Pick</button></td></tr>
+                        {/each}
+                    </tbody>
+                </table>
+            {/if}
+            <button id="rename-dropped" type="button" on:press={() => dropped = renamed(dropped, 2)}>Rename a row a parser drops from</button>
+            <button id="add-dropped" type="button" on:press={() => dropped = List.concat(dropped, [Item { id: List.length(dropped) + 1, name: "more" }])}>Add a row a parser drops from</button>
+            <table>
+                <tbody id="dropped">
+                    {#each dropped as d (d.id)}
+                        <tr><td class="dname">{d.name}</td><td><form><form class={d.name}></form></form></td></tr>
+                    {/each}
+                </tbody>
+            </table>
         </main>
     }
 }

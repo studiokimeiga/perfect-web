@@ -40,6 +40,7 @@ fn page() -> Template {
                 collection: "menu".into(),
                 binding: "item".into(),
                 key: Some("id".into()),
+                row_anchor: Default::default(),
                 body: vec![
                     Chunk::Static("<li>".into()),
                     Chunk::Dynamic(Part::Text {
@@ -165,6 +166,7 @@ fn lines() -> Template {
             collection: "cart.lines".into(),
             binding: "line".into(),
             key: Some("id".into()),
+            row_anchor: Default::default(),
             body: vec![
                 Chunk::Static("<li>".into()),
                 text(1, "line.quantity"),

@@ -21,6 +21,7 @@ fn names_page() -> Template {
                 collection: "page.names".into(),
                 binding: "name".into(),
                 key: Some("id".into()),
+                row_anchor: Default::default(),
                 body: vec![
                     st("<li>"),
                     Chunk::Dynamic(Part::Text {

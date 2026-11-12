@@ -54,6 +54,7 @@ fn search() -> Template {
                             collection: "search.stores".into(),
                             binding: "store".into(),
                             key: Some("id".into()),
+                            row_anchor: Default::default(),
                             body: vec![st("<li>"), text(4, "store.name"), st("</li>")],
                         }),
                         st("</ul>"),

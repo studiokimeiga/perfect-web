@@ -7,7 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { brotliCompressSync, constants, gzipSync } from "node:zlib";
 import { build, transform } from "esbuild";
-import { HOLES, OWN_EDITS, OWN_LINES, OWN_ROWS, OWN_WALKS, ownRows, pageLists } from "./own-rows.mjs";
+import { ELEMENT_LINES, HOLES, OWN_EDITS, OWN_LINES, OWN_ROWS, OWN_WALKS, ownRows, pageLists, planned, rowElement } from "./own-rows.mjs";
 
 const BR = {
   params: {
@@ -33,7 +33,9 @@ const reports = (report) => (report ? [] : ["REPORT"]);
  */
 async function packDeviceRuntime(directory, source, report) {
   const uses = await deviceFeatures(directory);
+  const anchored = await rowAnchors(directory, uses);
   let device = withOwnRows(source, await ownRowsOf(directory, uses));
+  if (anchored.length === 0) device = device.replace(ELEMENT_LINES, "");
   device = device.replace("const PW_SERVER = true;", "").replaceAll("PW_SERVER", "false");
   // Whether a press is heard at the document, as the views say: a literal, so
   // what only a listener on each element needs falls away with it.
@@ -141,6 +143,47 @@ async function ownRowsOf(directory, uses) {
     process.stderr.write(`pw packaging: list ${part} of ${template} is kept by the general code: ${why}\n`);
   }
   return { ...own, unowned: own.written.length < entries.length };
+}
+
+/**
+ * **Each planned row that is one element, its own anchor** (ADR-0438): of a
+ * build whose pages that talk to no server show no view, so that their presses
+ * are heard at their documents and nothing addresses what is inside a row,
+ * each list a block of such a page keeps whose rows a plan makes and whose row
+ * is one element a parser keeps whole (`rowElement`) is said so in the build's
+ * template IR (`row_anchor: "element"`), which the host renders the page's
+ * document from and the page's runtime reads. Each such list whose row is not
+ * one is said, by its page and part, and keeps its comments. Returns the
+ * lists so said, `{ template, part }`.
+ */
+async function rowAnchors(directory, uses) {
+  if (!uses.PW_PLANS || uses.PW_VIEWS) return [];
+  const base = path.join(directory, "build");
+  const file = path.join(base, "templates.json");
+  const text = await readIfThere(file);
+  if (text === null) return [];
+  const templates = JSON.parse(text);
+  const anchored = [];
+  for (const name of (await readdir(path.join(base, "pages")).catch(() => [])).sort()) {
+    if (!name.endsWith(".json")) continue;
+    const plan = JSON.parse(await readFile(path.join(base, "pages", name), "utf8"));
+    if (!onTheDevice(plan)) continue;
+    const page = name.slice(0, -".json".length);
+    const template = templates.find((t) => t.path === page);
+    if (!template) return [];
+    for (const { list } of pageLists(page, template.chunks, plan)) {
+      if (!planned(list)) continue;
+      const why = rowElement(list.body);
+      if (why !== null) {
+        process.stderr.write(`pw packaging: list ${list.id} of ${page} keeps its rows' comments: ${why}\n`);
+        continue;
+      }
+      list.row_anchor = "element";
+      anchored.push({ template: page, part: list.id });
+    }
+  }
+  if (anchored.length > 0) await writeFile(file, `${JSON.stringify(templates)}\n`);
+  return anchored;
 }
 
 /** `source` with its page's own lists where it holds a place for them, and
@@ -276,8 +319,10 @@ function serverRuntimeSource(source) {
   // A server's page is never alone in its build (ADR-0426), and keeps no list
   // by its own code: its rows are the server's (ADR-0437).
   const server = alone(withOwnRows(source, { rows: null }).replace(declared, "").replaceAll("PW_SERVER", "true"), false);
+  // Each between its comments (ADR-0438).
+  const rows = server.replace(ELEMENT_LINES, "");
   const delegated = "const DELEGATED = !true && !PW_VIEWS;";
-  return server.includes(delegated) ? server.replace(delegated, "").replaceAll("DELEGATED", "false") : server;
+  return rows.includes(delegated) ? rows.replace(delegated, "").replaceAll("DELEGATED", "false") : rows;
 }
 
 /** One asset packed; the device's runtime's folded source where it was the

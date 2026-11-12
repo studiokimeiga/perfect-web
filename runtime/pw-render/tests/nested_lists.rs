@@ -28,6 +28,7 @@ fn sections() -> Template {
             collection: "sections".into(),
             binding: "section".into(),
             key: Some("id".into()),
+            row_anchor: Default::default(),
             body: vec![
                 st("<h2>"),
                 text(1, "section.name"),
@@ -37,6 +38,7 @@ fn sections() -> Template {
                     collection: "section.items".into(),
                     binding: "item".into(),
                     key: Some("id".into()),
+                    row_anchor: Default::default(),
                     body: vec![st("<li>"), text(3, "item.name"), st("</li>")],
                 }),
                 st("</ul>"),

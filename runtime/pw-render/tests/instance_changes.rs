@@ -21,6 +21,7 @@ fn page() -> Template {
             collection: "items".into(),
             binding: "item".into(),
             key: Some("id".into()),
+            row_anchor: Default::default(),
             body: vec![
                 st("<li data-pw=\"0\" "),
                 Chunk::Dynamic(Part::InterpolatedAttribute {
@@ -186,6 +187,7 @@ fn buttons() -> Template {
             collection: "items".into(),
             binding: "item".into(),
             key: Some("id".into()),
+            row_anchor: Default::default(),
             body: vec![
                 st("<li><button data-pw=\"1\""),
                 handler(1, "press", &["item.name"]),
@@ -262,6 +264,7 @@ fn branches() -> Template {
             collection: "items".into(),
             binding: "item".into(),
             key: Some("id".into()),
+            row_anchor: Default::default(),
             body: vec![
                 st("<li>"),
                 Chunk::Dynamic(Part::Conditional {
@@ -344,6 +347,7 @@ fn tagged() -> Template {
             collection: "items".into(),
             binding: "item".into(),
             key: Some("id".into()),
+            row_anchor: Default::default(),
             body: vec![
                 st("<li>"),
                 Chunk::Dynamic(Part::Each {
@@ -351,6 +355,7 @@ fn tagged() -> Template {
                     collection: "item.tags".into(),
                     binding: "tag".into(),
                     key: None,
+                    row_anchor: Default::default(),
                     body: vec![
                         st("<i>"),
                         Chunk::Dynamic(Part::Text {
@@ -406,6 +411,7 @@ fn dealt() -> Template {
             collection: "items".into(),
             binding: "item".into(),
             key: Some("id".into()),
+            row_anchor: Default::default(),
             body: vec![
                 st("<li>"),
                 Chunk::Dynamic(Part::Match {
