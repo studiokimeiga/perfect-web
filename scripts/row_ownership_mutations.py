@@ -377,7 +377,10 @@ MUTANTS = [
 # Each Cargo test binary separately: names can repeat between binaries, and
 # the shared native assertion validator expects one complete inventory.
 TESTS = [
-    ["cargo", "test", "--quiet", "--locked", "-p", "pw-syntax", "--lib"],
+    # The grammar's own tests, its `should panic` test left out by the
+    # filter: the strict producer reads each test's line as `test NAME ...
+    # ok`, which a `should panic` test's is not (`cargo_assertion_results`).
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-syntax", "--lib", "grammar::tests::"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server", "required_queries"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "table_owners"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "predicate_bodies"],
