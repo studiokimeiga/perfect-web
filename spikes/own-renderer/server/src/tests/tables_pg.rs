@@ -668,6 +668,7 @@ command remind(id: String) -> Result<Int, String>
 }
 
 command note_later(id: String) -> Result<Int, String> !{ clock.schedule, database.write<Notes> }
+    requires      Anyone
 {
     Notes.put(Note { id: id, text: \"noted\" })
     schedule remind(id) after minutes(30)
@@ -1369,6 +1370,7 @@ command tick(id: String) -> Result<Int, String> !{ clock.schedule, database.read
 }
 
 command start(id: String) -> Result<Int, String> !{ clock.schedule, database.write<Counts> }
+    requires      Anyone
 {
     Counts.put(Count { id: id, n: 0 })
     schedule tick(id) after minutes(30)
