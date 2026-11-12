@@ -40,7 +40,9 @@
       "benchmarks/headtohead/todomvc/react/**",
       "benchmarks/headtohead/todomvc/svelte/**",
       "benchmarks/headtohead/rows/react/**",
-      "benchmarks/headtohead/rows/svelte/**"
+      "benchmarks/headtohead/rows/svelte/**",
+      "docs/evidence/E10/handlers/**",
+      "docs/evidence/E10/kiokun/modules/**"
     ]
   },
   "health": {

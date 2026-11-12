@@ -1,8 +1,8 @@
 ADR-0176 - a regeneration that fails sends nothing, and is tried again
 
 produced by: just e14-materializer-failure
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -10,11 +10,11 @@ playwright: Version 1.58.0
 == the development server (pw-dev-server)
 
 test tests::a_regeneration_that_fails_sends_nothing_and_is_tried_again ... ok
-test result: ok. 1039 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 634.64s
+test result: ok. 1039 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 448.87s
 
 == the page, in three engines (e2e/materializer.spec.mjs)
 
-  3 passed (16.5s)
+  3 passed (13.6s)
 
 == mutation controls (scripts/materializer_failure_mutations.py)
 

@@ -311,6 +311,44 @@ fn an_attribute_and_a_views_field_of_a_signal_are_computed_as_well() {
     assert!(b.computed.is_empty(), "{:?}", b.computed);
 }
 
+/// **A signal the wire holds otherwise than the module is decoded for its
+/// function** (ADR-0433): the `()` of a `Result<(), String>` is nothing on
+/// the wire and `undefined` in the module, so its case is read from the wire
+/// case by case. An `Int`, a record of them or a list is read as it is. No
+/// handler writes such a signal yet, the wire carrying no `()`: its first
+/// value is the one decoded.
+#[test]
+fn a_signal_the_wire_holds_otherwise_is_decoded_for_its_function() {
+    let files = program(&[(
+        "t.pw",
+        "module t\n\n\
+         fn said(r: Result<(), String>) -> String !{} {\n    match r {\n        \
+         Ok(_) => \"saved\",\n        Err(why) => why,\n    }\n}\n\n\
+         page P() {\n    route \"/p\"\n    cache private\n\n    \
+         signal outcome: Result<(), String> = Err(\"unsaved\")\n\n    \
+         view {\n        <title>P</title>\n        <main>\n            \
+         <p>{said(outcome)}</p>\n        </main>\n    }\n}\n"
+            .to_string(),
+    )]);
+    let b = built(&files);
+    let source = b
+        .computed
+        .iter()
+        .find(|c| c.page == "t.P~ui")
+        .and_then(|c| c.module.as_ref().ok())
+        .expect("the page's module");
+    // The function is given the module's case, its `()` read as `undefined`.
+    assert!(
+        source.contains(
+            "(j) => f0(((c) => { switch (c.$case) { case \"ok\": return { $case: \"ok\", value: \
+             undefined };"
+        ),
+        "{source}"
+    );
+    // Control: not the wire's value as it is.
+    assert!(!source.contains("(j) => f0(j)"), "{source}");
+}
+
 #[test]
 fn what_the_browser_does_not_compute_yet_is_refused_by_name() {
     for (markup, why) in [

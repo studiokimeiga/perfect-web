@@ -1,14 +1,14 @@
 ADR-0061 - a declared sum type in a template's match
 
 produced by: just e10-template-sum-types
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the checker and the template IR (compiler/pw-core/tests/template_blocks.rs)
 
-test a_secret_in_an_attributes_hole_is_refused_as_one_in_its_value_is ... ok
 test a_declared_sum_type_is_taken_apart_in_a_template ... ok
+test a_secret_in_an_attributes_hole_is_refused_as_one_in_its_value_is ... ok
 test a_url_that_begins_with_a_value_or_a_style_with_holes_is_refused ... ok
 test a_well_formed_page_has_no_diagnostic ... ok
 test a_template_match_over_a_declared_type_is_checked_as_any_match ... ok
@@ -19,19 +19,19 @@ test an_arms_binding_has_its_payloads_type ... ok
 test else_is_the_other_branch_not_more_of_the_first ... ok
 test match_takes_an_option_apart_with_its_payload_bound ... ok
 test a_malformed_block_is_refused ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.29s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.80s
 
 == the renderer (runtime/pw-render/tests/branches.rs)
 
 test a_conditional_renders_exactly_one_branch_and_refuses_a_variant ... ok
 test a_match_refuses_what_it_cannot_take_apart ... ok
 test a_declared_case_renders_with_each_field_bound ... ok
-test a_match_renders_the_arm_its_case_names_with_the_payload_bound ... ok
 test a_part_inside_an_arm_can_be_rendered_alone ... ok
-test a_value_in_a_url_is_one_component_whatever_it_holds ... ok
+test a_match_renders_the_arm_its_case_names_with_the_payload_bound ... ok
 test a_value_cannot_give_a_url_a_scheme_or_another_segment ... ok
-test an_interpolated_attribute_refuses_a_missing_value ... ok
+test a_value_in_a_url_is_one_component_whatever_it_holds ... ok
 test a_variant_has_no_text_form ... ok
+test an_interpolated_attribute_refuses_a_missing_value ... ok
 test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
 == kiokun's server

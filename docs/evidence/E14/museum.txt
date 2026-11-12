@@ -1,8 +1,8 @@
 ADR-0342 - the bug museum: each exhibit's bug shown in Next.js or SvelteKit, and Pleris's answer to it
 
 produced by: just e14-museum
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1  pnpm: 10.15.1
   @playwright/test   1.58.0  (benchmarks/harness)
@@ -31,7 +31,7 @@ node: v22.21.1  pnpm: 10.15.1
    pleris, the same change: refused: error: [PW0338] `add_to_cart` is called by a page's handler, and declares no `idempotent_by`
    pleris, its neighbour: checks clean
    pleris, at runtime: passes: T08's hidden test on the Pleris store with `idempotent_by` (bench.mjs, replay:reference)
-     T08 pleris replay:reference: score 1, 2 line(s) changed -> benchmarks/results/T08-pleris-replay_reference-1794420002113.json
+     T08 pleris replay:reference: score 1, 2 line(s) changed -> benchmarks/results/T08-pleris-replay_reference-1794456413949.json
    => refused (diagnostic PW0338; runtime, ADR-0121's interaction per press, applied once)
 
 == H07-n-plus-one: One round trip per row: a page whose work grows with its list
@@ -53,7 +53,7 @@ node: v22.21.1  pnpm: 10.15.1
      Running 1 test using 1 worker
      
      [1/1] [chromium] › e2e/navigate.spec.mjs:59:1 › an order placed goes to its page, read after the commit
-       1 passed (11.4s)
+       1 passed (11.5s)
    => refused (runtime, ADR-0280, navigate after the commit)
 
 == J08-shared-server-state: One customer's cart shown to another, from state the server shares

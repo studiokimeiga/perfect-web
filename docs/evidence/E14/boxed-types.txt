@@ -1,8 +1,8 @@
 ADR-0202 - a type that holds itself in place is boxed, and crosses as its nodes
 
 produced by: just e14-boxed-types
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
@@ -15,7 +15,7 @@ test an_invariant_inside_a_tree_holds_at_every_node ... ok
 test a_type_that_contains_itself_otherwise_crosses_no_boundary_yet ... ok
 test a_type_no_finite_value_has_is_refused_where_it_is_declared ... ok
 test a_type_that_can_be_built_without_itself_is_not ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.44s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.92s
 
 == components through the E8 host (compiler/pw-conformance/tests/boxed_types.rs, recursive_types.rs)
 
@@ -26,13 +26,13 @@ test a_value_held_in_place_crosses_as_its_nodes ... ok
 test a_value_held_in_place_is_built_and_walked_in_the_component ... ok
 test nodes_that_are_not_one_tree_in_level_order_trap ... ok
 test types_that_hold_each_other_in_place_compile_inside_a_component ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.53s
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.94s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.66s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.06s
 
 == the JavaScript modules, against their components under Node (compiler/pw-conformance/tests/javascript.rs)
 
 javascript: 5 queries over values held in place, 1000 calls, component and module agree (132 trapped in both)
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8 filtered out; finished in 1.10s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8 filtered out; finished in 1.89s
 
 == mutation controls (scripts/boxed_types_mutations.py)
 
