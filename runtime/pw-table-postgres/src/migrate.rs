@@ -32,11 +32,13 @@ use crate::{Error, database};
 /// **The platform's tables** (ADR-0338 5.2), by version, each applied once:
 /// the applied schema, the outbox (ADR-0208, a log in commit order as
 /// ADR-0369 keeps it), the interactions' records (ADR-0325), and the
-/// function a `String`'s check counts its code points with. `{s}` is the
-/// adapter's schema.
-const PLATFORM: &[(&str, &str)] = &[(
-    "0001_platform",
-    "CREATE TABLE {s}.pw_schema (
+/// function a `String`'s check counts its code points with; then the runs,
+/// the sessions and the sign-ins (`0002`, track `durable-tables`). `{s}` is
+/// the adapter's schema.
+const PLATFORM: &[(&str, &str)] = &[
+    (
+        "0001_platform",
+        "CREATE TABLE {s}.pw_schema (
          applied        bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
          hash           text NOT NULL,
          schema         json NOT NULL,
@@ -65,7 +67,43 @@ const PLATFORM: &[(&str, &str)] = &[(
          LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE
          AS $$ SELECT count(*) FROM generate_series(0, length($1) - 1) AS i
                WHERE get_byte($1, i) & 192 <> 128 $$;",
-)];
+    ),
+    // Track `durable-tables` (ADR-0338 5.2): the runs commands schedule
+    // (ADR-0334), one pending for each command and its arguments (`key`), a
+    // run scheduled again a new id; and the sessions and sign-ins a
+    // deployment keeps where its hosts share them (ADR-0369), each by its
+    // secret's SHA-256, never the secret (`platform.rs`).
+    (
+        "0002_runs_and_sessions",
+        "CREATE TABLE {s}.pw_runs (
+         id       bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+         key      text NOT NULL UNIQUE,
+         command  text NOT NULL,
+         args     text NOT NULL,
+         user_id  text NOT NULL,
+         due_ms   bigint NOT NULL,
+         attempts bigint NOT NULL DEFAULT 0,
+         failed   text
+     );
+     CREATE INDEX pw_runs_due ON {s}.pw_runs (due_ms) WHERE failed IS NULL;
+     CREATE TABLE {s}.pw_sessions (
+         hash    bytea PRIMARY KEY CHECK (octet_length(hash) = 32),
+         user_id text NOT NULL,
+         handle  text NOT NULL,
+         name    text NOT NULL,
+         issuer  text NOT NULL,
+         epoch   bytea NOT NULL CHECK (octet_length(epoch) = 16),
+         opened  timestamptz NOT NULL DEFAULT clock_timestamp(),
+         seen    timestamptz NOT NULL DEFAULT clock_timestamp()
+     );
+     CREATE TABLE {s}.pw_sign_ins (
+         hash     bytea PRIMARY KEY CHECK (octet_length(hash) = 32),
+         nonce    text NOT NULL,
+         verifier text NOT NULL,
+         started  timestamptz NOT NULL DEFAULT clock_timestamp()
+     );",
+    ),
+];
 
 /// FNV-1a over `text`, as a lock's key.
 pub(crate) fn lock_key(text: &str) -> i64 {

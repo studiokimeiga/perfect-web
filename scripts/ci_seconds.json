@@ -151,6 +151,7 @@
   "e14-document-reads": 597,
   "e14-documents": 777,
   "e14-dom-events": 184,
+  "e14-durable-tables": 1449,
   "e14-each-head-effects": 437,
   "e14-each-heads": 196,
   "e14-effect-convergence": 62,

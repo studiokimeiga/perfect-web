@@ -543,7 +543,7 @@ fn the_platforms_records_commit_with_the_writes() {
         interaction: Some(record("s/app.add/1", 1_000_000_500)),
         outbox: &[event("app.Added", vec![json!("b")])],
     });
-    assert!(matches!(again, Err(Error::Refused(_))), "{again:?}");
+    assert!(matches!(again, Err(Error::Recorded(_))), "{again:?}");
     assert_eq!(count_owners(&one), 1);
     assert_eq!(scratch.texts("SELECT name FROM pw_outbox").len(), 3);
     // A day and a minute later the key is a new interaction, and the
@@ -733,9 +733,15 @@ fn a_snapshot_reads_one_moment_whatever_commits_meanwhile() {
         snapshot.read(&owner("get"), &[json!("b")]),
         Ok(owner_row("b"))
     );
-    // A read that fails ends its transaction; the next opens another.
+    // A read that fails ends the snapshot's transaction, and the render's
+    // reads with it: the next fails rather than open another transaction,
+    // which would read another moment (track `durable-tables`).
     let failed = snapshot.read(&owner("get"), &[json!(1)]);
     assert!(matches!(failed, Err(Error::Input(_))), "{failed:?}");
+    let later = snapshot.read(&owner("get"), &[json!("a")]);
+    assert!(matches!(later, Err(Error::Database(_))), "{later:?}");
+    drop(snapshot);
+    let snapshot = tables.snapshot().assert_ok("a third seat");
     assert_eq!(
         snapshot.read(&owner("get"), &[json!("a")]),
         Ok(owner_row("a"))

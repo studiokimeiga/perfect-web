@@ -367,6 +367,7 @@ test("selected descriptors preserve memory identity blobs provider ports target 
       CARGO_TARGET_DIR: join(root, "private-target"), PW_REUSE: "1", PW_PERFORMANCE: undefined,
       KIOKUN_DATA: join(root, "deployment-data"), KIOKUN_APP: join(root, "deployment-app"),
       PW_FEED_DATABASE_URL: "postgresql://deployment/feed", PW_STORE_DATABASE_URL: "postgresql://deployment/store",
+      PW_TABLES_DATABASE_URL: "postgresql://deployment/tables", PW_TABLES_SCHEMA: "deployment_tables",
     }, () => serversForSelection(selected(...tests), { root, port: 13201 }));
     assert.equal(hosts.length, 8);
     // Every host keeps its data in memory (ADR-0257), whatever the caller's
@@ -374,6 +375,8 @@ test("selected descriptors preserve memory identity blobs provider ports target 
     for (const host of hosts) {
       assert.equal(host.env.PW_FEED_DATABASE_URL, "");
       assert.equal(host.env.PW_STORE_DATABASE_URL, "");
+      assert.equal(host.env.PW_TABLES_DATABASE_URL, "");
+      assert.ok(Object.hasOwn(host.env, "PW_TABLES_SCHEMA") && host.env.PW_TABLES_SCHEMA === undefined);
       for (const key of ["KIOKUN_DATA", "KIOKUN_APP"]) assert.ok(Object.hasOwn(host.env, key) && host.env[key] === undefined, key);
       assert.equal(host.reuseExistingServer, true);
       assert.equal(host.env.PORT, String(host.port));

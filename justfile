@@ -91,6 +91,7 @@ import 'just/decision-in-js.just'
 import 'just/inline-styles.just'
 import 'just/style-images.just'
 import 'just/rows.just'
+import 'just/durable-tables.just'
 
 default:
     @just --list

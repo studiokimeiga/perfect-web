@@ -994,6 +994,9 @@ mod hosts;
 // TRACK SEAM (tables): a program's declared tables, served by the generic
 // memory adapter, through the gate alone (track `data-path`, ADR-0338 D2).
 mod tables;
+// TRACK SEAM (tables): and durably, by the generic PostgreSQL adapter, where
+// the deployment names a database for them (track `durable-tables`).
+mod tables_pg;
 
 /// **The table functions a call links, by its component's contract and
 /// grant** (TRACK SEAM (tables), track `data-path`): a query's reads, a
@@ -1796,6 +1799,7 @@ impl Server {
     /// deployment opened (track `store-pg`): PostgreSQL where it names one,
     /// the in-memory layer otherwise (and, for the server's tests, the layer
     /// [`store::layer_for_tests`] says).
+    #[cfg(test)]
     fn from_build_layers(
         dist: std::path::PathBuf,
         build: std::path::PathBuf,
@@ -3165,11 +3169,19 @@ impl Server {
                     return Err(why);
                 }
                 Err(why) => {
+                    // TRACK SEAM (durable-tables): **a commit known to have
+                    // kept nothing** (the database answered its rollback, or
+                    // it never reached its COMMIT) is answered refused, at
+                    // once: there is nothing to reconcile.
+                    let refused = staging.definitely_refused();
                     drop(out);
                     drop(host);
                     drop(staged_events);
                     drop(staging);
                     drop(memory_hold.take());
+                    if refused {
+                        return Err(why);
+                    }
                     self.refresh_uncertain_browser(session, &invalidated, &emitted);
                     if let Some(actor) = &actor
                         && let Err(why) = actor.ensure_current()
@@ -4300,6 +4312,10 @@ impl Server {
     /// many, and how long until the next, a second at most.
     fn run_due(&self) -> (usize, u64) {
         let now = self.now();
+        // TRACK SEAM (durable-tables): what the data layer keeps beyond the
+        // host, kept bounded on the scheduler's passes.
+        self.data
+            .housekeeping(now, &self.identity.principals().lifetimes());
         let due = match schedules::select(self.runs(), now, 16) {
             Ok(due) => due,
             Err(why) => {
@@ -9826,13 +9842,51 @@ fn main() {
         }
         _ => None,
     };
-    let server = match Server::from_build_layers(dist.into(), build.into(), feed, store) {
-        Ok(s) => Arc::new(s),
-        Err(e) => {
-            eprintln!("pw dev server: {e}\nrun spikes/own-renderer/run.sh, which runs `pw build`");
-            std::process::exit(1);
+    // TRACK SEAM (tables): **a program's declared tables on PostgreSQL**
+    // (track `durable-tables`), where the deployment names a database for
+    // them; in memory otherwise, lost when the host stops. Its URL is the
+    // environment's, never the repository's; the schema its tables are in
+    // is the connection's own, or a test's (`PW_TABLES_SCHEMA`, refused at
+    // start outside a development deployment on this machine).
+    let tables = match std::env::var("PW_TABLES_DATABASE_URL") {
+        Ok(url) if !url.is_empty() => {
+            let schema = identity::Deployment::from_env(port)
+                .and_then(|d| {
+                    tables_pg::test_schema(std::env::var("PW_TABLES_SCHEMA").ok().as_deref(), &d)
+                })
+                .unwrap_or_else(|e| {
+                    eprintln!("pw dev server: {e}");
+                    std::process::exit(1);
+                });
+            Some(tables_pg::Database { url, schema, seats })
         }
+        _ => None,
     };
+    // The layer over it, where the program declares tables (data-path's
+    // seam takes the layer); a program that declares none is served as
+    // before, the database unused.
+    let tables_layer = match &tables {
+        Some(database) => {
+            match tables_pg::TablesPg::for_build(std::path::Path::new(&build), database) {
+                Ok(layer) => layer.map(|layer| Arc::new(layer) as Arc<dyn data::DataLayer>),
+                Err(e) => {
+                    eprintln!("pw dev server: {e}");
+                    std::process::exit(1);
+                }
+            }
+        }
+        None => None,
+    };
+    let server =
+        match Server::from_build_served(dist.into(), build.into(), feed, store, tables_layer) {
+            Ok(s) => Arc::new(s),
+            Err(e) => {
+                eprintln!(
+                    "pw dev server: {e}\nrun spikes/own-renderer/run.sh, which runs `pw build`"
+                );
+                std::process::exit(1);
+            }
+        };
     let missing = server.uncompiled_handlers();
     if !missing.is_empty() {
         eprintln!(
@@ -9919,6 +9973,19 @@ fn main() {
     // TRACK SEAM (uploads, ADR-0253): what it holds a browser's file to.
     if let Some(uploads) = server.uploads.describe() {
         println!("pw dev server uploads: {uploads}");
+    }
+    // TRACK SEAM (tables): where a program's declared tables are kept (track
+    // `durable-tables`).
+    if server.data.tables().is_some() {
+        match tables.as_ref().map(|d| d.schema.as_deref()) {
+            Some(Some(schema)) => {
+                println!("pw dev server tables: on PostgreSQL, schema {schema}")
+            }
+            Some(None) => {
+                println!("pw dev server tables: on PostgreSQL, in its connection's schema")
+            }
+            None => println!("pw dev server tables: in memory, lost when the host stops"),
+        }
     }
 
     // **Each live document read again when what it shows holds no longer**
@@ -18521,6 +18588,10 @@ public query Store(",
     // TRACK SEAM (tables): the conformance suite over the `DataLayer` seam,
     // generated for every declared table (ADR-0338 5.5, track `data-path`).
     mod conformance;
+
+    // TRACK SEAM (tables): a program's declared tables served durably from
+    // PostgreSQL, the suite over that layer too (track `durable-tables`).
+    mod tables_pg;
 
     // TRACK SEAM (device-store): a page that holds a value the device keeps,
     // served (ADR-0366).
