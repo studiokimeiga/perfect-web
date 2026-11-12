@@ -189,7 +189,9 @@ unchanged after the complete run.
 
 Raw receipts, red regressions, the failed diagnostic campaign, original-work
 preservation, PR #72 audit and hashes are retained under
-[`docs/evidence/E14/row-data-integration/`](../evidence/E14/row-data-integration/manifest.json).
+`docs/evidence/E14/row-data-integration/` on `fix/row-data-integration` at
+`a9a8d79e` (its `manifest.json`), not on master: L2 (ADR-0395) landed CI
+records only.
 The CI code/tests were the exact committed source; only four generated
 receipt files were dirty at its start, and their exact hashes and bytes are
 retained. This is local evidence, not a clean published-head landing receipt.

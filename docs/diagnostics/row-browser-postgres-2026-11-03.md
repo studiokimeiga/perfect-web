@@ -99,6 +99,8 @@ The original durable checkout remains d6442c4e on wip/durable-tables, with its
 three edited files unchanged. Preservation manifests and final audits are
 retained alongside command logs and exact recipe receipts in
 `docs/evidence/E14/row-browser-postgres/`; manifest.json gives raw/gzip hashes.
+That directory is on `fix/row-data-integration` at `a9a8d79e`, not on
+master: L2 (ADR-0395) landed CI records only.
 
 Durable code was merged from d6442c4e without Rust conflicts. Existing
 integration receipts were retained at the merge; recipe imports were united

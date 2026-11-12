@@ -451,13 +451,28 @@ fn command(
     user: &str,
     args: &[Val],
 ) -> Result<Vec<Val>, String> {
+    command_as(program, tables, id, &as_user(user), user, args)
+}
+
+/// **A command, made as `caller`**, its platform's principal answering
+/// `principal`: where they differ, a host that runs a request's command as
+/// no one (#91's "as the platform", which design A has not), and the
+/// tables answer to `caller` alone.
+fn command_as(
+    program: &Program,
+    tables: &MemoryTables,
+    id: &str,
+    caller: &Caller,
+    principal: &str,
+    args: &[Val],
+) -> Result<Vec<Val>, String> {
     let component = program.component(id);
     let granted = component.granted();
     let staged = tables.begin().assert_ok("its turn");
     let mut host = staged
         .host_fns(&component.contract, &granted)
         .assert_ok("the gate admits the command's reads and writes");
-    host.extend(platform(component, user));
+    host.extend(platform(component, principal));
     let answer = pw_host::engine::call_with_tables_as(
         &component.bytes,
         &component.contract,
@@ -465,7 +480,7 @@ fn command(
         &pw_host::Limits::unbounded(),
         &host,
         &program.manifest,
-        &as_user(user),
+        caller,
         &component.export(),
         args,
     );

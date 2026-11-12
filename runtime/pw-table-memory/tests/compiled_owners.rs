@@ -601,3 +601,300 @@ fn a_sharers_read_answered_another_readers_row_is_refused() {
         Ok(vec![Val::List(vec![seen(ALICE, "n1", BOB, 1)])])
     );
 }
+
+// --- L2 (ADR-0395): a reader's command, never the platform's -------------------
+
+/// **A reader's command is never the platform's** (PR #91's test of the
+/// same name, rewritten for design A, ADR-0407): `remove`, a command a
+/// reader runs, made by a host as no one, is refused its owned table before
+/// it writes, so a host that ran a request's command for no reader changes
+/// no row, whoever its platform's principal says the reader is. Made as
+/// bob, it removes bob's note of the id alone, and alice's of the same id
+/// stays; made as alice, hers goes.
+#[test]
+fn a_readers_command_is_never_the_platforms() {
+    let program = program();
+    let tables = seeded(&program);
+    let before = every_note(&tables);
+    let n1 = || [Val::String("n1".into()), handle(ALICE)];
+    let refused = command_as(&program, &tables, "remove", &Caller::Nobody, ALICE, &n1())
+        .assert_err("a reader's command made as no one");
+    assert!(refused.contains("no one makes this call"), "{refused}");
+    assert_eq!(
+        every_note(&tables),
+        before,
+        "a command made as no one wrote"
+    );
+    assert_eq!(
+        command(
+            &program,
+            &tables,
+            "remove",
+            BOB,
+            &[Val::String("n1".into()), handle(BOB)]
+        ),
+        Ok(vec![])
+    );
+    assert_eq!(
+        every_note(&tables),
+        [
+            (ALICE.to_string(), "n1".to_string()),
+            (ALICE.to_string(), "n2".to_string())
+        ],
+        "bob's request removed alice's note"
+    );
+    assert_eq!(
+        command(&program, &tables, "remove", ALICE, &n1()),
+        Ok(vec![])
+    );
+    assert_eq!(every_note(&tables), [(ALICE.to_string(), "n2".to_string())]);
+}
+
+// --- L2 (ADR-0395's ruling 4): a public table, read by anyone -------------------
+
+/// Posts, public and owned by their author: read by anyone by any index,
+/// written by their author alone.
+const POSTS: &str = "module Posts\n\nimport capability.{ UserId }\n\nopaque type PostId = String\n\ntype Post = Post { author: UserId, id: PostId, day: Int, slug: String }\n\npublic table Posts\n    row     Post\n    key     author, id\n    order   day\n    index   by_day on day\n    unique  by_slug on slug\n    owned   by author\n    bounded 100\n";
+
+const POST_DATA: &str = "module PostData\n\nimport Posts\n\nsource PostData\n    holds        Posts\n    transactions serializable\n    reads        strong\n    changes      none\n    sets         one_call\n";
+
+const POSTS_APP: &str = "module owned.app\n\nimport capability.{ User, UserId, id_of }\nimport context.{ current_user }\nimport Posts.{ Post, PostId }\nimport Posts\n\npublic query OnDay(day: Int) -> List<Post>\n    consistency strong\n{\n    Posts.by_day(day)\n}\n\ncommand post(id: PostId, day: Int, slug: String) -> Result<(), Post>\n    requires    Anyone\n    transaction serializable\n    invalidates OnDay(day)\n{\n    let me = current_user()\n    Posts.insert(me, Post { author: id_of(me), id: id, day: day, slug: slug })\n}\n\ncommand keep(post: Post) -> Result<(), Post>\n    requires    Anyone\n    transaction serializable\n    invalidates OnDay(post.day)\n{\n    Posts.put(current_user(), post)\n}\n\ncommand take_down(id: PostId) -> ()\n    requires    Anyone\n    transaction serializable\n    invalidates OnDay(_)\n{\n    Posts.delete(current_user(), id)\n}\n";
+
+fn posts_program() -> Program {
+    built_from(&[
+        ("Posts.pw", POSTS),
+        ("PostData.pw", POST_DATA),
+        ("app.pw", POSTS_APP),
+    ])
+}
+
+/// A post as the adapter stores it.
+fn post_json(author: &str, id: &str, day: i64, slug: &str) -> serde_json::Value {
+    json!({ "author": author, "id": id, "day": day, "slug": slug })
+}
+
+/// A post as the component's WIT declares it.
+fn post(author: &str, id: &str, day: i64, slug: &str) -> Val {
+    Val::Record(vec![
+        ("author".into(), Val::String(author.into())),
+        ("id".into(), Val::String(id.into())),
+        ("day".into(), Val::S64(day)),
+        ("slug".into(), Val::String(slug.into())),
+    ])
+}
+
+/// Alice's `p1` on day 1 and bob's `p1`, the same id, on day 2.
+fn seeded_posts(program: &Program) -> MemoryTables {
+    let tables = MemoryTables::new(program.tables.clone()).assert_ok("the adapter");
+    tables
+        .transaction(|tx| {
+            tx.write("pw:tables/posts#insert", &[post_json(ALICE, "p1", 1, "a")])?;
+            tx.write("pw:tables/posts#insert", &[post_json(BOB, "p1", 2, "b")])?;
+            Ok(())
+        })
+        .assert_ok("seeded through the adapter's own transaction");
+    tables
+}
+
+/// Every post, by author and id, in the table's order.
+fn every_post(tables: &MemoryTables) -> Vec<(String, String)> {
+    let rows = tables
+        .read("pw:tables/posts#all", &[])
+        .assert_ok("the adapter reads every post");
+    rows.as_array()
+        .cloned()
+        .unwrap_or_default()
+        .iter()
+        .map(|row| {
+            (
+                row["author"].as_str().unwrap_or_default().to_string(),
+                row["id"].as_str().unwrap_or_default().to_string(),
+            )
+        })
+        .collect()
+}
+
+#[test]
+fn a_public_tables_rows_are_read_by_anyone_and_written_by_their_owner() {
+    let program = posts_program();
+    let tables = seeded_posts(&program);
+    // Read by anyone, even a call no one makes: its rows are every reader's.
+    for caller in [as_user(CAROL), Caller::Nobody] {
+        assert_eq!(
+            query(&program, &tables, "OnDay", &caller, &[Val::S64(1)]),
+            Ok(vec![Val::List(vec![post(ALICE, "p1", 1, "a")])]),
+            "{caller:?}"
+        );
+    }
+    // A post whose author is another, as a forged request gives it:
+    // refused before it is written, and nothing commits.
+    let before = every_post(&tables);
+    let refused = command(&program, &tables, "keep", BOB, &[post(ALICE, "p1", 9, "z")])
+        .assert_err("a post of another's is refused");
+    assert!(
+        refused.contains("whose `author` is not its writer"),
+        "{refused}"
+    );
+    assert_eq!(every_post(&tables), before, "a refused command wrote");
+    // A delete names its writer's own post of the id: bob's goes, and
+    // alice's of the same id stays.
+    assert_eq!(
+        command(
+            &program,
+            &tables,
+            "take_down",
+            BOB,
+            &[Val::String("p1".into())]
+        ),
+        Ok(vec![])
+    );
+    assert_eq!(every_post(&tables), [(ALICE.to_string(), "p1".to_string())]);
+    // A write is its writer's: carol posts her own.
+    assert_eq!(
+        command(
+            &program,
+            &tables,
+            "post",
+            CAROL,
+            &[
+                Val::String("p1".into()),
+                Val::S64(3),
+                Val::String("c".into())
+            ]
+        ),
+        Ok(vec![Val::Result(Ok(None))])
+    );
+    assert_eq!(
+        every_post(&tables),
+        [
+            (ALICE.to_string(), "p1".to_string()),
+            (CAROL.to_string(), "p1".to_string())
+        ]
+    );
+    // And no one's write is made by a call no one makes.
+    let refused = command_as(
+        &program,
+        &tables,
+        "take_down",
+        &Caller::Nobody,
+        ALICE,
+        &[Val::String("p1".into())],
+    )
+    .assert_err("a write made as no one");
+    assert!(refused.contains("no one makes this call"), "{refused}");
+    assert_eq!(every_post(&tables).len(), 2);
+}
+
+#[test]
+fn a_public_tables_manifest_is_held_whole() {
+    let program = posts_program();
+    let posts = program
+        .tables
+        .tables
+        .iter()
+        .position(|t| t.schema.name == "Posts")
+        .assert_ok("Posts is in tables.json");
+    let refused = |change: &dyn Fn(&mut serde_json::Value), says: &str| {
+        let mut json = serde_json::to_value(&program.tables).expect("tables.json as JSON");
+        change(&mut json["tables"][posts]);
+        let why = pw_host::tables::Manifest::from_json(&json.to_string())
+            .assert_err("the host refuses the manifest");
+        assert!(why.contains(says), "{why}");
+    };
+    let function = |t: &mut serde_json::Value, name: &str| -> Option<usize> {
+        t["functions"]
+            .as_array()
+            .and_then(|fs| fs.iter().position(|f| f["name"] == name))
+    };
+    // A read given a handle, and a write given none.
+    refused(
+        &|t| {
+            if let Some(at) = function(t, "by_day") {
+                t["functions"][at]["reader"] = json!("author");
+            }
+        },
+        "is public, and `by_day` is not given its owner's handle where it writes, or is given one where it reads",
+    );
+    refused(
+        &|t| {
+            if let Some(at) = function(t, "insert") {
+                t["functions"][at]
+                    .as_object_mut()
+                    .map(|f| f.remove("reader"));
+            }
+        },
+        "`insert` is not given its owner's handle where it writes",
+    );
+    refused(
+        &|t| {
+            if let Some(at) = function(t, "delete") {
+                t["functions"][at]["reader"] = json!("id");
+            }
+        },
+        "`delete` is not given its owner's handle where it writes",
+    );
+    // Still led by its owner.
+    refused(
+        &|t| t["owner"] = json!("slug"),
+        "its key leads with another",
+    );
+    // The fixture's notes, made public, would share them and keep a field.
+    let notes = program_tables_of_notes();
+    let mut json = serde_json::to_value(&notes).expect("tables.json as JSON");
+    json["tables"][0]["public"] = json!(true);
+    let why = pw_host::tables::Manifest::from_json(&json.to_string())
+        .assert_err("the host refuses a public table that shares");
+    assert!(
+        why.contains("is public, and shares its rows or keeps fields private"),
+        "{why}"
+    );
+    // Not public, its bound and its index another field leads are refused
+    // as an owned table's.
+    refused(
+        &|t| {
+            t.as_object_mut().map(|t| t.remove("public"));
+        },
+        "is owned, and its index `by_day` is read by no reader of its rows alone",
+    );
+}
+
+/// The fixture's tables.json, whose notes share and keep a draft.
+fn program_tables_of_notes() -> pw_core::tables::TablesJson {
+    program().tables
+}
+
+/// A table no one owns, which a public table's posts name.
+const TOPICS: &str = "module Topics\n\nopaque type TopicId = String\n\ntype Topic = Topic { id: TopicId, title: String }\n\ntable Topics\n    row     Topic\n    key     id\n";
+
+#[test]
+fn a_public_table_refers_where_the_host_reads_it_as_a_table_no_one_owns() {
+    // A public table's rows are every reader's, so its reference to a
+    // table no one owns tells no one anything, as the guestbook's entries
+    // name their book (ADR-0395's ruling 4; the host's half of PW6924).
+    let posts = POSTS
+        .replacen("import capability.{ UserId }\n", "import capability.{ UserId }\nimport Topics\n", 1)
+        .replacen(
+            "type Post = Post { author: UserId, id: PostId, day: Int, slug: String }",
+            "type Post = Post { author: UserId, id: PostId, day: Int, slug: String, topic: Topics.TopicId }",
+            1,
+        )
+        .replacen("    owned   by author\n", "    owned   by author\n    refers  topic to Topics\n", 1);
+    let data = POST_DATA
+        .replacen("import Posts\n", "import Posts\nimport Topics\n", 1)
+        .replacen("holds        Posts\n", "holds        Posts, Topics\n", 1);
+    let units = units_of(
+        [
+            ("Posts.pw", posts.as_str()),
+            ("PostData.pw", data.as_str()),
+            ("Topics.pw", TOPICS),
+        ]
+        .iter()
+        .map(|(n, s)| (n.to_string(), s.to_string()))
+        .collect(),
+    );
+    let build = pw_core::build::build(&units).assert_ok("the program builds");
+    let manifest = pw_host::tables::Manifest::from_json(
+        &serde_json::to_string(&build.tables).expect("serialize tables.json"),
+    );
+    assert!(manifest.is_ok(), "{manifest:?}");
+}

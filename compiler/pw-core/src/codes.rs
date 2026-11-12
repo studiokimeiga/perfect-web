@@ -360,15 +360,23 @@ codes! {
     // ruling 1 on ADR-0384). The track numbered its first PW0367, which
     // ADR-0406's `who_may_run` took first on master; it is PW0370 since its
     // landing (ADR-0395, ruling 2), and nothing had published the old number.
+    // L2 (ADR-0395, ruling 4): a `public` table's rows are read by every
+    // reader, so it shares them with no one; and `public` is the one word a
+    // table is declared with, since a `private table` that kept nothing
+    // private would say what it does not do.
     OWNER_NAMES_A_PRINCIPAL = "PW0370" / owner_names_a_principal / 1, DeclarationRules,
-        "`owned by` names one field of an owned table's row holding a principal's id (`capability.UserId`), and `shares with` others, never its owner, each once";
+        "`owned by` names one field of an owned table's row holding a principal's id (`capability.UserId`), and `shares with` others, never its owner, each once; a `public` table, read by every reader, shares with no one, and `public` is the one word a table is declared with";
     // Its bound too (the review of the track, finding 2): a bound counts
     // every owner's rows, so a write refused by it would tell one owner how
     // many rows the others hold.
+    // L2 (ADR-0395, ruling 4): a `public` owned table is read by anyone,
+    // by any key, index or whole where bounded, and written by its owner
+    // alone; its key still leads with its owner, so no reader writes a key
+    // another's row would hold.
     OWNED_READ_BY_ITS_READER = "PW0368" / owned_read_by_its_reader / 1, DeclarationRules,
-        "an owned table is read by its reader alone: its key leads with its owner, each index with its owner or a field it shares with, a unique index holds its owner, no bound counts its rows across owners, and it is never read whole";
+        "an owned table's key leads with its owner, and one that is not `public` is read by its reader alone: each index leads with its owner or a field it shares with, a unique index holds its owner, no bound counts its rows across owners, and it is never read whole";
     PRIVATE_FIELD_UNSEEN = "PW0369" / private_field_unseen / 1, DeclarationRules,
-        "a private field is read by its owner alone: a field of an owned table's row, never its owner, a field it shares with, in its key, its order where it shares, or an index another reads by; and its seen row is the table's own name";
+        "a private field is read by its owner alone: a field of an owned table's row that is not `public`, never its owner, a field it shares with, in its key, its order where it shares, or an index another reads by; and its seen row is the table's own name";
 
     // Renamed 2026-08-11 (ADR-0025). It required a written `rollback`; it now
     // refuses one, because the platform restores the value it held and a
@@ -1038,10 +1046,18 @@ codes! {
     // flight another reader joins, would give it to readers never asked.
     REQUIRED_QUERY_UNSHARED = "PW6907" / required_query_unshared / 1, DataPath,
         "a query that `requires` a predicate is answered to its reader alone, once the predicate holds for them: it is cached `private`, or is a `user` or `session` query, so every read of it is keyed by its reader, and no materialization depends on it";
+    // L2 (ADR-0395, ruling 5; ADR-0407's amendment, after PR #91's
+    // `who_may_change`, and ADR-0384's PW6920): a command a reader can run
+    // is a request away, and its arguments are the request's, so a table it
+    // writes, itself, through what it calls, or through a command the clock
+    // runs on its behalf, says who may write its rows. Until L2 a table that
+    // said nothing was anyone's to change.
+    WHO_MAY_WRITE = "PW6920" / who_may_write / 1, DataPath,
+        "a table a command a reader can run writes, itself, through what it calls or through a command it schedules, says who may write its rows, once: `owned by <field>`, each row its owner's alone, or `written by anyone`";
     // The review of the track (ADR-0384's H1), finding 1: a database checks
     // a reference across every row of both tables, whoever owns them.
     REFERENCE_WITHIN_ONE_OWNER = "PW6924" / reference_within_one_owner / 1, DataPath,
-        "a reference a database holds stays within one owner's rows: an owned table refers to an owned table from its own owner field alone, a table no one owns to no owned table, and an owned table to no table no one owns";
+        "a reference a database holds stays within one owner's rows: an owned table refers to an owned table from its own owner field alone, a table no one owns to no owned table, and an owned table to no table no one owns; a `public` table's rows are every reader's, and it refers and is referred to as a table no one owns";
     // The review of the track (ADR-0384's H2; ADR-0115 as amended), findings
     // 3 and 4: a predicate the program gives a body is the program's
     // authorization, which a deployment's predicate of the same name would

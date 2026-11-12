@@ -856,3 +856,340 @@ fn private_is_still_a_declarations_visibility_after_a_table() {
     assert_eq!(t.private_fields(), ["draft"]);
     assert!(t.unread.is_empty(), "{:?}", t.unread);
 }
+
+// --- L2 (ADR-0395): a public table, and who may write a table's rows ------------
+
+/// A public table owned by its author: anyone reads its posts, by any key,
+/// index or whole, and its author alone writes them (ruling 4).
+const POSTS: &str = "module Posts\n\nimport capability.{ UserId }\n\nopaque type PostId = String\n\ntype Post = Post { author: UserId, id: PostId, day: Int, slug: String }\n\npublic table Posts\n    row     Post\n    key     author, id\n    order   day\n    index   by_day on day\n    unique  by_slug on slug\n    owned   by author\n    bounded 100\n";
+
+const POST_DATA: &str = "module PostData\n\nimport Posts\n\nsource PostData\n    holds        Posts\n    transactions serializable\n    reads        strong\n    changes      none\n    sets         one_call\n";
+
+/// `Posts.pw` with `from` written `to`.
+fn posts(from: &str, to: &str) -> String {
+    assert!(POSTS.contains(from), "{from:?} is not in Posts.pw");
+    POSTS.replacen(from, to, 1)
+}
+
+/// Each generated declaration of a table declared in `src`, as [`generated`]
+/// reads `Notes`'.
+fn generated_in(src: &str) -> Vec<(String, String)> {
+    let mut files = platform();
+    files.push(("Table.pw".to_string(), src.to_string()));
+    let units = units(&files);
+    let hirs: Vec<&pw_core::hir::Hir> = units.iter().map(|u| &u.hir).collect();
+    let ws = pw_core::resolve::Workspace::build(&hirs);
+    let sigs = pw_core::signatures::Signatures::build(&ws, &hirs);
+    let unit = units.len() - 1;
+    let hir = &units[unit].hir;
+    let shown = |t: Option<&pw_core::resolved::TypeResolution>| {
+        t.map_or("?".to_string(), ToString::to_string)
+    };
+    hir.generated
+        .keys()
+        .filter_map(|id| {
+            let sig = sigs.by_def(pw_core::resolve::DefId { unit, decl: id.0 })?;
+            Some((
+                hir.decl(*id).name.clone(),
+                format!(
+                    "({}) -> {}",
+                    sig.params
+                        .iter()
+                        .map(|p| shown(p.as_ref()))
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                    shown(sig.returns.as_ref())
+                ),
+            ))
+        })
+        .collect()
+}
+
+#[test]
+fn a_public_owned_table_is_read_by_anyone_and_written_by_its_owner() {
+    let got = generated_in(POSTS);
+    let sig = |name: &str| {
+        found_one(
+            got.iter().find(|(n, _)| n == name).map(|(_, s)| s.clone()),
+            &format!("`{name}` is not given: {got:#?}"),
+        )
+    };
+    let handle = "capability.User<UserId>";
+    // Every read by plain values, by the key, a prefix, an index, a unique
+    // index or whole: its rows are every reader's.
+    assert_eq!(sig("get"), "(UserId, PostId) -> Option<Post>");
+    assert_eq!(sig("of_author"), "(UserId) -> List<Post>");
+    assert_eq!(sig("by_day"), "(Int) -> List<Post>");
+    assert_eq!(sig("by_slug"), "(String) -> Option<Post>");
+    assert_eq!(sig("all"), "() -> List<Post>");
+    // Every write by its owner's handle, a delete's in the owner's place.
+    assert_eq!(
+        sig("insert"),
+        format!("({handle}, Post) -> Result<(), Post>")
+    );
+    assert_eq!(sig("put"), format!("({handle}, Post) -> Result<(), Post>"));
+    assert_eq!(sig("delete"), format!("({handle}, PostId) -> ()"));
+    assert_eq!(sig("delete_of_author"), format!("({handle}) -> ()"));
+    let handed: Vec<&(String, String)> = got
+        .iter()
+        .filter(|(n, s)| {
+            s.contains(handle)
+                && !["insert", "put", "delete", "delete_of_author"].contains(&n.as_str())
+        })
+        .collect();
+    assert!(handed.is_empty(), "a read takes a handle: {handed:#?}");
+    // It checks clean: an index another field leads, a value unique across
+    // owners and a bound are a public table's to state.
+    assert_clean(&[("Posts.pw", POSTS), ("PostData.pw", POST_DATA)]);
+}
+
+#[test]
+fn tables_json_states_a_public_tables_readers_and_writers() {
+    let files = program(&[("Posts.pw", POSTS), ("PostData.pw", POST_DATA)]);
+    let build = held(pw_core::build::build(&units(&files)), "the program builds");
+    let json = &build.tables;
+    let posts = found_one(
+        json.tables.iter().find(|t| t.schema.name == "Posts"),
+        "Posts",
+    );
+    let stated = held(serde_json::to_value(posts), "tables.json's Posts");
+    assert_eq!(stated["public"], serde_json::Value::Bool(true), "{stated}");
+    assert_eq!(posts.owner.as_deref(), Some("author"));
+    let readers: Vec<(&str, Option<&str>)> = posts
+        .functions
+        .iter()
+        .map(|f| (f.name.as_str(), f.reader.as_deref()))
+        .collect();
+    for (name, reader) in &readers {
+        let writes = ["insert", "put", "delete", "delete_of_author"].contains(name);
+        assert_eq!(
+            *reader,
+            writes.then_some("author"),
+            "`{name}`'s handle: {readers:?}"
+        );
+    }
+    // A table that is not public says nothing of it.
+    let notes = found_one(
+        json.tables.iter().find(|t| t.schema.name == "Notes"),
+        "Notes",
+    );
+    let text = held(serde_json::to_string(notes), "tables.json's Notes");
+    assert!(!text.contains("\"public\""), "{text}");
+}
+
+#[test]
+fn pw0368_a_public_tables_key_still_leads_with_its_owner() {
+    assert_refused(
+        &[
+            (
+                "Posts.pw",
+                &posts("key     author, id", "key     id, author"),
+            ),
+            ("PostData.pw", POST_DATA),
+        ],
+        "PW0368",
+        "`key id, author` leads with `id`",
+    );
+}
+
+#[test]
+fn pw0370_a_public_table_shares_with_no_one() {
+    let shared = posts(
+        "type Post = Post { author: UserId, id: PostId, day: Int, slug: String }",
+        "type Post = Post { author: UserId, id: PostId, to: UserId, day: Int, slug: String }",
+    )
+    .replacen(
+        "    owned   by author\n",
+        "    owned   by author\n    shares  with to\n",
+        1,
+    );
+    assert_refused(
+        &[("Posts.pw", &shared), ("PostData.pw", POST_DATA)],
+        "PW0370",
+        "`public table Posts` shares its rows with `to`",
+    );
+}
+
+#[test]
+fn pw0369_a_public_table_keeps_nothing_private() {
+    assert_refused(
+        &[
+            (
+                "Posts.pw",
+                &posts(
+                    "    owned   by author\n",
+                    "    owned   by author\n    private slug\n",
+                ),
+            ),
+            ("PostData.pw", POST_DATA),
+        ],
+        "PW0369",
+        "`public table Posts` keeps `slug` private",
+    );
+}
+
+#[test]
+fn pw0370_public_is_the_one_word_a_table_takes() {
+    for word in ["private", "user", "session"] {
+        assert_refused(
+            &[(
+                "Notes.pw",
+                &notes("table Notes\n", &format!("{word} table Notes\n")),
+            )],
+            "PW0370",
+            &format!("`{word} table Notes`: `public` is the one word"),
+        );
+    }
+    // The neighbour: `public`, read by every reader.
+    assert_clean(&[("Posts.pw", POSTS), ("PostData.pw", POST_DATA)]);
+}
+
+#[test]
+fn pw6924_a_public_table_refers_as_a_table_no_one_owns() {
+    // A public table's rows are every reader's: it refers to a table no one
+    // owns, as the guestbook's entries name their book.
+    let topics_posts = posts(
+        "type Post = Post { author: UserId, id: PostId, day: Int, slug: String }",
+        "type Post = Post { author: UserId, id: PostId, day: Int, slug: String, topic: Topics.TopicId }",
+    )
+    .replacen("import capability.{ UserId }\n", "import capability.{ UserId }\nimport Topics\n", 1)
+    .replacen("    owned   by author\n", "    owned   by author\n    refers  topic to Topics\n", 1);
+    let data = POST_DATA
+        .replacen("import Posts\n", "import Posts\nimport Topics\n", 1)
+        .replacen("holds        Posts\n", "holds        Posts, Topics\n", 1);
+    let files = [
+        ("Posts.pw", topics_posts.as_str()),
+        ("PostData.pw", data.as_str()),
+        ("Topics.pw", TOPICS),
+    ];
+    assert_eq!(within_one_owner(&files), Vec::<String>::new());
+    // And a public table refers to no table read by its reader alone, whose
+    // rows it would tell of.
+    let premium_posts = posts(
+        "type Post = Post { author: UserId, id: PostId, day: Int, slug: String }",
+        "type Post = Post { author: UserId, id: PostId, day: Int, slug: String, member: UserId }",
+    )
+    .replacen(
+        "import capability.{ UserId }\n",
+        "import capability.{ UserId }\nimport Premiums\n",
+        1,
+    )
+    .replacen(
+        "    owned   by author\n",
+        "    owned   by author\n    refers  member to Premiums\n",
+        1,
+    );
+    let data = POST_DATA
+        .replacen("import Posts\n", "import Posts\nimport Premiums\n", 1)
+        .replacen("holds        Posts\n", "holds        Posts, Premiums\n", 1);
+    let refused = within_one_owner(&[
+        ("Posts.pw", premium_posts.as_str()),
+        ("PostData.pw", data.as_str()),
+        ("Premiums.pw", PREMIUMS),
+    ]);
+    assert_eq!(refused.len(), 1, "{refused:#?}");
+}
+
+/// Topics, written by `command`, beside the source that holds it.
+fn topics_written(clauses: &str, app: &str) -> Vec<(String, String)> {
+    let topics = format!("{TOPICS}{clauses}");
+    let data = "module TopicData\n\nimport Topics\n\nsource TopicData\n    holds        Topics\n    transactions serializable\n    reads        strong\n    changes      none\n    sets         one_call\n";
+    found(&[
+        ("Topics.pw", topics.as_str()),
+        ("TopicData.pw", data),
+        ("app.pw", app),
+    ])
+}
+
+const TOPICS_APP: &str = "module topics.app\n\nimport Topics.{ Topic }\nimport Topics\n\ncommand add(topic: Topic) -> Result<(), Topic>\n    requires    Anyone\n    transaction serializable\n{\n    Topics.insert(topic)\n}\n";
+
+#[test]
+fn pw6920_a_table_a_readers_command_writes_says_who_may_write_its_rows() {
+    let got = topics_written("", TOPICS_APP);
+    assert!(
+        got.iter().any(|(c, m)| c == "PW6920"
+            && m.contains("`Topics` is written by a command any reader's request runs")),
+        "{got:#?}"
+    );
+    // Through a function it calls, too.
+    let helper = TOPICS_APP.replacen(
+        "command add(topic: Topic) -> Result<(), Topic>\n    requires    Anyone\n    transaction serializable\n{\n    Topics.insert(topic)\n}\n",
+        "fn kept(topic: Topic) -> Result<(), Topic> !{ database.write<Topics> } {\n    Topics.insert(topic)\n}\n\ncommand add(topic: Topic) -> Result<(), Topic>\n    requires    Anyone\n    transaction serializable\n{\n    kept(topic)\n}\n",
+        1,
+    );
+    let got = topics_written("", &helper);
+    assert!(got.iter().any(|(c, _)| c == "PW6920"), "{got:#?}");
+    // The neighbours: `written by anyone`, said on purpose; and `owned by`,
+    // the fixture's notes, each written by its owner.
+    assert_eq!(topics_written("    written by anyone\n", TOPICS_APP), []);
+    assert_clean(&[("app.pw", &fixture("app.pw"))]);
+}
+
+#[test]
+fn pw6920_a_table_a_command_the_clock_runs_for_a_reader_writes_says_who_may_write() {
+    let scheduled = "module topics.app\n\nimport clock.{ minutes }\nimport Topics.{ Topic }\nimport Topics\n\nopaque type InteractionId = String\n\ncommand later(topic: Topic) -> ()\n    requires    Anyone\n    transaction serializable\n{\n    schedule add_later(topic) after minutes(1)\n}\n\ncommand add_later(topic: Topic) -> Result<(), Topic>\n    invoked_by    Clock\n    idempotent_by InteractionId\n    transaction   serializable\n{\n    Topics.insert(topic)\n}\n";
+    let got = topics_written("", scheduled);
+    let told = got
+        .iter()
+        .find(|(c, _)| c == "PW6920")
+        .map(|(_, m)| m.clone());
+    assert!(told.is_some(), "{got:#?}");
+    let related: Vec<String> = diagnostics(&[
+        ("Topics.pw", TOPICS),
+        (
+            "TopicData.pw",
+            "module TopicData\n\nimport Topics\n\nsource TopicData\n    holds        Topics\n    transactions serializable\n    reads        strong\n    changes      none\n    sets         one_call\n",
+        ),
+        ("app.pw", scheduled),
+    ])
+    .into_iter()
+    .filter(|d| d.code == "PW6920")
+    .flat_map(|d| d.related.into_iter().map(|r| r.label))
+    .collect();
+    assert!(
+        related
+            .iter()
+            .any(|m| m.contains("`later` schedules `add_later`, which writes it")),
+        "{related:#?}"
+    );
+    // A clock command no reader's command schedules writes for no reader.
+    let unscheduled = scheduled.replacen(
+        "    schedule add_later(topic) after minutes(1)\n",
+        "    ()\n",
+        1,
+    );
+    let got = topics_written("", &unscheduled);
+    assert!(!got.iter().any(|(c, _)| c == "PW6920"), "{got:#?}");
+}
+
+#[test]
+fn pw6920_an_owned_table_is_not_written_by_anyone_too() {
+    assert_refused(
+        &[(
+            "Notes.pw",
+            &notes(
+                "    owned   by author\n",
+                "    owned   by author\n    written by anyone\n",
+            ),
+        )],
+        "PW6920",
+        "`Notes` is `owned by author` and `written by anyone`",
+    );
+}
+
+#[test]
+fn written_is_read_as_its_grammar_says() {
+    for (clause, says) in [
+        (
+            "    written by everyone\n",
+            "is written `written by anyone`",
+        ),
+        ("    written when Matched\n", "ADR-0384's `written when`"),
+    ] {
+        let got = topics_written(clause, TOPICS_APP);
+        assert!(
+            got.iter().any(|(c, m)| c == "PW0361" && m.contains(says)),
+            "{clause}: {got:#?}"
+        );
+    }
+}

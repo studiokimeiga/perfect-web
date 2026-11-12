@@ -229,6 +229,16 @@ pub struct Table {
     /// **What its owner alone reads**: `private sent, day`, the fields no
     /// other reader's seen row holds.
     pub private: Option<Clause<Vec<String>>>,
+    /// **Every reader reads its rows** (L2, ADR-0395's ruling 4): `public
+    /// table`. An owned one is read by any key or index with no handle, and
+    /// written by its owner alone, its key still led by its owner.
+    pub public: bool,
+    /// The word it is declared with other than `public`, which no table
+    /// takes (PW0370): a `private table` would keep nothing private.
+    pub word: Option<String>,
+    /// **Written by any reader's command, on purpose** (L2, ADR-0395's
+    /// ruling 5): `written by anyone`, a table no one owns (PW6920).
+    pub written: Option<Clause<()>>,
     /// Each clause whose value is not one its grammar reads, and why.
     pub unread: Vec<(Span, String)>,
 }
@@ -247,6 +257,12 @@ impl Table {
     /// The fields its owner alone reads.
     pub fn private_fields(&self) -> &[String] {
         self.private.as_ref().map_or(&[], |p| p.value.as_slice())
+    }
+
+    /// **Is it read by its reader alone?** Owned, and not `public`: the
+    /// table whose reads lead with a reader's handle (PW0368).
+    pub fn read_by_its_reader(&self) -> bool {
+        self.owner.is_some() && !self.public
     }
 }
 
@@ -400,6 +416,25 @@ fn shared_with(value: &str) -> Result<Vec<String>, String> {
     }
 }
 
+/// `by anyone`: the table's rows written by any reader's command, on
+/// purpose (L2, ADR-0395's ruling 5).
+fn written_by(value: &str) -> Result<(), String> {
+    let value = value.trim();
+    match value.strip_prefix("by ").map(str::trim) {
+        Some("anyone") => Ok(()),
+        _ if value.starts_with("when ") => Err(
+            "names a predicate deciding who writes a row, which is not built (ADR-0384's \
+             `written when`, track H3): a table any reader writes says `written by anyone`"
+                .to_string(),
+        ),
+        _ => Err(
+            "is written `written by anyone`: a table no one owns, whose rows any reader's \
+             command writes"
+                .to_string(),
+        ),
+    }
+}
+
 /// **Every table `hir` declares**, as written.
 pub fn declared(hir: &Hir) -> Vec<Table> {
     hir.all_decls()
@@ -423,6 +458,9 @@ fn read(id: DeclId, d: &Decl) -> Table {
         owner: None,
         shares: None,
         private: None,
+        public: d.visibility.as_deref() == Some("public"),
+        word: d.visibility.clone().filter(|v| v != "public"),
+        written: None,
         unread: Vec::new(),
     };
     for p in &d.policies {
@@ -526,6 +564,17 @@ fn read(id: DeclId, d: &Decl) -> Table {
                 }
                 Err(why) => Some(why),
             },
+            // L2 (ADR-0395's ruling 5): who may write a table no one owns.
+            "written" => match written_by(v) {
+                Ok(()) => {
+                    t.written.get_or_insert(Clause {
+                        value: (),
+                        span: span.clone(),
+                    });
+                    None
+                }
+                Err(why) => Some(why),
+            },
             _ => None,
         };
         if let Some(why) = fault {
@@ -592,15 +641,30 @@ enum Reading {
 }
 
 /// **Who reads by `by`** on `t`: an owned table's reads lead with its owner
-/// or a field it shares with.
+/// or a field it shares with. A `public` one's are anyone's, by any key or
+/// index, with no handle (L2, ADR-0395's ruling 4).
 fn reading(t: &Table, by: &[String]) -> Reading {
     let Some(owner) = t.owner_field() else {
         return Reading::Plain;
     };
+    if t.public {
+        return Reading::Plain;
+    }
     match by.first() {
         Some(f) if f == owner => Reading::Owner,
         Some(f) if t.sharers().contains(f) => Reading::Sharer,
         _ => Reading::Refused,
+    }
+}
+
+/// **Who deletes by `by`** on `t`: an owned table's rows, public or not,
+/// are deleted by their owner's handle in the owner's place in a key that
+/// leads with it (PW0368); a table no one owns is deleted by plain fields.
+fn deleting(t: &Table, by: &[String]) -> Reading {
+    match t.owner_field() {
+        None => Reading::Plain,
+        Some(owner) if by.first().is_some_and(|f| f == owner) => Reading::Owner,
+        Some(_) => Reading::Refused,
     }
 }
 
@@ -811,10 +875,11 @@ fn planned(
             });
         }
     }
-    // Whole, only where bounded (PW0364), and never an owned table: `all`
-    // would read every owner's rows (PW0368).
+    // Whole, only where bounded (PW0364), and never a table read by its
+    // reader alone: `all` would read every owner's rows (PW0368). A
+    // `public` one's rows are every reader's.
     if let Some(b) = &t.bounded
-        && t.owner.is_none()
+        && !t.read_by_its_reader()
     {
         push(Planned {
             name: "all".to_string(),
@@ -861,9 +926,9 @@ fn planned(
         });
     }
     if let Some(k) = key {
-        // An owned table's deletes are its owner's: by a key that leads
-        // with the owner (PW0368), the handle in its place.
-        let r = reading(t, &k.value);
+        // An owned table's deletes are its owner's, public or not: by a key
+        // that leads with the owner (PW0368), the handle in its place.
+        let r = deleting(t, &k.value);
         if matches!(r, Reading::Plain | Reading::Owner) {
             push(Planned {
                 name: "delete".to_string(),
@@ -1669,7 +1734,8 @@ pub fn principal_id(sigs: &Signatures, ty: &ResolvedType) -> bool {
 
 const OWNED: &str = "An owned table's rows are its owner's (ADR-0384): `owned by` names the \
      field holding the id of the principal whose row it is, a `capability.UserId`, and `shares \
-     with` the fields holding the ids of the others who read it. Each read of its rows takes the \
+     with` the fields holding the ids of the others who read it; a `public table` is read by \
+     every reader, and shares with no one (ADR-0395). Each read of its rows takes the \
      reader's handle in the place of one of those fields, a `capability.User` only the platform \
      makes (ADR-0263), so no program reads another's rows by naming an id; each write takes its \
      owner's handle, and the host holds the row's owner to it.";
@@ -1761,6 +1827,21 @@ fn ownership(
             Some(_) => Ok(()),
         }
     };
+    // L2 (ADR-0395's ruling 4): `public` is the one word a table takes. A
+    // `private table` or a `user table` would say who reads its rows and
+    // hold none of it: whose a table's rows are is `owned by`.
+    if let Some(word) = &t.word {
+        out.push(owner_refusal(
+            format!(
+                "`{word} table {}`: `public` is the one word a table is declared with, and its \
+                 rows are read by every reader; whose they are is said by `owned by`",
+                t.name
+            ),
+            &t.span,
+            "state whose its rows are, `owned by <field>`, read by their reader alone, or \
+             declare it `public table`, read by every reader",
+        ));
+    }
     let Some(owned) = &t.owner else {
         if let Some(s) = &t.shares {
             out.push(owner_refusal(
@@ -1795,7 +1876,38 @@ fn ownership(
             "name the field of the row holding its owner's `capability.UserId`",
         ));
     }
-    if let Some(s) = &t.shares {
+    // A `public` table's rows are every reader's: it shares them with no
+    // one, and keeps no field from anyone (ADR-0395's ruling 4).
+    if t.public {
+        if let Some(s) = &t.shares {
+            out.push(owner_refusal(
+                format!(
+                    "`public table {}` shares its rows with `{}`, and every reader reads them \
+                     already",
+                    t.name,
+                    s.value.join(", ")
+                ),
+                &s.span,
+                "remove `shares with`, or the word `public`: an owned table that is not \
+                 public is read by its owner and those it shares with",
+            ));
+        }
+        if let Some(p) = &t.private {
+            out.push(unseen(
+                format!(
+                    "`public table {}` keeps `{}` private, and every reader reads its rows",
+                    t.name,
+                    p.value.join(", ")
+                ),
+                &p.span,
+                "remove `private`, or the word `public`: a private field is read by its \
+                 owner alone, of a table read by its reader alone",
+            ));
+        }
+    }
+    if let Some(s) = &t.shares
+        && !t.public
+    {
         for sharer in &s.value {
             if sharer == owner {
                 out.push(owner_refusal(
@@ -1852,7 +1964,11 @@ fn ownership(
             ),
         ));
     }
-    for i in &t.indexes {
+    // A `public` table is read by anyone, by any index, whole where it is
+    // bounded, and a value unique across its owners tells no one anything
+    // the rows do not (ADR-0395's ruling 4). Its key, above, still leads
+    // with its owner, so no reader writes a key another's row holds.
+    for i in t.indexes.iter().filter(|_| !t.public) {
         let index = &i.value;
         let clause = if index.unique { "unique" } else { "index" };
         if index.fields.first().is_some_and(|f| !is_reader(f)) {
@@ -1892,7 +2008,9 @@ fn ownership(
     // A bound counts every owner's rows (the review's finding 2): one
     // owner's rows would refuse another's write, and the refusal tell them
     // how many the others hold. A bound per owner is ADR-0384's H4.
-    if let Some(b) = &t.bounded {
+    if let Some(b) = &t.bounded
+        && !t.public
+    {
         out.push(read_refusal(
             format!(
                 "`bounded {}` counts every owner's rows of `{}`: one owner's rows would refuse \
@@ -1906,7 +2024,7 @@ fn ownership(
         ));
     }
     // A private field: one its owner alone reads.
-    let Some(p) = &t.private else {
+    let Some(p) = t.private.as_ref().filter(|_| !t.public) else {
         return out;
     };
     for name in &p.value {
@@ -2121,7 +2239,9 @@ fn referring(
 /// referring row's owner's own); a table no one owns refers to no owned
 /// table; and an owned table to no table no one owns, whose delete a private
 /// row would refuse, until a reference states what that delete does
-/// (ADR-0384's H3 and H9). `None` for a reference that stays within.
+/// (ADR-0384's H3 and H9). A `public` table's rows are every reader's, so it
+/// refers and is referred to as a table no one owns (L2, ADR-0395's ruling
+/// 4). `None` for a reference that stays within.
 fn within_one_owner(
     hirs: &[&Hir],
     unit: usize,
@@ -2132,7 +2252,12 @@ fn within_one_owner(
     let (target_unit, target) = table_module(ws, hirs, unit, &r.value.table)?;
     let field = &r.value.field;
     let theirs = &target.name;
-    let (message, repair) = match (t.owner_field(), target.owner_field()) {
+    // Whose rows a reference could tell of: an owned table's that is not
+    // `public`.
+    fn private_owner(t: &Table) -> Option<&str> {
+        t.owner_field().filter(|_| !t.public)
+    }
+    let (message, repair) = match (private_owner(t), private_owner(&target)) {
         (None, None) => return None,
         (Some(owner), Some(_)) if field == owner => return None,
         (Some(owner), Some(by)) => (
@@ -2450,6 +2575,254 @@ pub fn every(hirs: &[&Hir]) -> Vec<(usize, Table)> {
         .enumerate()
         .flat_map(|(u, hir)| declared(hir).into_iter().map(move |t| (u, t)))
         .collect()
+}
+
+// --- who may write a table's rows (L2, ADR-0395's ruling 5; PW6920) -------
+
+/// **A command a reader can run, writing a table**: the command, and where it
+/// writes, in the unit it is declared in.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReaderWrite {
+    pub unit: usize,
+    pub command: String,
+    /// The call that writes, where its body makes one; else its name. For a
+    /// write a command it schedules makes, that `schedule`.
+    pub at: Span,
+    /// The command the clock runs on the reader's behalf, which writes, where
+    /// the reader's command schedules it rather than writing itself.
+    pub scheduled: Option<String>,
+}
+
+/// The tables `id`'s effects, inferred through every call it makes, write.
+fn tables_written(
+    tables: &BTreeSet<String>,
+    inference: &crate::effects::Inference,
+    unit: usize,
+    hir: &Hir,
+    id: DeclId,
+) -> BTreeSet<String> {
+    inference
+        .effective_effects(unit, hir, id)
+        .iter()
+        .filter_map(|e| crate::effects::database_domain(e, "write"))
+        .filter(|domain| tables.contains(*domain))
+        .map(str::to_string)
+        .collect()
+}
+
+/// **Each command the clock invokes that `decl` schedules**, with where:
+/// `schedule remind() after minutes(30)` names it as a call does
+/// (`scheduled.rs`; PW6501 refuses one that names another).
+fn scheduled_by(hirs: &[&Hir], ws: &Workspace, unit: usize, decl: &Decl) -> Vec<(DefId, Span)> {
+    let Some(body) = decl.body.map(|b| hirs[unit].body(b)) else {
+        return Vec::new();
+    };
+    let mut out = Vec::new();
+    for id in body.walk() {
+        let crate::hir::Expr::Keyword {
+            keyword, modifiers, ..
+        } = body.expr(id)
+        else {
+            continue;
+        };
+        if keyword != "schedule" {
+            continue;
+        }
+        let name = modifiers.first().map(String::as_str).unwrap_or_default();
+        if let Resolution::Local(def) | Resolution::Imported { def, .. } =
+            ws.resolve_in(unit, Namespace::Term, name)
+        {
+            let target = hirs[def.unit].decl(DeclId(def.decl));
+            if target.kind == DeclKind::Command
+                && target
+                    .policy("invoked_by")
+                    .is_some_and(|p| p.value.trim() == "Clock")
+            {
+                out.push((def, body.expr_span(id)));
+            }
+        }
+    }
+    out
+}
+
+/// **Each declared table a command a reader can run writes**, by the
+/// table's name, with each such command (PR #91's `written_by_readers`,
+/// carried by ADR-0407). A command writes a table where its effects,
+/// inferred through every call it makes, hold `database.write<Table>`: its
+/// generated `insert`, `put`, `delete` or `delete_of_<fields>`, called in its
+/// body or in what it calls. And where it schedules a command the clock
+/// invokes that writes one: the clock runs it as the reader whose command
+/// scheduled it (the server's `on_behalf`, ADR-0334 as amended), with the
+/// arguments the reader's request gave, so its writes are the reader's,
+/// through every schedule it makes in turn. A command `invoked_by` the
+/// platform is no reader's (PW6401), and writes for none.
+pub fn written_by_readers(
+    hirs: &[&Hir],
+    ws: &Workspace,
+    inference: &crate::effects::Inference,
+) -> BTreeMap<String, Vec<ReaderWrite>> {
+    let tables: BTreeSet<String> = every(hirs).into_iter().map(|(_, t)| t.name).collect();
+    let mut out: BTreeMap<String, Vec<ReaderWrite>> = BTreeMap::new();
+    // Most programs declare no table: nothing to infer for them.
+    if tables.is_empty() {
+        return out;
+    }
+    for (unit, hir) in hirs.iter().enumerate() {
+        for (id, decl) in hir.all_decls() {
+            if decl.kind != DeclKind::Command || decl.policy("invoked_by").is_some() {
+                continue;
+            }
+            let written = tables_written(&tables, inference, unit, hir, id);
+            if !written.is_empty() {
+                let sources = decl
+                    .body
+                    .map(|b| inference.infer_at(unit, hir.body(b)).sources)
+                    .unwrap_or_default();
+                for table in written {
+                    let at = sources
+                        .iter()
+                        .find(|s| {
+                            crate::effects::database_domain(&s.effect, "write") == Some(&table)
+                        })
+                        .map_or_else(|| decl.name_span.clone(), |s| s.span.clone());
+                    out.entry(table).or_default().push(ReaderWrite {
+                        unit,
+                        command: decl.name.clone(),
+                        at,
+                        scheduled: None,
+                    });
+                }
+            }
+            // What it schedules, and what that schedules in turn, each told
+            // at the schedule this command writes.
+            for (first, at) in scheduled_by(hirs, ws, unit, decl) {
+                let mut seen: BTreeSet<DefId> = BTreeSet::new();
+                let mut next = vec![first];
+                let mut written: BTreeSet<String> = BTreeSet::new();
+                while let Some(def) = next.pop() {
+                    if !seen.insert(def) {
+                        continue;
+                    }
+                    let target = hirs[def.unit].decl(DeclId(def.decl));
+                    written.extend(tables_written(
+                        &tables,
+                        inference,
+                        def.unit,
+                        hirs[def.unit],
+                        DeclId(def.decl),
+                    ));
+                    next.extend(
+                        scheduled_by(hirs, ws, def.unit, target)
+                            .into_iter()
+                            .map(|(d, _)| d),
+                    );
+                }
+                let named = hirs[first.unit].decl(DeclId(first.decl)).name.clone();
+                for table in written {
+                    out.entry(table).or_default().push(ReaderWrite {
+                        unit,
+                        command: decl.name.clone(),
+                        at: at.clone(),
+                        scheduled: Some(named.clone()),
+                    });
+                }
+            }
+        }
+    }
+    out
+}
+
+const WHO_MAY_WRITE_WHY: &str = "A command a reader can run is a request away, and its \
+     arguments are the request's: `drop_item(list, item)` deletes whichever item a request \
+     names, anyone's. So a table such a command writes says who may write its rows (ADR-0395, \
+     ADR-0407). `owned by <field>` names the field holding each row's owner's id: its key leads \
+     with the owner, each write is given the owner's handle, which only the platform makes, \
+     and a request writes its own reader's rows and no one else's. `written by anyone` says, \
+     on purpose, that any reader's request writes any row, as a counter or a shared list is \
+     written. A command the clock runs for a reader's schedule writes for that reader; a table \
+     only the platform's other commands (`invoked_by`) write needs neither.";
+
+/// **A table a reader's command writes says who may write its rows** (L2,
+/// ADR-0395's ruling 5, PW6920): refused at the table's name, beside each
+/// command that writes it; and a table that says both, at its `written`.
+pub fn who_may_write(
+    hirs: &[&Hir],
+    unit: usize,
+    writes: &BTreeMap<String, Vec<ReaderWrite>>,
+) -> Vec<Diagnostic> {
+    let Some(hir) = hirs.get(unit) else {
+        return Vec::new();
+    };
+    let mut out = Vec::new();
+    for t in declared(hir) {
+        if let (Some(owned), Some(written)) = (&t.owner, &t.written) {
+            out.push(refusal(
+                codes::WHO_MAY_WRITE,
+                "writers_said_twice",
+                Severity::Error,
+                format!(
+                    "`{}` is `owned by {}` and `written by anyone`: an owned table's rows are \
+                     written by their owner alone",
+                    t.name, owned.value
+                ),
+                written.span.clone(),
+                vec![Related::new(owned.span.clone(), "its owner is stated here")],
+                WHO_MAY_WRITE_WHY,
+                "keep `owned by`, each row written by its owner, or `written by anyone`, any \
+                 row by any reader, not both"
+                    .to_string(),
+            ));
+            continue;
+        }
+        if t.owner.is_some() || t.written.is_some() {
+            continue;
+        }
+        let Some(writers) = writes.get(&t.name).filter(|w| !w.is_empty()) else {
+            continue;
+        };
+        let mut d = refusal(
+            codes::WHO_MAY_WRITE,
+            "writers_unstated",
+            Severity::Error,
+            format!(
+                "`{}` is written by a command any reader's request runs, and says nothing of \
+                 who may write its rows",
+                t.name
+            ),
+            t.span.clone(),
+            writers
+                .iter()
+                .map(|w| {
+                    Related::in_unit(
+                        w.unit,
+                        w.at.clone(),
+                        match &w.scheduled {
+                            None => format!(
+                                "`{}` writes it, and runs for any reader's request",
+                                w.command
+                            ),
+                            Some(scheduled) => format!(
+                                "`{}` schedules `{scheduled}`, which writes it on its reader's \
+                                 behalf, and runs for any reader's request",
+                                w.command
+                            ),
+                        },
+                    )
+                })
+                .collect(),
+            WHO_MAY_WRITE_WHY,
+            "declare `owned by <field>`, the field holding each row's owner's \
+             `capability.UserId`: a request writes its own reader's rows alone"
+                .to_string(),
+        );
+        d.repairs.push(Repair {
+            description: "or `written by anyone`, if any reader's request may write any row"
+                .to_string(),
+            replacement: None,
+        });
+        out.push(d);
+    }
+    out
 }
 
 /// The functions a table's declaration gave its module, in order.
@@ -3457,6 +3830,11 @@ pub struct TableJson {
     /// The fields its owner alone reads: no seen row holds them.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub private: Vec<String>,
+    /// **Every reader reads its rows** (L2, ADR-0395's ruling 4): a `public
+    /// table`. An owned one's reads are given no handle, and its writes
+    /// their owner's.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub public: bool,
     pub functions: Vec<FunctionJson>,
 }
 
@@ -3502,6 +3880,8 @@ fn reader_of(t: &Table, primitive: Primitive, by: &[String]) -> Option<String> {
     let owner = t.owner_field()?;
     match primitive {
         Primitive::Insert | Primitive::Put => Some(owner.to_string()),
+        // A `public` table's reads are anyone's (ADR-0395's ruling 4).
+        _ if t.public && !primitive.writes() => None,
         _ => by.first().cloned(),
     }
 }
@@ -3563,6 +3943,7 @@ pub fn tables_json(
                 owner: t.owner_field().map(str::to_string),
                 shares: t.sharers().to_vec(),
                 private: t.private_fields().to_vec(),
+                public: t.public,
                 functions,
             }
         })

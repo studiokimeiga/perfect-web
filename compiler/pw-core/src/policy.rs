@@ -206,6 +206,11 @@ pub enum Domain {
     /// with to`, fields of the row each holding a principal's id. Held by
     /// `tables::check` (PW0370).
     Sharers,
+    /// **Who may write a table no one owns** (L2, ADR-0395's ruling 5):
+    /// `written by anyone`, any reader's command writing any row, on
+    /// purpose. Held by `tables::check` (PW0361's words) and
+    /// `tables::who_may_write` (PW6920).
+    Writers,
 }
 
 /// One policy operator, with the semantic kind of each argument.
@@ -448,6 +453,8 @@ pub fn domain_of(head: &str) -> Option<Domain> {
         "owned" => Domain::Owner,
         "shares" => Domain::Sharers,
         "private" => Domain::Fields,
+        // L2 (ADR-0395's ruling 5): who may write a table no one owns.
+        "written" => Domain::Writers,
         // Track `device-store` (ADR-0366): the version of a value the device
         // keeps; each earlier one is its `migrate`'s.
         "version" => Domain::Count,
@@ -709,7 +716,7 @@ pub fn declared_by(head: &str) -> Option<(&'static [crate::hir::DeclKind], &'sta
         // A table's (track `tables`, ADR-0338).
         "row" | "order" | "index" | "unique" | "refers" | "bounded" => (&[K::Table], "a table"),
         // Whose its rows are (track `row-ownership`, ADR-0384 H1).
-        "owned" | "shares" | "private" => (&[K::Table], "a table"),
+        "owned" | "shares" | "private" | "written" => (&[K::Table], "a table"),
         // A table's change from its schema released, or a device's value's
         // from its version released (track `device-store`).
         "migrate" => (
@@ -1303,6 +1310,7 @@ mod tests {
         "owned",
         "shares",
         "private",
+        "written",
         "transactions",
         "reads",
         "changes",

@@ -649,6 +649,7 @@ type Note = Note { id: String, text: String }
 table Notes
     row Note
     key id
+    written by anyone
 ";
 
 const LATER: &str = "module durable.later
@@ -1400,6 +1401,7 @@ type Count = Count { id: String, n: Int }
 table Counts
     row Count
     key id
+    written by anyone
 ";
 
 const TICKS: &str = "module durable.ticks
@@ -1956,7 +1958,7 @@ fn each_query_reads_its_tables_a_fixed_number_of_times_on_postgresql() {
             &book,
             "guestbook.book.Latest",
             vec![text(&reader), Val::S64(20)],
-            vec!["pw:tables/entries#of-book"],
+            vec!["pw:tables/entries#by-book"],
         ),
         (&book, "guestbook.book.Me", vec![text(&reader)], vec![]),
     ];

@@ -14,7 +14,7 @@ code the compiler can emit, from its registry, `compiler/pw-core/src/codes.rs`.
 - **What the program must hold to**: the registry's own sentence.
 - **ADR**: the decisions its registry entry cites, where it cites one.
 
-230 codes are registered; 103 of them cite an ADR in the registry.
+231 codes are registered; 105 of them cite an ADR in the registry.
 A code whose entry cites none is marked `—`: search `docs/DECISIONS/` for its
 number or its symbol.
 
@@ -96,9 +96,9 @@ number or its symbol.
 | PW0364 | `all_unbounded` | a table is read whole, by `all()`, only where it states `bounded` | — |
 | PW0365 | `refers_across_sources` | a reference to a table another source holds is held by no database: the referred row may be missing, which `get` answers as `None` | — |
 | PW0366 | `migration_unstated` | a change from the schema released that loses or reinterprets data is stated by a `migrate`, and each `migrate` states one | — |
-| PW0370 | `owner_names_a_principal` | `owned by` names one field of an owned table's row holding a principal's id (`capability.UserId`), and `shares with` others, never its owner, each once | [0384](../DECISIONS/ADR-0384-a-dating-app.md), [0406](../DECISIONS/ADR-0406-a-command-says-who-may-run-it.md), 0395 |
-| PW0368 | `owned_read_by_its_reader` | an owned table is read by its reader alone: its key leads with its owner, each index with its owner or a field it shares with, a unique index holds its owner, no bound counts its rows across owners, and it is never read whole | — |
-| PW0369 | `private_field_unseen` | a private field is read by its owner alone: a field of an owned table's row, never its owner, a field it shares with, in its key, its order where it shares, or an index another reads by; and its seen row is the table's own name | — |
+| PW0370 | `owner_names_a_principal` | `owned by` names one field of an owned table's row holding a principal's id (`capability.UserId`), and `shares with` others, never its owner, each once; a `public` table, read by every reader, shares with no one, and `public` is the one word a table is declared with | [0384](../DECISIONS/ADR-0384-a-dating-app.md), [0406](../DECISIONS/ADR-0406-a-command-says-who-may-run-it.md), 0395 |
+| PW0368 | `owned_read_by_its_reader` | an owned table's key leads with its owner, and one that is not `public` is read by its reader alone: each index leads with its owner or a field it shares with, a unique index holds its owner, no bound counts its rows across owners, and it is never read whole | 0395 |
+| PW0369 | `private_field_unseen` | a private field is read by its owner alone: a field of an owned table's row that is not `public`, never its owner, a field it shares with, in its key, its order where it shares, or an index another reads by; and its seen row is the table's own name | — |
 | PW0327 | `written_rollback` | an optimistic transition's reversal is derived, not written | [0025](../DECISIONS/ADR-0025-an-optimistic-clause-targets-a-resource-entry.md) |
 | PW0330 | `optimistic_not_pure` | an optimistic transition must be a pure function of the resource's value | — |
 | PW0334 | `derived_not_pure` | a `derived` value, and a value a template computes, is computed from other values, and performs no effect | [0082](../DECISIONS/ADR-0082-a-derived-value-performs-no-effect.md), [0226](../DECISIONS/ADR-0226-a-value-the-template-computes-compiles.md) |
@@ -354,7 +354,8 @@ number or its symbol.
 | PW6901 | `row_holds_handle` | a table's row holds no session's, user's or organization's handle: every reader of the table reads its rows, and a handle is its own reader's alone; a row names someone by their id | [0338](../DECISIONS/ADR-0338-three-databases.md) |
 | PW6905 | `predicate_body_reads_only` | a predicate's body reads and does nothing else: no write, no event, no schedule, no network, no log, no clock but its comparison | [0384](../DECISIONS/ADR-0384-a-dating-app.md), 0395, [0115](../DECISIONS/ADR-0115-a-commands-requires-is-held-before-its-body-runs.md) |
 | PW6907 | `required_query_unshared` | a query that `requires` a predicate is answered to its reader alone, once the predicate holds for them: it is cached `private`, or is a `user` or `session` query, so every read of it is keyed by its reader, and no materialization depends on it | [0384](../DECISIONS/ADR-0384-a-dating-app.md), [0339](../DECISIONS/ADR-0339-a-collaborative-document-app.md) |
-| PW6924 | `reference_within_one_owner` | a reference a database holds stays within one owner's rows: an owned table refers to an owned table from its own owner field alone, a table no one owns to no owned table, and an owned table to no table no one owns | [0384](../DECISIONS/ADR-0384-a-dating-app.md) |
+| PW6920 | `who_may_write` | a table a command a reader can run writes, itself, through what it calls or through a command it schedules, says who may write its rows, once: `owned by <field>`, each row its owner's alone, or `written by anyone` | 0395, [0407](../DECISIONS/ADR-0407-one-model-of-row-ownership.md), [0384](../DECISIONS/ADR-0384-a-dating-app.md) |
+| PW6924 | `reference_within_one_owner` | a reference a database holds stays within one owner's rows: an owned table refers to an owned table from its own owner field alone, a table no one owns to no owned table, and an owned table to no table no one owns; a `public` table's rows are every reader's, and it refers and is referred to as a table no one owns | [0384](../DECISIONS/ADR-0384-a-dating-app.md) |
 | PW6925 | `predicate_answered_by_its_body` | a predicate the program gives a body is answered by that body alone: a `requires` naming it sees it where it is written, no page asks it of its reader, and no predicate the deployment answers shares its name | [0384](../DECISIONS/ADR-0384-a-dating-app.md), [0115](../DECISIONS/ADR-0115-a-commands-requires-is-held-before-its-body-runs.md), [0307](../DECISIONS/ADR-0307-a-control-is-shown-where-its-commands-predicates-hold.md) |
 | PW6926 | `required_query_bound_by_a_page` | a query that `requires` a predicate is read by a page's binding alone, `query Q(..)`, where the host asks its reader: no query, command, function, predicate or materialization calls it, binds it or names it, which would run its body unasked | [0384](../DECISIONS/ADR-0384-a-dating-app.md), [0339](../DECISIONS/ADR-0339-a-collaborative-document-app.md) |
 

@@ -72,7 +72,7 @@ MUTANTS = [
      "        (1..k.value.len()).map(|j| k.value[..j].to_vec()).collect()\n",
      "        (1..k.value.len().saturating_sub(1)).map(|j| k.value[..j].to_vec()).collect()\n"),
     ("bounded gives no whole-table read", TABLES,
-     "    if let Some(b) = &t.bounded\n        && t.owner.is_none()\n", "    if let Some(b) = t.bounded.as_ref().filter(|_| false)\n        && t.owner.is_none()\n"),
+     "    if let Some(b) = &t.bounded\n        && !t.read_by_its_reader()\n", "    if let Some(b) = t.bounded.as_ref().filter(|_| false)\n        && !t.read_by_its_reader()\n"),
     ("a set form answers an Option", TABLES,
      "                    ret: list(answer(r)),\n                    primitive: Primitive::GetMany,\n",
      "                    ret: option(answer(r)),\n                    primitive: Primitive::GetMany,\n"),

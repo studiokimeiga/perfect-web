@@ -282,6 +282,11 @@ pub(crate) fn check_inferred_prepared(
     // 4c: what keys each source read, and what loops over it, over every
     // unit, since a loop in one module calls a read in another.
     let bounded = crate::bounded::Reads::of(hirs, workspace, sigs, inference, &sources);
+    // L2 (ADR-0395's ruling 5): each table a command a reader can run
+    // writes, itself, through its calls or through a schedule the clock runs
+    // on its behalf, over every unit, since a command in one module writes a
+    // table another declares.
+    let reader_writes = crate::tables::written_by_readers(hirs, workspace, inference);
     let paths: Vec<&str> = units.iter().map(|u| u.path.as_str()).collect();
     let diagnostics = units
         .iter()
@@ -306,6 +311,9 @@ pub(crate) fn check_inferred_prepared(
             // Tables obey the same prepared semantic environment as every
             // other declaration and can be reached only through given functions.
             out.extend(crate::tables::check(hirs, i, workspace, sigs));
+            // L2 (ADR-0395's ruling 5): and a table such a command writes
+            // says who may write its rows (PW6920).
+            out.extend(crate::tables::who_may_write(hirs, i, &reader_writes));
             // NEXT 6c: a command the platform invokes, which no reader
             // presses (PW64xx).
             out.extend(crate::invoked::check(hirs, i, workspace, &sent));

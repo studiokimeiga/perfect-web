@@ -99,6 +99,9 @@ const ACCEPTED_CATEGORIES: &[&str] = &[
     // The second review of track `row-ownership`: the control of PW6926
     // (A-059).
     "a query requiring a predicate, read by a page's binding",
+    // L2 (ADR-0395's ruling 4): the public form of an owned table, read by
+    // every reader and written by its owner (A-060).
+    "a public table read by anyone and written by its owner",
 ];
 
 /// Charter §16.2: "Create at least one minimal file for each".
@@ -261,6 +264,9 @@ const REJECTED_CATEGORIES: &[&str] = &[
     // The second review of track `row-ownership`: PW6926, beside its
     // accepted control (A-059).
     "a query requiring a predicate called by another declaration",
+    // L2 (ADR-0395's ruling 5): PW6920, beside its accepted control (A-050,
+    // whose chores any reader writes, on purpose).
+    "a table a reader's command writes that says nothing of who may write it",
 ];
 
 /// Milestone 0 gate (charter §14 M0): ">= 10 accepted and 20 rejected".

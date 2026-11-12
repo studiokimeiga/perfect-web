@@ -262,6 +262,7 @@ fn shapes_of(tables: &[TableSchema]) -> Result<Vec<TableShape>, Error> {
                 owner: None,
                 shares: Vec::new(),
                 private: Vec::new(),
+                public: false,
                 functions: Vec::new(),
             })
             .collect(),

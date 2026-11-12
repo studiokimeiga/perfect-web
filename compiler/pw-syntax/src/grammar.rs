@@ -250,10 +250,11 @@ const NAMED_HEADS: &[&str] = &[
 ];
 
 /// **A table's ownership clauses** (track `row-ownership`, ADR-0384 H1):
-/// `owned by owner` and `shares with to` head a clause only where a name
-/// follows on their line, as [`NAMED_HEADS`] do; `owned` and `shares` are
-/// names a body may begin with.
-const OWNERSHIP_HEADS: &[&str] = &["owned", "shares"];
+/// `owned by owner`, `shares with to` and `written by anyone` (L2,
+/// ADR-0395) head a clause only where a name follows on their line, as
+/// [`NAMED_HEADS`] do; `owned`, `shares` and `written` are names a body may
+/// begin with.
+const OWNERSHIP_HEADS: &[&str] = &["owned", "shares", "written"];
 
 /// A table's bounded clause takes a literal count on its line, and so does
 /// the version of a signal the device keeps (track `device-store`):
@@ -321,6 +322,10 @@ pub const POLICY_KEYWORDS: &[&str] = &[
     "owned",
     "shares",
     "private",
+    // L2 (ADR-0395): who may write a table no one owns, `written by
+    // anyone`, a clause only where a name follows on its line
+    // (`OWNERSHIP_HEADS`).
+    "written",
     // Track `device-store` (ADR-0366): the version of a value the device
     // keeps, a clause only where its count follows on its line
     // (`COUNTED_HEADS`); its `migrate` is a table's word, for the same
@@ -4553,11 +4558,36 @@ mod tests {
         }
     }
 
-    /// The control: `owned` and `shares` are names a body may begin with, a
-    /// clause only where a name follows on their line.
+    /// L2 (ADR-0395): `written by anyone` heads a table's clause, as `owned
+    /// by` does.
+    #[test]
+    fn written_by_anyone_is_a_tables_clause() {
+        let src = "table Topics\n    row     Topic\n    key     id\n    written by anyone\n";
+        let p = parse_ok(src);
+        assert_lossless(src, &p);
+        let heads: Vec<String> = texts(&p, K::Policy)
+            .iter()
+            .map(|t| t.split_whitespace().next().unwrap_or_default().to_string())
+            .collect();
+        assert_eq!(
+            heads,
+            ["row", "key", "written"],
+            "{:?}",
+            texts(&p, K::Policy)
+        );
+    }
+
+    /// The control: `owned`, `shares` and `written` are names a body may
+    /// begin with, a clause only where a name follows on their line.
     #[test]
     fn owned_and_shares_are_still_names_in_a_policy_block() {
-        for (head, rest) in [("owned", ".count"), ("shares", " + 1"), ("owned", "")] {
+        for (head, rest) in [
+            ("owned", ".count"),
+            ("shares", " + 1"),
+            ("owned", ""),
+            ("written", " + 1"),
+            ("written", ""),
+        ] {
             let src = format!(
                 "materialize M() {{\n    regenerate on_invalidation\n    {head}{rest}\n}}\n"
             );

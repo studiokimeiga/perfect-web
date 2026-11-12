@@ -588,11 +588,13 @@ fn generality_is_reported_separately_from_conformance() {
     // `predicate_body_reads_only` (ADR-0384's H1 and H2), its review's
     // `reference_within_one_owner`, `predicate_answered_by_its_body` and
     // `required_query_unshared`, and its second review's
-    // `required_query_bound_by_a_page`. Measured below; update STATUS and
-    // NEXT with the integrated result.
+    // `required_query_bound_by_a_page`. 76 / 76 with L2's own:
+    // `who_may_write`, a table a reader's command writes says who may
+    // write its rows (PW6920). Measured below; update STATUS and NEXT with
+    // the integrated result.
     assert_eq!(
         (general.len(), narrow.len(), untested.len()),
-        (75, 0, 0),
+        (76, 0, 0),
         "the published figure moved. If that is intended, update
          docs/STATUS.md and docs/NEXT.md in the same commit — a number in a
          status report that no test holds is a number that drifts."

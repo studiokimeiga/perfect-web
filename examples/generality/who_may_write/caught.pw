@@ -1,0 +1,34 @@
+// @status: GENERAL
+// @invariant: who_may_write
+//
+// Structurally different from R-118: the reader's command writes nothing
+// itself. It schedules a command the clock runs on its reader's behalf,
+// and that one writes the table, so its writes are the reader's.
+
+module Reminders
+
+import domain.{ InteractionId }
+import clock.{ minutes }
+
+opaque type ReminderId = String
+
+type Reminder = Reminder { id: ReminderId, text: String }
+
+table Reminders
+    row Reminder
+    key id
+
+command remind(id: ReminderId, text: String) -> Result<Int, String>
+    invoked_by    Clock
+    idempotent_by InteractionId
+{
+    Reminders.put(Reminder { id: id, text: text })
+    Ok(1)
+}
+
+command remind_later(id: ReminderId, text: String) -> Result<Int, String>
+    requires Anyone
+{
+    schedule remind(id, text) after minutes(5)
+    Ok(1)
+}

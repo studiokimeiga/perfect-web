@@ -27,7 +27,16 @@ Each mutant undoes one guarantee and must be killed by a test:
    predicates, each one `predicate` export requiring nothing, under the
    export's limits and one budget, and the deployment never, on any path;
    its reads are its command's transaction's, which no other command enters
-   between the predicate and the body.
+   between the predicate and the body;
+4. L2 (ADR-0395): a table a reader's command writes, itself or through a
+   command the clock runs on its behalf, says who may write its rows,
+   `owned by` or `written by anyone`, never both (PW6920), and the grammar
+   reads `written` as a clause only where a name follows; a `public` owned
+   table is read by anyone with no handle, by any index, whole where
+   bounded, and written by its owner alone, its key still the owner's, and
+   it shares with no one, keeps nothing private and refers as a table no
+   one owns; `public` is the one word a table takes; the host holds a
+   public table's manifest whole by the same rules.
 
 The review of the track (2026-11-02) found three of these unheld: an
 owner check reading a row's first field, and a predicate asked after the
@@ -73,11 +82,11 @@ MUTANTS = [
      "        (Reading::Sharer, Some(s)) => DeclaredType::new(s.name.clone(), Vec::new()),\n",
      "        (Reading::Sharer, Some(_)) => row_ty.clone(),\n"),
     ("an owned table gives all", TABLES,
-     "    if let Some(b) = &t.bounded\n        && t.owner.is_none()\n",
-     "    if let Some(b) = &t.bounded\n        && (t.owner.is_none() || true)\n"),
+     "    if let Some(b) = &t.bounded\n        && !t.read_by_its_reader()\n",
+     "    if let Some(b) = &t.bounded\n        && (!t.read_by_its_reader() || true)\n"),
     ("tables.json names no reader", TABLES,
-     "        Primitive::Insert | Primitive::Put => Some(owner.to_string()),\n        _ => by.first().cloned(),\n",
-     "        Primitive::Insert | Primitive::Put => None.filter(|_: &String| owner.is_empty()),\n        _ => None.filter(|_: &String| by.is_empty()),\n"),
+     "        Primitive::Insert | Primitive::Put => Some(owner.to_string()),\n        // A `public` table's reads are anyone's (ADR-0395's ruling 4).\n        _ if t.public && !primitive.writes() => None,\n        _ => by.first().cloned(),\n",
+     "        Primitive::Insert | Primitive::Put => None.filter(|_: &String| owner.is_empty()),\n        // A `public` table's reads are anyone's (ADR-0395's ruling 4).\n        _ if t.public && !primitive.writes() => None,\n        _ => None.filter(|_: &String| by.is_empty()),\n"),
     ("PW0370 an owner may be no principal's id", TABLES,
      "            Some((_, Some(ty))) if !principal_id(sigs, ty) => Err(format!(\n",
      "            Some((_, Some(ty))) if false && !principal_id(sigs, ty) => Err(format!(\n"),
@@ -104,8 +113,8 @@ MUTANTS = [
      "        if false && (DECL_STARTERS.contains(&next) || UI_NOUNS.contains(&next)) {\n"),
     # The review's findings 1 and 2 (probes A and B).
     ("PW0368 an owned table may state a bound", TABLES,
-     "    if let Some(b) = &t.bounded {\n        out.push(read_refusal(\n",
-     "    if let Some(b) = t.bounded.as_ref().filter(|_| false) {\n        out.push(read_refusal(\n"),
+     "    if let Some(b) = &t.bounded\n        && !t.public\n    {\n        out.push(read_refusal(\n",
+     "    if let Some(b) = t.bounded.as_ref().filter(|_| false)\n        && !t.public\n    {\n        out.push(read_refusal(\n"),
     ("PW6924 an owned table refers to another's rows by any field", TABLES,
      "        (Some(owner), Some(_)) if field == owner => return None,\n",
      "        (Some(_), Some(_)) => return None,\n"),
@@ -292,11 +301,83 @@ MUTANTS = [
     ('a failed joined query loses its typed denial', SERVER,
      "                    // Ask this invocation's requirements for its own typed refusal.\n                    self.authorize_reused_answer(resource, session, args)?;\n",
      ''),
+    # 4. L2 (ADR-0395): who may write a table (ruling 5, PW6920), and the
+    # public form of an owned table (ruling 4).
+    ("PW6920 a reader's command writes no table", TABLES,
+     '            if decl.kind != DeclKind::Command || decl.policy("invoked_by").is_some() {\n',
+     '            if decl.kind != DeclKind::Command || decl.policy("invoked_by").is_some() || true {\n'),
+    ("PW6920 a write a reader's schedule makes is no reader's", TABLES,
+     "            for (first, at) in scheduled_by(hirs, ws, unit, decl) {\n",
+     "            for (first, at) in scheduled_by(hirs, ws, unit, decl).into_iter().filter(|_| false) {\n"),
+    ("PW6920 a table a reader writes may say nothing", TABLES,
+     "        let Some(writers) = writes.get(&t.name).filter(|w| !w.is_empty()) else {\n",
+     "        let Some(writers) = writes.get(&t.name).filter(|w| w.is_empty()) else {\n"),
+    ("PW6920 an owned table may be written by anyone too", TABLES,
+     "        if let (Some(owned), Some(written)) = (&t.owner, &t.written) {\n",
+     "        if let (Some(owned), Some(written)) = (&t.owner, t.written.as_ref().filter(|_| false)) {\n"),
+    ("PW6920 is never asked", CHECK,
+     "            out.extend(crate::tables::who_may_write(hirs, i, &reader_writes));\n",
+     "            let _ = &reader_writes;\n"),
+    ("written by reads any word", TABLES,
+     '        Some("anyone") => Ok(()),\n',
+     "        Some(_) => Ok(()),\n"),
+    ("written is no clause of a table", GRAMMAR,
+     '    "written",\n    // Track `device-store` (ADR-0366): the version of a value the device\n',
+     "    // Track `device-store` (ADR-0366): the version of a value the device\n"),
+    ("written heads a clause where no name follows", GRAMMAR,
+     'const OWNERSHIP_HEADS: &[&str] = &["owned", "shares", "written"];\n',
+     'const OWNERSHIP_HEADS: &[&str] = &["owned", "shares"];\n'),
+    ("a public table's reads take a handle", TABLES,
+     "    if t.public {\n        return Reading::Plain;\n    }\n",
+     "    if t.public && false {\n        return Reading::Plain;\n    }\n"),
+    ("a public table gives no all", TABLES,
+     "    if let Some(b) = &t.bounded\n        && !t.read_by_its_reader()\n",
+     "    if let Some(b) = &t.bounded\n        && t.owner.is_none()\n"),
+    ("an owned table's deletes take a plain id", TABLES,
+     "        Some(owner) if by.first().is_some_and(|f| f == owner) => Reading::Owner,\n",
+     "        Some(owner) if by.first().is_some_and(|f| f == owner) => Reading::Plain,\n"),
+    ("tables.json gives a public table's read a handle", TABLES,
+     "        _ if t.public && !primitive.writes() => None,\n",
+     "        _ if t.public && !primitive.writes() && false => None,\n"),
+    ("a public table's index is held to a reader", TABLES,
+     "    for i in t.indexes.iter().filter(|_| !t.public) {\n",
+     "    for i in t.indexes.iter() {\n"),
+    ("a public table's bound is refused", TABLES,
+     "    if let Some(b) = &t.bounded\n        && !t.public\n    {\n",
+     "    if let Some(b) = &t.bounded\n        && (!t.public || true)\n    {\n"),
+    ("a public table may share its rows", TABLES,
+     "    if t.public {\n        if let Some(s) = &t.shares {\n",
+     "    if t.public {\n        if let Some(s) = t.shares.as_ref().filter(|_| false) {\n"),
+    ("a public table may keep a field private", TABLES,
+     "        if let Some(p) = &t.private {\n            out.push(unseen(\n                format!(\n                    \"`public table {}` keeps",
+     "        if let Some(p) = t.private.as_ref().filter(|_| false) {\n            out.push(unseen(\n                format!(\n                    \"`public table {}` keeps"),
+    ("a private table is read as a table", TABLES,
+     "    if let Some(word) = &t.word {\n",
+     "    if let Some(word) = t.word.as_ref().filter(|_| false) {\n"),
+    ("PW6924 a public table refers as an owned one", TABLES,
+     "        t.owner_field().filter(|_| !t.public)\n",
+     "        t.owner_field()\n"),
+    ("the host gives a public table's read a handle", HOST_TABLES,
+     "                false => function.reader.is_some(),\n",
+     "                false => false,\n"),
+    ("the host lets a public table's write go without its owner's handle", HOST_TABLES,
+     "                true => given.is_none() || function.reader.as_ref() != given,\n",
+     "                true => false,\n"),
+    ("the host reads a public table as one read by its reader", HOST_TABLES,
+     "        if self.public {\n            return self.public_whole(owner);\n        }\n",
+     "        if self.public && false {\n            return self.public_whole(owner);\n        }\n"),
+    ("the host lets a public table share its rows", HOST_TABLES,
+     "        if !self.shares.is_empty() || !self.private.is_empty() {\n            return refused(\n                \"is public,",
+     "        if false {\n            return refused(\n                \"is public,"),
+    ("the host's references read a public table as an owned one", HOST_TABLES,
+     "                    t.owner.as_ref().filter(|_| !t.public)\n",
+     "                    t.owner.as_ref()\n"),
 ]
 
 # Each Cargo test binary separately: names can repeat between binaries, and
 # the shared native assertion validator expects one complete inventory.
 TESTS = [
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-syntax", "--lib"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server", "required_queries"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "table_owners"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "predicate_bodies"],

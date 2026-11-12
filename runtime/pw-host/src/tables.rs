@@ -68,6 +68,11 @@ struct Table {
     shares: Vec<String>,
     #[serde(default)]
     private: Vec<String>,
+    /// **Every reader reads its rows** (L2, ADR-0395's ruling 4): a `public
+    /// table`, whose owned functions' reads are given no handle and whose
+    /// writes are their owner's.
+    #[serde(default)]
+    public: bool,
     /// Each `refers <field> to <Table>`: a foreign key its database holds
     /// across every row of both tables, whoever owns them.
     #[serde(default)]
@@ -502,7 +507,10 @@ impl Table {
     /// the owner selects or orders rows by; each function given its handle
     /// in the place of the field it leads with, a read's the owner's or a
     /// sharer's, a write's the owner's; and no `all`. A table no one owns
-    /// states none of it.
+    /// states none of it. A `public` owned table (L2, ADR-0395's ruling 4)
+    /// shares with no one and keeps nothing private; its key is still led by
+    /// its owner and each write given the owner's handle, and its reads,
+    /// whole where it is bounded, by any index, are given none.
     fn owned_whole(&self) -> Result<(), String> {
         let name = &self.name;
         let refused = |why: String| Err(format!("tables.json: {name} {why}"));
@@ -539,6 +547,9 @@ impl Table {
             return refused(format!(
                 "is owned by `{owner}`, and its key leads with another"
             ));
+        }
+        if self.public {
+            return self.public_whole(owner);
         }
         let reader =
             |field: Option<&String>| field.is_some_and(|f| f == owner || self.shares.contains(f));
@@ -598,6 +609,42 @@ impl Table {
             return refused(format!(
                 "is owned, and its bound of {bound} rows counts every owner's"
             ));
+        }
+        Ok(())
+    }
+
+    /// **A `public` owned table, held whole** (L2, ADR-0395's ruling 4):
+    /// read by every reader, so it shares with no one and keeps nothing
+    /// private; each write given its owner's handle, an `insert`'s and a
+    /// `put`'s beside the row, a delete's in its key's first place, which is
+    /// the owner's; and each read given none.
+    fn public_whole(&self, owner: &String) -> Result<(), String> {
+        let name = &self.name;
+        let refused = |why: String| Err(format!("tables.json: {name} {why}"));
+        if !self.shares.is_empty() || !self.private.is_empty() {
+            return refused(
+                "is public, and shares its rows or keeps fields private from its readers".into(),
+            );
+        }
+        for function in &self.functions {
+            let given = match function.primitive {
+                Primitive::Insert | Primitive::Put => Some(owner),
+                Primitive::Delete | Primitive::DeletePrefix => {
+                    function.by.first().filter(|f| *f == owner)
+                }
+                _ => None,
+            };
+            let wrong = match function.primitive.writes() {
+                true => given.is_none() || function.reader.as_ref() != given,
+                false => function.reader.is_some(),
+            };
+            if wrong {
+                return refused(format!(
+                    "is public, and `{}` is not given its owner's handle where it writes, or is \
+                     given one where it reads",
+                    function.name
+                ));
+            }
         }
         Ok(())
     }
@@ -771,7 +818,12 @@ impl Manifest {
                         "tables.json: {name} refers `{field}` to {to}, which it does not declare"
                     ));
                 };
-                let within = match (&table.owner, &target.owner) {
+                // A `public` table's rows are every reader's: it refers and
+                // is referred to as a table no one owns (ADR-0395's ruling 4).
+                fn private_owner(t: &Table) -> Option<&String> {
+                    t.owner.as_ref().filter(|_| !t.public)
+                }
+                let within = match (private_owner(table), private_owner(target)) {
                     (None, None) => true,
                     (Some(owner), Some(_)) => field == owner,
                     _ => false,

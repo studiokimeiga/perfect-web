@@ -3,5 +3,6 @@ module Books
 type Book = Book { name: String, signed: Int }
 
 table Books
-    row Book
-    key name
+    row     Book
+    key     name
+    written by anyone

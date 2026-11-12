@@ -44,6 +44,7 @@ fn database() -> Arc<MemoryTables> {
                 owner: None,
                 shares: Vec::new(),
                 private: Vec::new(),
+                public: false,
                 schema,
                 module: "Users".into(),
                 interface: "pw:tables/users".into(),

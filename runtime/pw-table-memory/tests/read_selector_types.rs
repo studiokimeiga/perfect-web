@@ -66,6 +66,7 @@ fn manifest() -> TablesJson {
             owner: None,
             shares: Vec::new(),
             private: Vec::new(),
+            public: false,
             schema: table,
             module: "Likes".into(),
             interface: "pw:tables/likes".into(),

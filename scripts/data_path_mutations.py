@@ -316,13 +316,17 @@ MUTANTS = [
     # 7. the guestbook, on the tables it declares
     ("a removed entry's number is given again", BOOK,
      "                Some(book) => book.signed + 1,\n",
-     "                Some(_) => List.length(Entries.of_book(guestbook())) + 1,\n"),
-    ("anyone removes an entry but its author", BOOK,
-     "        Some(entry) => if mine(entry, account_of(current_user())) {\n",
-     "        Some(entry) => if !mine(entry, account_of(current_user())) {\n"),
+     "                Some(_) => List.length(Entries.by_book(guestbook())) + 1,\n"),
+    # L2 (ADR-0395): `Entries` is owned by its author, so no program's
+    # `remove` deletes another's entry (the delete takes the reader's handle
+    # in the author's place, the row-ownership script's mutants hold that);
+    # what the guestbook says about it is its own.
+    ("another reader's entry is answered removed", BOOK,
+     "            Some(_) => Err(NotYours),\n",
+     "            Some(_) => Ok(number),\n"),
     ("the newest entries are not first", BOOK,
-     "    List.map(List.take(List.reverse(Entries.of_book(guestbook())), limit), e => line(e, account))\n",
-     "    List.map(List.take(Entries.of_book(guestbook()), limit), e => line(e, account))\n"),
+     "    List.map(List.take(List.reverse(Entries.by_book(guestbook())), limit), e => line(e, account))\n",
+     "    List.map(List.take(Entries.by_book(guestbook()), limit), e => line(e, account))\n"),
     ("every entry is the reader's", BOOK,
      "        Some(account) => entry.author == account.id,\n",
      "        Some(_) => true,\n"),

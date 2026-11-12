@@ -2,7 +2,7 @@ module guestbook.book
 
 import List
 import context.{ current_user, account_of, Account }
-import capability.{ User, UserId }
+import capability.{ User, UserId, id_of }
 import Books.{ Book }
 import Books
 import Entries.{ Entry, Words, text_of, most }
@@ -86,7 +86,7 @@ user query Latest(reader: User<UserId>, limit: Int) -> List<Line>
     timeout        2.seconds
 {
     let account = account_of(reader)
-    List.map(List.take(List.reverse(Entries.of_book(guestbook())), limit), e => line(e, account))
+    List.map(List.take(List.reverse(Entries.by_book(guestbook())), limit), e => line(e, account))
 }
 
 predicate SignedIn
@@ -109,7 +109,7 @@ command sign(text: Words) -> Result<Entry, BookError>
             }
             Books.put(Book { name: guestbook(), signed: number })
             let entry = Entry { book: guestbook(), number: number, author: account.id, name: account.name, text: text }
-            match Entries.insert(entry) {
+            match Entries.insert(current_user(), entry) {
                 Ok(_) => Ok(entry),
                 Err(_) => Err(Unavailable),
             }
@@ -127,13 +127,14 @@ command remove(number: Int) -> Result<Int, BookError>
     idempotent_by InteractionId
     emits         Removed(number)
 {
-    match Entries.get(guestbook(), number) {
-        None => Err(NotFound),
-        Some(entry) => if mine(entry, account_of(current_user())) {
-            Entries.delete(guestbook(), number)
+    match Entries.get(id_of(current_user()), guestbook(), number) {
+        Some(_) => {
+            Entries.delete(current_user(), guestbook(), number)
             Ok(number)
-        } else {
-            Err(NotYours)
+        },
+        None => match Entries.by_number(guestbook(), number) {
+            Some(_) => Err(NotYours),
+            None => Err(NotFound),
         },
     }
 }
