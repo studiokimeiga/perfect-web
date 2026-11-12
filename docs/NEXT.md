@@ -14,24 +14,31 @@ ADR-0434's first step. The first "create 1,000 rows" of a cold visit spends
 processor slowed four times; the builds visited in turn have it quicker past
 the rounds' spread in Firefox (create −5.0 ms, replace −4.0, every press −6.0)
 and under Slow 4G (create −15.2 cold, append −44.6 warm), and every press of a
-warm visit −7.9 in Chromium. What is left, each measured, none decided:
+warm visit −7.9 in Chromium. Its cold append is slower, and recorded
+(ADR-0437, Consequences). What is left, each measured, none decided:
 
-1. **A cold append, slower to its frame**: +6.4 ms in Chromium (3.5..8.6) on
-   a quiet machine, +4.9 (1.6..7.4) with the final code under load; train-32
-   waits to land on it. Found (ADR-0437's result): this build keeps less (a
-   row 3,016 B against 3,326) and allocates less in every press, so its
+1. **Two comments a row** (item 4 after trains 27 and 28): the next step of
+   ADR-0434's rows, two of every three nodes a thousand rows insert, and
+   Firefox's layout of them, where its cold create, append and replace are
+   behind Svelte's. It is also the first remedy for item 2. **Its check**, as
+   ADR-0437's result measured it: in a trace of the head-to-head's own cold
+   visit (`v8`, `disabled-by-default-v8.gc`), the global allocation limit at
+   the last scavenge before the append (`V8.GCTraceGCNVP`'s
+   `global_allocation_limit`), and where the first mark-compact falls
+   (`V8.GCIncrementalMarkingStart`, its `gc_reason` and time against the
+   append's click).
+2. **A cold append, slower to its frame**: +6.4 ms in Chromium (3.5..8.6) on
+   a quiet machine, +4.9 (1.6..7.4) with the final code under load, accepted
+   and recorded (ADR-0437, Consequences). This build keeps less (a row
+   3,016 B against 3,326) and allocates less in every press, so its
    scavenges' average survival is 39.6 % against 48.7 %; V8 shrinks its
    initial global limit by that ratio after each scavenge until its first
    mark-compact, to 43 to 49 MB against 68 to 75, and the append's DOM and
-   layout reach it inside the press in every round. Not ours to cut without
-   keeping more. What would move it: a scavenge fewer before the append (2
-   to 4 MB less garbage, most of it the general renderer's block generators
-   and maps, about 3 MB the harness's own), or fewer nodes a row (item 2).
-   The warm replace, slower past its spread under load, is not traced.
-2. **Two comments a row** (item 4 after trains 27 and 28): the next step of
-   ADR-0434's rows, two of every three nodes a thousand rows insert, and
-   Firefox's layout of them, where its cold create, append and replace are
-   behind Svelte's.
+   layout reach it inside the press in every round. What would move it:
+   fewer nodes a row (item 1), or a scavenge fewer before the append (2 to
+   4 MB less garbage, most of it the general renderer's block generators and
+   maps, ADR-0434's later steps; about 3 MB is the harness's own). The warm
+   replace, slower past its spread under load, is not traced.
 3. **Bytes**: the large list's page alone is 175 B heavier with Brotli (+700
    decoded) for its own code; TodoMVC's is byte for byte what it was before
    this step. The byte rows are ADR-0434's later steps' (a block's markup,

@@ -14,7 +14,7 @@ builds visited in turn: quicker past the spread in Firefox and under Slow 4G,
 every press of a warm visit 7.9 ms quicker in Chromium, and a cold append
 slower (+6.4 ms in Chromium, +25.8 under Slow 4G): V8's initial global limit,
 shrunk by its scavenges' survival, which is lower as a row keeps less, starts
-a major collection in it (NEXT). It waits to land on that. TodoMVC
+a major collection in it, recorded and accepted (ADR-0437, NEXT). TodoMVC
 is sent the bytes it was but the `NaN` fix's (+12 B with Brotli); the large
 list's page is 175 B heavier with Brotli for its own code.
 

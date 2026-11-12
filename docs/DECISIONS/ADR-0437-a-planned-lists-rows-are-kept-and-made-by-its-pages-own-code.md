@@ -1,11 +1,10 @@
 # ADR-0437: a planned list's rows are kept and made by its page's own code
 
-Status: proposed 2026-11-12 (train-32, branch `perf/train-32-20261112`), on
+Status: accepted 2026-11-12 (train-32, branch `perf/train-32-20261112`), on
 train-31; the first step of ADR-0434, whose decision 5 it amends for this
-step. Its result is in: presses quicker past their spread, and a cold
-append slower in Chromium, a major collection V8 now starts in it (Result).
-ADR-0436's standard, nothing measured slower, is not met; whether it lands
-with that recorded is decided where it is merged. Under the owner's delegation of 2026-10-02 and order of 2026-10-25, and
+step. Accepted with its cold append recorded, slower in Chromium where a
+major collection V8 starts now falls in it (Consequences: the cold append),
+by the integrator's ruling of 2026-11-12. Under the owner's delegation of 2026-10-02 and order of 2026-10-25, and
 the order of 2026-11-09 that every row Svelte wins be a defect until it is
 fixed or recorded. Milestone: E14. Builds on ADR-0413, ADR-0426, ADR-0427,
 ADR-0428, ADR-0432 and ADR-0434.
@@ -192,8 +191,10 @@ device's renderer with views on, so no list of it was a plan's.
   | Firefox, warm | −6.0 (−14.0..4.0) | −1.0 (−9.0..4.0) | −1.0 (−7.0..3.0) | 0.0 | −15.0 (−37.0..5.0) |
 
   Every other press within its spread. Under that load the spreads are wider
-  than on a quiet machine, and a warm replace is slower past its spread
-  (not traced).
+  than on a quiet machine. The warm replace, slower past its spread here
+  (+4.6 in Chromium, +26.6 under Slow 4G, measured at a load of 4.7 to 7.8,
+  not traced), was within it on the quiet machine below (+1.6, −0.6..2.5,
+  and +14.3, −8.8..32.4).
 - **The builds visited in turn on a quiet machine** (`t32/ab-t32.txt`, load
   0.5, the same harness), the build before the controls' first whole run
   changed one expression (above): a value a row computes, where no function
@@ -264,9 +265,20 @@ device's renderer with views on, so no list of it was a plan's.
   a page none of whose lists is written is sent what it was. The byte rows
   Svelte wins are ADR-0434's later steps' (a block's markup, the general
   renderer folded away).
-- A cold visit's append is slower to its frame in Chromium, its press doing
-  less: V8's initial limits, shrunk by its scavenges' survival, which is
-  lower as a row keeps less, start a major collection in it (NEXT).
+- **The cold append** (the integrator's ruling of 2026-11-12, under the
+  owner's delegation of 2026-10-02). *The cost*: Chromium's cold "append
+  1,000 rows" is slower past its spread, +6.4 ms (3.5..8.6) and +4.9
+  (1.6..7.4) in two A/Bs. *The mechanism*, from this step's traces: a
+  leaner heap lowers the scavenges' survival, which shrinks V8's initial
+  global limit (the DOM's and layout's heap counted), so the page's first
+  mark-compact starts inside the press. *Why it is accepted*: every press
+  does less work and every row keeps less, and keeping more per row would
+  give that back. The remedies are fewer DOM nodes a row (NEXT's first
+  item, the two anchors) and less garbage from the general renderer
+  (ADR-0434's later steps), and both build on this step. *What the next
+  train checks*, as this step measured it: in a trace of the head-to-head's
+  own cold visit, the global allocation limit at the last scavenge before
+  the append, and where the first mark-compact falls.
 - A mutant that changes what the packaging writes in place of the general
   code (`OWN_EDITS`) changes it only where a list is written: the runtime as
   written is the general code, and a build with no list of its own is packed
