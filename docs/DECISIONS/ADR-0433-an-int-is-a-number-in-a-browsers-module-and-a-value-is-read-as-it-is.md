@@ -160,8 +160,18 @@ sent as it is" for decision 4. The fifteen other scripts with a mutant in the
 backend mutate what this decision did not reach (a graph's nodes, a command's
 arguments, a first value, a match), and run in the full verify.
 
-The head-to-head of trains 27 and 28 is recorded at the commit their full
-verify runs on, with that run (STATUS).
+The head-to-head of trains 27 and 28, at `8096c4e7`, the commit their full
+verify ran on (`docs/evidence/E14/head-to-head.txt`): Pleris behind in 31
+rows and best in 80, from 52 and 86 at `87446c10`, the large list's presses
+behind in 11 rows where they were in 29. Most of the rows that are no
+losses now are so because the run's spreads overlap where the earlier
+run's did not, the other stacks slower in it too (Svelte's cold "create
+1,000 rows" 35.8 ms to 40.4), its measuring having begun at a load of 7.87,
+under the instrument's limit of 8: the record says where Pleris stands, and
+the builds visited in turn (above) what the trains do. First loads as each
+host sent them: TodoMVC 19,847 bytes (Svelte's 20,821), the store 27,553
+(SvelteKit's 35,025), the large list 16,673 (Svelte's 13,242); as a static
+host compresses them, TodoMVC 19,056 (16,992).
 
 ## Consequences
 
