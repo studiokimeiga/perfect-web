@@ -4,52 +4,76 @@ function trap(what) {
   throw new Error("trap: " + what);
 }
 
-// An Int is 64 bits, and a result that does not fit traps (ADR-0039):
-// one that 64 bits wrap is not itself (ADR-0427).
-function int(v) {
+// An Int is a number within 2^53 of zero and a BigInt past it, 64 bits
+// at most (ADR-0039, ADR-0433): one form for each value, so that two
+// equal ones are `===`, and the form JSON gives each Int it carries. A
+// result 64 bits do not hold traps: one they wrap is not itself.
+function big(v) {
   if (BigInt.asIntN(64, v) !== v) trap("Int overflow");
-  return v;
+  return v >= -9007199254740992n && v <= 9007199254740992n ? Number(v) : v;
 }
 
-// Euclidean: the remainder is in [0, |b|), so -7 / 2 is -4.
+function sub(a, b) {
+  if (typeof a === "number" && typeof b === "number") {
+    const r = a - b;
+    if (r >= -9007199254740991 && r <= 9007199254740991) return r;
+  }
+  return big(BigInt(a) - BigInt(b));
+}
+
+// Euclidean: the remainder is in [0, |b|), so -7 / 2 is -4. Exact on two
+// numbers: `a % b` is, and `a - a % b` is a multiple of `b` no larger
+// than `a`, so their quotient is the whole number it is.
 function div(a, b) {
-  if (b === 0n) trap("division by zero");
-  let q = a / b;
-  if (a % b < 0n) q = b > 0n ? q - 1n : q + 1n;
-  return int(q);
+  if (b == 0) trap("division by zero");
+  if (typeof a === "number" && typeof b === "number") {
+    const r = a % b;
+    const q = (a - r) / b;
+    return (r < 0 ? (b > 0 ? q - 1 : q + 1) : q) + 0;
+  }
+  const x = BigInt(a), y = BigInt(b);
+  let q = x / y;
+  if (x % y < 0n) q = y > 0n ? q - 1n : q + 1n;
+  return big(q);
 }
 
 function rem(a, b) {
-  if (b === 0n) trap("division by zero");
-  const r = a % b;
-  return r < 0n ? (b > 0n ? r + b : r - b) : r;
+  if (b == 0) trap("division by zero");
+  if (typeof a === "number" && typeof b === "number") {
+    const r = a % b;
+    return (r < 0 ? (b > 0 ? r + b : r - b) : r) + 0;
+  }
+  const x = BigInt(a), y = BigInt(b);
+  const r = x % y;
+  return big(r < 0n ? (y > 0n ? r + y : r - y) : r);
 }
 
-// An Int sent to a command as a JSON number (ADR-0058): exact within
-// ±2^53, and a trap past it rather than a different number.
+// An Int as JSON carries it (ADR-0058, ADR-0433): a number already within
+// ±2^53, and a trap past it, where it is a BigInt, rather than a
+// different number.
 function exact(v) {
-  if (v < -9007199254740992n || v > 9007199254740992n) trap("an Int a JavaScript number cannot carry exactly");
-  return Number(v);
+  if (typeof v === "bigint") trap("an Int a JavaScript number cannot carry exactly");
+  return v;
 }
 
 function callee0(v0) {
-  const v1 = 1000n;
+  const v1 = 1000;
   const v2 = v0 < v1;
   let v22;
   if (v2) {
     const v3 = v0.toString();
     v22 = v3;
   } else {
-    const v4 = 1000n;
+    const v4 = 1000;
     const v5 = rem(v0, v4);
-    const v6 = 10n;
+    const v6 = 10;
     const v7 = v5 < v6;
     let v14;
     if (v7) {
       const v8 = "00";
       v14 = v8;
     } else {
-      const v9 = 100n;
+      const v9 = 100;
       const v10 = v5 < v9;
       let v13;
       if (v10) {
@@ -61,7 +85,7 @@ function callee0(v0) {
       }
       v14 = v13;
     }
-    const v15 = 1000n;
+    const v15 = 1000;
     const v16 = div(v0, v15);
     const v18 = callee0(v16);
     const v19 = ",";
@@ -75,9 +99,9 @@ function callee0(v0) {
 export const name = "place_order";
 export const handler = "0567c01c8c1d4702";
 export async function run(context) {
-  const v0 = BigInt(context.captures["checkout"]["charges"]["total"]);
+  const v0 = context.captures["checkout"]["charges"]["total"];
   const v1_answer = await context.command("store.page.place_order", [exact(v0)], { retry: { max: 2, jitter: true } });
-  const v1 = ((c) => { switch (c.$case) { case "ok": return { $case: "ok", value: undefined }; case "err": return { $case: "err", value: ((c) => { switch (c.$case) { case "nothing-to-order": return { $case: "nothing-to-order" }; case "no-coverage": return { $case: "no-coverage" }; case "closed": return { $case: "closed", value: ((c) => { switch (c.$case) { case "closed-now": return { $case: "closed-now", value: ((c) => { switch (c.$case) { case "some": return { $case: "some", value: ((o) => ({ "day": ((c) => { switch (c.$case) { case "today": return { $case: "today" }; case "tomorrow": return { $case: "tomorrow" }; case "on": return { $case: "on", value: ((c) => { switch (c.$case) { case "monday": return { $case: "monday" }; case "tuesday": return { $case: "tuesday" }; case "wednesday": return { $case: "wednesday" }; case "thursday": return { $case: "thursday" }; case "friday": return { $case: "friday" }; case "saturday": return { $case: "saturday" }; case "sunday": return { $case: "sunday" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(o["day"]), "at": BigInt(o["at"]) }))(c.value) }; case "none": return { $case: "none" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; case "past-last-order": return { $case: "past-last-order", value: BigInt(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; case "promo": return { $case: "promo", value: ((c) => { switch (c.$case) { case "unknown-code": return { $case: "unknown-code" }; case "expired": return { $case: "expired" }; case "below-minimum": return { $case: "below-minimum", value: BigInt(c.value) }; case "already-used": return { $case: "already-used" }; case "not-in-cart": return { $case: "not-in-cart" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; case "total-changed": return { $case: "total-changed", value: BigInt(c.value) }; case "awaiting-payment": return { $case: "awaiting-payment" }; case "payment-unavailable": return { $case: "payment-unavailable" }; case "not-offered": return { $case: "not-offered", value: BigInt(c.value) }; case "scheduled": return { $case: "scheduled" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(v1_answer);
+  const v1 = ((c) => { switch (c.$case) { case "ok": return { $case: "ok", value: undefined }; case "err": return { $case: "err", value: ((c) => { switch (c.$case) { case "nothing-to-order": return { $case: "nothing-to-order" }; case "no-coverage": return { $case: "no-coverage" }; case "closed": return { $case: "closed", value: ((c) => { switch (c.$case) { case "closed-now": return { $case: "closed-now", value: ((c) => { switch (c.$case) { case "some": return { $case: "some", value: ((o) => ({ "day": ((c) => { switch (c.$case) { case "today": return { $case: "today" }; case "tomorrow": return { $case: "tomorrow" }; case "on": return { $case: "on", value: ((c) => { switch (c.$case) { case "monday": return { $case: "monday" }; case "tuesday": return { $case: "tuesday" }; case "wednesday": return { $case: "wednesday" }; case "thursday": return { $case: "thursday" }; case "friday": return { $case: "friday" }; case "saturday": return { $case: "saturday" }; case "sunday": return { $case: "sunday" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(o["day"]), "at": o["at"] }))(c.value) }; case "none": return { $case: "none" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; case "past-last-order": return { $case: "past-last-order", value: c.value }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; case "promo": return { $case: "promo", value: ((c) => { switch (c.$case) { case "unknown-code": return { $case: "unknown-code" }; case "expired": return { $case: "expired" }; case "below-minimum": return { $case: "below-minimum", value: c.value }; case "already-used": return { $case: "already-used" }; case "not-in-cart": return { $case: "not-in-cart" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; case "total-changed": return { $case: "total-changed", value: c.value }; case "awaiting-payment": return { $case: "awaiting-payment" }; case "payment-unavailable": return { $case: "payment-unavailable" }; case "not-offered": return { $case: "not-offered", value: c.value }; case "scheduled": return { $case: "scheduled" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(v1_answer);
   let v259;
   switch (v1.$case) {
     case "ok": {
@@ -179,30 +203,30 @@ export async function run(context) {
                   const v34 = " at ";
                   const v35 = v16["at"];
                   const v37 = v35;
-                  const v39 = 60n;
+                  const v39 = 60;
                   const v40 = div(v37, v39);
-                  const v41 = 60n;
+                  const v41 = 60;
                   const v42 = rem(v37, v41);
-                  const v43 = 0n;
+                  const v43 = 0;
                   const v44 = v40 === v43;
                   let v51;
                   if (v44) {
-                    const v45 = 12n;
+                    const v45 = 12;
                     v51 = v45;
                   } else {
-                    const v46 = 12n;
+                    const v46 = 12;
                     const v47 = v40 > v46;
                     let v50;
                     if (v47) {
-                      const v48 = 12n;
-                      const v49 = int(v40 - v48);
+                      const v48 = 12;
+                      const v49 = sub(v40, v48);
                       v50 = v49;
                     } else {
                       v50 = v40;
                     }
                     v51 = v50;
                   }
-                  const v52 = 12n;
+                  const v52 = 12;
                   const v53 = v40 < v52;
                   let v56;
                   if (v53) {
@@ -212,7 +236,7 @@ export async function run(context) {
                     const v55 = "pm";
                     v56 = v55;
                   }
-                  const v57 = 10n;
+                  const v57 = 10;
                   const v58 = v42 < v57;
                   let v61;
                   if (v58) {
@@ -246,30 +270,30 @@ export async function run(context) {
               const v71 = v4.value;
               const v72 = "took its last orders at ";
               const v74 = v71;
-              const v76 = 60n;
+              const v76 = 60;
               const v77 = div(v74, v76);
-              const v78 = 60n;
+              const v78 = 60;
               const v79 = rem(v74, v78);
-              const v80 = 0n;
+              const v80 = 0;
               const v81 = v77 === v80;
               let v88;
               if (v81) {
-                const v82 = 12n;
+                const v82 = 12;
                 v88 = v82;
               } else {
-                const v83 = 12n;
+                const v83 = 12;
                 const v84 = v77 > v83;
                 let v87;
                 if (v84) {
-                  const v85 = 12n;
-                  const v86 = int(v77 - v85);
+                  const v85 = 12;
+                  const v86 = sub(v77, v85);
                   v87 = v86;
                 } else {
                   v87 = v77;
                 }
                 v88 = v87;
               }
-              const v89 = 12n;
+              const v89 = 12;
               const v90 = v77 < v89;
               let v93;
               if (v90) {
@@ -279,7 +303,7 @@ export async function run(context) {
                 const v92 = "pm";
                 v93 = v92;
               }
-              const v94 = 10n;
+              const v94 = 10;
               const v95 = v79 < v94;
               let v98;
               if (v95) {
@@ -325,40 +349,40 @@ export async function run(context) {
               const v112 = v5.value;
               const v113 = "That code needs a subtotal of at least ";
               const v114 = v112;
-              const v115 = 100n;
+              const v115 = 100;
               const v116 = div(v114, v115);
-              const v117 = 100n;
+              const v117 = 100;
               const v118 = rem(v114, v117);
-              const v119 = 0n;
+              const v119 = 0;
               const v120 = v114 >= v119;
               let v130;
               if (v120) {
                 v130 = v116;
               } else {
-                const v121 = 0n;
+                const v121 = 0;
                 const v122 = v118 === v121;
                 let v129;
                 if (v122) {
-                  const v123 = 0n;
-                  const v124 = int(v123 - v116);
+                  const v123 = 0;
+                  const v124 = sub(v123, v116);
                   v129 = v124;
                 } else {
-                  const v125 = 0n;
-                  const v126 = int(v125 - v116);
-                  const v127 = 1n;
-                  const v128 = int(v126 - v127);
+                  const v125 = 0;
+                  const v126 = sub(v125, v116);
+                  const v127 = 1;
+                  const v128 = sub(v126, v127);
                   v129 = v128;
                 }
                 v130 = v129;
               }
-              const v131 = 0n;
+              const v131 = 0;
               const v132 = v114 >= v131;
               let v136;
               if (v132) {
                 const v135 = true;
                 v136 = v135;
               } else {
-                const v133 = 0n;
+                const v133 = 0;
                 const v134 = v118 === v133;
                 v136 = v134;
               }
@@ -366,11 +390,11 @@ export async function run(context) {
               if (v136) {
                 v139 = v118;
               } else {
-                const v137 = 100n;
-                const v138 = int(v137 - v118);
+                const v137 = 100;
+                const v138 = sub(v137, v118);
                 v139 = v138;
               }
-              const v140 = 0n;
+              const v140 = 0;
               const v141 = v114 < v140;
               let v144;
               if (v141) {
@@ -380,7 +404,7 @@ export async function run(context) {
                 const v143 = "";
                 v144 = v143;
               }
-              const v145 = 10n;
+              const v145 = 10;
               const v146 = v139 < v145;
               let v149;
               if (v146) {
@@ -391,23 +415,23 @@ export async function run(context) {
                 v149 = v148;
               }
               const v150 = "$";
-              const v152 = 1000n;
+              const v152 = 1000;
               const v153 = v130 < v152;
               let v173;
               if (v153) {
                 const v154 = v130.toString();
                 v173 = v154;
               } else {
-                const v155 = 1000n;
+                const v155 = 1000;
                 const v156 = rem(v130, v155);
-                const v157 = 10n;
+                const v157 = 10;
                 const v158 = v156 < v157;
                 let v165;
                 if (v158) {
                   const v159 = "00";
                   v165 = v159;
                 } else {
-                  const v160 = 100n;
+                  const v160 = 100;
                   const v161 = v156 < v160;
                   let v164;
                   if (v161) {
@@ -419,7 +443,7 @@ export async function run(context) {
                   }
                   v165 = v164;
                 }
-                const v166 = 1000n;
+                const v166 = 1000;
                 const v167 = div(v130, v166);
                 const v169 = callee0(v167);
                 const v170 = ",";
@@ -456,40 +480,40 @@ export async function run(context) {
           const v6 = v3.value;
           const v183 = "Your total is now ";
           const v184 = v6;
-          const v185 = 100n;
+          const v185 = 100;
           const v186 = div(v184, v185);
-          const v187 = 100n;
+          const v187 = 100;
           const v188 = rem(v184, v187);
-          const v189 = 0n;
+          const v189 = 0;
           const v190 = v184 >= v189;
           let v200;
           if (v190) {
             v200 = v186;
           } else {
-            const v191 = 0n;
+            const v191 = 0;
             const v192 = v188 === v191;
             let v199;
             if (v192) {
-              const v193 = 0n;
-              const v194 = int(v193 - v186);
+              const v193 = 0;
+              const v194 = sub(v193, v186);
               v199 = v194;
             } else {
-              const v195 = 0n;
-              const v196 = int(v195 - v186);
-              const v197 = 1n;
-              const v198 = int(v196 - v197);
+              const v195 = 0;
+              const v196 = sub(v195, v186);
+              const v197 = 1;
+              const v198 = sub(v196, v197);
               v199 = v198;
             }
             v200 = v199;
           }
-          const v201 = 0n;
+          const v201 = 0;
           const v202 = v184 >= v201;
           let v206;
           if (v202) {
             const v205 = true;
             v206 = v205;
           } else {
-            const v203 = 0n;
+            const v203 = 0;
             const v204 = v188 === v203;
             v206 = v204;
           }
@@ -497,11 +521,11 @@ export async function run(context) {
           if (v206) {
             v209 = v188;
           } else {
-            const v207 = 100n;
-            const v208 = int(v207 - v188);
+            const v207 = 100;
+            const v208 = sub(v207, v188);
             v209 = v208;
           }
-          const v210 = 0n;
+          const v210 = 0;
           const v211 = v184 < v210;
           let v214;
           if (v211) {
@@ -511,7 +535,7 @@ export async function run(context) {
             const v213 = "";
             v214 = v213;
           }
-          const v215 = 10n;
+          const v215 = 10;
           const v216 = v209 < v215;
           let v219;
           if (v216) {
@@ -522,23 +546,23 @@ export async function run(context) {
             v219 = v218;
           }
           const v220 = "$";
-          const v222 = 1000n;
+          const v222 = 1000;
           const v223 = v200 < v222;
           let v243;
           if (v223) {
             const v224 = v200.toString();
             v243 = v224;
           } else {
-            const v225 = 1000n;
+            const v225 = 1000;
             const v226 = rem(v200, v225);
-            const v227 = 10n;
+            const v227 = 10;
             const v228 = v226 < v227;
             let v235;
             if (v228) {
               const v229 = "00";
               v235 = v229;
             } else {
-              const v230 = 100n;
+              const v230 = 100;
               const v231 = v226 < v230;
               let v234;
               if (v231) {
@@ -550,7 +574,7 @@ export async function run(context) {
               }
               v235 = v234;
             }
-            const v236 = 1000n;
+            const v236 = 1000;
             const v237 = div(v200, v236);
             const v239 = callee0(v237);
             const v240 = ",";

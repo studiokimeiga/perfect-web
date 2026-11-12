@@ -17,9 +17,10 @@
 //!
 //! Every place the two languages differ is written out here rather than left
 //! to the host language:
-//! - an `Int` is a `BigInt`, checked into 64 bits after every `+`, `-`, `*`
-//!   and negation, and `/` and `%` are Euclidean and trap on a zero divisor
-//!   (ADR-0039 §1);
+//! - an `Int` is 64 bits, checked after every `+`, `-`, `*` and negation,
+//!   and `/` and `%` are Euclidean and trap on a zero divisor (ADR-0039 §1):
+//!   each is exact, on two numbers where its result is a safe integer and
+//!   in `BigInt` otherwise (ADR-0433);
 //! - a `String` is ordered by code point, where JavaScript's `<` orders UTF-16
 //!   units and puts U+1F600 before U+FF61; its length counts code points;
 //! - `String.trim` strips Unicode `White_Space`, which is not ECMAScript's
@@ -28,9 +29,13 @@
 //!
 //! # Values
 //!
-//! An `Int` is a `BigInt`, a `Float` a number, a `Bool` a boolean, a `String`
-//! a string, a list an array, and a record an object keyed by its Pleris field
-//! names. `Some(v)` is `{ $case: "some", value: v }`, `None` is
+//! An `Int` is a number within ±2^53 and a `BigInt` past it, one form for
+//! each value, so that two equal ones are `===` (ADR-0433); a `Float` a
+//! number, a `Bool` a boolean, a `String` a string, a list an array, and a
+//! record an object keyed by its Pleris field names. That is the form JSON
+//! carries a value in (ADR-0130), so a module reads a signal's value, and
+//! writes one, as it is: nothing copied, a row it leaves alone the very
+//! object it read. `Some(v)` is `{ $case: "some", value: v }`, `None` is
 //! `{ $case: "none" }`, and `Ok` and `Err` the same; `$` begins no Pleris
 //! name, so a case can never be read as a record. A declared sum type's case
 //! is named as its WIT case is, `Shape.Circle(r)` being
@@ -772,6 +777,12 @@ struct Emitter<'p> {
     /// a signal's, which holds a type that contains itself as its nodes
     /// (ADR-0205).
     graphs: bool,
+    /// **Whether what is decoded now comes from outside the page**: a
+    /// command's answer, which the server writes as the call returns. Read
+    /// case by case, so that a case its type does not have traps where it
+    /// arrives rather than being carried on; the page's own values, its
+    /// signals, captures and events, are read as they are (ADR-0433).
+    outside: bool,
     body: String,
     depth: usize,
 }
@@ -784,24 +795,65 @@ const HELPERS: &[(&str, &[&str], &str)] = &[
         "function trap(what) {\n  throw new Error(\"trap: \" + what);\n}",
     ),
     (
-        "int",
+        "big",
         &["trap"],
-        "// An Int is 64 bits, and a result that does not fit traps (ADR-0039):\n\
-         // one that 64 bits wrap is not itself (ADR-0427).\n\
-         function int(v) {\n  if (BigInt.asIntN(64, v) !== v) trap(\"Int overflow\");\n  return v;\n}",
+        "// An Int is a number within 2^53 of zero and a BigInt past it, 64 bits\n\
+         // at most (ADR-0039, ADR-0433): one form for each value, so that two\n\
+         // equal ones are `===`, and the form JSON gives each Int it carries. A\n\
+         // result 64 bits do not hold traps: one they wrap is not itself.\n\
+         function big(v) {\n  if (BigInt.asIntN(64, v) !== v) trap(\"Int overflow\");\n  \
+         return v >= -9007199254740992n && v <= 9007199254740992n ? Number(v) : v;\n}",
+    ),
+    (
+        "add",
+        &["big"],
+        "// Two numbers' sum, difference or product is exact where it is a safe\n\
+         // integer, the nearest double to one past 2^53 - 1 being at least 2^53;\n\
+         // past that it is made again as a BigInt.\n\
+         function add(a, b) {\n  if (typeof a === \"number\" && typeof b === \"number\") {\n    \
+         const r = a + b;\n    if (r >= -9007199254740991 && r <= 9007199254740991) return r;\n  }\n  \
+         return big(BigInt(a) + BigInt(b));\n}",
+    ),
+    (
+        "sub",
+        &["big"],
+        "function sub(a, b) {\n  if (typeof a === \"number\" && typeof b === \"number\") {\n    \
+         const r = a - b;\n    if (r >= -9007199254740991 && r <= 9007199254740991) return r;\n  }\n  \
+         return big(BigInt(a) - BigInt(b));\n}",
+    ),
+    (
+        "mul",
+        &["big"],
+        "// A product of 0 is 0, never -0.\n\
+         function mul(a, b) {\n  if (typeof a === \"number\" && typeof b === \"number\") {\n    \
+         const r = a * b;\n    if (r >= -9007199254740991 && r <= 9007199254740991) return r + 0;\n  }\n  \
+         return big(BigInt(a) * BigInt(b));\n}",
+    ),
+    (
+        "neg",
+        &["big"],
+        "function neg(a) {\n  return typeof a === \"number\" ? 0 - a : big(-a);\n}",
     ),
     (
         "div",
-        &["trap", "int"],
-        "// Euclidean: the remainder is in [0, |b|), so -7 / 2 is -4.\n\
-         function div(a, b) {\n  if (b === 0n) trap(\"division by zero\");\n  let q = a / b;\n  \
-         if (a % b < 0n) q = b > 0n ? q - 1n : q + 1n;\n  return int(q);\n}",
+        &["trap", "big"],
+        "// Euclidean: the remainder is in [0, |b|), so -7 / 2 is -4. Exact on two\n\
+         // numbers: `a % b` is, and `a - a % b` is a multiple of `b` no larger\n\
+         // than `a`, so their quotient is the whole number it is.\n\
+         function div(a, b) {\n  if (b == 0) trap(\"division by zero\");\n  \
+         if (typeof a === \"number\" && typeof b === \"number\") {\n    const r = a % b;\n    \
+         const q = (a - r) / b;\n    return (r < 0 ? (b > 0 ? q - 1 : q + 1) : q) + 0;\n  }\n  \
+         const x = BigInt(a), y = BigInt(b);\n  let q = x / y;\n  \
+         if (x % y < 0n) q = y > 0n ? q - 1n : q + 1n;\n  return big(q);\n}",
     ),
     (
         "rem",
-        &["trap"],
-        "function rem(a, b) {\n  if (b === 0n) trap(\"division by zero\");\n  const r = a % b;\n  \
-         return r < 0n ? (b > 0n ? r + b : r - b) : r;\n}",
+        &["trap", "big"],
+        "function rem(a, b) {\n  if (b == 0) trap(\"division by zero\");\n  \
+         if (typeof a === \"number\" && typeof b === \"number\") {\n    const r = a % b;\n    \
+         return (r < 0 ? (b > 0 ? r + b : r - b) : r) + 0;\n  }\n  \
+         const x = BigInt(a), y = BigInt(b);\n  const r = x % y;\n  \
+         return big(r < 0n ? (y > 0n ? r + y : r - y) : r);\n}",
     ),
     (
         "compare",
@@ -815,7 +867,7 @@ const HELPERS: &[(&str, &[&str], &str)] = &[
     (
         "sign",
         &[],
-        "function sign(n) {\n  return n > 0n ? 1 : n < 0n ? -1 : 0;\n}",
+        "function sign(n) {\n  return n > 0 ? 1 : n < 0 ? -1 : 0;\n}",
     ),
     (
         "some",
@@ -830,15 +882,15 @@ const HELPERS: &[(&str, &[&str], &str)] = &[
     (
         "codepoints",
         &[],
-        "function codepoints(s) {\n  return Array.from(s, (c) => BigInt(c.codePointAt(0)));\n}",
+        "function codepoints(s) {\n  return Array.from(s, (c) => c.codePointAt(0));\n}",
     ),
     (
         "from_codepoints",
         &["trap"],
         "// A value that is not a Unicode scalar value traps (ADR-0040).\n\
          function from_codepoints(points) {\n  let s = \"\";\n  for (const p of points) {\n    \
-         if (p < 0n || p > 0x10FFFFn || (p >= 0xD800n && p <= 0xDFFFn)) trap(\"not a Unicode scalar value\");\n    \
-         s += String.fromCodePoint(Number(p));\n  }\n  return s;\n}",
+         if (p < 0 || p > 0x10FFFF || (p >= 0xD800 && p <= 0xDFFF)) trap(\"not a Unicode scalar value\");\n    \
+         s += String.fromCodePoint(p);\n  }\n  return s;\n}",
     ),
     (
         "trim",
@@ -855,42 +907,43 @@ const HELPERS: &[(&str, &[&str], &str)] = &[
     ),
     (
         "range",
-        &["trap"],
+        &["trap", "add"],
         "// The whole numbers from `start` up to `end`, as `List.range`; one of\n\
          // more than 2^28 - 1 traps for the component's cause (ADR-0267). Filled\n\
          // to its counted length, as the component writes it.\n\
-         function range(start, end) {\n  const n = end > start ? end - start : 0n;\n  \
-         if (n > 268435455n) trap(\"a value too long for memory\");\n  \
-         const out = new Array(Number(n));\n  \
-         for (let k = 0; k < out.length; k++) out[k] = start + BigInt(k);\n  return out;\n}",
+         function range(start, end) {\n  const n = end > start ? Number(BigInt(end) - BigInt(start)) : 0;\n  \
+         if (n > 268435455) trap(\"a value too long for memory\");\n  \
+         const out = new Array(n);\n  \
+         if (typeof start === \"number\" && start + n <= 9007199254740991) for (let k = 0; k < n; k++) out[k] = start + k;\n  \
+         else for (let k = 0; k < n; k++) out[k] = add(start, k);\n  return out;\n}",
     ),
     (
         "swap",
         &[],
         "// The list with the elements at `i` and `j` exchanged, as `List.swap`;\n\
          // the list as it is where either is no place in it.\n\
-         function swap(xs, i, j) {\n  const n = BigInt(xs.length);\n  \
-         if (i < 0n || j < 0n || i >= n || j >= n) return xs;\n  \
-         const out = [...xs];\n  const a = Number(i);\n  const b = Number(j);\n  \
-         [out[a], out[b]] = [out[b], out[a]];\n  return out;\n}",
+         function swap(xs, i, j) {\n  \
+         if (i < 0 || j < 0 || i >= xs.length || j >= xs.length) return xs;\n  \
+         const out = [...xs];\n  [out[i], out[j]] = [out[j], out[i]];\n  return out;\n}",
     ),
     (
         "slice",
         &[],
         "// `start` up to `end`, each clamped to the array, as `List.slice` and\n\
          // `String.slice` (ADR-0055).\n\
-         function slice(xs, start, end) {\n  const n = BigInt(xs.length);\n  \
-         const clamp = (i) => (i < 0n ? 0n : i > n ? n : i);\n  const a = clamp(start), b = clamp(end);\n  \
-         return b > a ? xs.slice(Number(a), Number(b)) : [];\n}",
+         function slice(xs, start, end) {\n  const n = xs.length;\n  \
+         const clamp = (i) => (i < 0 ? 0 : i > n ? n : i);\n  const a = clamp(start), b = clamp(end);\n  \
+         return b > a ? xs.slice(a, b) : [];\n}",
     ),
     (
         "exact",
         &["trap"],
-        "// An Int sent to a command as a JSON number (ADR-0058): exact within\n\
-         // ±2^53, and a trap past it rather than a different number.\n\
+        "// An Int as JSON carries it (ADR-0058, ADR-0433): a number already within\n\
+         // ±2^53, and a trap past it, where it is a BigInt, rather than a\n\
+         // different number.\n\
          function exact(v) {\n  \
-         if (v < -9007199254740992n || v > 9007199254740992n) trap(\"an Int a JavaScript number cannot carry exactly\");\n  \
-         return Number(v);\n}",
+         if (typeof v === \"bigint\") trap(\"an Int a JavaScript number cannot carry exactly\");\n  \
+         return v;\n}",
     ),
     (
         "key_order",
@@ -900,7 +953,7 @@ const HELPERS: &[(&str, &[&str], &str)] = &[
          // them.\n\
          function key_order(a, b) {\n  \
          if (typeof a === \"boolean\") return a === b ? 0 : a ? 1 : -1;\n  \
-         return typeof a === \"bigint\" ? (a < b ? -1 : a > b ? 1 : 0) : compare(a, b);\n}",
+         return typeof a === \"string\" ? compare(a, b) : a < b ? -1 : a > b ? 1 : 0;\n}",
     ),
     (
         "place",
@@ -992,6 +1045,7 @@ impl<'p> Emitter<'p> {
             hoisted: BTreeSet::new(),
             handler: false,
             graphs: false,
+            outside: false,
             body: String::new(),
             depth: 1,
         }
@@ -1150,10 +1204,148 @@ impl<'p> Emitter<'p> {
             .map(|t| &t.shape)
     }
 
+    /// **Whether a module holds a value of `ty` as JSON carries it**
+    /// (ADR-0433): each `Int` a number within ±2^53 there and here, a
+    /// record an object by its field names, a case its name and its payload,
+    /// a list an array. A value read from the wire is then itself, as is one
+    /// written to it, its `Int`s checked. Not a type that holds `Unit`, which
+    /// the wire writes as nothing, nor one that holds a type that contains
+    /// itself, which the wire writes as its nodes (ADR-0205).
+    fn same_on_wire(&self, ty: &Type) -> bool {
+        match ty {
+            Type::Int | Type::Float | Type::Str | Type::Bool => true,
+            Type::List(t) | Type::Option(t) => self.same_on_wire(t),
+            Type::Result(t, e) => self.same_on_wire(t) && self.same_on_wire(e),
+            Type::Nominal(def, args) => {
+                !contains_itself(self.program, *def, args)
+                    && match self.shape(*def, args) {
+                        Some(Shape::Alias(of)) => self.same_on_wire(of),
+                        Some(Shape::Record { fields }) => {
+                            fields.iter().all(|(_, t)| self.same_on_wire(t))
+                        }
+                        Some(Shape::Variant { cases }) => cases
+                            .iter()
+                            .all(|(_, ts)| ts.iter().all(|t| self.same_on_wire(t))),
+                        None => false,
+                    }
+            }
+            _ => false,
+        }
+    }
+
+    /// Whether a value of `ty`, one [`Emitter::same_on_wire`] holds, holds an
+    /// `Int`, which writing it to the wire checks.
+    fn holds_int(&self, ty: &Type) -> bool {
+        match ty {
+            Type::Int => true,
+            Type::List(t) | Type::Option(t) => self.holds_int(t),
+            Type::Result(t, e) => self.holds_int(t) || self.holds_int(e),
+            Type::Nominal(def, args) => match self.shape(*def, args) {
+                Some(Shape::Alias(of)) => self.holds_int(of),
+                Some(Shape::Record { fields }) => fields.iter().any(|(_, t)| self.holds_int(t)),
+                Some(Shape::Variant { cases }) => cases
+                    .iter()
+                    .any(|(_, ts)| ts.iter().any(|t| self.holds_int(t))),
+                None => false,
+            },
+            _ => false,
+        }
+    }
+
+    /// **A value written to the wire as it is, each of its `Int`s checked**
+    /// (ADR-0433): `exact` traps on one past ±2^53, a `BigInt`, which no
+    /// JavaScript number carries exactly. An expression whose value is the
+    /// value itself; nothing is made, so a row a handler left alone is the
+    /// very object it read.
+    fn checked(&mut self, v: &str, ty: &Type) -> String {
+        if !self.holds_int(ty) {
+            return v.to_string();
+        }
+        if let Type::Int = self.unaliased(ty) {
+            return format!("{}({v})", self.uses("exact"));
+        }
+        let mut checks = Vec::new();
+        self.int_checks("w", ty, 0, &mut checks);
+        format!("((w) => {{ {} return w; }})({v})", checks.join(" "))
+    }
+
+    /// `ty` as itself, an alias followed to what it names.
+    fn unaliased(&self, ty: &Type) -> Type {
+        match ty {
+            Type::Nominal(def, args) => match self.shape(*def, args) {
+                Some(Shape::Alias(of)) => self.unaliased(&of.clone()),
+                _ => ty.clone(),
+            },
+            _ => ty.clone(),
+        }
+    }
+
+    /// The statements that check each `Int` of `v`, a value of `ty`, with
+    /// `exact`; none where it holds none. `depth` names each loop's element.
+    fn int_checks(&mut self, v: &str, ty: &Type, depth: usize, out: &mut Vec<String>) {
+        if !self.holds_int(ty) {
+            return;
+        }
+        match ty.clone() {
+            Type::Int => {
+                let exact = self.uses("exact");
+                out.push(format!("{exact}({v});"));
+            }
+            Type::List(t) => {
+                let x = format!("w{depth}");
+                let mut each = Vec::new();
+                self.int_checks(&x, &t, depth + 1, &mut each);
+                out.push(format!("for (const {x} of {v}) {{ {} }}", each.join(" ")));
+            }
+            Type::Option(t) => {
+                let mut some = Vec::new();
+                self.int_checks(&format!("{v}.value"), &t, depth, &mut some);
+                out.push(format!("if ({v}.$case === \"some\") {{ {} }}", some.join(" ")));
+            }
+            Type::Result(t, e) => {
+                for (case, payload) in [("ok", t), ("err", e)] {
+                    let mut arm = Vec::new();
+                    self.int_checks(&format!("{v}.value"), &payload, depth, &mut arm);
+                    if !arm.is_empty() {
+                        out.push(format!("if ({v}.$case === \"{case}\") {{ {} }}", arm.join(" ")));
+                    }
+                }
+            }
+            Type::Nominal(def, args) => match self.shape(def, &args).cloned() {
+                Some(Shape::Alias(of)) => self.int_checks(v, &of, depth, out),
+                Some(Shape::Record { fields }) => {
+                    for (n, t) in &fields {
+                        self.int_checks(&format!("{v}[{}]", json(n)), t, depth, out);
+                    }
+                }
+                Some(Shape::Variant { cases }) => {
+                    for (name, fields) in &cases {
+                        let mut arm = Vec::new();
+                        match fields.as_slice() {
+                            [] => {}
+                            [one] => self.int_checks(&format!("{v}.value"), one, depth, &mut arm),
+                            many => {
+                                for (i, t) in many.iter().enumerate() {
+                                    self.int_checks(&format!("{v}.value[{i}]"), t, depth, &mut arm);
+                                }
+                            }
+                        }
+                        if !arm.is_empty() {
+                            let wire = json(&crate::wit::ident(name));
+                            out.push(format!("if ({v}.$case === {wire}) {{ {} }}", arm.join(" ")));
+                        }
+                    }
+                }
+                None => {}
+            },
+            _ => {}
+        }
+    }
+
     /// **A captured value, from the JSON the renderer wrote** (ADR-0058). An
     /// `Int` is a JavaScript number there, exact within ±2^53 (ADR-0033 §7),
-    /// and a `BigInt` here (ADR-0044); a record is an object by field name in
-    /// both.
+    /// and here (ADR-0433); a record is an object by field name in both, so
+    /// where the type's form is the wire's the value is read as it is.
     ///
     /// `expr` is read as often as the type needs, and not at all for `Unit`:
     /// it names a value, and never does anything.
@@ -1175,8 +1367,11 @@ impl<'p> Emitter<'p> {
     /// where a value of that type is a node it holds (ADR-0205).
     fn decode_in(&self, expr: &str, ty: &Type, inside: Option<&Graph>) -> Result<String, String> {
         let refused = || format!("a captured {ty:?}, which the document does not carry");
+        if !self.outside && self.same_on_wire(ty) {
+            return Ok(expr.to_string());
+        }
         Ok(match ty {
-            Type::Int => format!("BigInt({expr})"),
+            Type::Int => expr.to_string(),
             Type::Float | Type::Str | Type::Bool => expr.to_string(),
             // Nothing, whatever the wire holds: a command's `Ok` is answered
             // without its value (ADR-0157).
@@ -1324,6 +1519,11 @@ impl<'p> Emitter<'p> {
     /// [`Emitter::wire_value`], inside the graph of the type `inside`
     /// names, where a value of that type is a node it holds (ADR-0205).
     fn wire_in(&mut self, v: &str, ty: &Type, inside: Option<&Graph>) -> Result<String, String> {
+        // The value itself, its `Int`s checked, where its form is the wire's
+        // (ADR-0433).
+        if self.same_on_wire(ty) {
+            return Ok(self.checked(v, ty));
+        }
         Ok(match ty {
             Type::Int => format!("{}({v})", self.uses("exact")),
             Type::Float | Type::Str | Type::Bool => v.to_string(),
@@ -1597,6 +1797,8 @@ impl<'p> Emitter<'p> {
         match i {
             Instr::Const { value, .. } => {
                 let lit = match value {
+                    // A number within 2^53 of zero, a BigInt past it (ADR-0433).
+                    Const::Int(n) if n.unsigned_abs() <= 1 << 53 => n.to_string(),
                     Const::Int(n) => format!("{n}n"),
                     Const::Float(f) => number(*f),
                     Const::Bool(b) => b.to_string(),
@@ -1662,7 +1864,11 @@ impl<'p> Emitter<'p> {
                     json(command),
                     sent.join(", ")
                 ));
-                let decoded = self.decode(&answered, ty).map_err(|why| {
+                // From outside the page: read case by case (ADR-0433).
+                self.outside = true;
+                let decoded = self.decode(&answered, ty);
+                self.outside = false;
+                let decoded = decoded.map_err(|why| {
                     format!("`{command}`'s answer cannot be read by the page: {why}")
                 })?;
                 self.line(&format!("const {r} = {decoded};"));
@@ -1885,9 +2091,9 @@ impl<'p> Emitter<'p> {
             Instr::Binary { op, lhs, rhs, .. } => {
                 let (a, b) = (val(*lhs), val(*rhs));
                 let expr = match (self.type_of(*lhs)?.clone(), op) {
-                    (Type::Int, BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul) => {
-                        format!("{}({a} {} {b})", self.uses("int"), symbol(*op))
-                    }
+                    (Type::Int, BinaryOp::Add) => format!("{}({a}, {b})", self.uses("add")),
+                    (Type::Int, BinaryOp::Sub) => format!("{}({a}, {b})", self.uses("sub")),
+                    (Type::Int, BinaryOp::Mul) => format!("{}({a}, {b})", self.uses("mul")),
                     (Type::Int, BinaryOp::Div) => format!("{}({a}, {b})", self.uses("div")),
                     (Type::Int, BinaryOp::Rem) => format!("{}({a}, {b})", self.uses("rem")),
                     (Type::Float, BinaryOp::Rem) => {
@@ -1906,7 +2112,7 @@ impl<'p> Emitter<'p> {
             Instr::Unary { op, operand, .. } => {
                 let a = val(*operand);
                 let expr = match (op, self.type_of(*operand)?) {
-                    (UnaryOp::Neg, Type::Int) => format!("{}(-{a})", self.uses("int")),
+                    (UnaryOp::Neg, Type::Int) => format!("{}({a})", self.uses("neg")),
                     (UnaryOp::Neg, _) => format!("-{a}"),
                     (UnaryOp::Not, _) => format!("!{a}"),
                 };
@@ -2007,22 +2213,23 @@ impl<'p> Emitter<'p> {
                 let a: Vec<String> = args.iter().map(|v| val(*v)).collect();
                 let arg = |k: usize| a.get(k).cloned().unwrap_or_default();
                 let expr = match op {
-                    Intrinsic::ListLength => format!("BigInt({}.length)", arg(0)),
+                    Intrinsic::ListLength => format!("{}.length", arg(0)),
+                    // A place past 2^53 is a BigInt, and no array's.
                     Intrinsic::ListGet => {
                         let (some, none) = (self.uses("some"), self.uses("none"));
                         format!(
-                            "{i} >= 0n && {i} < BigInt({xs}.length) ? {some}({xs}[Number({i})]) : {none}",
+                            "{i} >= 0 && {i} < {xs}.length ? {some}({xs}[{i}]) : {none}",
                             xs = arg(0),
                             i = arg(1)
                         )
                     }
                     Intrinsic::ListTake => format!(
-                        "{xs}.slice(0, {n} < 0n ? 0 : {n} > BigInt({xs}.length) ? {xs}.length : Number({n}))",
+                        "{xs}.slice(0, {n} < 0 ? 0 : {n} > {xs}.length ? {xs}.length : {n})",
                         xs = arg(0),
                         n = arg(1)
                     ),
                     Intrinsic::ListDrop => format!(
-                        "{}({xs}, {n}, BigInt({xs}.length))",
+                        "{}({xs}, {n}, {xs}.length)",
                         self.uses("slice"),
                         xs = arg(0),
                         n = arg(1)
@@ -2045,7 +2252,7 @@ impl<'p> Emitter<'p> {
                         arg(2)
                     ),
                     Intrinsic::ListConcat => format!("[...{}, ...{}]", arg(0), arg(1)),
-                    Intrinsic::StrLength => format!("BigInt(Array.from({}).length)", arg(0)),
+                    Intrinsic::StrLength => format!("Array.from({}).length", arg(0)),
                     Intrinsic::StrCodepoints => format!("{}({})", self.uses("codepoints"), arg(0)),
                     Intrinsic::StrFromCodepoints => {
                         format!("{}({})", self.uses("from_codepoints"), arg(0))
@@ -2076,7 +2283,7 @@ impl<'p> Emitter<'p> {
                     // Maps and sets (ADR-0057): arrays in ascending key
                     // order, a map's entries `[key, value]`.
                     Intrinsic::MapEmpty | Intrinsic::SetEmpty => "[]".to_string(),
-                    Intrinsic::MapSize | Intrinsic::SetSize => format!("BigInt({}.length)", arg(0)),
+                    Intrinsic::MapSize | Intrinsic::SetSize => format!("{}.length", arg(0)),
                     Intrinsic::MapGet => {
                         let (some, none) = (self.uses("some"), self.uses("none"));
                         format!(

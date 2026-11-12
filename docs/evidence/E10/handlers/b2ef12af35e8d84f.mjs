@@ -3,7 +3,7 @@
 export const name = "";
 export const handler = "b2ef12af35e8d84f";
 export async function run(context) {
-  const v0 = ((o) => ({ "value": o["value"] }))(context.event);
+  const v0 = context.event;
   const v1 = v0["value"];
   context.set("comment", v1);
   const v2 = undefined;

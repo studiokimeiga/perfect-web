@@ -24,23 +24,24 @@ function trim(s) {
   return cs.slice(a, b).join("");
 }
 
-// An Int sent to a command as a JSON number (ADR-0058): exact within
-// ±2^53, and a trap past it rather than a different number.
+// An Int as JSON carries it (ADR-0058, ADR-0433): a number already within
+// ±2^53, and a trap past it, where it is a BigInt, rather than a
+// different number.
 function exact(v) {
-  if (v < -9007199254740992n || v > 9007199254740992n) trap("an Int a JavaScript number cannot carry exactly");
-  return Number(v);
+  if (typeof v === "bigint") trap("an Int a JavaScript number cannot carry exactly");
+  return v;
 }
 
 export const name = "stars_of";
 export const handler = "8d037e136bada386";
 export async function run(context) {
   const v0 = context.captures["id"];
-  const v1 = BigInt(context.get("stars"));
-  const v3 = 1n;
+  const v1 = context.get("stars");
+  const v3 = 1;
   const v4 = v1 >= v3;
   let v8;
   if (v4) {
-    const v5 = 5n;
+    const v5 = 5;
     const v6 = v1 <= v5;
     v8 = v6;
   } else {
@@ -62,8 +63,8 @@ export async function run(context) {
       const v13 = v12.value;
       const v14 = context.get("comment");
       const v16 = trim(v14);
-      const v17 = BigInt(Array.from(v16).length);
-      const v18 = 500n;
+      const v17 = Array.from(v16).length;
+      const v18 = 500;
       const v19 = v17 <= v18;
       let v23;
       if (v19) {

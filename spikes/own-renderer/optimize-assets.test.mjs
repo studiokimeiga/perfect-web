@@ -220,7 +220,7 @@ export async function run(context) {
 }
 `;
 const TRAP = 'function trap(what) {\n  throw new Error("trap: " + what);\n}';
-const INT = '// An Int is 64 bits, and a result that does not fit traps.\nfunction int(v) {\n  if (BigInt.asIntN(64, v) !== v) trap("Int overflow");\n  return v;\n}';
+const INT = '// An Int is a number within 2^53 of zero and a BigInt past it.\nfunction big(v) {\n  if (BigInt.asIntN(64, v) !== v) trap("Int overflow");\n  return v >= -9007199254740992n && v <= 9007199254740992n ? Number(v) : v;\n}';
 const LIST = 'const list_0123456789abcdef = Object.freeze(["one", "two"]);';
 const count = (text, word) => text.split(word).length - 1;
 
@@ -230,8 +230,8 @@ test("what a page's handlers write alike is in its module once", async () => {
     const a = "abcdabcdabcdabcd";
     const b = "bcdebcdebcdebcde";
     const files = {
-      [`handlers/${a}.mjs`]: compiled(a, [TRAP, INT, LIST], 'return ["a", int(context.n), list_0123456789abcdef];'),
-      [`handlers/${b}.mjs`]: compiled(b, [TRAP, INT], 'return ["b", int(context.n)];'),
+      [`handlers/${a}.mjs`]: compiled(a, [TRAP, INT, LIST], 'return ["a", big(context.n), list_0123456789abcdef];'),
+      [`handlers/${b}.mjs`]: compiled(b, [TRAP, INT], 'return ["b", big(context.n)];'),
     };
     await aBuild(dir, {
       "pages/app.Page~ui.json": "{}",
@@ -241,10 +241,10 @@ test("what a page's handlers write alike is in its module once", async () => {
     await bundlePages(dir);
     const body = (await readFile(path.join(dir, "build/bundles/app.Page~ui.mjs"))).toString();
     assert.equal(count(body, '"trap: "'), 1, "one trap");
-    assert.equal(count(body, '"Int overflow"'), 1, "one int");
+    assert.equal(count(body, '"Int overflow"'), 1, "one big");
     const module = await import(`data:text/javascript;base64,${Buffer.from(body).toString("base64")}`);
-    assert.deepEqual(await module[`h_${a}`].run({ n: 1n }), ["a", 1n, ["one", "two"]]);
-    assert.deepEqual(await module[`h_${b}`].run({ n: 2n }), ["b", 2n]);
+    assert.deepEqual(await module[`h_${a}`].run({ n: 1n }), ["a", 1, ["one", "two"]]);
+    assert.deepEqual(await module[`h_${b}`].run({ n: 2n }), ["b", 2]);
     // The helper it shares reads the helper shared with it.
     await assert.rejects(module[`h_${b}`].run({ n: 2n ** 63n }), /trap: Int overflow/);
     for (const [name, text] of Object.entries(files)) assert.equal(await readFile(path.join(dir, "build", name), "utf8"), text, `${name} is as it was`);
@@ -255,12 +255,12 @@ test("what a page's handlers write alike is in its module once", async () => {
 
 test("a helper is shared only with each name of a prelude it reads", () => {
   const otherTrap = TRAP.replace('"trap: "', '"trapped: "');
-  // Each handler's `trap` its own, so `int`, which reads it, is too: the
-  // shared module would hold an `int` that reads no `trap`.
+  // Each handler's `trap` its own, so `big`, which reads it, is too: the
+  // shared module would hold a `big` that reads no `trap`.
   assert.equal(sharedPreludes(new Map([["a.mjs", compiled("a", [TRAP, INT], "")], ["b.mjs", compiled("b", [otherTrap, INT], "")]])), null);
   const shared = sharedPreludes(new Map([["a.mjs", compiled("a", [TRAP, INT], "")], ["b.mjs", compiled("b", [TRAP, INT], "")]]));
-  assert.ok(shared.module.includes("export function trap(") && shared.module.includes("export function int("), shared.module);
-  assert.ok(shared.rewritten.get("a.mjs").startsWith('import { trap, int } from "pw:shared";'), shared.rewritten.get("a.mjs"));
+  assert.ok(shared.module.includes("export function trap(") && shared.module.includes("export function big("), shared.module);
+  assert.ok(shared.rewritten.get("a.mjs").startsWith('import { trap, big } from "pw:shared";'), shared.rewritten.get("a.mjs"));
   // Two share both; a third, whose `trap` is its own, imports neither.
   const third = sharedPreludes(new Map([
     ["a.mjs", compiled("a", [TRAP, INT], "")],
@@ -272,7 +272,7 @@ test("a helper is shared only with each name of a prelude it reads", () => {
 
 test("a paragraph fewer than two handlers import is each one's", () => {
   const otherTrap = TRAP.replace('"trap: "', '"trapped: "');
-  // `int` is in two handlers, but one of them reads a `trap` of its own.
+  // `big` is in two handlers, but one of them reads a `trap` of its own.
   const shared = sharedPreludes(new Map([
     ["a.mjs", compiled("a", [TRAP, INT], "")],
     ["b.mjs", compiled("b", [otherTrap, INT], "")],

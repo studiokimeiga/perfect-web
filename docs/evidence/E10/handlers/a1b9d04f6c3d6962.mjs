@@ -4,45 +4,68 @@ function trap(what) {
   throw new Error("trap: " + what);
 }
 
-// An Int is 64 bits, and a result that does not fit traps (ADR-0039):
-// one that 64 bits wrap is not itself (ADR-0427).
-function int(v) {
+// An Int is a number within 2^53 of zero and a BigInt past it, 64 bits
+// at most (ADR-0039, ADR-0433): one form for each value, so that two
+// equal ones are `===`, and the form JSON gives each Int it carries. A
+// result 64 bits do not hold traps: one they wrap is not itself.
+function big(v) {
   if (BigInt.asIntN(64, v) !== v) trap("Int overflow");
-  return v;
+  return v >= -9007199254740992n && v <= 9007199254740992n ? Number(v) : v;
 }
 
-// Euclidean: the remainder is in [0, |b|), so -7 / 2 is -4.
+function sub(a, b) {
+  if (typeof a === "number" && typeof b === "number") {
+    const r = a - b;
+    if (r >= -9007199254740991 && r <= 9007199254740991) return r;
+  }
+  return big(BigInt(a) - BigInt(b));
+}
+
+// Euclidean: the remainder is in [0, |b|), so -7 / 2 is -4. Exact on two
+// numbers: `a % b` is, and `a - a % b` is a multiple of `b` no larger
+// than `a`, so their quotient is the whole number it is.
 function div(a, b) {
-  if (b === 0n) trap("division by zero");
-  let q = a / b;
-  if (a % b < 0n) q = b > 0n ? q - 1n : q + 1n;
-  return int(q);
+  if (b == 0) trap("division by zero");
+  if (typeof a === "number" && typeof b === "number") {
+    const r = a % b;
+    const q = (a - r) / b;
+    return (r < 0 ? (b > 0 ? q - 1 : q + 1) : q) + 0;
+  }
+  const x = BigInt(a), y = BigInt(b);
+  let q = x / y;
+  if (x % y < 0n) q = y > 0n ? q - 1n : q + 1n;
+  return big(q);
 }
 
 function rem(a, b) {
-  if (b === 0n) trap("division by zero");
-  const r = a % b;
-  return r < 0n ? (b > 0n ? r + b : r - b) : r;
+  if (b == 0) trap("division by zero");
+  if (typeof a === "number" && typeof b === "number") {
+    const r = a % b;
+    return (r < 0 ? (b > 0 ? r + b : r - b) : r) + 0;
+  }
+  const x = BigInt(a), y = BigInt(b);
+  const r = x % y;
+  return big(r < 0n ? (y > 0n ? r + y : r - y) : r);
 }
 
 function callee0(v0) {
-  const v1 = 1000n;
+  const v1 = 1000;
   const v2 = v0 < v1;
   let v22;
   if (v2) {
     const v3 = v0.toString();
     v22 = v3;
   } else {
-    const v4 = 1000n;
+    const v4 = 1000;
     const v5 = rem(v0, v4);
-    const v6 = 10n;
+    const v6 = 10;
     const v7 = v5 < v6;
     let v14;
     if (v7) {
       const v8 = "00";
       v14 = v8;
     } else {
-      const v9 = 100n;
+      const v9 = 100;
       const v10 = v5 < v9;
       let v13;
       if (v10) {
@@ -54,7 +77,7 @@ function callee0(v0) {
       }
       v14 = v13;
     }
-    const v15 = 1000n;
+    const v15 = 1000;
     const v16 = div(v0, v15);
     const v18 = callee0(v16);
     const v19 = ",";
@@ -70,7 +93,7 @@ export const handler = "a1b9d04f6c3d6962";
 export async function run(context) {
   const v0 = context.get("code");
   const v1_answer = await context.command("store.page.apply_promo", [v0], { retry: { max: 2, jitter: true } });
-  const v1 = ((c) => { switch (c.$case) { case "ok": return { $case: "ok", value: undefined }; case "err": return { $case: "err", value: ((c) => { switch (c.$case) { case "unknown-code": return { $case: "unknown-code" }; case "expired": return { $case: "expired" }; case "below-minimum": return { $case: "below-minimum", value: BigInt(c.value) }; case "already-used": return { $case: "already-used" }; case "not-in-cart": return { $case: "not-in-cart" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(v1_answer);
+  const v1 = ((c) => { switch (c.$case) { case "ok": return { $case: "ok", value: undefined }; case "err": return { $case: "err", value: ((c) => { switch (c.$case) { case "unknown-code": return { $case: "unknown-code" }; case "expired": return { $case: "expired" }; case "below-minimum": return { $case: "below-minimum", value: c.value }; case "already-used": return { $case: "already-used" }; case "not-in-cart": return { $case: "not-in-cart" }; default: throw new Error("trap: no such case " + c.$case); } })(c.value) }; default: throw new Error("trap: no such case " + c.$case); } })(v1_answer);
   let v80;
   switch (v1.$case) {
     case "ok": {
@@ -99,40 +122,40 @@ export async function run(context) {
           const v9 = v5.value;
           const v10 = "That code needs a subtotal of at least ";
           const v11 = v9;
-          const v12 = 100n;
+          const v12 = 100;
           const v13 = div(v11, v12);
-          const v14 = 100n;
+          const v14 = 100;
           const v15 = rem(v11, v14);
-          const v16 = 0n;
+          const v16 = 0;
           const v17 = v11 >= v16;
           let v27;
           if (v17) {
             v27 = v13;
           } else {
-            const v18 = 0n;
+            const v18 = 0;
             const v19 = v15 === v18;
             let v26;
             if (v19) {
-              const v20 = 0n;
-              const v21 = int(v20 - v13);
+              const v20 = 0;
+              const v21 = sub(v20, v13);
               v26 = v21;
             } else {
-              const v22 = 0n;
-              const v23 = int(v22 - v13);
-              const v24 = 1n;
-              const v25 = int(v23 - v24);
+              const v22 = 0;
+              const v23 = sub(v22, v13);
+              const v24 = 1;
+              const v25 = sub(v23, v24);
               v26 = v25;
             }
             v27 = v26;
           }
-          const v28 = 0n;
+          const v28 = 0;
           const v29 = v11 >= v28;
           let v33;
           if (v29) {
             const v32 = true;
             v33 = v32;
           } else {
-            const v30 = 0n;
+            const v30 = 0;
             const v31 = v15 === v30;
             v33 = v31;
           }
@@ -140,11 +163,11 @@ export async function run(context) {
           if (v33) {
             v36 = v15;
           } else {
-            const v34 = 100n;
-            const v35 = int(v34 - v15);
+            const v34 = 100;
+            const v35 = sub(v34, v15);
             v36 = v35;
           }
-          const v37 = 0n;
+          const v37 = 0;
           const v38 = v11 < v37;
           let v41;
           if (v38) {
@@ -154,7 +177,7 @@ export async function run(context) {
             const v40 = "";
             v41 = v40;
           }
-          const v42 = 10n;
+          const v42 = 10;
           const v43 = v36 < v42;
           let v46;
           if (v43) {
@@ -165,23 +188,23 @@ export async function run(context) {
             v46 = v45;
           }
           const v47 = "$";
-          const v49 = 1000n;
+          const v49 = 1000;
           const v50 = v27 < v49;
           let v70;
           if (v50) {
             const v51 = v27.toString();
             v70 = v51;
           } else {
-            const v52 = 1000n;
+            const v52 = 1000;
             const v53 = rem(v27, v52);
-            const v54 = 10n;
+            const v54 = 10;
             const v55 = v53 < v54;
             let v62;
             if (v55) {
               const v56 = "00";
               v62 = v56;
             } else {
-              const v57 = 100n;
+              const v57 = 100;
               const v58 = v53 < v57;
               let v61;
               if (v58) {
@@ -193,7 +216,7 @@ export async function run(context) {
               }
               v62 = v61;
             }
-            const v63 = 1000n;
+            const v63 = 1000;
             const v64 = div(v27, v63);
             const v66 = callee0(v64);
             const v67 = ",";

@@ -15,13 +15,13 @@ export const handler = "26058453d2c7def8";
 export async function run(context) {
   const v0 = context.captures["a"]["id"];
   const v1 = context.get("label");
-  const v3 = BigInt(Array.from(v1).length);
-  const v4 = 1n;
+  const v3 = Array.from(v1).length;
+  const v4 = 1;
   const v5 = v3 >= v4;
   let v10;
   if (v5) {
-    const v6 = BigInt(Array.from(v1).length);
-    const v7 = 40n;
+    const v6 = Array.from(v1).length;
+    const v7 = 40;
     const v8 = v6 <= v7;
     v10 = v8;
   } else {

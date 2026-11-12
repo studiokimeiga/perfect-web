@@ -225,7 +225,9 @@ fn a_value_computed_from_a_signal_is_the_browsers_and_its_first_the_hosts() {
             "{source}"
         );
     }
-    assert!(source.contains("BigInt(Array.from(v0).length)"), "{source}");
+    // A length is a number, as an `Int` within ±2^53 is (ADR-0433).
+    assert!(source.contains("Array.from(v0).length"), "{source}");
+    assert!(!source.contains("BigInt(Array.from"), "{source}");
     // The thread page's, since its reply form (ADR-0231): its button's
     // `disabled`, from the reply's draft, alone.
     let thread = plan_of(&b, "feed.app.PostPage~ui");
@@ -288,7 +290,8 @@ fn an_attribute_and_a_views_field_of_a_signal_are_computed_as_well() {
         .and_then(|c| c.module.as_ref().ok())
         .expect("the page's module");
     assert_eq!(source.matches("(j) => f").count(), 2, "{source}");
-    // An `Int` is held in its wire form, and decoded for the function.
+    // An `Int` is held in its wire form, which is the function's: it is
+    // read as it is (ADR-0433).
     let b = build(&page("<p>{count * 2}</p>")).unwrap_or_else(|e| panic!("{e}"));
     let source = b
         .computed
@@ -296,7 +299,7 @@ fn an_attribute_and_a_views_field_of_a_signal_are_computed_as_well() {
         .find(|c| c.page == "t.P~ui")
         .and_then(|c| c.module.as_ref().ok())
         .expect("the page's module");
-    assert!(source.contains("(j) => f0(BigInt(j))"), "{source}");
+    assert!(source.contains("(j) => f0(j)"), "{source}");
     // Control: the same values read as they are compute nothing.
     let b = build(&page("<p title={panel.label}>{open}</p>")).unwrap_or_else(|e| panic!("{e}"));
     assert!(

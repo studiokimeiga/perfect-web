@@ -3,7 +3,7 @@
 export const name = "";
 export const handler = "55314a08032a0a1d";
 export async function run(context) {
-  const v0 = ((o) => ({ "value": o["value"] }))(context.event);
+  const v0 = context.event;
   const v1 = v0["value"];
   context.set("tip_typed", v1);
   const v2 = undefined;

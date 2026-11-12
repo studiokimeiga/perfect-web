@@ -621,9 +621,11 @@ fn params(r: &Runnable) -> Vec<Type> {
     panic!("no export")
 }
 
-/// A value as JavaScript source, in the module's representation.
+/// A value as JavaScript source, in the module's representation: an `Int` a
+/// number within ±2^53 and a `BigInt` past it (ADR-0433).
 fn js(v: &Val) -> String {
     match v {
+        Val::S64(n) if n.unsigned_abs() <= 1 << 53 => n.to_string(),
         Val::S64(n) => format!("{n}n"),
         Val::Float64(f) => {
             if f.is_nan() {
@@ -695,31 +697,43 @@ fn canonical(v: &Val) -> serde_json::Value {
 }
 
 /// Node's side of `canonical`, and a runner that calls each module on its
-/// cases and prints one line per call.
+/// cases and prints one line per call. A number is an `Int` or a `Float` by
+/// what the component answered there (`want`): an `Int` is a number within
+/// ±2^53 and a `BigInt` past it, and never -0 (ADR-0433), so an `Int` in
+/// any other form is no `Int`, and the call disagrees.
 const RUNNER: &str = r#"import { cases } from "./cases.mjs";
 function bits(x) {
   const d = new DataView(new ArrayBuffer(8));
   d.setFloat64(0, x);
   return d.getBigUint64(0).toString(16).padStart(16, "0");
 }
-function enc(v) {
-  if (typeof v === "bigint") return { i: v.toString() };
+const LIMIT = 2n ** 53n;
+// The component's `Int`, `{ i: "<digits>" }`; a case named `i` holds its
+// payload's form there, or null.
+const isInt = (w) => w !== null && typeof w === "object" && typeof w.i === "string" && Object.keys(w).length === 1;
+function enc(v, w) {
+  if (isInt(w)) {
+    if (typeof v === "number" && Number.isInteger(v) && Math.abs(v) <= 2 ** 53 && !Object.is(v, -0)) return { i: String(v) };
+    if (typeof v === "bigint" && (v > LIMIT || v < -LIMIT)) return { i: v.toString() };
+    return { "an Int not in its one form": `${typeof v} ${String(v)}` };
+  }
+  if (typeof v === "bigint") return { "a BigInt where no Int is": v.toString() };
   if (typeof v === "number") return { f: Number.isNaN(v) ? "NaN" : bits(v) };
   if (typeof v === "boolean") return { b: v };
   if (typeof v === "string") return { s: v };
-  if (Array.isArray(v)) return { l: v.map(enc) };
+  if (Array.isArray(v)) return { l: v.map((x, k) => enc(x, w?.l?.[k])) };
   if (v !== null && typeof v === "object" && "$case" in v)
-    return "value" in v ? { [v.$case]: enc(v.value) } : { [v.$case]: null };
+    return "value" in v ? { [v.$case]: enc(v.value, w?.[v.$case]) } : { [v.$case]: null };
   if (v !== null && typeof v === "object")
-    return { r: Object.fromEntries(Object.entries(v).map(([k, x]) => [k, enc(x)])) };
+    return { r: Object.fromEntries(Object.entries(v).map(([k, x]) => [k, enc(x, w?.r?.[k])])) };
   return { unknown: String(v) };
 }
 for (const [id, list] of Object.entries(cases)) {
   const m = await import("./" + id + ".mjs");
-  for (const args of list) {
+  for (const { args, want } of list) {
     let out;
     try {
-      out = enc(m.run(...args));
+      out = enc(m.run(...args), want);
     } catch (e) {
       out = String(e.message).startsWith("trap: ")
         ? { trap: String(e.message).slice("trap: ".length) }
@@ -782,8 +796,10 @@ fn agree_on(
                 Ok(v) => canonical(&v[0]),
                 Err(why) => serde_json::json!({ "trap": cause(&why) }),
             };
+            // Each call with what the component answered, by which the
+            // runner tells an `Int` from a `Float`.
             list.push(format!(
-                "[{}]",
+                "{{ args: [{}], want: {want} }}",
                 args.iter().map(js).collect::<Vec<_>>().join(", ")
             ));
             expected.push((id.clone(), format!("{args:?}"), want));
@@ -859,16 +875,16 @@ fn a_list_of_literals_is_a_value_of_the_module() {
     let tables =
         pw_core::backend::js_pure::module(&us, "j.Tables").unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(
-        tables.matches("Object.freeze([1n, 2n, 3n])").count(),
+        tables.matches("Object.freeze([1, 2, 3])").count(),
         1,
         "{tables}"
     );
-    assert_eq!(tables.matches("1n, 2n, 3n").count(), 1, "{tables}");
+    assert_eq!(tables.matches("1, 2, 3").count(), 1, "{tables}");
     assert_eq!(tables.matches("Object.freeze(").count(), 1, "{tables}");
     let counted =
         pw_core::backend::js_pure::module(&us, "j.Counted").unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(
-        counted.matches("Object.freeze([4n, 5n, 6n])").count(),
+        counted.matches("Object.freeze([4, 5, 6])").count(),
         1,
         "{counted}"
     );
