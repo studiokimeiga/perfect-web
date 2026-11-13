@@ -22,7 +22,7 @@ publish = false
 # (BSD-3-Clause), zeroize 1.9.1, openssl-probe 0.2.1 (Linux).
 [dependencies]
 rustls = { version = "=0.23.46", default-features = false, features = ["ring", "std", "tls12"] }
-rustls-native-certs = "=0.8.4"
+rustls-native-certs = "=0.8.5"
 
 [dev-dependencies]
 # A test's certificate authority and servers: their own crate, a
