@@ -15,13 +15,19 @@ mutant undoes one piece:
 - the walk: the build's reading of a row's markup, the steps written, and
   the runtime's comparison of them with the browser's parse;
 - the packaging: what it drops where every list is the page's own, and what
-  it cuts where none is, a server's runtime too.
+  it cuts where none is, a server's runtime too;
+- the rows found where they were (ADR-0439): each row whose item is the very
+  one at its place, or as far from the list's end, found by it, kept where
+  nothing its rows read of the page moved, every other by its key; what it
+  says it found; and the runtime's placing of the rows by it, as few moved
+  as leave the rest in order.
 
 A mutant of what is written must fail `renderer-agreement.test.mjs`, which
 holds the page's own code to the general code row by row; of the walk's
 reading or the packaging, `optimize-assets.test.mjs`; of the runtime's
 comparison, `e2e/rows.spec.mjs` in Chromium on production builds of the
-large list and its fixture of presses, as served and built to report.
+large list and its fixture of presses, as served and built to report; of
+which rows its placing leaves where they are, `renderer-contract.test.mjs`.
 
 Run from the repository root; `just e14-device-runtime` records the output.
 The source is restored after every mutant, whatever happens.
@@ -46,7 +52,7 @@ BOUND = 900
 MUTANTS = [
     # -- each path, read as `read` reads it
     ("a path the page holds whole is read from no page", "agreement", OWN,
-     '    if (names.has(path)) {\n      reaches.page = true;\n      uses.add("pageAt");\n      return `pageAt(e, reads, ${q(path)})`;\n    }\n', ""),
+     '    if (names.has(path)) {\n      reaches.page = true;\n      reaches.names.add(path);\n      uses.add("pageAt");\n      return `pageAt(e, reads, ${q(path)})`;\n    }\n', ""),
     ("a value the row computes is asked before the row's own", "agreement", OWN,
      "(v = field(item, ${q(name)})) !== NONE ? v : (f = ownFunctions.get(", "(f = ownFunctions.get("),
     ("a value the row computes, no function given, is none whatever its item holds", "agreement", OWN,
@@ -95,11 +101,98 @@ MUTANTS = [
     ("a row that read nothing of the page is kept by its item alone", "agreement", OWN,
      "(old.item === item ? computedHold(old, item, e, p) : holdsStill(old, item, e, p))", "(old.item === item || holdsStill(old, item, e, p))"),
     ("a list's own keeping takes a missing key", "agreement", OWN,
-     '      if (key === "") throw new Blocked("MissingLoopKey", p.key);\n      if (now.has(key))', "      if (now.has(key))"),
-    ("a list's own keeping takes a repeated key", "agreement", OWN,
-     '      if (now.has(key)) throw new Blocked("DuplicateLoopKey", key);\n', ""),
+     '        if (key === "") throw new Blocked("MissingLoopKey", p.key);\n', ""),
+    ("a list's own keeping takes a key a row it made holds", "agreement", OWN,
+     '        if (made !== null && made.has(key)) throw new Blocked("DuplicateLoopKey", key);\n', ""),
+    ("a list's own keeping takes a key its last render's row holds twice", "agreement", OWN,
+     '          if (taken[j] === 1) throw new Blocked("DuplicateLoopKey", key);\n', ""),
     ("a list's own keeping keeps no row", "agreement", OWN,
-     "const row = old && own.still(old, item, e, p) ? old : own.make(p, e, others, item, key);", "const row = own.make(p, e, others, item, key);"),
+     "      if ((clean && o.item === item) || own.still(o, item, e, p)) {\n", "      if (false) {\n"),
+    # -- the rows found where they were (ADR-0439): the keeping, what it says
+    # it found, what the rows read of the page, and the runtime's placing
+    ("a row whose item is the very one is kept though what it reads moved", "agreement", OWN,
+     "      if ((clean && o.item === item) || own.still(o, item, e, p)) {\n", "      if (o.item === item || own.still(o, item, e, p)) {\n"),
+    ("what a list's rows read of the page is not looked at", "agreement", OWN,
+     "    if (clean) for (const name of own.reads) if (!unmoved(e.page.get(name), was.page.get(name))) clean = false;\n", ""),
+    ("a row as far from the list's end is not found by its item", "agreement", OWN,
+     "        j = i + m - n;\n        o = j >= 0 && j < m && old[j].item === item ? old[j] : undefined;\n", "        o = undefined;\n"),
+    ("a row at its place is not found by its item", "agreement", OWN,
+     "      let o = i < m ? old[i] : undefined;\n", "      let o;\n"),
+    ("a row found by its key is at the place of the one it replaces", "agreement", OWN,
+     "          j = o.at;\n", ""),
+    ("the rows of a render are not told their places", "agreement", OWN,
+     "    for (let i = 0; i < n; i++) rows[i].at = i;\n", ""),
+    ("a key gone is still looked up", "agreement", OWN,
+     "      if (matched < m) for (let j = 0; j < m; j++) if (taken[j] === 0) byKey.delete(own.key(old[j].item));\n", ""),
+    ("a row made is not looked up by its key after", "agreement", OWN,
+     "      if (made !== null) for (const [key, row] of made) byKey.set(key, row);\n", ""),
+    ("a list none of whose rows stays keeps the keys of the last", "agreement", OWN,
+     "    if (matched === 0) byKey = made ?? new Map();\n", "    if (matched === 0) byKey = was?.byKey ?? made ?? new Map();\n"),
+    ("whether the rows that stay are in order is not said", "agreement", OWN,
+     "      if (j < last) sorted = false;\n      else last = j;\n", "      last = j;\n"),
+    ("a row made again is not said", "agreement", OWN, "      remade.push(i);\n", ""),
+    ("the rows looked for by their keys are not counted", "agreement", OWN, "        keyed += 1;\n", ""),
+    ("the rows a list found its rows among are its own", "agreement", OWN, "from: old, places,", "from: rows, places,"),
+    ("a row found is not counted", "agreement", OWN,
+     "      taken[j] = 1;\n      matched += 1;\n", "      taken[j] = 1;\n"),
+    ("a row found is not taken", "agreement", OWN,
+     "      taken[j] = 1;\n      matched += 1;\n", "      matched += 1;\n"),
+    ("what a value its row computes reads of the page is not said", "agreement", OWN,
+     "            reaches.names.add(input);\n", ""),
+    ("a value of the page a hole reads whole is not said", "agreement", OWN,
+     "      reaches.names.add(path);\n", ""),
+    ("a value under a name of the page a hole reads is not said", "agreement", OWN,
+     "    reaches.names.add(head[0]);\n", ""),
+    ("a list says its rows read nothing of the page", "agreement", OWN,
+     "      reads: ${pageReads},\n", "      reads: [],\n"),
+    ("a list whose handlers capture the page says what its rows read", "packaging", OWN,
+     '  const pageReads = reachesPage ? "null" : q([...reaches.names].sort());\n', "  const pageReads = q([...reaches.names].sort());\n"),
+    ("a list whose handlers capture the page keeps its rows by their items alone", "agreement", OWN,
+     '  const pageReads = reachesPage ? "null" : q([...reaches.names].sort());\n', "  const pageReads = q([...reaches.names].sort());\n"),
+    ("a list its own code found is placed by the general code", "rows", RUNTIME,
+     "  if (PW_OWN && (!PW_UNOWNED || now.from !== undefined)) return rowsFound(a, b, now.from === a ? now : foundByKeys(a, b), shown, plan, range, inserted);\n", ""),
+    ("rows found among others than the document shows are placed as found among them", "rows", RUNTIME,
+     "now.from === a ? now : foundByKeys(a, b)", "now"),
+    ("a list found by its keys finds none", "contract", RUNTIME,
+     "  if (a.length > 0) {\n    const at = new Map();", "  if (false) {\n    const at = new Map();"),
+    ("a row found by its key is new", "contract", RUNTIME,
+     "      if (j === undefined) continue;\n      places[i] = j;\n", "      if (j === undefined) continue;\n"),
+    ("a row found by its key is not taken", "contract", RUNTIME,
+     "      places[i] = j;\n      taken[j] = 1;\n", "      places[i] = j;\n"),
+    ("rows found by their keys are in order whatever their places", "contract", RUNTIME,
+     "      if (j < last) sorted = false;\n      else last = j;\n      if (b[i] !== a[j]) remade.push(i);\n",
+     "      last = j;\n      if (b[i] !== a[j]) remade.push(i);\n"),
+    ("a row found by its key is never made again", "contract", RUNTIME,
+     "      if (b[i] !== a[j]) remade.push(i);\n", ""),
+    ("a build whose every list is its own keeps the general placing", "packaging", PACKAGING,
+     '    if (!own.unowned) out = out.replace(GENERAL_LINES, "");\n', ""),
+    ("a build with a list of the general code's holds no general placing", "packaging", PACKAGING,
+     '    if (!own.unowned) out = out.replace(GENERAL_LINES, "");\n', '    out = out.replace(GENERAL_LINES, "");\n'),
+    ("rows gone are left where some stay", "rows", RUNTIME,
+     "      if (taken[j] === 1) continue;\n      rowGone(shown.get(a[j].key));\n      shown.delete(a[j].key);\n", "      if (taken[j] === 1) continue;\n"),
+    ("rows gone are left where none stays", "rows", RUNTIME,
+     "    if (!PW_DIALOGS) rowsAllGone(range);\n", ""),
+    ("a row made again is left as it was", "rows", RUNTIME,
+     "    if (rowDiffers(old, b[i])) changed.push([shown.get(b[i].key), b[i], old]);\n", ""),
+    ("rows out of their order are left there", "rows", RUNTIME,
+     "  const stays = sorted ? null : stayingIn(places, lo, hi);\n", "  const stays = null;\n"),
+    ("rows out of their order are all moved", "rows", RUNTIME,
+     "    if (places[i] >= 0 && (stays === null || stays[i - lo] === 1)) {\n", "    if (places[i] >= 0 && stays === null) {\n"),
+    ("a row moved goes after the row it goes before", "rows", RUNTIME,
+     "      moveNodes(parent, between(nodes[0], nodes[1]), anchor);\n      REPORT:", "      moveNodes(parent, between(nodes[0], nodes[1]), anchor.nextSibling);\n      REPORT:"),
+    ("new rows go in at the list's end", "rows", RUNTIME,
+     "    parent.insertBefore(rowsNew(b.slice(first, i + 1), plan, shown, inserted), anchor);\n",
+     "    parent.insertBefore(rowsNew(b.slice(first, i + 1), plan, shown, inserted), range.end);\n"),
+    ("a new row at the end is one in its place", "rows", RUNTIME,
+     "  while (hi > lo && places[hi - 1] >= lo && places[hi - 1] === hi - 1 + m - n) hi--;\n",
+     "  while (hi > lo && places[hi - 1] === hi - 1 + m - n) hi--;\n"),
+    ("a new row's place counts among those that stay", "contract", RUNTIME, "    if (value < 0) continue;\n", ""),
+    ("a place past the run's last starts it again", "contract", RUNTIME, "    let low = length;\n", "    let low = 0;\n"),
+    ("the run kept is its first", "contract", RUNTIME,
+     "  for (let i = length > 0 ? tails[length - 1] : -1; i >= 0; i = before[i - lo]) stays[i - lo] = 1;\n",
+     "  for (let i = length > 0 ? tails[0] : -1; i >= 0; i = before[i - lo]) stays[i - lo] = 1;\n"),
+    ("a row before one that stays is not said to", "contract", RUNTIME,
+     "    before[i - lo] = low > 0 ? tails[low - 1] : -1;\n", "    before[i - lo] = -1;\n"),
     # -- what is refused
     ("a list inside a block that binds a name is written", "agreement", OWN,
      "  if (around.length > 0) refuse(`it is inside a block that binds ${around.join(\", \")}`);\n", ""),
@@ -212,6 +305,11 @@ def packaging():
     return node_tests("spikes/own-renderer/optimize-assets.test.mjs")
 
 
+def contract():
+    """Which rows the runtime's placing leaves where they are (ADR-0439)."""
+    return node_tests("spikes/own-renderer/renderer-contract.test.mjs")
+
+
 def rows():
     """The large list and its fixture of presses, on production builds: as
     they are served, less the tests that read what the page reports, and
@@ -239,7 +337,7 @@ def rows():
     return passed + failed > 0, passed, failed
 
 
-SUITES = {"agreement": agreement, "packaging": packaging, "rows": rows}
+SUITES = {"agreement": agreement, "packaging": packaging, "contract": contract, "rows": rows}
 
 
 def main():
