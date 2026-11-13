@@ -51,6 +51,7 @@ user query AccountOf(reader: User<UserId>) -> Bool
     match account_of(reader) { Some(_) => true, None => false }
 }
 command keep(text: String) -> ()
+    requires Anyone
     idempotent_by InteractionId
     transaction serializable
     emits CartChanged(id_of(current_user()))
@@ -58,12 +59,14 @@ command keep(text: String) -> ()
     GuestCarts.put(current_user(), Cart { owner: id_of(current_user()), text: text })
 }
 command forge(owner: UserId, text: String) -> ()
+    requires Anyone
     transaction serializable
     emits CartChanged(owner)
 {
     GuestCarts.put(current_user(), Cart { owner: owner, text: text })
 }
 command clear() -> ()
+    requires Anyone
     transaction serializable
     emits CartChanged(id_of(current_user()))
 {
@@ -109,7 +112,9 @@ command remind() -> Result<Int, String>
         None => Err("missing cart"),
     }
 }
-command later() -> () {
+command later() -> ()
+    requires Anyone
+{
     schedule remind() after minutes(30)
 }
 "#;
@@ -560,6 +565,7 @@ user query HasPrevious(reader: User<UserId>) -> Bool
     match previous_user() { Some(_) => true, None => false }
 }
 command keep(quantity: Int) -> ()
+    requires Anyone
     emits QuantityChanged(id_of(current_user()))
 {
     JoinCarts.put(current_user(), Line { owner: id_of(current_user()), quantity: quantity })
