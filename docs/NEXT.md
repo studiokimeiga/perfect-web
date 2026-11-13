@@ -6,6 +6,55 @@
 
 # Next
 
+## After L3, the platform's prerequisites, 2026-11-13
+
+L3, the third train of the declared data layer's landing (ADR-0440,
+accepted in part), on train-34: the platform's prerequisites for the
+protected feed and store, a retained shared outbox, the Identity
+lifecycle and owned Clock actions. What stays open, in order:
+
+1. **L3's record**: the full verify at its head, every recipe and the three
+   browser suites, then `evidence-fetch`; it lands after train-34.
+2. **A guest's rows are keyed by a cookie the client can choose** (ADR-0440,
+   Landing, the review's second finding): `session_of` takes any
+   `pw-session`, which has no `__Host-` prefix, so a sibling origin that
+   sets the cookie fixes a victim's anonymous session and reads, takes or
+   seeds its guest rows. Before any deployment keeps guest-owned rows (L6,
+   L7): a session cookie no other origin can set (`__Host-`, Secure, no
+   Domain), a session id only the host issues, and the provider's issuer
+   kept beside its `sub` (guest ids and `sub` values share one owner
+   namespace today), each with a test that fails without it.
+3. **A lifecycle that does not commit strands the guest's rows** (the
+   review's third): the proof is spent and nothing retries the merge; a
+   bounded retry of a serialization failure inside the proof's lifetime,
+   or the guest's rows kept reachable to a later merge, with a test that
+   races the account's own write against it.
+4. **The owned Clock witness stands twice**: `tests::protected_migration`'s
+   (L3's, `4f80e543`) and `tests::owned_clock` (L2's port of it): keep one,
+   each script's controls held to the one kept.
+5. **L4, bounded reads** (ADR-0440's fifth prerequisite): merge `ff57edc7`,
+   its CI records only (1,370 receipts).
+6. **L5, declared uploads** (its fourth): finish `018fad14`, then merge.
+7. **L6, the deploy rewritten** on master (ADR-0396), from the retained
+   outbox's protocol: since platform 0004 an older generic-table worker
+   beside a newer one is safe, only slower to be heard (it sends no
+   NOTIFY), and a deploy still replaces every worker at once.
+8. **L7, the benchmark store on tables**, and the feed: the apps' port,
+   ADR-0440's application modeling.
+9. **`PgTables::forget_outbox` has no caller** but its own test: since L3
+   a host retains what it delivers. Either a caller that needs a row gone
+   at once is named, with a test of it, or it goes with its test (platform
+   0004 moves the watermark for any deletion).
+10. **`cargo test` on a many-core machine exhausts a default PostgreSQL**
+    (L3's recipes): at 32 test threads, second host's tests fail
+    `53300: sorry, too many clients already` against PostgreSQL's default
+    100 connections; CI's four cores hide it. Each test host's pool, or
+    the tests' parallelism on PostgreSQL, bounded so that the server's
+    tests pass on any machine against a default database, with a test
+    that fails without the bound.
+11. **L2's items 2 and 4**, below: one count of a transaction's
+    boundaries, and what ADR-0395 leaves.
+
 ## After train-34, 2026-11-13
 
 A list's own code finds its rows where they were, and its rows are placed by

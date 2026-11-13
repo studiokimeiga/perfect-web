@@ -2,6 +2,35 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**L3, the platform's prerequisites, 2026-11-13:** on train-34 (which holds
+L1, L2 and train-33), the third train of the declared data layer's landing
+(`wip/l3-platform`): the integration branch's six commits after
+`a9a8d79e`, their decision numbered ADR-0440 and accepted in part. A
+generic PostgreSQL host retains the outbox rows it delivers for every host
+sharing the database until the shared retention age, tails them and trims
+by age with a watermark, where L1 forgot its delivered rows at once; an
+`invoked_by Identity` command joins a guest's rows to the account it
+became, only on a checked transition of the reader's session, in one
+transaction; admitted anonymous callers keep their guest-owned rows; owned
+Clock actions keep their scheduled authority. The merge's six conflicts
+were two functions at one place, a test helper's comment, two scripts'
+lists and the docs; what git did not show, five test commands without
+`requires` (PW0367), each `requires Anyone`. An independent review found
+no way past the new authority checks; its finding that a host built before
+platform 0003 deletes outbox rows unseen is fixed by platform 0004 (any
+removal of an outbox row moves the trim watermark), and a guest session's
+cookie the client can choose and a lifecycle that does not commit are open
+(NEXT). Its recipes, each run whole before the record, found three of the
+durable tables' controls the producer could not count and one of the
+store's that survived, behind records older than L3's last commits;
+each is fixed test first (`71c31395`). PR #108's CodeQL gate named seven
+alerts in code it touched: five in test code, dismissed as used in
+tests, and two at the row generator's key (open on master since #107),
+dismissed as false positives: build-time code in a module the page
+imports, none inlined. Locally, every recipe L3's scripts change is
+green on PostgreSQL 18.6 (second host at four test threads).
+The full verify is the record.
+
 **Train-34, 2026-11-13:** on train-33. A list's own code finds its rows
 where they were (ADR-0439): a row whose item is the very one at its place, or
 as far from the list's end, is the row kept, its key not computed, where
