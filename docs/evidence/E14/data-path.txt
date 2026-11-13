@@ -1,8 +1,8 @@
 D2 - an app with no Rust data layer: declared tables served through the gate, the guestbook on them, the conformance suite
 
 produced by: just e14-data-path
-commit: a3cab774e9569baddae69bd0d294487eaa3b697e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -10,18 +10,18 @@ postgres: 18.6 (Debian 18.6-1.pgdg13+2)
 
 == the server: routing, the guestbook, the conformance suite, the reader's account, a guest's identity, the session's cookie kept nowhere
    Compiling pw-dev-server v0.0.0 (/home/runner/work/perfect-web/perfect-web/spikes/own-renderer/server)
-    Finished `test` profile [unoptimized] target(s) in 14.01s
+    Finished `test` profile [unoptimized] target(s) in 17.83s
      Running unittests src/main.rs (target/debug/deps/pw_dev_server-212dc33739338a19)
 
 running 45 tests
 test notifications::tests::a_plans_argument_is_the_reader_by_its_call_alone ... ok
 test notifications::tests::ones_own_act_notifies_no_one ... ok
 test notifications::tests::a_guests_id_handle_and_name_are_its_sessions_digest_never_its_session ... ok
-test notifications::tests::the_principal_operation_answers_the_sessions_user_and_a_guests_where_none_signed_in ... ok
-test notifications::tests::a_stand_in_answers_its_readers_account_and_never_one_of_its_own ... ok
-test notifications::tests::the_account_operation_answers_the_readers_account_for_their_handle_alone ... ok
 test tables::tests::a_handle_is_named_wherever_a_fields_type_holds_it ... ok
+test notifications::tests::a_stand_in_answers_its_readers_account_and_never_one_of_its_own ... ok
+test notifications::tests::the_principal_operation_answers_the_sessions_user_and_a_guests_where_none_signed_in ... ok
 test notifications::tests::a_users_notifications_are_theirs_alone_newest_first ... ok
+test notifications::tests::the_account_operation_answers_the_readers_account_for_their_handle_alone ... ok
 pw dev server: a commit's records did not commit after its tables were published: the tables are closed, and every read and write of them is refused: the transaction did not commit after its last step: FOREIGN KEY constraint failed
 test tests::guestbook::a_commit_failing_after_its_rows_are_published_closes_the_tables ... ok
 test tests::conformance::each_idempotent_command_sent_again_is_answered_once ... ok
@@ -29,59 +29,59 @@ test tests::guestbook::a_removed_entrys_number_is_never_given_again ... ok
 test tests::guestbook::a_signing_reaches_every_other_open_page_of_the_entries ... ok
 test tests::guestbook::each_digest_of_a_session_is_its_own_domains ... ok
 test tests::guestbook::a_render_reads_one_state_of_the_tables ... ok
-conformance: the lists app's tables, 328 reads checked, refusals {"Items": 1, "Lists": 2}, 7 writes measured, 1 reference to a staged row
-test tests::conformance::the_suite_holds_for_the_lists_apps_tables ... ok
 conformance: the guestbook's tables, 406 reads checked, refusals {"Books": 1, "Entries": 2}, 8 writes measured, 1 reference to a staged row
 test tests::conformance::the_suite_holds_for_the_guestbooks_tables ... ok
-test tests::conformance::each_query_reads_its_tables_a_fixed_number_of_times_at_two_sizes ... ok
-test tests::guestbook::a_signing_sent_twice_is_one_entry ... ok
-test tests::guestbook::an_entry_is_its_authors_alone_to_remove ... ok
 test tests::guestbook::an_outbox_that_refuses_a_signings_event_publishes_none_of_its_rows ... ok
+conformance: the lists app's tables, 328 reads checked, refusals {"Items": 1, "Lists": 2}, 7 writes measured, 1 reference to a staged row
+test tests::conformance::the_suite_holds_for_the_lists_apps_tables ... ok
+test tests::guestbook::the_guestbook_is_served_from_the_tables_it_declares ... ok
+test tests::guestbook::an_entry_is_its_authors_alone_to_remove ... ok
+test tests::guestbook::a_signing_sent_twice_is_one_entry ... ok
+test tests::conformance::each_query_reads_its_tables_a_fixed_number_of_times_at_two_sizes ... ok
 test tests::guestbook::the_composer_is_a_reader_with_an_accounts_alone ... ok
 test tests::guestbook::nothing_the_host_keeps_or_logs_holds_a_session_cookie ... ok
-test tests::guestbook::the_guestbook_is_served_from_the_tables_it_declares ... ok
-the guestbook at its bound of 1000 entries: its page rendered in 83.736912ms, `Latest` read whole in 87.699393ms
+the guestbook at its bound of 1000 entries: its page rendered in 101.994896ms, `Latest` read whole in 69.810634ms
 test tests::guestbook::the_guestbook_keeps_its_bound_and_its_page_is_measured_at_it ... ok
 test tests::tables::a_build_whose_row_names_a_handle_is_refused_where_it_is_served ... ok
-test tests::store_accounts::nothing_a_session_keyed_store_keeps_holds_a_session_cookie ... ok
 test tests::tables::a_commits_rows_and_records_are_kept_together_or_not_at_all ... ok
+test tests::store_accounts::nothing_a_session_keyed_store_keeps_holds_a_session_cookie ... ok
 test tests::tables::a_guarded_command_writes_its_tables_once_its_predicate_holds ... ok
 test tests::tables::a_command_that_does_not_commit_keeps_nothing ... ok
 test tests::tables::a_program_that_declares_its_tables_is_served_by_the_generic_adapter ... ok
 test tests::tables::a_program_mixing_its_tables_with_a_hand_written_layer_is_refused ... ok
 test tests::tables::a_program_of_tables_declaring_an_upload_is_refused_where_it_is_served ... ok
 test tests::tables::a_run_on_a_readers_behalf_is_answered_their_account_and_never_their_session ... ok
-pw dev server: a commit's records did not commit after its tables were published: the tables are closed, and every read and write of them is refused: closed inside an existing render
-test tests::tables::closed_tables_refuse_a_renders_remembered_operations ... ok
 test tests::tables::a_staged_write_is_invisible_until_its_commit ... ok
 pw dev server: a commit's records did not commit after its tables were published: the tables are closed, and every read and write of them is refused: closed after the query read
+pw dev server: a commit's records did not commit after its tables were published: the tables are closed, and every read and write of them is refused: closed inside an existing render
+test tests::tables::closed_tables_refuse_a_renders_remembered_operations ... ok
 test tests::tables::closed_tables_refuse_an_answer_closed_while_its_query_was_in_flight ... ok
 pw dev server: a commit's records did not commit after its tables were published: the tables are closed, and every read and write of them is refused: the transaction did not commit after its last step: FOREIGN KEY constraint failed
 test tests::tables::closed_tables_refuse_cached_answers_outside_the_failed_commands_invalidations ... ok
 test uploads::tests::a_claim_no_transaction_commits_is_given_back ... ok
+test tests::tables::each_components_host_map_holds_its_own_table_functions_alone ... ok
 pw dev server: a commit's records did not commit after its tables were published: the tables are closed, and every read and write of them is refused: closed after a materialization was kept
 test tests::tables::closed_tables_refuse_fresh_and_last_known_good_materializations ... ok
-test tests::tables::each_components_host_map_holds_its_own_table_functions_alone ... ok
 test tests::sign_in::each_feed_operation_answers_its_requests_session_alone ... ok
 test tests::sign_in::nothing_the_feed_keeps_holds_a_session_cookie ... ok
 test tests::sign_in::on_postgres::each_feed_operation_answers_its_requests_session_alone_on_postgres ... ok
 test tests::sign_in::on_postgres::nothing_kept_on_postgres_holds_a_session_cookie ... ok
 test tests::store_pg::on_postgres_nothing_the_store_keeps_holds_a_session_cookie ... ok
 
-test result: ok. 45 passed; 0 failed; 0 ignored; 0 measured; 1050 filtered out; finished in 9.60s
+test result: ok. 45 passed; 0 failed; 0 ignored; 0 measured; 1050 filtered out; finished in 12.18s
 
 
 == the engine: a guarded command through the gate; the adapter's snapshot
    Compiling typenum v1.20.1
-   Compiling futures-core v0.3.33
    Compiling getrandom v0.4.3
+   Compiling futures-core v0.3.33
    Compiling futures-sink v0.3.33
    Compiling futures-channel v0.3.33
-   Compiling futures-util v0.3.33
    Compiling tempfile v3.27.0
+   Compiling futures-util v0.3.33
    Compiling generic-array v0.14.7
-   Compiling block-buffer v0.10.4
    Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
    Compiling digest v0.10.7
    Compiling sha2 v0.10.9
    Compiling cranelift-codegen v0.135.8
@@ -95,15 +95,15 @@ test result: ok. 45 passed; 0 failed; 0 ignored; 0 measured; 1050 filtered out; 
    Compiling wasmtime v48.0.8
    Compiling pw-host v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-host)
    Compiling pw-table-memory v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-table-memory)
-    Finished `test` profile [unoptimized] target(s) in 23.73s
+    Finished `test` profile [unoptimized] target(s) in 31.64s
      Running tests/compiled_guarded.rs (target/debug/deps/compiled_guarded-caff36338a93162e)
 
 running 3 tests
 test a_guarded_tables_command_runs_only_answered_and_through_the_gate ... ok
-test a_guarded_command_writes_through_the_gate_once_its_predicate_holds ... ok
 test a_refused_predicate_runs_nothing_and_writes_nothing ... ok
+test a_guarded_command_writes_through_the_gate_once_its_predicate_holds ... ok
 
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
 
      Running tests/compiled_snapshot.rs (target/debug/deps/compiled_snapshot-41d3b8adfc9258b5)
 
@@ -111,7 +111,7 @@ running 2 tests
 test a_snapshot_another_adapter_took_reads_none_of_these_tables ... ok
 test a_snapshot_reads_the_tables_as_it_found_them_though_a_commit_follows ... ok
 
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
 
 
 == the platform's transaction: a command's last step after its records, before its COMMIT
@@ -119,7 +119,7 @@ test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
    Compiling smallvec v1.15.2
    Compiling rusqlite v0.41.1
    Compiling pw-materialize v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-materialize)
-    Finished `test` profile [unoptimized] target(s) in 0.80s
+    Finished `test` profile [unoptimized] target(s) in 1.14s
      Running unittests src/lib.rs (target/debug/deps/pw_materialize-944d7b8c5b054924)
 
 running 1 test
@@ -133,8 +133,8 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; fini
    Compiling rustix v1.1.4
    Compiling pw-resource v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-resource)
    Compiling linux-raw-sys v0.12.1
-   Compiling pw-document v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-document)
    Compiling once_cell v1.21.4
+   Compiling pw-document v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-document)
    Compiling pw-render v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-render)
    Compiling tempfile v3.27.0
    Compiling wasm-encoder v0.257.1
@@ -142,18 +142,18 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; fini
    Compiling wasm-metadata v0.257.1
    Compiling wit-component v0.257.1
    Compiling pw-core v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-core)
-    Finished `test` profile [unoptimized] target(s) in 16.02s
+    Finished `test` profile [unoptimized] target(s) in 22.98s
      Running tests/handles.rs (target/debug/deps/handles-9ad5a1a55ab5398e)
 
 running 6 tests
 test a_local_callback_is_not_a_handle_constructor ... ok
 test a_data_layer_answers_ids_never_handles ... ok
 test a_program_constructs_no_handle ... ok
-test the_readers_account_is_the_readers ... ok
 test nothing_the_browser_supplies_holds_a_handle ... ok
+test the_readers_account_is_the_readers ... ok
 test a_tables_row_holds_no_handle ... ok
 
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.84s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.11s
 
      Running tests/platform_contracts.rs (target/debug/deps/platform_contracts-299bfed2b73a694b)
 
@@ -163,10 +163,10 @@ test the_signatures_the_checkers_depend_on_are_exercised ... ok
 test every_platform_signature_is_internally_consistent ... ok
 test the_platform_library_parses_resolves_and_checks_clean ... ok
 
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.22s
 
    Compiling pw-core v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-core)
-    Finished `test` profile [unoptimized] target(s) in 8.79s
+    Finished `test` profile [unoptimized] target(s) in 12.88s
      Running unittests src/lib.rs (target/debug/deps/pw_core-0f28c59225c7fb9e)
 
 running 12 tests
@@ -174,16 +174,16 @@ test codes::tests::a_retired_code_is_never_reused ... ok
 test codes::tests::a_tracks_block_holds_only_its_tracks_codes ... ok
 test codes::tests::an_old_number_is_no_registered_rule ... ok
 test codes::tests::an_invariant_reads_as_a_sentence_about_the_program ... ok
+test codes::tests::every_alias_resolves_to_a_registered_code ... ok
 test codes::tests::every_code_sits_in_its_owner_range ... ok
 test codes::tests::every_code_is_unique ... ok
-test codes::tests::every_alias_resolves_to_a_registered_code ... ok
+test codes::tests::every_corpus_rule_is_registered_or_an_owned_known_gap ... ok
 test codes::tests::every_known_gap_names_an_owner_and_the_missing_analysis ... ok
 test codes::tests::every_retired_code_says_why_and_what_replaced_it ... ok
-test codes::tests::every_corpus_rule_is_registered_or_an_owned_known_gap ... ok
 test codes::tests::every_code_a_checker_writes_is_registered ... ok
 test codes::tests::every_registered_code_is_one_a_checker_can_emit ... ok
 
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 186 filtered out; finished in 2.34s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 186 filtered out; finished in 2.35s
 
 
 == the tutorial is the app (compiler/pw-cli/tests/guide.rs); the reference of codes
@@ -191,32 +191,32 @@ test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 186 filtered out; f
    Compiling pw-cli v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-cli)
    Compiling pw-host v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-host)
    Compiling pw-table-memory v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-table-memory)
-    Finished `test` profile [unoptimized] target(s) in 9.14s
+    Finished `test` profile [unoptimized] target(s) in 11.93s
      Running tests/guide.rs (target/debug/deps/guide-4bcd948de6846472)
 
 running 15 tests
 test a_fence_is_read_as_commonmark_reads_it ... ok
-test a_gaps_build_output_belongs_to_the_gap_before_it ... ok
 test a_page_is_held_to_the_directory_it_names ... ok
+test a_gaps_build_output_belongs_to_the_gap_before_it ... ok
 test a_page_with_no_example_or_a_block_unseen_is_reported ... ok
-test a_program_differs_from_a_directory_by_a_file_or_a_byte ... ok
 test a_pages_file_blocks_are_its_program_in_order ... ok
-test a_pages_program_is_the_directory_it_names ... ok
+test a_program_differs_from_a_directory_by_a_file_or_a_byte ... ok
 test a_refused_examples_codes_are_read_from_its_output ... ok
 test an_unclosed_or_indented_fence_is_refused ... ok
 test an_info_string_says_what_a_block_is ... ok
 test shown_output_belongs_to_the_refused_example_before_it ... ok
+test a_pages_program_is_the_directory_it_names ... ok
 test the_reference_is_held_to_the_registry ... ok
 test the_diagnostic_reference_lists_every_registered_code ... ok
-test a_wrong_example_is_reported_and_a_right_one_is_not ... ok
 test every_example_in_the_guide_compiles_as_it_says ... ok
+test a_wrong_example_is_reported_and_a_right_one_is_not ... ok
 
-test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.50s
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.43s
 
 docs/guide/diagnostics.md is current
 
 == the guestbook, examples/guestbook/*.pw, in three engines (e2e/guestbook.spec.mjs)
-  15 passed (22.2s)
+  15 passed (28.0s)
 
 == mutation controls (scripts/data_path_mutations.py)
 baseline: 62 passed, 0 failed

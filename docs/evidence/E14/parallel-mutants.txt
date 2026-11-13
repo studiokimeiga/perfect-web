@@ -1,8 +1,8 @@
 ADR-0357 - a mutation script's mutants run in parallel slots
 
 produced by: just e14-parallel-mutants
-commit: a3cab774e9569baddae69bd0d294487eaa3b697e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 python: Python 3.12.3
 platform: Linux x86_64
 slots: 1
@@ -32,12 +32,12 @@ test_the_tree_is_never_mutated_and_each_slot_is_its_own (scripts.tests.test_muta
 test_a_longer_description_is_not_a_shorter_ones (scripts.tests.test_mutation_slots.Verdicts.test_a_longer_description_is_not_a_shorter_ones) ... ok
 test_a_slots_lines_are_each_mutants (scripts.tests.test_mutation_slots.Verdicts.test_a_slots_lines_are_each_mutants) ... ok
 test_each_shape_the_scripts_print (scripts.tests.test_mutation_slots.Verdicts.test_each_shape_the_scripts_print) ... ok
-Ran 23 tests in 4.254s
+Ran 23 tests in 3.642s
 OK
 
 == mutation controls (scripts/mutation_slots_mutations.py)
 
-frozen profiles: full=165, mocked=68; evidence /tmp/parallel-instrument-ddsuxitc
+frozen profiles: full=165, mocked=68; evidence /tmp/parallel-instrument-elfn2ym9
 preflight: 86 actual unequal source/SHA substitutions recorded
 baseline: 165 passed, 0 failed
 a run asked for slots runs the script's loop in the tree: KILLED (5 of 165 test methods fail)
@@ -50,7 +50,7 @@ the mutants dealt reach what a slot runs: KILLED (1 of 165 test methods fail)
 every slot listens on the same ports: KILLED (6 of 165 test methods fail)
 every slot shares one temporary directory: KILLED (3 of 165 test methods fail)
 a slot builds in the tree's target: KILLED (3 of 165 test methods fail)
-slot 0 is not dealt a mutant of each suite first: KILLED (4 of 165 test methods fail)
+slot 0 is not dealt a mutant of each suite first: KILLED (5 of 165 test methods fail)
 a run given arguments is dealt to slots: KILLED (1 of 165 test methods fail)
 the mutants are said in the slots' order, not the script's: KILLED (2 of 165 test methods fail)
 the slots do not wait for every baseline: KILLED (6 of 165 test methods fail)

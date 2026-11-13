@@ -1,14 +1,14 @@
 ADR-0269 - a resource is held by what takes it apart
 
 produced by: just e14-matched-resources
-commit: a3cab774e9569baddae69bd0d294487eaa3b697e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == taken apart (compiler/pw-core/tests/matched_resources.rs, let_discard.rs)
 
-test a_discard_still_holds_its_annotation ... ok
 test a_discard_is_no_value_to_read ... ok
+test a_discard_still_holds_its_annotation ... ok
 test a_generic_results_failure_is_not_lost_through_value_constructs ... ok
 test a_binding_from_branches_is_typed_by_them ... ok
 test a_resource_a_statement_drops_is_refused ... ok
@@ -19,14 +19,14 @@ test a_resources_acquire_clause_holds_its_value ... ok
 test a_resource_kept_in_a_value_or_returned_by_a_function_value_is_refused ... ok
 test a_declaration_gives_its_caller_what_it_declares ... ok
 test an_affine_resource_discarded_is_refused_as_never_consumed ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.73s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.54s
 test a_path_that_leaves_the_arm_before_ending_it_is_refused_where_it_leaves ... ok
 test a_carrying_binding_is_held_by_what_its_question_mark_takes_out ... ok
 test a_carrying_binding_is_held_by_the_arm_that_takes_it_apart ... ok
 test an_option_is_taken_apart_as_a_result_is ... ok
 test an_arm_that_drops_the_acquisition_is_refused_where_it_drops_it ... ok
 test an_acquisition_matched_where_it_is_made_is_held_by_its_arm ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.50s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.15s
 
 == mutation controls (scripts/matched_resource_mutations.py)
 
