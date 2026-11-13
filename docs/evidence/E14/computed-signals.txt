@@ -1,8 +1,8 @@
 ADR-0227 - a value computed from a signal is the browser's, and its first value the host's
 
 produced by: just e14-computed-signals
-commit: 87446c1012226450232bc96362b314c11dc8b825
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43069176405 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 120e64874756e73da22b9f55f10ad0e567536627
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -17,42 +17,43 @@ test a_value_the_template_computes_is_lifted_and_planned ... ok
 test what_a_host_does_not_compute_is_refused_by_name ... ok
 test a_member_an_imported_module_lacks_does_not_resolve ... ok
 test a_view_that_contains_itself_computes_nothing_yet_and_a_speculated_value_is_computed ... ok
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.91s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.34s
+test a_signal_the_wire_holds_otherwise_is_decoded_for_its_function ... ok
 test an_attribute_and_a_views_field_of_a_signal_are_computed_as_well ... ok
 test what_the_browser_does_not_compute_yet_is_refused_by_name ... ok
 test standalone_and_prepared_signal_modules_are_byte_identical ... ok
 test a_value_computed_from_a_signal_is_the_browsers_and_its_first_the_hosts ... ok
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.41s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.11s
 
 == the server (spikes/own-renderer/server/src/main.rs)
 
 test tests::address_fragment::the_document_of_a_page_of_signals_alone_names_its_binding ... ok
 test tests::a_page_of_signals_alone_computes_at_their_first_values ... ok
 test tests::what_a_page_computes_from_a_signal_is_rendered_at_its_first_value ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 1045 filtered out; finished in 2.39s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 1045 filtered out; finished in 1.92s
 
 == the feed in three engines (e2e/feed.spec.mjs)
 
-  72 passed (1.0m)
+  72 passed (51.4s)
 
 == mutation controls (scripts/computed_signals_mutations.py)
 
 baseline (browser): 72 passed, 0 failed
-baseline (cargo): 15 passed, 0 failed
+baseline (cargo): 16 passed, 0 failed
 a signal's value is a query's to compute [cargo]: KILLED (4 of 11 tests fail)
-a text part computed from a signal names no component [cargo]: KILLED (5 of 15 tests fail)
-an attribute computed from a signal names no component [cargo]: KILLED (3 of 15 tests fail)
-a view's field of a signal is read at the signal [cargo]: KILLED (2 of 15 tests fail)
-a page that computes from a signal has no module [cargo]: KILLED (1 of 15 tests fail)
-the prepared executable plan has no computed module [cargo]: KILLED (4 of 15 tests fail)
-the module names each function by its order [cargo]: KILLED (1 of 15 tests fail)
-the module does not decode the signal's value [cargo]: KILLED (1 of 15 tests fail)
-a module that did not compile is no refusal [cargo]: KILLED (1 of 15 tests fail)
-the build writes no module [cargo]: KILLED (1 of 15 tests fail)
-the host renders no first value from a signal [cargo]: KILLED (1 of 15 tests fail)
-the host reads no field of a signal's first value [cargo]: KILLED (1 of 15 tests fail)
-the document names no module [cargo]: KILLED (2 of 15 tests fail)
-a module no plan names is read [cargo]: KILLED (1 of 15 tests fail)
+a text part computed from a signal names no component [cargo]: KILLED (6 of 16 tests fail)
+an attribute computed from a signal names no component [cargo]: KILLED (3 of 16 tests fail)
+a view's field of a signal is read at the signal [cargo]: KILLED (2 of 16 tests fail)
+a page that computes from a signal has no module [cargo]: KILLED (1 of 16 tests fail)
+the prepared executable plan has no computed module [cargo]: KILLED (5 of 16 tests fail)
+the module names each function by its order [cargo]: KILLED (1 of 16 tests fail)
+the module does not decode the signal's value [cargo]: KILLED (1 of 16 tests fail)
+a module that did not compile is no refusal [cargo]: KILLED (1 of 16 tests fail)
+the build writes no module [cargo]: KILLED (1 of 16 tests fail)
+the host renders no first value from a signal [cargo]: KILLED (1 of 16 tests fail)
+the host reads no field of a signal's first value [cargo]: KILLED (1 of 16 tests fail)
+the document names no module [cargo]: KILLED (2 of 16 tests fail)
+a module no plan names is read [cargo]: KILLED (1 of 16 tests fail)
 the browser does not compute a value from a signal [browser]: KILLED (6 of 72 tests fail)
 the browser computes each value from the signal's first [browser]: KILLED (45 of 72 tests fail)
 a computed attribute is set from the signal itself [browser]: KILLED (6 of 72 tests fail)

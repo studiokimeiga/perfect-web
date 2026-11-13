@@ -1,8 +1,8 @@
 Track store-accounts - a cart and an order a user's (milestone 1), delivery addresses (milestone 2), the owner's bug as acceptance (milestone 3)
 
 produced by: just e14-store-accounts
-commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 120e64874756e73da22b9f55f10ad0e567536627
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 postgres: 18.6 (Debian 18.6-1.pgdg13+2)
 
@@ -12,7 +12,7 @@ test user_opens_a_declaration_of_each_kind_and_lowers_as_its_visibility ... ok
 test a_name_user_is_still_a_name ... ok
 test a_user_query_is_imported_and_read_on_a_user_page ... ok
 test a_user_querys_record_is_the_users_and_no_other_manifest_holds_it ... ok
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.33s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.22s
 test a_handler_that_captures_nothing_is_not_a_boundary_question ... ok
 test a_public_value_crosses_into_a_region_whose_scope_is_unstated ... ok
 test a_capture_with_no_nameable_type_is_its_own_verdict ... ok
@@ -25,19 +25,19 @@ test a_user_querys_record_is_its_users_and_no_public_manifest_holds_it ... ok
 test the_same_value_in_a_public_region_is_still_refused ... ok
 test a_record_a_sessions_and_a_users_query_both_produce_holds_both_scopes ... ok
 test the_resume_capture_verdicts_the_corpus_carries ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.87s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.60s
 test boundary::tests::a_resource_cannot_cross_either_boundary ... ok
 test boundary::tests::an_undetermined_schema_is_blocked_and_not_permitted ... ok
 test boundary::tests::a_resource_is_reported_as_a_resource_even_when_it_is_also_private ... ok
 test boundary::tests::a_scope_from_the_producer_counts_even_when_the_label_is_public ... ok
 test boundary::tests::an_unknown_destination_blocks_a_restricted_value_and_not_a_public_one ... ok
-test boundary::tests::disagreeing_producers_scopes_are_joined_and_refuse_what_either_alone_would ... ok
 test boundary::tests::public_flows_into_a_restricted_destination_at_both_boundaries ... ok
-test boundary::tests::remote_session_a_into_session_b_is_refused ... ok
+test boundary::tests::disagreeing_producers_scopes_are_joined_and_refuse_what_either_alone_would ... ok
+test boundary::tests::remote_session_a_into_session_a_is_allowed ... ok
 test boundary::tests::resume_session_a_into_public_is_refused ... ok
 test boundary::tests::resume_session_a_into_session_a_is_allowed ... ok
 test boundary::tests::the_label_and_the_producer_scope_are_joined_rather_than_chosen ... ok
-test boundary::tests::remote_session_a_into_session_a_is_allowed ... ok
+test boundary::tests::remote_session_a_into_session_b_is_refused ... ok
 test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 186 filtered out; finished in 0.00s
 
 == the corpus (corpus-check; R-064, A-034, R-065)
@@ -51,13 +51,13 @@ corpus-check: OK
 == the server, the store in memory (tests/store_accounts.rs, store.rs's joins, tests/sign_in.rs, tests/addresses.rs, places.rs)
 
 test places::tests::a_store_delivers_within_its_radius_and_not_past_it ... ok
-test places::tests::the_distance_is_the_great_circle_one ... ok
 test places::tests::travel_is_four_minutes_a_kilometre_rounded_up ... ok
+test places::tests::the_distance_is_the_great_circle_one ... ok
 test places::tests::each_place_is_one_and_in_the_bay_area ... ok
 test store::joins::a_guests_lines_are_summed_into_the_users_or_appended ... ok
 test store::joins::a_sum_past_a_bigint_is_refused_and_nothing_moves ... ok
-test tests::addresses::a_reader_keeps_at_most_ten_addresses ... ok
 test tests::addresses::a_readers_addresses_are_theirs_to_add_rename_remove_and_choose ... ok
+test tests::addresses::a_reader_keeps_at_most_ten_addresses ... ok
 test tests::a_sessions_own_change_reaches_no_other_session ... ok
 test tests::addresses::a_store_out_of_reach_says_so_and_refuses_the_add_and_the_order ... ok
 test tests::addresses::an_address_saved_reaches_the_users_other_sessions_and_no_one_elses ... ok
@@ -68,22 +68,22 @@ test tests::notifications::a_deleted_posts_notifications_go_with_it ... ok
 test tests::notifications::a_like_reaches_each_of_its_users_open_pages ... ok
 test tests::notifications::an_event_naming_a_user_drops_that_users_entries_alone ... ok
 test tests::notifications::another_users_session_sees_none_of_it ... ok
-test tests::notifications::on_postgres_a_like_a_reply_and_a_follow_each_tell_the_user_they_involve ... ok
 test tests::notifications::on_postgres_a_deleted_posts_notifications_go_with_it ... ok
 test tests::notifications::on_postgres_a_like_reaches_each_of_its_users_open_pages ... ok
+test tests::notifications::on_postgres_a_like_a_reply_and_a_follow_each_tell_the_user_they_involve ... ok
 test tests::notifications::on_postgres_an_event_naming_a_user_drops_that_users_entries_alone ... ok
 test tests::notifications::on_postgres_another_users_session_sees_none_of_it ... ok
 test tests::notifications::on_postgres_ones_own_act_notifies_no_one ... ok
-test tests::notifications::on_postgres_reading_them_reaches_each_of_the_readers_sessions ... ok
 test tests::notifications::ones_own_act_notifies_no_one ... ok
 test tests::notifications::on_postgres_reading_them_tells_no_other_users_page ... ok
-test tests::addresses::the_page_the_estimate_and_the_commands_read_one_rule ... ok
+test tests::notifications::on_postgres_reading_them_reaches_each_of_the_readers_sessions ... ok
 test tests::notifications::reading_them_reaches_each_of_the_readers_sessions ... ok
 test tests::notifications::reading_them_tells_no_other_users_page ... ok
 test tests::sign_in::a_callback_another_browser_started_is_refused ... ok
 test tests::sign_in::a_command_from_another_origin_is_refused ... ok
-test tests::sign_in::a_control_is_shown_where_its_commands_predicate_holds ... ok
 test tests::sign_in::a_documents_answers_are_its_own_for_its_life ... ok
+test tests::addresses::the_page_the_estimate_and_the_commands_read_one_rule ... ok
+test tests::sign_in::a_control_is_shown_where_its_commands_predicate_holds ... ok
 test tests::sign_in::a_fresh_sessions_cookie_is_http_only_and_unguessable ... ok
 test tests::sign_in::a_page_holds_its_announcer_from_the_first_byte ... ok
 test tests::sign_in::a_post_and_a_reply_are_their_signed_in_authors ... ok
@@ -97,11 +97,11 @@ test tests::sign_in::a_sign_in_rotates_the_session_and_the_old_one_is_no_one ...
 test tests::sign_in::a_signed_out_reader_reads_and_cannot_post ... ok
 test tests::sign_in::each_feed_operation_answers_its_requests_session_alone ... ok
 test tests::sign_in::nothing_the_feed_keeps_holds_a_session_cookie ... ok
-test tests::sign_in::on_postgres::a_delete_on_postgres_is_its_authors_alone ... ok
 test tests::sign_in::on_postgres::a_post_on_postgres_is_its_signed_in_authors ... ok
+test tests::sign_in::on_postgres::a_delete_on_postgres_is_its_authors_alone ... ok
 test tests::sign_in::on_postgres::each_feed_operation_answers_its_requests_session_alone_on_postgres ... ok
-test tests::sign_in::only_its_author_deletes_a_post ... ok
 test tests::sign_in::a_token_not_this_sign_ins_is_refused ... ok
+test tests::sign_in::only_its_author_deletes_a_post ... ok
 test tests::sign_in::signing_out_forgets_the_principal ... ok
 test tests::sign_in::on_postgres::nothing_kept_on_postgres_holds_a_session_cookie ... ok
 test tests::sign_in::the_guest_models_reader_is_its_sessions_guest ... ok
@@ -111,8 +111,8 @@ test tests::sign_in::two_users_pages_never_share_private_parts ... ok
 test tests::store_accounts::a_command_is_answered_for_the_reader_its_page_was_shown_to ... ok
 test tests::store_accounts::a_guests_cart_follows_them_in ... ok
 test tests::store_accounts::a_session_keyed_carts_change_reaches_no_other_session ... ok
-test tests::store_accounts::a_signed_in_sessions_cart_is_not_joined_to_the_next_user ... ok
 test tests::store_accounts::a_join_past_a_bigint_is_refused_and_the_sign_in_completes ... ok
+test tests::store_accounts::a_signed_in_sessions_cart_is_not_joined_to_the_next_user ... ok
 test tests::store_accounts::a_retry_of_a_press_that_committed_is_answered_from_what_was_kept ... ok
 test tests::store_accounts::a_shared_entry_still_reaches_every_reader ... ok
 test tests::store_accounts::nothing_a_session_keyed_store_keeps_holds_a_session_cookie ... ok
@@ -120,15 +120,15 @@ test tests::store_accounts::a_stale_press_is_refused_before_the_order_waits ... 
 test tests::store_accounts::a_users_cart_reaches_each_of_their_sessions_and_no_one_elses ... ok
 test tests::store_accounts::an_order_is_no_other_users_to_read ... ok
 test tests::store_accounts::two_users_carts_never_share_a_line ... ok
-test result: ok. 70 passed; 0 failed; 0 ignored; 0 measured; 978 filtered out; finished in 44.28s
+test result: ok. 70 passed; 0 failed; 0 ignored; 0 measured; 978 filtered out; finished in 32.48s
 
 == the server, the store on PostgreSQL (PW_STORE_TEST_LAYER=postgres)
 
 test store::joins::a_guests_lines_are_summed_into_the_users_or_appended ... ok
 test store::joins::a_sum_past_a_bigint_is_refused_and_nothing_moves ... ok
-test tests::addresses::an_address_saved_reaches_the_users_other_sessions_and_no_one_elses ... ok
 test tests::addresses::a_reader_keeps_at_most_ten_addresses ... ok
 test tests::addresses::a_readers_addresses_are_theirs_to_add_rename_remove_and_choose ... ok
+test tests::addresses::an_address_saved_reaches_the_users_other_sessions_and_no_one_elses ... ok
 test tests::addresses::a_store_out_of_reach_says_so_and_refuses_the_add_and_the_order ... ok
 test tests::addresses::the_places_are_the_fixed_tables ... ok
 test tests::store_accounts::a_command_is_answered_for_the_reader_its_page_was_shown_to ... ok
@@ -140,16 +140,16 @@ test tests::store_accounts::a_signed_in_sessions_cart_is_not_joined_to_the_next_
 test tests::store_accounts::a_retry_of_a_press_that_committed_is_answered_from_what_was_kept ... ok
 test tests::store_accounts::a_shared_entry_still_reaches_every_reader ... ok
 test tests::store_accounts::a_users_cart_reaches_each_of_their_sessions_and_no_one_elses ... ok
-test tests::store_accounts::nothing_a_session_keyed_store_keeps_holds_a_session_cookie ... ok
 test tests::store_accounts::a_stale_press_is_refused_before_the_order_waits ... ok
-test tests::addresses::the_page_the_estimate_and_the_commands_read_one_rule ... ok
+test tests::store_accounts::nothing_a_session_keyed_store_keeps_holds_a_session_cookie ... ok
 test tests::store_accounts::an_order_is_no_other_users_to_read ... ok
 test tests::store_accounts::two_users_carts_never_share_a_line ... ok
-test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 1027 filtered out; finished in 25.43s
+test tests::addresses::the_page_the_estimate_and_the_commands_read_one_rule ... ok
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 1027 filtered out; finished in 18.52s
 
 == the store's customer side in three engines (e2e/store-accounts.spec.mjs)
 
-  21 passed (57.0s)
+  21 passed (49.1s)
 
 == mutation controls (scripts/store_accounts_mutations.py)
 

@@ -1,8 +1,8 @@
 E9-V1..V6 - the ordinary value relations
 
 produced by: just e9-values
-commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 120e64874756e73da22b9f55f10ad0e567536627
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the gate tests (compiler/pw-core/tests/value_relations.rs)
@@ -27,29 +27,29 @@ test v2_a_callback_of_the_wrong_arity_is_a_different_function_type ... ok
 test v2_a_declared_function_is_a_value_of_its_function_type ... ok
 test v2_each_call_instantiates_afresh ... ok
 test v2_inside_a_generic_body_its_own_parameter_is_rigid ... ok
-test v2_an_unannotated_binding_of_a_generic_call_is_instantiated ... ok
 test v2_list_map_infers_its_result_from_the_callback ... ok
 test v2_one_type_parameter_is_one_type_across_arguments ... ok
+test v2_an_unannotated_binding_of_a_generic_call_is_instantiated ... ok
 test v2_renaming_a_type_parameter_changes_nothing ... ok
-test the_accepted_corpus_disagrees_nowhere_and_decides_a_floor ... ok
 test v2_the_architects_discriminator_identity_of_a_store_is_a_store ... ok
 test v3_a_privacy_qualifier_is_not_the_type_it_qualifies ... ok
-test v4_a_question_mark_returns_its_error_and_the_error_types_must_agree ... ok
+test v3_an_opaque_type_is_not_its_representation_in_either_direction ... ok
 test v3_an_ordinary_program_cannot_pass_one_modules_tag_where_anothers_is_required ... ok
+test v4_a_question_mark_returns_its_error_and_the_error_types_must_agree ... ok
 test v4_a_unit_body_discards_its_last_value ... ok
 test v4_each_match_arm_is_a_result ... ok
-test v3_an_opaque_type_is_not_its_representation_in_either_direction ... ok
-test v4_every_branch_and_every_return_is_a_result ... ok
 test v4_the_reopening_case_wrong_return_is_refused ... ok
+test v4_every_branch_and_every_return_is_a_result ... ok
+test v4_the_success_value_of_a_question_mark_is_what_flows_on ... ok
 test v5_a_type_from_a_missing_import_is_the_imports_diagnostic_not_a_second_one ... ok
 test v5_a_declared_constructor_is_applied_to_exactly_its_parameters ... ok
+test the_accepted_corpus_disagrees_nowhere_and_decides_a_floor ... ok
 test v5_a_written_type_that_names_nothing_is_reported_once ... ok
-test v4_the_success_value_of_a_question_mark_is_what_flows_on ... ok
 test v5_no_relation_runs_on_an_unresolved_type ... ok
-test v6_a_phantom_parameter_distinguishes_values_with_one_layout ... ok
 test v6_two_opaque_types_with_one_representation_are_two_types ... ok
+test v6_a_phantom_parameter_distinguishes_values_with_one_layout ... ok
 test the_store_program_is_decided_not_merely_silent ... ok
-test result: ok. 42 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.58s
+test result: ok. 42 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.59s
 
 == what was decided: the store program
 

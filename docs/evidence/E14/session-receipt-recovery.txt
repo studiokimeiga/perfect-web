@@ -1,9 +1,9 @@
 ADR0389 - persisted receipt validation and authoritative recovery
 produced by: just e14-session-receipt-recovery
-commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 120e64874756e73da22b9f55f10ad0e567536627
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
-campaign: docs/evidence/E14/session-receipt-recovery.Xzgilq/campaign/report.json
+campaign: docs/evidence/E14/session-receipt-recovery.G7qTGt/campaign/report.json
 test_a_kill_requires_every_native_binary_complete_and_valid (scripts.tests.test_session_receipt_recovery_mutations.ReceiptRecoveryProducer.test_a_kill_requires_every_native_binary_complete_and_valid) ... ok
 test_actual_child_completion_and_timeout_retain_raw_logs_and_reap_receipts (scripts.tests.test_session_receipt_recovery_mutations.ReceiptRecoveryProducer.test_actual_child_completion_and_timeout_retain_raw_logs_and_reap_receipts) ... ok
 test_actual_sigterm_before_launch_during_restore_and_final_report_is_invalid (scripts.tests.test_session_receipt_recovery_mutations.ReceiptRecoveryProducer.test_actual_sigterm_before_launch_during_restore_and_final_report_is_invalid) ... ok
@@ -43,7 +43,7 @@ test_source_inventory_refuses_missing_duplicate_and_macro_tests (scripts.tests.t
 test_survivor_or_invalid_native_run_is_never_credited (scripts.tests.test_session_receipt_recovery_mutations.ReceiptRecoveryProducer.test_survivor_or_invalid_native_run_is_never_credited) ... ok
 
 ----------------------------------------------------------------------
-Ran 27 tests in 0.606s
+Ran 27 tests in 0.572s
 
 OK
 legacy-decoder-composite: KILLED

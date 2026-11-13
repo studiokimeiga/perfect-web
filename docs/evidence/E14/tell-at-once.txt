@@ -1,8 +1,8 @@
 ADR-0297 - a commit tells the pages that ask, and tells them at once
 
 produced by: just e14-tell-at-once
-commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 120e64874756e73da22b9f55f10ad0e567536627
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the development server (readers told at once; a document passed by, told as its page asks)
@@ -11,7 +11,7 @@ test tests::a_document_no_page_asks_for_is_told_when_one_asks ... ok
 test tests::a_reader_is_told_while_another_readers_telling_takes_its_time ... ok
 test tests::a_telling_that_panics_does_not_silence_the_reader ... ok
 test tests::a_burst_of_posts_tells_another_reader_once ... ok
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 1044 filtered out; finished in 3.50s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 1044 filtered out; finished in 2.20s
 
 == mutation controls (scripts/tell_at_once_mutations.py)
 

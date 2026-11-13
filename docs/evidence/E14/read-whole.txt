@@ -1,8 +1,8 @@
 ADR-0237 - what lowering parses, it reports
 
 produced by: just e14-read-whole
-commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 120e64874756e73da22b9f55f10ad0e567536627
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the checker (compiler/pw-core/tests/read_whole.rs)
@@ -11,9 +11,9 @@ test a_standalone_parses_error_is_reported_once_and_names_its_end ... ok
 test an_interfaces_clause_is_read_whole ... ok
 test a_block_markers_expression_is_one_expression ... ok
 test a_hole_is_one_expression ... ok
-test a_clauses_values_are_separated_by_commas ... ok
 test an_optimistic_clause_is_read_whole ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.29s
+test a_clauses_values_are_separated_by_commas ... ok
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.32s
 
 == the parser (compiler/pw-syntax/src/grammar.rs)
 
@@ -29,7 +29,7 @@ accepted: 44/44 charter §16 categories covered
 rejected: 97 files
 rejected: 97/97 charter §16 categories covered
 corpus-check: OK
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 197.58s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 134.54s
 
 == mutation controls (scripts/read_whole_mutations.py)
 
