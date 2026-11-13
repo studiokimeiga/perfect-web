@@ -2,6 +2,25 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**Train-33, 2026-11-12:** on train-32. A planned row that is one element is
+its own anchor (ADR-0438): where the packaging reads a planned list's row as
+one element a parser keeps whole, it says so in the build's template IR, and
+the host and the device write the row's key on its element (`data-pw-row`)
+where they wrote two comments; a row a plan makes is its element cloned
+alone, its key under the runtime's symbol. The large list's thousand rows are
+a thousand nodes, not three thousand. The first "create 1,000 rows", cold:
+8.80 ms of JavaScript, Svelte's 9.11 (train-32's 9.78). The builds visited in
+turn, eleven rounds a cell: every press of a visit quicker in sum past its
+spread (Firefox −21.0 ms cold and −6.0 warm, Chromium −6.0 cold and −4.4 warm
+in 21 rounds, Slow 4G −16.7 cold and −28.2 warm); Firefox's warm update
+(+4.0) and Chromium's warm clear (+2.6) and
+select (+0.5) slower to their frames with no more work of their own, none
+slower with each click at a point of the frame interval drawn for its round,
+recorded (ADR-0438). NEXT's check: the global limit 51.5 MB against 48.8,
+the cold append's first mark-compact still inside it. TodoMVC and a server's
+runtime are sent the bytes they were; the large list's page is 472 B heavier
+with Brotli.
+
 **Train-32, 2026-11-12:** on train-31. A planned list's rows are kept and made
 by its page's own code (ADR-0437, ADR-0434's first step): the packaging writes
 each such list's key, hold and making, and a walk to its holes that the

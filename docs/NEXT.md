@@ -6,6 +6,52 @@
 
 # Next
 
+## After train-33, 2026-11-12
+
+A planned row that is one element is its own anchor (ADR-0438): where the
+packaging reads a planned list's row as one element a parser keeps whole, it
+says so in the build's template IR, and the host and the device write the
+row's key on its element; a row a plan makes is its element cloned alone, its
+key under the runtime's symbol. The large list's thousand rows are a thousand
+nodes, not three thousand. The builds visited in turn have every press of a
+visit quicker in sum past its spread (Firefox −21.0 ms cold and −6.0 warm,
+Chromium −6.0 cold and −4.4 warm in 21 rounds, Slow 4G −16.7 cold and −28.2
+warm), and three presses slower to their frames where their own work is not
+(recorded, ADR-0438, Consequences).
+TodoMVC and a server's runtime are sent the bytes they were. What is left,
+each measured, none decided:
+
+1. **A row written with a space beside its element keeps its comments**:
+   the compiler writes a `<ul>`'s or an `<ol>`'s rows as ` <li>…</li> `,
+   three nodes, and the packaging refuses them by name (`it holds text
+   beside its element`), as every list of the rows fixture but its tables'.
+   TodoMVC's rows are no plan's (each holds an `{#if}`). Whether the
+   compiler may leave out what it writes between elements where HTML
+   renders none is the compiler's, a decision of its own.
+2. **The cold append's mark-compact, still inside the press** (item 2
+   after train-32, below): the global allocation limit at the last scavenge
+   before it is 51.5 MB against train-32's 48.8, and its marking and
+   finalizing 4.1 ms of the press in both. What is left to move it is
+   ADR-0437's other remedy, a scavenge fewer before the append (2 to 4 MB
+   less garbage, most of it the general renderer's block generators and
+   maps, ADR-0434's later steps; about 3 MB is the harness's own).
+3. **A time to the frame carries the frame's wait**: in the sequenced visit,
+   Firefox's warm update (+4.0 ms) and Chromium's warm clear (+2.3) and
+   select (+0.6) are slower to their frames with no more work of their own,
+   and none is slower with each click at a point of the frame interval
+   drawn for its round (`t33/press_random.mjs`). The record times each
+   press to the frame after it, begun where the press before it left the
+   frame interval (item 3 after trains 27 and 28). Whether the record also
+   times each press's own work (its script, its style and layout, its
+   paint) is the record's, a decision of its own.
+4. **Bytes**: the large list's page alone is 472 B heavier with Brotli
+   (+1,209 decoded), 346 B of it decoded the browser's writing of a row its
+   own anchor (`rowOwn`). One writer of every keyed row would make a
+   server's runtime 89 B lighter and move every build's names (ADR-0438,
+   why not), a step of its own. The byte rows are ADR-0434's later steps'.
+5. **The earlier items after train-32**, below: its first done here; the
+   swap and remove (its item 4).
+
 ## After train-32, 2026-11-12
 
 A planned list's rows are kept and made by its page's own code (ADR-0437),
@@ -17,16 +63,18 @@ and under Slow 4G (create −15.2 cold, append −44.6 warm), and every press of
 warm visit −7.9 in Chromium. Its cold append is slower, and recorded
 (ADR-0437, Consequences). What is left, each measured, none decided:
 
-1. **Two comments a row** (item 4 after trains 27 and 28): the next step of
-   ADR-0434's rows, two of every three nodes a thousand rows insert, and
-   Firefox's layout of them, where its cold create, append and replace are
-   behind Svelte's. It is also the first remedy for item 2. **Its check**, as
-   ADR-0437's result measured it: in a trace of the head-to-head's own cold
-   visit (`v8`, `disabled-by-default-v8.gc`), the global allocation limit at
-   the last scavenge before the append (`V8.GCTraceGCNVP`'s
+1. **Done (train-33, ADR-0438): two comments a row** (item 4 after trains
+   27 and 28): the next step of ADR-0434's rows, two of every three nodes a
+   thousand rows insert, and Firefox's layout of them, where its cold
+   create, append and replace are behind Svelte's. It is also the first
+   remedy for item 2. **Its check**, as ADR-0437's result measured it: in a
+   trace of the head-to-head's own cold visit (`v8`,
+   `disabled-by-default-v8.gc`), the global allocation limit at the last
+   scavenge before the append (`V8.GCTraceGCNVP`'s
    `global_allocation_limit`), and where the first mark-compact falls
    (`V8.GCIncrementalMarkingStart`, its `gc_reason` and time against the
-   append's click).
+   append's click). Measured with train-33: the limit 51.5 MB against 48.8,
+   and the first mark-compact still inside the append in every round.
 2. **A cold append, slower to its frame**: +6.4 ms in Chromium (3.5..8.6) on
    a quiet machine, +4.9 (1.6..7.4) with the final code under load, accepted
    and recorded (ADR-0437, Consequences). This build keeps less (a row
