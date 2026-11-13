@@ -387,6 +387,18 @@ test("a list inside a case's arm is kept by the general code, and shows what its
   expect(page.errors).toEqual([]);
 });
 
+test("a row of a list the general code keeps, changed and moved, shows its new text where it now is", async ({ page }) => {
+  // The case's arm's list, rendered once on the device by the press that
+  // changes the name its arm binds: a press that renames a row and reverses
+  // the list is the general placing's (ADR-0439), the row both moved and set.
+  await open(page, "/events");
+  await page.click("#next-maybe");
+  await expect(page.locator("#matched .mname")).toHaveText(["one 2", "two 2"]);
+  await page.click("#reverse-rename");
+  await expect(page.locator("#matched .mname")).toHaveText(["two 2", "renamed 2"]);
+  expect(page.errors).toEqual([]);
+});
+
 test("a list the general code keeps leaves a row where it was where what it shows and computes is the same", async ({ page }) => {
   // The case's arm's list again (ADR-0437): each row's class is what it
   // computes from the page's `picked`, and its button has two handlers, one
