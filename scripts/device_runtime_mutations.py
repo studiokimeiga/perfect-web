@@ -274,9 +274,13 @@ MUTANTS = [
     ("an element's handlers are a hole each", "rows", RUNTIME,
      '      while (p.body[i + 1]?.value?.part === "event" && p.body[i + 1].value.owner === c.value.owner) run.push(p.body[++i].value);\n',
      ""),
+    # The packaging puts a page's own code in this call's one place
+    # (ADR-0437) and refuses a runtime without it, a mutant that does not
+    # build: the call stays, and what it makes is dropped, so the row is
+    # written with no text by either code.
     ("a planned row's text is never written", "rows", RUNTIME,
      "      : (row) => (row.text ??= rowText(row.of, { ...row.env, computedValues: null }, row.others, row.key)),\n",
-     '      : (row) => (row.text ??= ""),\n'),
+     '      : (row) => (row.text ??= (rowText(row.of, { ...row.env, computedValues: null }, row.others, row.key), "")),\n'),
     ("an attribute that needs reading back is set as written", "rows", RUNTIME,
      "  return value === null ? undefined : value === raw[1] ? raw : [raw[0], value];\n",
      "  return value === null ? undefined : raw;\n"),
