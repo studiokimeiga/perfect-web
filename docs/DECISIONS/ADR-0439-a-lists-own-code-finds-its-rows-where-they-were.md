@@ -327,13 +327,33 @@ scratchpad, its tools and logs.
   items its own code's, a third the general code's) walked by 80 seeded
   presses, each row the element it was; two new rows put in apart by one
   press (`order-spread`), each where the list says in every list, the
-  general code's among them; each press found by the own code
+  general code's among them; a row of the general code's list (the case's
+  arm's) renamed and moved by one press; each press found by the own code
   (`window.__pw.found`); each moving the fewest rows; the list made short,
   each press placed among the few out of their places (`window.__pw.few`);
   the large list's swap moving two, placed so; a moved row holding focus
   keeping it; the general placing's log said alike. The controls, run whole,
-  three slots each (`t34/evidence.sh`, `t34/evidence.txt`):
-  CONTROLS
+  three slots each (`t34/evidence2.sh`, `t34/evidence2.txt`):
+  `own_rows_mutations.py` 127 of 127 and `device_runtime_mutations.py` 225
+  of 225 at `b900d03f` (`just e14-device-runtime`), and
+  `browser_renderer_mutations.py` 100 of 100, `runtime_size_mutations.py` 2
+  of 2, `decision_in_js_mutations.py` 6 of 6 and `refusal_codes_mutations.py`
+  3 of 3 at `c7bf0004` (`e14-browser-renderer`, `e14-runtime-size`,
+  `e14-decision-in-js`, `e14-refusal-codes`, whose suites run gate item 7b),
+  each of the 5,860 mutants' anchors matching once. What the whole runs
+  found, each mended before the run recorded: the device runtime's controls
+  had no host in a new slot (their browser suite serves with one and builds
+  none: each slot's is built first); gate item 7b past its bound
+  (decision 6); two controls of the general placing alive, a new row among
+  others put at the list's end and a row changed and moved left as it was,
+  as no press made either in a list of the general code's once the
+  fixture's other lists were their own (`order-spread`, and the case's
+  arm's list renamed and moved, now do); and of the own code's, one that
+  did not build (an `if` deleted from its `else`) and two that change
+  nothing a list can reach, the end trim's guard against a new row and
+  `fewMoved`'s sort (`t34/equivalence.mjs`: 181,252 lists out of order, none
+  trimmed otherwise; 2,000,000 lists of a few rows out of their places,
+  each answer in order before the sort), no longer listed and said so.
   Fallow's new-only audit against master passes, the ceilings of the
   functions this step raised or added at their scores plus one.
 
