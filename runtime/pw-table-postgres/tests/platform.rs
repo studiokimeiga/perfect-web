@@ -861,6 +861,78 @@ fn the_outboxs_delivered_rows_are_forgotten() {
     );
 }
 
+/// **A row any statement deletes from the outbox moves the trim watermark**
+/// (ADR-0440's landing): a host reading the shared log behind it sees the
+/// gap and reloads, whoever deleted the row, a host built before platform
+/// migration 0003 (which forgets what it delivers at once, and trims, and
+/// keeps no watermark) or an operator's statement. The watermark only rises.
+#[test]
+fn any_deletion_from_the_outbox_moves_the_trim_watermark() {
+    let Some(url) = database() else { return };
+    let scratch = Scratch::new(&url, "outbox_deleted");
+    let tables = open_things(&scratch);
+    let event = |name: &str| Outboxed {
+        kind: OutboxKind::Event,
+        name: name.into(),
+        values: vec![],
+    };
+    let mut ids = Vec::new();
+    for name in ["a", "b", "c"] {
+        let mut tx = tables.begin().assert_ok("a command");
+        tx.write(&owner("insert"), &[owner_row(name)])
+            .assert_ok("written");
+        let committed = tx
+            .prepare()
+            .assert_ok("prepared")
+            .publish_with(Records {
+                interaction: None,
+                outbox: &[event(name)],
+            })
+            .assert_ok("committed");
+        ids.extend(committed.outbox.iter().map(|(id, _)| *id));
+    }
+    assert_eq!(ids.len(), 3);
+    let through = || scratch.texts("SELECT through::text FROM pw_outbox_trimmed");
+    // As a host before 0003 delivers: its own row, by its id.
+    scratch
+        .sql(&format!("DELETE FROM pw_outbox WHERE id = {}", ids[1]))
+        .assert_ok("delivered and deleted");
+    assert_eq!(through(), [ids[1].to_string()]);
+    // Nothing deleted moves it not at all, and an earlier row never back.
+    scratch
+        .sql("DELETE FROM pw_outbox WHERE false")
+        .assert_ok("nothing deleted");
+    scratch
+        .sql(&format!("DELETE FROM pw_outbox WHERE id = {}", ids[0]))
+        .assert_ok("an earlier row deleted");
+    assert_eq!(through(), [ids[1].to_string()]);
+    // As a host before 0003 trims: what is older than its age.
+    scratch
+        .sql("UPDATE pw_outbox SET created = created - interval '2 minutes'")
+        .assert_ok("aged");
+    scratch
+        .sql("DELETE FROM pw_outbox WHERE created < now() - interval '60 seconds'")
+        .assert_ok("trimmed by age");
+    assert_eq!(scratch.texts("SELECT count(*)::text FROM pw_outbox"), ["0"]);
+    assert_eq!(through(), [ids[2].to_string()]);
+    // An operator's TRUNCATE takes every row the outbox has numbered.
+    let mut tx = tables.begin().assert_ok("a command");
+    tx.write(&owner("insert"), &[owner_row("d")])
+        .assert_ok("written");
+    let last = tx
+        .prepare()
+        .assert_ok("prepared")
+        .publish_with(Records {
+            interaction: None,
+            outbox: &[event("d")],
+        })
+        .assert_ok("committed")
+        .outbox[0]
+        .0;
+    scratch.sql("TRUNCATE pw_outbox").assert_ok("truncated");
+    assert_eq!(through(), [last.to_string()]);
+}
+
 /// **A render's reads end at a read that fails**: the snapshot's
 /// transaction ended with it, and a later read of the render fails rather
 /// than open another transaction, which would read a later state.

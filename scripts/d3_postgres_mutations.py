@@ -285,6 +285,14 @@ MUTANTS = [
     ('postgres operation accounting counts a transaction boundary as data', POOL,
      '        if !matches!(\n            sql,\n',
      '        if true || !matches!(\n            sql,\n'),
+    # The outbox's removals marked (platform 0004, ADR-0440's landing): any
+    # statement that takes rows out of the outbox moves the trim watermark.
+    ("a deletion from the outbox moves no trim watermark", MIGRATE,
+     "                SET through = greatest(through, (SELECT max(id) FROM gone))\n",
+     "                SET through = through\n"),
+    ("a truncation of the outbox moves no trim watermark", MIGRATE,
+     "                SET through = greatest(through, (SELECT last_value FROM {s}.pw_outbox_id_seq));\n",
+     "                SET through = through;\n"),
 ]
 
 # Each test binary apart: names can repeat between binaries, and the native

@@ -535,7 +535,8 @@ fn the_guestbook_outlives_its_host_killed_or_stopped() {
         [
             "0001_platform",
             "0002_runs_and_sessions",
-            "0003_shared_outbox"
+            "0003_shared_outbox",
+            "0004_outbox_removals_marked"
         ]
     );
     other.stop();

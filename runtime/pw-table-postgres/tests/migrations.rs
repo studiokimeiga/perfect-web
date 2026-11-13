@@ -65,7 +65,8 @@ fn a_database_holding_nothing_is_made_from_tables_json_and_recorded() {
         [
             "0001_platform",
             "0002_runs_and_sessions",
-            "0003_shared_outbox"
+            "0003_shared_outbox",
+            "0004_outbox_removals_marked"
         ]
     );
     // The tables, their keys, checks, indexes and references, as the
@@ -139,7 +140,7 @@ fn a_schema_is_applied_once_whoever_opens_it_and_whenever() {
     let again = open(&scratch, manifest).assert_ok("opened again");
     drop(again);
     assert_eq!(scratch.texts("SELECT hash FROM pw_schema").len(), 1);
-    assert_eq!(scratch.texts("SELECT version FROM pw_platform").len(), 3);
+    assert_eq!(scratch.texts("SELECT version FROM pw_platform").len(), 4);
 }
 
 /// **An additive change is made**, from any schema: a table, an `Option`

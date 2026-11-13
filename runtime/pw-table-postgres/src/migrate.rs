@@ -33,8 +33,13 @@ use crate::{Error, database};
 /// the applied schema, the outbox (ADR-0208, a log in commit order as
 /// ADR-0369 keeps it), the interactions' records (ADR-0325), and the
 /// function a `String`'s check counts its code points with; then the runs,
-/// the sessions and the sign-ins (`0002`, track `durable-tables`). `{s}` is
-/// the adapter's schema.
+/// the sessions and the sign-ins (`0002`, track `durable-tables`); the shared
+/// outbox's trim watermark and the hosts' instances (`0003`, ADR-0440); and
+/// the watermark moved by every statement that takes rows out of the outbox,
+/// a deletion or a truncation, whoever runs it (`0004`, ADR-0440's landing: a
+/// host built before 0003 deletes what it delivers and moves no watermark,
+/// so a host reading the shared log behind it would miss those rows unseen).
+/// `{s}` is the adapter's schema.
 const PLATFORM: &[(&str, &str)] = &[
     (
         "0001_platform",
@@ -112,6 +117,27 @@ const PLATFORM: &[(&str, &str)] = &[
      );
      INSERT INTO {s}.pw_outbox_trimmed (through) VALUES (0);
      CREATE SEQUENCE {s}.pw_host_instances AS bigint;",
+    ),
+    (
+        "0004_outbox_removals_marked",
+        "CREATE FUNCTION {s}.pw_outbox_deleted() RETURNS trigger LANGUAGE plpgsql AS $body$
+         BEGIN
+             UPDATE {s}.pw_outbox_trimmed
+                SET through = greatest(through, (SELECT max(id) FROM gone))
+              WHERE EXISTS (SELECT 1 FROM gone);
+             RETURN NULL;
+         END $body$;
+     CREATE TRIGGER pw_outbox_deleted AFTER DELETE ON {s}.pw_outbox
+         REFERENCING OLD TABLE AS gone
+         FOR EACH STATEMENT EXECUTE FUNCTION {s}.pw_outbox_deleted();
+     CREATE FUNCTION {s}.pw_outbox_truncated() RETURNS trigger LANGUAGE plpgsql AS $body$
+         BEGIN
+             UPDATE {s}.pw_outbox_trimmed
+                SET through = greatest(through, (SELECT last_value FROM {s}.pw_outbox_id_seq));
+             RETURN NULL;
+         END $body$;
+     CREATE TRIGGER pw_outbox_truncated AFTER TRUNCATE ON {s}.pw_outbox
+         FOR EACH STATEMENT EXECUTE FUNCTION {s}.pw_outbox_truncated();",
     ),
 ];
 
@@ -1080,7 +1106,7 @@ source UpgradeData
                 .query_one("SELECT count(*) FROM pw_platform", &[])
                 .unwrap()
                 .get::<_, i64>(0),
-            3
+            4
         );
         assert_eq!(
             client
