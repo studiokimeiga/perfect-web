@@ -516,7 +516,14 @@ fn the_trusted_platform_contract_is_hashed() {
     // writer's handle, beside `context.account_of`'s `Account` record and
     // host operation; the union of the two tracks' declarations, which
     // neither track's own hash describes.
-    const EXPECTED: u64 = 0x5d3bef91cc969de0;
+    // 2026-11-13 (L3, ADR-0440): `context` declares `previous_user()`
+    // (`pw:host/principal#previous`), the checked identity lifecycle's
+    // previous guest: `None` outside that one invocation, and never made
+    // from a browser's arguments; what an `invoked_by Identity` command reads
+    // to join a guest's rows to the account it became. L3's branch declared
+    // it on 2026-11-04 without moving this hash, which no run of its own
+    // checked.
+    const EXPECTED: u64 = 0xe1990ef66033d8f8;
     eprintln!(
         "  platform contract: {} files, hash {hash:#018x}",
         names.len()
