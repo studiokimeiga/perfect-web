@@ -1,8 +1,8 @@
 ADR-0166 - the store and its items say what they are
 
 produced by: just e14-descriptions
-commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 120e64874756e73da22b9f55f10ad0e567536627
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 playwright: Version 1.58.0
 
@@ -15,7 +15,7 @@ test a_field_under_neither_name_is_refused_by_both ... ok
 test a_field_written_as_the_program_names_it_is_read ... ok
 test an_answer_as_the_type_declares_it_is_passed_as_it_is ... ok
 test a_list_s_rows_and_a_declared_error_are_read_through_their_types ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
 
 == the store checks
 
@@ -24,11 +24,11 @@ pw check: 74 file(s), no diagnostics
 == the development server (pw-dev-server), the benchmark's store among its tests
 
 test tests::the_store_and_each_item_say_what_they_are ... ok
-test result: ok. 1039 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 645.50s
+test result: ok. 1039 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 632.10s
 
 == the slots, three engines, WebKit painting the store before them (e2e/slots.spec.mjs)
 
-  21 passed (44.7s)
+  21 passed (44.4s)
 
 == mutation controls (scripts/descriptions_mutations.py)
 

@@ -1,8 +1,8 @@
 ADR-0322 - | and & are parenthesized where they mix
 
 produced by: just e14-logical-mixed
-commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 120e64874756e73da22b9f55f10ad0e567536627
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the parser's rule (compiler/pw-syntax/src/grammar.rs)
@@ -16,101 +16,101 @@ test fmt::tests::a_policys_value_continues_one_level_in ... ok
 test fmt::tests::a_prefix_operator_hugs_a_parenthesised_operand ... ok
 test fmt::tests::a_template_region_is_copied_verbatim ... ok
 test fmt::tests::a_prefix_operator_hugs_an_operand_at_any_depth ... ok
-test fmt::tests::a_policys_value_keeps_its_gaps_as_written ... ok
 test fmt::tests::formatting_a_broken_file_still_produces_output ... ok
-test fmt::tests::an_else_branch_lines_up_with_its_if_branch ... ok
+test fmt::tests::a_policys_value_keeps_its_gaps_as_written ... ok
 test fmt::tests::calls_and_types_are_spaced_canonically ... ok
-test fmt::tests::formatting_preserves_every_comment ... ok
+test fmt::tests::an_else_branch_lines_up_with_its_if_branch ... ok
 test fmt::tests::formatting_is_idempotent ... ok
-test fmt::tests::indentation_is_four_spaces_and_braces_line_up ... ok
-test fmt::tests::formatting_preserves_every_significant_token ... ok
 test fmt::tests::runs_of_blank_lines_collapse_to_one ... ok
-test fmt::tests::trailing_whitespace_is_removed ... ok
+test fmt::tests::formatting_preserves_every_comment ... ok
+test fmt::tests::indentation_is_four_spaces_and_braces_line_up ... ok
 test fmt::tests::the_comment_check_can_fail ... ok
+test fmt::tests::trailing_whitespace_is_removed ... ok
+test fmt::tests::formatting_preserves_every_significant_token ... ok
 test grammar::tests::a_component_tag_keeps_its_qualified_name ... ok
 test grammar::tests::a_function_with_a_body_produces_expression_nodes ... ok
 test grammar::tests::a_block_left_open_ends_with_its_element ... ok
 test grammar::tests::a_discard_is_neither_mutable_nor_a_use ... ok
 test grammar::tests::a_lambda_inside_a_call_is_parsed_as_a_lambda ... ok
-test grammar::tests::a_lambdas_parameters_may_be_a_parenthesised_list ... ok
 test grammar::tests::a_multi_line_string_is_a_single_token ... ok
-test grammar::tests::a_property_transition_is_a_named_field_holding_a_chain ... ok
+test grammar::tests::a_lambdas_parameters_may_be_a_parenthesised_list ... ok
 test grammar::tests::a_let_may_discard_its_value ... ok
-test grammar::tests::a_nested_fn_is_a_declaration_not_a_lambda ... ok
 test grammar::tests::a_qualified_keyword_statement_owns_its_block ... ok
+test grammar::tests::a_nested_fn_is_a_declaration_not_a_lambda ... ok
+test grammar::tests::a_property_transition_is_a_named_field_holding_a_chain ... ok
 test grammar::tests::a_self_closing_element_has_no_children ... ok
 test grammar::tests::a_return_in_an_arm_keeps_the_value_on_its_line ... ok
 test grammar::tests::a_query_body_may_begin_with_an_operand ... ok
-test grammar::tests::a_slash_slash_in_markup_text_is_text ... ok
-test grammar::tests::a_template_region_balances_over_block_markers ... ok
 test grammar::tests::a_table_declaration_reads_each_clause ... ok
-test grammar::tests::a_tables_words_are_still_names_in_a_policy_block ... ok
-test grammar::tests::a_user_declaration_after_one_with_no_body_is_its_own ... ok
-test grammar::tests::a_value_with_no_comma_before_it_is_reported_and_read ... ok
 test grammar::tests::a_statement_keyword_cannot_name_a_value ... ok
+test grammar::tests::a_template_region_balances_over_block_markers ... ok
+test grammar::tests::a_slash_slash_in_markup_text_is_text ... ok
+test grammar::tests::a_value_with_no_comma_before_it_is_reported_and_read ... ok
+test grammar::tests::a_user_declaration_after_one_with_no_body_is_its_own ... ok
+test grammar::tests::a_tables_words_are_still_names_in_a_policy_block ... ok
 test grammar::tests::an_arm_without_an_arrow_is_reported ... ok
-test grammar::tests::an_arrow_lambda_s_parameters_may_be_typed ... ok
 test grammar::tests::a_visibility_keyword_belongs_to_the_declaration_it_precedes ... ok
 test grammar::tests::an_each_head_is_its_list_its_name_and_its_key ... ok
+test grammar::tests::an_arrow_lambda_s_parameters_may_be_typed ... ok
 test grammar::tests::an_event_s_modifiers_are_part_of_its_attribute ... ok
-test grammar::tests::an_opaque_type_states_its_invariant_after_its_representation ... ok
 test grammar::tests::an_html_comment_in_markup_is_a_comment ... ok
+test grammar::tests::an_opaque_type_states_its_invariant_after_its_representation ... ok
+test grammar::tests::an_optimistic_clause_has_an_arm_for_each_entry ... ok
 test grammar::tests::an_unclosed_element_still_produces_a_well_formed_tree ... ok
 test grammar::tests::an_optimistic_clause_without_its_arrow_reads_its_transition ... ok
-test grammar::tests::compound_comparisons_are_one_operator ... ok
-test grammar::tests::an_optimistic_clause_has_an_arm_for_each_entry ... ok
 test grammar::tests::attributes_keep_their_names_and_values_apart ... ok
+test grammar::tests::compound_comparisons_are_one_operator ... ok
 test grammar::tests::declarations_still_parse_as_they_did ... ok
 test grammar::tests::doubled_logical_operators_name_the_pleris_spelling ... ok
 test grammar::tests::field_access_chains_left_to_right ... ok
 test grammar::tests::markup_nests_elements_rather_than_listing_them ... ok
 test grammar::tests::malformed_input_never_panics_and_stays_lossless ... ok
-test grammar::tests::an_unquoted_attribute_value_is_read_as_html_reads_it ... ok
 test grammar::tests::markup_on_the_next_line_is_not_a_comparison ... ok
-test grammar::tests::match_arms_and_patterns_are_structured ... ok
+test grammar::tests::an_unquoted_attribute_value_is_read_as_html_reads_it ... ok
 test grammar::tests::operator_precedence_is_real_not_approximated ... ok
-test grammar::tests::recovery_reports_more_than_one_error_and_keeps_later_declarations ... ok
-test grammar::tests::the_grammar_can_accept_and_reject ... ok
-test grammar::tests::return_is_a_statement_not_an_operand ... ok
+test grammar::tests::match_arms_and_patterns_are_structured ... ok
 test grammar::tests::markup_written_on_one_line_after_a_root_is_one_region ... ok
-test grammar::tests::unclosed_brackets_are_reported_not_swallowed ... ok
+test grammar::tests::the_grammar_can_accept_and_reject ... ok
+test grammar::tests::recovery_reports_more_than_one_error_and_keeps_later_declarations ... ok
+test grammar::tests::return_is_a_statement_not_an_operand ... ok
 test grammar::tests::what_a_standalone_parse_leaves_is_one_error_over_it ... ok
+test grammar::tests::unclosed_brackets_are_reported_not_swallowed ... ok
+test grammar::tests::or_and_and_mixed_without_parentheses_is_refused ... ok
 test kind::tests::an_unknown_tag_fails_loudly_rather_than_guessing - should panic ... ok
-test kind::tests::the_kind_table_has_no_duplicate_tags ... ok
 test kind::tests::every_kind_round_trips_through_the_raw_tag ... ok
+test kind::tests::the_kind_table_has_no_duplicate_tags ... ok
 test kind::tests::the_table_covers_every_lexer_token_kind ... ok
 test kind::tests::tokens_and_nodes_occupy_separate_blocks ... ok
 test lexer::tests::a_digit_separator_stands_between_two_digits ... ok
-test lexer::tests::doc_attrs_are_lexed_apart_from_ordinary_comments ... ok
 test lexer::tests::durations_are_not_floats ... ok
+test lexer::tests::doc_attrs_are_lexed_apart_from_ordinary_comments ... ok
 test lexer::tests::lex_covers_every_byte ... ok
-test grammar::tests::or_and_and_mixed_without_parentheses_is_refused ... ok
 test lexer::tests::multibyte_characters_do_not_split_spans ... ok
 test lexer::tests::round_trips_on_awkward_input ... ok
 test lexer::tests::the_pipeline_operator_is_one_token ... ok
 test lexer::tests::underscore_is_distinct_from_an_identifier ... ok
-test grammar::tests::two_statements_on_one_line_are_separated ... ok
 test lexer::tests::unterminated_string_is_a_token_not_a_panic ... ok
-test strings::tests::a_hole_is_its_source_and_where_it_starts ... ok
 test strings::tests::a_string_with_a_hole_has_no_single_value ... ok
 test strings::tests::a_triple_quoted_string_is_raw ... ok
+test strings::tests::a_hole_is_its_source_and_where_it_starts ... ok
 test strings::tests::an_escape_the_language_does_not_define_is_an_error ... ok
-test strings::tests::an_unmatched_brace_is_text_and_an_empty_hole_is_an_error ... ok
 test strings::tests::an_escaped_brace_opens_no_hole ... ok
+test strings::tests::an_unmatched_brace_is_text_and_an_empty_hole_is_an_error ... ok
 test strings::tests::each_escape_is_its_character ... ok
 test tree::tests::nesting_a_node_does_not_change_the_text ... ok
-test tree::tests::the_round_trip_property_can_fail ... ok
 test tree::tests::the_green_tree_round_trips_byte_for_byte ... ok
-test tree::tests::the_tree_and_the_token_stream_agree ... ok
+test tree::tests::the_round_trip_property_can_fail ... ok
 test tree::tests::round_trips_on_the_same_awkward_input_the_lexer_handles ... ok
 test tree::tests::token_ranges_match_the_source ... ok
+test tree::tests::the_tree_and_the_token_stream_agree ... ok
 test tree::tests::trivia_survives_into_the_tree ... ok
+test grammar::tests::two_statements_on_one_line_are_separated ... ok
 test result: ok. 98 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 
 == every shipped program and the corpus parse as before (pw-syntax's corpus tests)
 
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
 
 == mutation controls (scripts/logical_mixed_mutations.py)
 

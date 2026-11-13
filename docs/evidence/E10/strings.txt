@@ -1,8 +1,8 @@
 ADR-0049 - a string's escapes are the language's
 
 produced by: just e10-strings
-commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 120e64874756e73da22b9f55f10ad0e567536627
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the decoder (compiler/pw-syntax/src/strings.rs)
@@ -15,14 +15,14 @@ test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 == compiled components through the host (pw-conformance/tests/strings.rs)
 
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.72s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.50s
 
 == the component and the JavaScript module, on the same arguments
 
 javascript: 3 queries over cases written alone, 600 calls, component and module agree (57 trapped in both)
 javascript: 5 queries over trees, 1000 calls, component and module agree (155 trapped in both)
 javascript: 5 queries over values held in place, 1000 calls, component and module agree (132 trapped in both)
-javascript: 97 queries, 19400 calls, component and module agree (1446 trapped in both)
+javascript: 103 queries, 20600 calls, component and module agree (1424 trapped in both)
 
 == mutation controls (scripts/string_mutations.py)
 

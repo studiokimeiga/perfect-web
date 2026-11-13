@@ -1,9 +1,9 @@
 ADR0389 - browser command, receipt and acknowledgement authority
 produced by: just e14-session-command-authority
-commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 120e64874756e73da22b9f55f10ad0e567536627
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
-campaign: docs/evidence/E14/session-commands.jUsnsF/campaign/report.json
+campaign: docs/evidence/E14/session-commands.9XdSIO/campaign/report.json
 test_campaign_cancellation_restores_owned_source_and_keeps_invalid_report (scripts.tests.test_session_command_mutations.SessionCommandProducer.test_campaign_cancellation_restores_owned_source_and_keeps_invalid_report) ... suite=memory, scope=FULL, controls=0/1, valid=False, restored=True
 ok
 test_cancellation_keeps_raw_log_and_is_not_converted_to_success (scripts.tests.test_session_command_mutations.SessionCommandProducer.test_cancellation_keeps_raw_log_and_is_not_converted_to_success) ... ok
@@ -25,7 +25,7 @@ test_partial_or_invalid_native_controls_do_not_count_as_kills (scripts.tests.tes
 test_schema_receipts_reject_missing_duplicate_and_unowned_names (scripts.tests.test_session_command_mutations.SessionCommandProducer.test_schema_receipts_reject_missing_duplicate_and_unowned_names) ... ok
 
 ----------------------------------------------------------------------
-Ran 17 tests in 0.093s
+Ran 17 tests in 0.079s
 
 OK
 render-actor-cache: KILLED

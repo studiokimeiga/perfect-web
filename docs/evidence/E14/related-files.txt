@@ -1,8 +1,8 @@
 ADR-0321 - a related note is shown in its own file
 
 produced by: just e14-related-files
-commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 120e64874756e73da22b9f55f10ad0e567536627
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == each note in its own file (compiler/pw-core/tests/related_files.rs)
@@ -13,24 +13,24 @@ test a_layouts_note_is_in_the_layouts_file ... ok
 test a_route_declared_twice_names_the_first_page_where_it_is ... ok
 test a_reader_in_another_file_is_named_in_it ... ok
 test every_note_is_text_of_its_own_file ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 16.15s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 19.85s
 
 == pw check: a note shown in its own file, and no stop on a span (compiler/pw-cli)
 
 test tests::a_note_in_another_file_is_shown_in_it ... ok
 test tests::check_renders_a_diagnostic_with_a_real_span ... ok
 test tests::a_span_outside_its_file_is_a_note_and_no_panic ... ok
+test tests::explain_derives_placement_from_effects_alone ... ok
 test tests::explain_flags_a_session_value_in_a_shared_cache ... ok
 test tests::explain_never_leaks_generated_paths ... ok
-test tests::explain_derives_placement_from_effects_alone ... ok
 test tests::unannotated_and_empty_effect_rows_read_differently ... ok
 test tests::explain_shows_every_policy_the_compiler_knows_about ... ok
 test tests::the_committed_graph_matches_what_the_compiler_emits ... ok
-test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
 test accepted_corpus_has_exactly_its_known_backend_refusals ... ok
 test reference_program_roots_stay_executable ... ok
 test every_rejected_corpus_program_has_the_same_check_and_build_codes ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 38.49s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 45.95s
 test a_pure_computed_each_head_is_refused ... ok
 test a_page_cannot_depend_on_an_unwritten_query ... ok
 test a_part_cannot_compute_from_a_signal_and_a_query ... ok
@@ -39,23 +39,23 @@ test a_signal_in_a_title_is_refused_during_check ... ok
 test wit_name_collisions_are_check_refusals ... ok
 test syntax_refusals_keep_clean_siblings_errors_and_skip_backends ... ok
 test a_supported_neighbor_checks_and_builds ... ok
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
 test a_fence_is_read_as_commonmark_reads_it ... ok
 test a_gaps_build_output_belongs_to_the_gap_before_it ... ok
+test a_page_with_no_example_or_a_block_unseen_is_reported ... ok
 test a_page_is_held_to_the_directory_it_names ... ok
 test a_pages_file_blocks_are_its_program_in_order ... ok
-test a_page_with_no_example_or_a_block_unseen_is_reported ... ok
 test a_program_differs_from_a_directory_by_a_file_or_a_byte ... ok
 test a_refused_examples_codes_are_read_from_its_output ... ok
-test an_unclosed_or_indented_fence_is_refused ... ok
 test an_info_string_says_what_a_block_is ... ok
+test an_unclosed_or_indented_fence_is_refused ... ok
 test shown_output_belongs_to_the_refused_example_before_it ... ok
 test a_pages_program_is_the_directory_it_names ... ok
 test the_reference_is_held_to_the_registry ... ok
 test the_diagnostic_reference_lists_every_registered_code ... ok
 test every_example_in_the_guide_compiles_as_it_says ... ok
 test a_wrong_example_is_reported_and_a_right_one_is_not ... ok
-test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.87s
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.37s
 test a_layouts_note_is_shown_in_the_layouts_file ... ok
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 test each_file_keeps_its_own_answers_under_one_name ... ok
@@ -66,18 +66,18 @@ test actual_compiler_manifest_executes_without_app_specific_rust ... ok
 test a_released_schema_does_not_skip_executable_support ... ok
 test migration_refusals_precede_unsupported_backend_diagnostics ... ok
 test check_and_build_hold_a_program_to_the_named_release ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.57s
 test a_directory_that_is_no_build_is_not_replaced ... ok
 test a_program_in_error_builds_nothing ... ok
-test a_directory_given_is_each_pw_file_in_it ... ok
 test an_app_is_built_with_the_standard_packages_its_runtime_and_its_record ... ok
-test reports_are_kept_by_a_production_build_alone ... ok
 test a_build_of_an_app_is_replaced_whole ... ok
 test a_production_build_keeps_its_reports_only_where_asked ... ok
+test reports_are_kept_by_a_production_build_alone ... ok
 test what_builds_a_whole_app_is_asked_of_dist_alone ... ok
+test a_directory_given_is_each_pw_file_in_it ... ok
 test standard_packages_named_are_not_added_again ... ok
 test an_asset_is_written_beside_the_build ... ok
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.41s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.75s
 
 == mutation controls (scripts/related_files_mutations.py)
 

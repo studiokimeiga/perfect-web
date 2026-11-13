@@ -1,8 +1,8 @@
 ADR-0280 - a handler navigates after its command commits
 
 produced by: just e14-navigate
-commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 120e64874756e73da22b9f55f10ad0e567536627
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -15,12 +15,12 @@ test a_navigation_names_a_page ... ok
 test the_module_goes_to_the_page_after_the_answer_and_only_on_ok ... ok
 test its_arguments_are_the_pages_parameters ... ok
 test it_is_written_last_in_the_ok_arm_of_a_commands_answer ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.37s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.92s
 
 == the order placed and gone to, in three engines (e2e/navigate.spec.mjs)
 
   2 skipped
-  28 passed (35.5s)
+  28 passed (29.2s)
 
 == mutation controls (scripts/navigate_mutations.py)
 
@@ -34,7 +34,7 @@ what follows a navigation runs [compiler]: KILLED (1 of 6 tests fail)
 a handler navigates with no answer [compiler]: KILLED (1 of 6 tests fail)
 an answer a `let` binds is no answer [compiler]: KILLED (1 of 6 tests fail)
 a value is given by no name [compiler]: KILLED (1 of 6 tests fail)
-an answer is assumed before it comes [browser]: KILLED (6 of 10 tests fail)
+an answer is assumed before it comes [browser]: KILLED (5 of 10 tests fail)
 an `Ok` that did not commit is a commit [browser]: KILLED (1 of 10 tests fail)
 a press made while the page leaves is taken [browser]: KILLED (1 of 10 tests fail)
 a second navigation is taken [browser]: KILLED (1 of 10 tests fail)
