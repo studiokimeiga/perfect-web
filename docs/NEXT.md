@@ -75,6 +75,14 @@ they were. What is left, each measured, none decided:
 7. **The earlier items after train-33**, below: the cold append and Slow 4G's
    append (its item 2) are unchanged by this step; train-32's fourth, the
    swap and the remove, done here.
+8. **`device_runtime_mutations.py` builds no host in a mutation slot**: its
+   browser suite serves with the slot's own `target/debug/pw-dev-server` and
+   pw-resume's WebAssembly, which nothing in the script builds there, so with
+   more than one slot (`PW_MUTANT_SLOTS`, ADR-0357) a new slot's baseline
+   fails before any mutant runs. A loud failure, not a false pass; a run with
+   one slot, as CI's, never meets it. Train-34 built both in each slot first
+   (`t34/evidence2.sh`); `own_rows_mutations.py` builds its host itself, and
+   this script should as well.
 
 ## After L2, row ownership, 2026-11-12
 
