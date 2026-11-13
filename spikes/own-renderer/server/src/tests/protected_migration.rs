@@ -787,18 +787,31 @@ fn exchange_race(server: Arc<Server>, initial_account: bool) {
             .identity
             .signed_in_for_test("joining-guest", "alice", "Alice");
     }
+    // The cache changes on the host's thread, inside the exchange: its
+    // outcome is kept for the test's own assertion, never raised there.
     let weak = Arc::downgrade(&server);
+    let changed = Arc::new(Mutex::new(None));
+    let kept = Arc::clone(&changed);
     *provider.during.lock().unwrap() = Some(Box::new(move || {
-        let server = weak.upgrade().unwrap();
-        if initial_account {
-            server.identity.signed_out_for_test("joining-guest");
-        } else {
-            server
-                .identity
-                .signed_in_for_test("joining-guest", "alice", "Alice");
-        }
+        let outcome = match weak.upgrade() {
+            None => Err("the server is gone".to_string()),
+            Some(server) if initial_account => {
+                server.identity.try_signed_out_for_test("joining-guest")
+            }
+            Some(server) => {
+                server
+                    .identity
+                    .try_signed_in_for_test("joining-guest", "alice", "Alice")
+            }
+        };
+        *kept.lock().unwrap() = Some(outcome);
     }));
     let session = super::sign_in::signed_in(&server, &provider.provider, "joining-guest", "target");
+    assert_eq!(
+        changed.lock().unwrap().take(),
+        Some(Ok(())),
+        "the session's identity changed during the exchange"
+    );
     assert_eq!(
         quantity(&server, &session, "target"),
         if initial_account { 4 } else { 7 },

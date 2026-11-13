@@ -1612,6 +1612,20 @@ impl Identity {
     /// session from there, and would find no one.
     #[cfg(test)]
     pub fn signed_in_for_test(&self, session: &str, user: &str, name: &str) {
+        self.try_signed_in_for_test(session, user, name)
+            .expect("signed in where sessions are kept");
+    }
+
+    /// **The same, its failure answered, not raised**: for a sign-in a test
+    /// makes on the host's own thread (a provider's exchange), where a panic
+    /// would be the host's, not the test's assertion.
+    #[cfg(test)]
+    pub fn try_signed_in_for_test(
+        &self,
+        session: &str,
+        user: &str,
+        name: &str,
+    ) -> Result<(), String> {
         self.principals.set_accounts(true);
         self.principals
             .sign_in(
@@ -1623,16 +1637,22 @@ impl Identity {
                     issuer: "https://id.example.test".to_string(),
                 },
             )
-            .expect("signed in where sessions are kept");
+            .map(drop)
     }
 
     /// **`session` signed out, without the flow** (track `data-path`): as
     /// `/sign-out` signs it out, wherever sessions are kept.
     #[cfg(test)]
     pub fn signed_out_for_test(&self, session: &str) {
-        self.principals
-            .sign_out(session)
+        self.try_signed_out_for_test(session)
             .expect("signed out where sessions are kept");
+    }
+
+    /// **The same, its failure answered, not raised** (as
+    /// [`Self::try_signed_in_for_test`]).
+    #[cfg(test)]
+    pub fn try_signed_out_for_test(&self, session: &str) -> Result<(), String> {
+        self.principals.sign_out(session)
     }
 
     /// **A request the identity track answers**, before any other route.

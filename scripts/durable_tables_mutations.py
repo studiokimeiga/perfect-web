@@ -315,6 +315,9 @@ SOURCES = [
     SERVER / "src/tests/tables_pg.rs",
     SERVER / "src/tests/owned_clock.rs",
     SERVER / "src/tests/protected_migration.rs",
+    # The flow's helper the protected migration's tests sign in through: its
+    # assertion that a sign-in completed is theirs.
+    SERVER / "src/tests/sign_in.rs",
     SERVER / "src/identity.rs",
     SERVER / "src/tests/tables.rs",
     SERVER / "src/tests/conformance.rs",

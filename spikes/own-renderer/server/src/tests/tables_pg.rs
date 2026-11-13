@@ -2240,9 +2240,10 @@ fn generic_hosts_use_the_publishers_ordering_lock_and_wake_after_commit() {
             tail.wait(15_000);
             began.elapsed()
         });
-        let committing = scope.spawn(|| {
-            assert!(sign(&a, "a", "wake another generic host", "generic-wake-1").committed);
-        });
+        // The writer's answer is asserted here, on the test's thread, once
+        // it is joined: one failure is one assertion's.
+        let committing =
+            scope.spawn(|| sign(&a, "a", "wake another generic host", "generic-wake-1").committed);
         let deadline = Instant::now() + Duration::from_secs(5);
         while schema.waiting() == "0" && Instant::now() < deadline {
             std::thread::sleep(Duration::from_millis(5));
@@ -2259,7 +2260,11 @@ fn generic_hosts_use_the_publishers_ordering_lock_and_wake_after_commit() {
         holder
             .batch_execute("COMMIT")
             .asserted("released without a notification");
-        committing.join().expect("writer finished");
+        let committed = committing.join().expect("writer finished");
+        assert!(
+            committed,
+            "the writer's command commits once the lock is released"
+        );
         let elapsed = waiting.join().expect("listener finished");
         assert!(
             elapsed < Duration::from_secs(10),
