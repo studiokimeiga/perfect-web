@@ -179,7 +179,12 @@ MUTANTS = [
     ("rows out of their order are all moved", "rows", RUNTIME,
      "    if (places[i] >= 0 && (stays === null || stays[i - lo] === 1)) {\n", "    if (places[i] >= 0 && stays === null) {\n"),
     ("a row moved goes after the row it goes before", "rows", RUNTIME,
-     "      moveNodes(parent, between(nodes[0], nodes[1]), anchor);\n      REPORT:", "      moveNodes(parent, between(nodes[0], nodes[1]), anchor.nextSibling);\n      REPORT:"),
+     "      rowMoved(parent, between(nodes[0], nodes[1]), anchor);\n      REPORT:", "      rowMoved(parent, between(nodes[0], nodes[1]), anchor.nextSibling);\n      REPORT:"),
+    ("a row moved that holds what has focus loses it", "focus", RUNTIME,
+     "  if (ATOMIC_MOVE || (active !== null && nodes.some((n) => n.contains(active)))) {\n", "  if (ATOMIC_MOVE) {\n"),
+    ("a row moved is put where it goes before the one after it", "rows", RUNTIME,
+     "  for (const node of nodes) parent.insertBefore(node, anchor);\n}\n\n/** **What a list's own code would have found",
+     "  for (const node of nodes) parent.insertBefore(node, anchor.nextSibling);\n}\n\n/** **What a list's own code would have found"),
     ("new rows go in at the list's end", "rows", RUNTIME,
      "    parent.insertBefore(rowsNew(b.slice(first, i + 1), plan, shown, inserted), anchor);\n",
      "    parent.insertBefore(rowsNew(b.slice(first, i + 1), plan, shown, inserted), range.end);\n"),
@@ -337,7 +342,30 @@ def rows():
     return passed + failed > 0, passed, failed
 
 
-SUITES = {"agreement": agreement, "packaging": packaging, "contract": contract, "rows": rows}
+def focus():
+    """A row moved that holds what has focus, where the engine moves no node
+    whole (ADR-0439): the rows suite's test of it in Firefox and WebKit, on
+    the production builds as they are served."""
+    _, code = bounded(["cargo", "build", "--quiet", "--locked", "-p", "pw-dev-server"], cwd=ROOT)
+    if code != 0:
+        return False, 0, 0
+    env = {**os.environ, "PW_PRODUCTION_ASSETS": "1", "PW_REPORT": "0"}
+    for script in ("spikes/own-renderer/rows.sh", "spikes/own-renderer/row-events.sh"):
+        _, code = bounded(["bash", script], cwd=ROOT, env=env)
+        if code != 0:
+            return False, 0, 0
+    out, code = bounded(["pnpm", "exec", "playwright", "test", "e2e/rows.spec.mjs", "--grep", "keeps what has focus inside it",
+                         "--project=firefox", "--project=webkit", "--reporter=line"],
+                        cwd=ROOT / "spikes/own-renderer", env=env)
+    if code is None:
+        return True, 0, 1
+    out = re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", out)
+    passed = sum(int(n) for n in re.findall(r"(\d+) passed", out))
+    failed = sum(int(n) for n in re.findall(r"(\d+) failed", out))
+    return passed + failed > 0, passed, failed
+
+
+SUITES = {"agreement": agreement, "packaging": packaging, "contract": contract, "rows": rows, "focus": focus}
 
 
 def main():

@@ -3840,7 +3840,7 @@ function rowsFound(a, b, now, shown, plan, range, inserted) {
     anchor ??= shown.get(b[after].key)[0];
     if (places[i] >= 0) {
       const nodes = shown.get(b[i].key);
-      moveNodes(parent, between(nodes[0], nodes[1]), anchor);
+      rowMoved(parent, between(nodes[0], nodes[1]), anchor);
       REPORT: window.__pw.moves = (window.__pw.moves ?? 0) + 1;
       anchor = nodes[0];
       after = i;
@@ -3858,6 +3858,20 @@ function rowsFound(a, b, now, shown, plan, range, inserted) {
   // stays where it was and the new ones follow them.
   REPORT: log.push(matched === 0 || (matched === m && sorted && places[m - 1] === m - 1) ? `rows in order: ${changed.length} changed, ${fresh} added` : `rows placed: ${m - matched} gone, ${changed.length} changed, ${fresh} added`);
   return true;
+}
+
+/** **A row moved** (`rowsFound`): as `moveNodes` moves it where the engine
+ * moves nodes whole or the row holds what has focus; else put where it
+ * goes, what has focus not being in it, so that neither its caret nor its
+ * scroll is read: an element's scroll is read off its layout, and a row
+ * moved after another laid the list out again for it (ADR-0439). */
+function rowMoved(parent, nodes, anchor) {
+  const active = document.activeElement;
+  if (ATOMIC_MOVE || (active !== null && nodes.some((n) => n.contains(active)))) {
+    moveNodes(parent, nodes, anchor);
+    return;
+  }
+  for (const node of nodes) parent.insertBefore(node, anchor);
 }
 
 /** **What a list's own code would have found, found by the rows' keys**

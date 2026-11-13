@@ -79,7 +79,8 @@ page Events() {
     signal dropped: List<Item> = [Item { id: 1, name: "one" }, Item { id: 2, name: "two" }]
     // Rows the page's own code finds where they were (ADR-0439), reordered
     // every way a press does: reversed, turned, two swapped, one moved, one
-    // gone, one put in, sorted, one renamed, all gone and back. Shown three
+    // gone, one put in or added at its end, sorted, one renamed, all gone
+    // and back. Shown three
     // times: a table's rows, each its own anchor, and a list's items, each
     // between its comments; and the general code's, in a case's arm that
     // binds a name its rows read.
@@ -193,6 +194,10 @@ page Events() {
                 order = List.concat(List.concat(List.take(order, 3), [Item { id: next_order, name: "new {next_order}" }]), List.drop(order, 3))
                 next_order = next_order + 1
             }}>Insert</button>
+            <button id="order-append" type="button" on:press={() => {
+                order = List.concat(order, [Item { id: next_order, name: "new {next_order}" }])
+                next_order = next_order + 1
+            }}>Append</button>
             <button id="order-sort" type="button" on:press={() => order = List.sort_by(order, (a, b) => a.id - b.id)}>Sort</button>
             <button id="order-rename" type="button" on:press={() => order = renamed(order, 3)}>Rename</button>
             <button id="order-clear" type="button" on:press={() => order = []}>Clear</button>

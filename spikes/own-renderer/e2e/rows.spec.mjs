@@ -862,6 +862,7 @@ const ORDER_PRESSES = {
   move: { can: (n) => n >= 5, made: (xs) => [...xs.slice(0, 1), ...xs.slice(2, 5), ...xs.slice(1, 2), ...xs.slice(5)] },
   drop: { can: (n) => n >= 3, made: (xs) => [...xs.slice(0, 2), ...xs.slice(3)] },
   insert: { can: (n) => n >= 3, made: (xs, fresh) => [...xs.slice(0, 3), fresh, ...xs.slice(3)] },
+  append: { can: () => true, made: (xs, fresh) => [...xs, fresh] },
   sort: { can: () => true, made: (xs) => [...xs].sort((a, b) => a.id - b.id) },
   rename: { can: () => true, made: (xs) => xs.map((x) => (x.id === 3 ? { id: 3, name: "renamed" } : x)) },
   clear: { can: () => true, made: () => [] },
@@ -922,7 +923,7 @@ test("rows reordered every way a press does are where their list says, each the 
     await orderMarked(page);
     const was = order;
     order = ORDER_PRESSES[name].made(order, { id: fresh, name: `new ${fresh}` });
-    if (name === "insert") fresh += 1;
+    if (name === "insert" || name === "append") fresh += 1;
     await page.click(`#order-${name}`);
     const said = orderSaid(order, was);
     await expect.poll(async () => JSON.stringify(await orderShown(page)), { timeout: 10_000, intervals: [16, 50, 100, 250], message: `after ${name}, press ${step}` }).toBe(JSON.stringify(said));
@@ -944,7 +945,7 @@ test("a list its own code keeps is placed by what that code found, each press af
     await orderMarked(page);
     const was = order;
     order = ORDER_PRESSES[name].made(order, { id: fresh, name: `new ${fresh}` });
-    if (name === "insert") fresh += 1;
+    if (name === "insert" || name === "append") fresh += 1;
     await page.click(`#order-${name}`);
     await page.waitForFunction((b) => (window.__pw.found ?? 0) >= b + 2, before);
     expect(await page.evaluate(() => window.__pw.found), `found after ${name}`).toBe(before + 2);
@@ -980,7 +981,7 @@ test("rows its list's own code found out of their order are as few moved as leav
     const before = await page.evaluate(() => [window.__pw.found ?? 0, window.__pw.moves ?? 0]);
     const was = order;
     order = ORDER_PRESSES[name].made(order, { id: fresh, name: `new ${fresh}` });
-    if (name === "insert") fresh += 1;
+    if (name === "insert" || name === "append") fresh += 1;
     await page.click(`#order-${name}`);
     await page.waitForFunction((b) => (window.__pw.found ?? 0) >= b + 2, before[0]);
     const moved = (await page.evaluate(() => window.__pw.moves ?? 0)) - before[1];
@@ -994,5 +995,59 @@ test("rows its list's own code found out of their order are as few moved as leav
   await page.click("#swaprows");
   await page.waitForFunction(() => document.getElementById("tbody").children[1].querySelector(".id").textContent === "999");
   expect((await page.evaluate(() => window.__pw.moves ?? 0)) - before, "rows moved by a swap of two").toBe(2);
+  expect(page.errors).toEqual([]);
+});
+
+/** The `rows ...` lines a press of the fixture's reordered list writes, a
+ * line or two for each of its three lists, once each of their blocks says
+ * it rendered. */
+async function orderSaidBy(page, name) {
+  const before = await page.evaluate(() => window.__pw.log.length);
+  await page.click(`#order-${name}`);
+  await page.waitForFunction((b) => window.__pw.log.slice(b).filter((l) => /^signal order(,next_order)? -> block/.test(l)).length >= 3, before);
+  return page.evaluate((b) => window.__pw.log.slice(b).filter((l) => l.startsWith("rows ")).sort(), before);
+}
+
+test("lists their own code keeps and one the general code keeps say each press placed their rows alike", { tag: "@report" }, async ({ page }) => {
+  // The fixture's reordered list shown three times: twice by lists its own
+  // code keeps and once by one the general code keeps, in a case's arm
+  // (ADR-0439). Each press after the first, which morphs their blocks,
+  // places the rows of each alike, and each says so as the general placing
+  // says it: in order where every row stays where it was and new ones
+  // follow, replaced where none stays, placed otherwise.
+  await open(page, "/events");
+  await page.click("#order-reverse");
+  await page.waitForFunction(() => window.__pw.log.filter((l) => /^signal order -> block/.test(l)).length >= 3);
+  const thrice = (...lines) => lines.flatMap((l) => [l, l, l]).sort();
+  expect(await orderSaidBy(page, "rename")).toEqual(thrice("rows in order: 1 changed, 0 added"));
+  expect(await orderSaidBy(page, "append")).toEqual(thrice("rows in order: 0 changed, 1 added"));
+  expect(await orderSaidBy(page, "swap")).toEqual(thrice("rows placed: 0 gone, 0 changed, 0 added"));
+  expect(await orderSaidBy(page, "drop")).toEqual(thrice("rows placed: 1 gone, 0 changed, 0 added"));
+  expect(await orderSaidBy(page, "insert")).toEqual(thrice("rows placed: 0 gone, 0 changed, 1 added"));
+  expect(await orderSaidBy(page, "clear")).toEqual(thrice("rows replaced: 7 gone", "rows in order: 0 changed, 0 added"));
+  expect(await orderSaidBy(page, "refill")).toEqual(thrice("rows in order: 0 changed, 6 added"));
+  expect(await orderSaidBy(page, "turn")).toEqual(thrice("rows placed: 0 gone, 0 changed, 0 added"));
+  expect(page.errors).toEqual([]);
+});
+
+test("a row moved keeps what has focus inside it, and one moved past it leaves it", async ({ page }) => {
+  // A reordered row that holds what has focus is moved with it, whole where
+  // the engine moves nodes whole and given it back where not; a row moved
+  // that does not hold it is put where it goes, nothing of it read
+  // (ADR-0439). The first press morphs the blocks; the swaps move two rows.
+  await open(page, "/events");
+  await page.click("#order-reverse");
+  await expect(page.locator("#order tr").first().locator(".oid")).toHaveText("6");
+  await page.locator("#order tr").nth(1).locator(".opick").focus();
+  await page.evaluate(() => {
+    document.activeElement.mark = "focused";
+    document.getElementById("order-swap").click();
+  });
+  await expect(page.locator("#order tr").nth(4).locator(".oid")).toHaveText("5");
+  expect(await page.evaluate(() => document.activeElement?.mark ?? null)).toBe("focused");
+  await page.locator("#field").focus();
+  await page.evaluate(() => document.getElementById("order-swap").click());
+  await expect(page.locator("#order tr").nth(1).locator(".oid")).toHaveText("5");
+  expect(await page.evaluate(() => document.activeElement?.id ?? null)).toBe("field");
   expect(page.errors).toEqual([]);
 });
