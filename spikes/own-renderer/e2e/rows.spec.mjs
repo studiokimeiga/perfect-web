@@ -863,11 +863,20 @@ const ORDER_PRESSES = {
   drop: { can: (n) => n >= 3, made: (xs) => [...xs.slice(0, 2), ...xs.slice(3)] },
   insert: { can: (n) => n >= 3, made: (xs, fresh) => [...xs.slice(0, 3), fresh, ...xs.slice(3)] },
   append: { can: () => true, made: (xs, fresh) => [...xs, fresh] },
+  // Two new rows apart: after the first row and before the last.
+  spread: {
+    can: (n) => n >= 2,
+    made: (xs, fresh) => [...xs.slice(0, 1), fresh, ...xs.slice(1, -1), { id: fresh.id + 1, name: `more ${fresh.id}` }, ...xs.slice(-1)],
+  },
   sort: { can: () => true, made: (xs) => [...xs].sort((a, b) => a.id - b.id) },
   rename: { can: () => true, made: (xs) => xs.map((x) => (x.id === 3 ? { id: 3, name: "renamed" } : x)) },
   clear: { can: () => true, made: () => [] },
   refill: { can: () => true, made: () => FIRST_ORDER },
 };
+
+/** How many new rows each press that makes any makes, each its id the
+ * fixture's `next_order` as it counts. */
+const NEW_ROWS = { insert: 1, append: 1, spread: 2 };
 
 /** The reordered list as the document shows it: the table's rows, `[id,
  * name, its element's mark]`, the list's items, `[name, mark]`, and the
@@ -923,10 +932,32 @@ test("rows reordered every way a press does are where their list says, each the 
     await orderMarked(page);
     const was = order;
     order = ORDER_PRESSES[name].made(order, { id: fresh, name: `new ${fresh}` });
-    if (name === "insert" || name === "append") fresh += 1;
+    fresh += NEW_ROWS[name] ?? 0;
     await page.click(`#order-${name}`);
     const said = orderSaid(order, was);
     await expect.poll(async () => JSON.stringify(await orderShown(page)), { timeout: 10_000, intervals: [16, 50, 100, 250], message: `after ${name}, press ${step}` }).toBe(JSON.stringify(said));
+  }
+  expect(page.errors).toEqual([]);
+});
+
+test("rows put in apart in one press each go where the list says, in every list", async ({ page }) => {
+  // Two new rows, one after the first row and one before the last, made by
+  // one press: the lists the page's own code keeps put each in where it
+  // goes, and so does the general code's (`#order-kept`), each not beside
+  // the other (ADR-0439); every row that was is the element it was.
+  await open(page, "/events");
+  await page.click("#order-reverse");
+  let order = ORDER_PRESSES.reverse.made(FIRST_ORDER);
+  const ids = (shown) => JSON.stringify(shown.rows.map(([id]) => id));
+  await expect.poll(async () => ids(await orderShown(page))).toBe(JSON.stringify(order.map((o) => String(o.id))));
+  let fresh = 100;
+  for (const name of ["spread", "swap", "spread", "drop", "spread"]) {
+    await orderMarked(page);
+    const was = order;
+    order = ORDER_PRESSES[name].made(order, { id: fresh, name: `new ${fresh}` });
+    fresh += NEW_ROWS[name] ?? 0;
+    await page.click(`#order-${name}`);
+    await expect.poll(async () => JSON.stringify(await orderShown(page)), { timeout: 10_000, message: `after ${name}` }).toBe(JSON.stringify(orderSaid(order, was)));
   }
   expect(page.errors).toEqual([]);
 });
@@ -945,7 +976,7 @@ test("a list its own code keeps is placed by what that code found, each press af
     await orderMarked(page);
     const was = order;
     order = ORDER_PRESSES[name].made(order, { id: fresh, name: `new ${fresh}` });
-    if (name === "insert" || name === "append") fresh += 1;
+    fresh += NEW_ROWS[name] ?? 0;
     await page.click(`#order-${name}`);
     await page.waitForFunction((b) => (window.__pw.found ?? 0) >= b + 2, before);
     expect(await page.evaluate(() => window.__pw.found), `found after ${name}`).toBe(before + 2);
@@ -982,7 +1013,7 @@ test("rows its list's own code found out of their order are as few moved as leav
     const before = await page.evaluate(() => [window.__pw.found ?? 0, window.__pw.moves ?? 0]);
     const was = order;
     order = ORDER_PRESSES[name].made(order, { id: fresh, name: `new ${fresh}` });
-    if (name === "insert" || name === "append") fresh += 1;
+    fresh += NEW_ROWS[name] ?? 0;
     await page.click(`#order-${name}`);
     await page.waitForFunction((b) => (window.__pw.found ?? 0) >= b + 2, before[0]);
     const moved = (await page.evaluate(() => window.__pw.moves ?? 0)) - before[1];

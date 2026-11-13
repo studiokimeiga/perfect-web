@@ -322,10 +322,12 @@ scratchpad, its tools and logs.
   places held to a longest run (2,402 keeping a row out of its place, 272
   moving one in its place), reading no more than a few of a thousand rows'
   places for a swap. The rows suite (`e2e/rows.spec.mjs`) on the builds as
-  served and built to report, three engines, 81 and 60 tests: the fixture's
+  served and built to report, three engines, 84 and 60 tests: the fixture's
   reordered list (`examples/rows/events.pw`, its table rows and its list
   items its own code's, a third the general code's) walked by 80 seeded
-  presses, each row the element it was; each press found by the own code
+  presses, each row the element it was; two new rows put in apart by one
+  press (`order-spread`), each where the list says in every list, the
+  general code's among them; each press found by the own code
   (`window.__pw.found`); each moving the fewest rows; the list made short,
   each press placed among the few out of their places (`window.__pw.few`);
   the large list's swap moving two, placed so; a moved row holding focus
