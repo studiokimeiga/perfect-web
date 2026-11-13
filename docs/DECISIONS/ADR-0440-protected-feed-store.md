@@ -284,6 +284,12 @@ What the merge decided:
      default, and the tests asked for more (`53300: sorry, too many
      clients already`); at four threads, as CI's runners have, they pass
      and its 50 controls are killed (NEXT).
+- **`just ci` refused the trusted platform contract's hash**: `892e9c0d`
+  declared `context.previous_user()` (`pw:host/principal#previous`), the
+  lifecycle's previous guest, `None` outside that one invocation, and
+  moved no hash, which no run of the integration branch's own checked.
+  The declaration is intended: the hash is the merge's, with its dated
+  note (`f641ba0c`).
 
 Measured locally on PostgreSQL 18.6, each recipe whole with its mutation
 script, on L3's own databases: at `41a03c5d`, invoked-by (14 of 14

@@ -23,7 +23,9 @@ cookie the client can choose and a lifecycle that does not commit are open
 (NEXT). Its recipes, each run whole before the record, found three of the
 durable tables' controls the producer could not count and one of the
 store's that survived, behind records older than L3's last commits;
-each is fixed test first (`71c31395`). PR #108's CodeQL gate named seven
+each is fixed test first (`71c31395`); and `just ci` refused the trusted
+platform contract's hash, which L3's `context.previous_user` had changed
+without a word (`f641ba0c`). PR #108's CodeQL gate named seven
 alerts in code it touched: five in test code, dismissed as used in
 tests, and two at the row generator's key (open on master since #107),
 dismissed as false positives: build-time code in a module the page
