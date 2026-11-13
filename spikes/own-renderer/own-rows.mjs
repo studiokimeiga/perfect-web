@@ -650,11 +650,13 @@ export function ownRows(entries) {
  * taken where its row of the last render is (`taken`) or a row of it was
  * made (`made`). What it found it says, and the runtime places the rows by
  * it: each row's place at the last render, -1 for a key none had
- * (`places`), which of those rows it holds (`taken`, `matched`), whether the
- * places of the rows that stay increase (`sorted`), the rows made again
- * (`remade`), and how many rows it looked for by their keys (`keyed`). What
- * it keeps changes once every row is found, so a render refused keeps the
- * last one's.
+ * (`places`), which of those rows it holds (`taken`, `matched`) and, where
+ * it holds some, those it does not (`gone`), whether the places of the rows
+ * that stay increase (`sorted`), the rows made again (`remade`), where the
+ * list has as many rows as it had and holds each, those out of their
+ * places, while they are four at most (`displaced`, else null), and how
+ * many rows it looked for by their keys (`keyed`). What it keeps changes
+ * once every row is found, so a render refused keeps the last one's.
  */
 const OWN_KEPT = `(own, p, e, others, items) => {
     if (!own) throw malformed(\`list \${p.id} is kept by no code of its page\`);

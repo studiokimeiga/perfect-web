@@ -2,6 +2,23 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**Train-34, 2026-11-13:** on train-33. A list's own code finds its rows
+where they were (ADR-0439): a row whose item is the very one at its place, or
+as far from the list's end, is the row kept, its key not computed, where
+nothing its rows read of the page moved; any other by its key; it says what
+it found, and the runtime places the rows by that, a few out of their places
+chosen among themselves and a longest run otherwise, a build every list of
+which is its own holding no general placing. The first cold swap and remove:
+0.99 and 0.88 ms of JavaScript, Svelte's 1.02 and 1.38 (train-33's 1.95 and
+0.64 of collection, and 1.39). The builds visited in turn: no cell has
+Svelte's swap, remove or clear ahead past its spread, in either engine, cold
+or warm, Slow 4G included; against train-33 the swap −4.8 ms and the remove
+−2.7 under Slow 4G cold (21 rounds), Firefox's warm visit −8.0 in every press.
+Firefox's remove still spends 0.2 ms of script more than Svelte's (the
+handler's check of each `Int`, 0.12 of it, the compiler's: NEXT), and its cold
+replace 1.5 more than train-33's, untraced. TodoMVC and a server's runtime are
+sent the bytes they were; the large list's page is 769 B heavier with Brotli.
+
 **Train-33, 2026-11-12:** on train-32. A planned row that is one element is
 its own anchor (ADR-0438): where the packaging reads a planned list's row as
 one element a parser keeps whole, it says so in the build's template IR, and

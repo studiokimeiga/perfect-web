@@ -6,6 +6,74 @@
 
 # Next
 
+## After train-34, 2026-11-13
+
+A list's own code finds its rows where they were, and its rows are placed by
+what it found (ADR-0439): a row whose item is the very one at its place, or
+as far from the list's end, is the row kept, its key not computed, where
+nothing its rows read of the page moved; any other by its key, among the
+last render's rows; the runtime places the rows by what was found, a few out
+of their places chosen among themselves and otherwise a longest run between
+the first row out of place and the last, and a build every list of which is
+its own holds no general placing. The first cold swap and remove spend 0.99
+and 0.88 ms of JavaScript, Svelte's 1.02 and 1.38 (train-33's 1.95 and 0.64
+of collection, and 1.39). The builds visited in turn: no cell has Svelte's
+swap, remove or clear ahead past its spread, in either engine, cold or
+warm, Slow 4G included, and the swap under Slow 4G cold is quicker past it
+(−2.3 ms in 21 rounds). TodoMVC and a server's runtime are sent the bytes
+they were. What is left, each measured, none decided:
+
+1. **Firefox's remove, 0.2 ms of script behind Svelte's**: 0.22 (0.14..0.28)
+   cold and 0.14 (0.10..0.22) warm, each click at a point of the frame
+   interval drawn for its round (`t34/press-split-final.txt`); to the frame
+   0.0 at Firefox's 1 ms clock. Of it, the handler's check of each `Int` it
+   writes, `exact` over the 999 rows of the list it writes (`checked` in
+   `js_pure.rs`, ADR-0433), is 0.12 ms (`t34/press-split-exp.txt`, the check
+   left out; the swap's 0.10 to 0.14). The rows it writes are the very rows
+   the signal held, each checked when it was written. Whether the compiler
+   leaves the check out where every `Int` of what is written was read as it
+   is (a signal's, a capture's, made by no operation) is the compiler's, a
+   decision of its own: an analysis of where each value comes from, held to
+   the component's answer by the differential test. The rest is the keep
+   loop's pass over the 999 rows, each row's place written (`at`).
+2. **Firefox's cold replace**: 1.48 ms more script than train-33's
+   (1.06..2.18), from this train's first commit on (`t34/press-split.txt`,
+   `ef585c84`: +1.80); its warm one +0.42 (−0.02..0.88), Chromium's +0.10.
+   Its keeping does what train-33's did (a key, a lookup and a row made each;
+   the rows' array pushed rather than made with its length moves nothing,
+   `t34/press-split-pushed.txt`), its record to the frame is not slower
+   (−1.0, −2.0..2.0) and its script is 4.0 ms less than Svelte's. Not
+   traced: Firefox's profiler would say whether its code or its nursery's
+   collections, which fall elsewhere now that the presses before it
+   allocate less, spend it.
+3. **Select and update in Firefox, and under Slow 4G**: Svelte's ahead
+   (Firefox's select +2.0 ms to the frame cold and warm, its update +2.0
+   cold; under Slow 4G warm the update +4.0 and the select +0.7), their
+   script 1.44 (1.38..1.62) and 1.92 (0.94..2.18) ms more in Firefox cold. A
+   select's thousand rows each recompute their class through `computedHold`
+   (an environment spread, a scope, a map, `need` for each input): the
+   page's own code could hold its rows' computed values as it makes them.
+4. **A scavenge inside the swap**: the presses before it fill the young
+   generation (the create 2.3 MB, the update 0.5, the select 2.8, the
+   harness's own among them), and the swap's 224 KiB starts a scavenge of
+   1.2 ms in every cold round (`t34/gc-final.txt`); Svelte's falls in its
+   remove. Less garbage in the select (item 3) would move it.
+5. **The first press on a document that shows a planned list's rows makes
+   every row again**: the host's tokens are not the device's (`k91_1`
+   against a keyed hash), so the morph of the block's first render matches
+   no row by its key and replaces each (`t34/debug_order.sh`: every row's
+   element new after the first press on `/events`). The large list's
+   document shows none, and is not touched; a page whose document shows
+   rows is, once. Either the host writes a device page's top-level rows'
+   tokens as the device does, or the device reads the document's.
+6. **Bytes**: the large list's page alone is 769 B heavier with Brotli than
+   train-33's (+2,032 decoded), the found rows' placing and what the keep
+   loop says of them; 148 of it the few rows' placing. The byte rows are
+   ADR-0434's later steps'.
+7. **The earlier items after train-33**, below: the cold append and Slow 4G's
+   append (its item 2) are unchanged by this step; train-32's fourth, the
+   swap and the remove, done here.
+
 ## After train-33, 2026-11-12
 
 A planned row that is one element is its own anchor (ADR-0438): where the
