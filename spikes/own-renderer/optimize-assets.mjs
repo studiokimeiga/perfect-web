@@ -127,17 +127,9 @@ async function ownRowsOf(directory, uses) {
   const base = path.join(directory, "build");
   const text = await readIfThere(path.join(base, "templates.json"));
   if (text === null) return none;
-  const templates = JSON.parse(text);
-  const entries = [];
-  for (const name of (await readdir(path.join(base, "pages")).catch(() => [])).sort()) {
-    if (!name.endsWith(".json")) continue;
-    const plan = JSON.parse(await readFile(path.join(base, "pages", name), "utf8"));
-    if (!onTheDevice(plan)) continue;
-    const page = name.slice(0, -".json".length);
-    const template = templates.find((t) => t.path === page);
-    if (!template) return none;
-    entries.push(...pageLists(page, template.chunks, plan));
-  }
+  const pages = await devicePages(base, JSON.parse(text));
+  if (pages === null) return none;
+  const entries = pages.flatMap(({ page, template, plan }) => pageLists(page, template.chunks, plan));
   const own = ownRows(entries);
   for (const { template, part, why } of own.refused) {
     process.stderr.write(`pw packaging: list ${part} of ${template} is kept by the general code: ${why}\n`);
@@ -163,27 +155,39 @@ async function rowAnchors(directory, uses) {
   const text = await readIfThere(file);
   if (text === null) return [];
   const templates = JSON.parse(text);
+  const pages = await devicePages(base, templates);
+  if (pages === null) return [];
+  const lists = pages.flatMap(({ page, template, plan }) => pageLists(page, template.chunks, plan));
   const anchored = [];
-  for (const name of (await readdir(path.join(base, "pages")).catch(() => [])).sort()) {
-    if (!name.endsWith(".json")) continue;
+  for (const { template: page, list } of lists) {
+    if (!planned(list)) continue;
+    const why = rowElement(list.body);
+    if (why !== null) {
+      process.stderr.write(`pw packaging: list ${list.id} of ${page} keeps its rows' comments: ${why}\n`);
+      continue;
+    }
+    list.row_anchor = "element";
+    anchored.push({ template: page, part: list.id });
+  }
+  if (anchored.length > 0) await writeFile(file, `${JSON.stringify(templates)}\n`);
+  return anchored;
+}
+
+/** **Each page of a build that runs on the device** (`onTheDevice`), by its
+ * name's order, with its plan and its template of `templates`; `null` where
+ * one has no template, which no build writes. */
+async function devicePages(base, templates) {
+  const pages = [];
+  const names = (await readdir(path.join(base, "pages")).catch(() => [])).filter((n) => n.endsWith(".json")).sort();
+  for (const name of names) {
     const plan = JSON.parse(await readFile(path.join(base, "pages", name), "utf8"));
     if (!onTheDevice(plan)) continue;
     const page = name.slice(0, -".json".length);
     const template = templates.find((t) => t.path === page);
-    if (!template) return [];
-    for (const { list } of pageLists(page, template.chunks, plan)) {
-      if (!planned(list)) continue;
-      const why = rowElement(list.body);
-      if (why !== null) {
-        process.stderr.write(`pw packaging: list ${list.id} of ${page} keeps its rows' comments: ${why}\n`);
-        continue;
-      }
-      list.row_anchor = "element";
-      anchored.push({ template: page, part: list.id });
-    }
+    if (!template) return null;
+    pages.push({ page, plan, template });
   }
-  if (anchored.length > 0) await writeFile(file, `${JSON.stringify(templates)}\n`);
-  return anchored;
+  return pages;
 }
 
 /** `source` with its page's own lists where it holds a place for them, and
