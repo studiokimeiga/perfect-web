@@ -191,7 +191,7 @@ MUTANTS = [
     ("new rows among rows in order are put in before the last of them", "rows", RUNTIME,
      "    hi = matched === n ? n : places.lastIndexOf(-1) + 1;\n", "    hi = matched === n ? n : places.lastIndexOf(-1);\n"),
     ("rows gone are left where none stays", "rows", RUNTIME,
-     "    if (!PW_DIALOGS) rowsAllGone(range);\n", ""),
+     "    if (!PW_DIALOGS) rowsAllGone(range);\n    else for (const row of a) rowGone(shown.get(row.key));\n", ""),
     ("a row made again is left as it was", "rows", RUNTIME,
      "    if (rowDiffers(old, b[i])) changed.push([shown.get(b[i].key), b[i], old]);\n", ""),
     ("rows out of their order are left there", "rows", RUNTIME,
@@ -216,9 +216,11 @@ MUTANTS = [
     ("new rows go in at the list's end", "rows", RUNTIME,
      "    parent.insertBefore(rowsNew(b.slice(first, i + 1), plan, shown, inserted), anchor);\n",
      "    parent.insertBefore(rowsNew(b.slice(first, i + 1), plan, shown, inserted), range.end);\n"),
-    ("a new row at the end is one in its place", "rows", RUNTIME,
-     "  while (hi > lo && places[hi - 1] >= lo && places[hi - 1] === hi - 1 + m - n) hi--;\n",
-     "  while (hi > lo && places[hi - 1] === hi - 1 + m - n) hi--;\n"),
+    # Not a control: the end trim's guard against a new row (`places[hi - 1]
+    # >= lo`) moves no list out of order's trim. A new row there, at `n - m`,
+    # would have every row of the last render after it, in order, and every
+    # row before it new: a list in order, which is not trimmed so
+    # (t34/equivalence.mjs, 181,252 lists).
     ("a new row's place counts among those that stay", "contract", RUNTIME, "    if (value < 0) continue;\n", ""),
     ("a place past the run's last starts it again", "contract", RUNTIME, "    let low = length;\n", "    let low = 0;\n"),
     ("the run kept is its first", "contract", RUNTIME,
@@ -242,8 +244,9 @@ MUTANTS = [
      "        for (let f = Math.min(i, p) + 1; f < Math.max(i, p); f++) {\n"),
     ("the fewest found are not kept", "contract", RUNTIME,
      "    if (moved.length < fewest.length) fewest = moved;\n", ""),
-    ("the rows to move are not in order", "contract", RUNTIME,
-     "  return fewest.sort((x, y) => x - y);\n", "  return fewest;\n"),
+    # Not a control: `fewMoved`'s answer is in order before its sort, which
+    # the placing keeps as its guard (t34/equivalence.mjs, 2,000,000 lists of
+    # two to four rows out of their places).
     ("rows found by their keys are said few out of their places", "contract", RUNTIME,
      "  return { places, matched, sorted, remade, gone, displaced: null };\n", "  return { places, matched, sorted, remade, gone, displaced: [] };\n"),
     # -- what is refused
