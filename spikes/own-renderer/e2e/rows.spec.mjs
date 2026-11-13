@@ -1051,3 +1051,18 @@ test("a row moved keeps what has focus inside it, and one moved past it leaves i
   expect(await page.evaluate(() => document.activeElement?.id ?? null)).toBe("field");
   expect(page.errors).toEqual([]);
 });
+
+test("a list a block shows a second time is put in whole, its rows found among none the document shows", async ({ page }) => {
+  // Its own code kept the rows it showed the first time; the document holds
+  // none of them now, so they are found by their keys among none, and each
+  // is new (ADR-0439).
+  await open(page, "/events");
+  for (let round = 0; round < 2; round++) {
+    await page.click("#hide-again");
+    await expect(page.locator("#again li")).toHaveCount(0);
+    await page.click("#show-again");
+    await expect(page.locator("#again li")).toHaveCount(20);
+  }
+  expect(await page.locator("#again li").allTextContents()).toEqual(Array.from({ length: 20 }, (_, i) => String(i)));
+  expect(page.errors).toEqual([]);
+});

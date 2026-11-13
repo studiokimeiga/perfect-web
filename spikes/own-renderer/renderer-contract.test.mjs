@@ -236,13 +236,15 @@ test("rows found by their keys are each at its place among the rows before, or n
     const places = b.map((row) => at.get(row.key) ?? -1);
     assert.deepEqual([...said.places], places, JSON.stringify({ a: a.length, b: b.map((r) => r.key) }));
     const now = new Set(b.map((row) => row.key));
-    assert.deepEqual([...said.taken], a.map((row) => (now.has(row.key) ? 1 : 0)));
-    assert.equal(said.matched, a.filter((row) => now.has(row.key)).length);
+    const matched = a.filter((row) => now.has(row.key)).length;
+    assert.equal(said.matched, matched);
+    // Those of `a` it does not hold, where it holds some.
+    assert.deepEqual([...said.gone], matched > 0 ? a.flatMap((row, j) => (now.has(row.key) ? [] : [j])) : []);
     const stay = places.filter((p) => p >= 0);
     assert.equal(said.sorted, stay.every((p, k) => k === 0 || stay[k - 1] < p));
     assert.deepEqual([...said.remade], places.flatMap((p, i) => (p >= 0 && b[i] !== a[p] ? [i] : [])));
   }
   // Shown the first time: every row new, none looked for.
   const first = foundByKeys([], [{ key: "a" }, { key: "b" }]);
-  assert.deepEqual([[...first.places], first.matched, first.sorted, [...first.remade]], [[-1, -1], 0, true, []]);
+  assert.deepEqual([[...first.places], first.matched, first.sorted, [...first.remade], [...first.gone]], [[-1, -1], 0, true, [], []]);
 });

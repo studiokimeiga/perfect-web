@@ -119,11 +119,13 @@ MUTANTS = [
     ("a row at its place is not found by its item", "agreement", OWN,
      "      let o = i < m ? old[i] : undefined;\n", "      let o;\n"),
     ("a row found by its key is at the place of the one it replaces", "agreement", OWN,
-     "          j = o.at;\n", ""),
-    ("the rows of a render are not told their places", "agreement", OWN,
-     "    for (let i = 0; i < n; i++) rows[i].at = i;\n", ""),
+     "          j = old[o.at] === o ? o.at : old.indexOf(o);\n", ""),
+    ("a row's place is read as written though a render refused since wrote over it", "agreement", OWN,
+     "          j = old[o.at] === o ? o.at : old.indexOf(o);\n", "          j = o.at;\n"),
     ("a key gone is still looked up", "agreement", OWN,
-     "      if (matched < m) for (let j = 0; j < m; j++) if (taken[j] === 0) byKey.delete(own.key(old[j].item));\n", ""),
+     "          byKey.delete(own.key(old[j].item));\n", ""),
+    ("a row gone is not said", "agreement", OWN,
+     "          gone.push(j);\n          byKey.delete(own.key(old[j].item));\n", "          byKey.delete(own.key(old[j].item));\n"),
     ("a row made is not looked up by its key after", "agreement", OWN,
      "      if (made !== null) for (const [key, row] of made) byKey.set(key, row);\n", ""),
     ("a list none of whose rows stays keeps the keys of the last", "agreement", OWN,
@@ -159,6 +161,8 @@ MUTANTS = [
      "      if (j === undefined) continue;\n      places[i] = j;\n", "      if (j === undefined) continue;\n"),
     ("a row found by its key is not taken", "contract", RUNTIME,
      "      places[i] = j;\n      taken[j] = 1;\n", "      places[i] = j;\n"),
+    ("a list found by its keys says none gone", "contract", RUNTIME,
+     "    if (matched > 0 && matched < a.length) for (let j = 0; j < a.length; j++) if (taken[j] === 0) gone.push(j);\n", ""),
     ("rows found by their keys are in order whatever their places", "contract", RUNTIME,
      "      if (j < last) sorted = false;\n      else last = j;\n      if (b[i] !== a[j]) remade.push(i);\n",
      "      last = j;\n      if (b[i] !== a[j]) remade.push(i);\n"),
@@ -169,7 +173,11 @@ MUTANTS = [
     ("a build with a list of the general code's holds no general placing", "packaging", PACKAGING,
      '    if (!own.unowned) out = out.replace(GENERAL_LINES, "");\n', '    out = out.replace(GENERAL_LINES, "");\n'),
     ("rows gone are left where some stay", "rows", RUNTIME,
-     "      if (taken[j] === 1) continue;\n      rowGone(shown.get(a[j].key));\n      shown.delete(a[j].key);\n", "      if (taken[j] === 1) continue;\n"),
+     "      rowGone(shown.get(a[j].key));\n      shown.delete(a[j].key);\n", ""),
+    ("new rows among rows in order are put in after the first of them", "rows", RUNTIME,
+     "    lo = matched === n ? n : places.indexOf(-1);\n", "    lo = matched === n ? n : places.indexOf(-1) + 1;\n"),
+    ("new rows among rows in order are put in before the last of them", "rows", RUNTIME,
+     "    hi = matched === n ? n : places.lastIndexOf(-1) + 1;\n", "    hi = matched === n ? n : places.lastIndexOf(-1);\n"),
     ("rows gone are left where none stays", "rows", RUNTIME,
      "    if (!PW_DIALOGS) rowsAllGone(range);\n", ""),
     ("a row made again is left as it was", "rows", RUNTIME,
@@ -182,7 +190,7 @@ MUTANTS = [
      "      rowMoved(parent, between(nodes[0], nodes[1]), anchor);\n      REPORT:", "      rowMoved(parent, between(nodes[0], nodes[1]), anchor.nextSibling);\n      REPORT:"),
     ("a row moved that holds what has focus loses it", "focus", RUNTIME,
      "  if (ATOMIC_MOVE || (active !== null && nodes.some((n) => n.contains(active)))) {\n", "  if (ATOMIC_MOVE) {\n"),
-    ("a row moved is put where it goes before the one after it", "rows", RUNTIME,
+    ("a row moved is put where it goes before the one after it", "focus", RUNTIME,
      "  for (const node of nodes) parent.insertBefore(node, anchor);\n}\n\n/** **What a list's own code would have found",
      "  for (const node of nodes) parent.insertBefore(node, anchor.nextSibling);\n}\n\n/** **What a list's own code would have found"),
     ("new rows go in at the list's end", "rows", RUNTIME,
@@ -344,8 +352,9 @@ def rows():
 
 def focus():
     """A row moved that holds what has focus, where the engine moves no node
-    whole (ADR-0439): the rows suite's test of it in Firefox and WebKit, on
-    the production builds as they are served."""
+    whole (ADR-0439): the rows suite's test of it in WebKit, which has no
+    `moveBefore` (Chromium and Firefox have), on the production builds as
+    they are served."""
     _, code = bounded(["cargo", "build", "--quiet", "--locked", "-p", "pw-dev-server"], cwd=ROOT)
     if code != 0:
         return False, 0, 0
@@ -355,7 +364,7 @@ def focus():
         if code != 0:
             return False, 0, 0
     out, code = bounded(["pnpm", "exec", "playwright", "test", "e2e/rows.spec.mjs", "--grep", "keeps what has focus inside it",
-                         "--project=firefox", "--project=webkit", "--reporter=line"],
+                         "--project=webkit", "--reporter=line"],
                         cwd=ROOT / "spikes/own-renderer", env=env)
     if code is None:
         return True, 0, 1

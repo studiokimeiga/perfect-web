@@ -3786,16 +3786,18 @@ function rowsPlaced(a, b, places, shown, plan, range, inserted) {
 
 // own rows: **Rows placed by what the page's own code found** (ADR-0439):
 // each row's place among the rows the document shows, -1 for a key none of
-// them has (`places`), which of those it holds (`taken`, `matched`), whether
-// the places of the rows that stay increase (`sorted`), and the rows made
-// again (`remade`). Those gone are taken out, at once where none stays;
-// those made again set where they differ; where the rows that stay are out
-// of their order, as few moved as leave the rest in it (`stayingIn`), from
-// the first row out of its place to the last; and the new ones put in,
-// those side by side as one. A row is looked up by its key only to be moved,
-// or as what one moved or put in goes before.
+// them has (`places`), how many of those it holds (`matched`) and those it
+// does not (`gone`, where it holds some), whether the places of the rows
+// that stay increase (`sorted`), and the rows made again (`remade`). Those
+// gone are taken out, at once where none stays; those made again set where
+// they differ; where the rows that stay are out of their order, as few moved
+// as leave the rest in it (`stayingIn`), from the first row out of its place
+// to the last; and the new ones put in, those side by side as one, where
+// they are in order looked for from the end as far as the first of them. A
+// row is looked up by its key only to be moved, or as what one moved or put
+// in goes before.
 function rowsFound(a, b, now, shown, plan, range, inserted) {
-  const { places, taken, matched, sorted, remade } = now;
+  const { places, matched, sorted, remade, gone } = now;
   const m = a.length;
   const n = b.length;
   REPORT: window.__pw.found = (window.__pw.found ?? 0) + 1;
@@ -3805,9 +3807,8 @@ function rowsFound(a, b, now, shown, plan, range, inserted) {
     else for (const row of a) rowGone(shown.get(row.key));
     shown.clear();
     REPORT: log.push(`rows replaced: ${m} gone`);
-  } else if (matched < m) {
-    for (let j = 0; j < m; j++) {
-      if (taken[j] === 1) continue;
+  } else {
+    for (const j of gone) {
       rowGone(shown.get(a[j].key));
       shown.delete(a[j].key);
     }
@@ -3819,11 +3820,17 @@ function rowsFound(a, b, now, shown, plan, range, inserted) {
   }
   if (PW_PLANS) rowsChanged(changed, plan, inserted);
   else rowsMorphed(changed, inserted);
-  // The rows in their places at either end, as many as are: none of them moves.
+  // The rows in their places at either end, as many as are: none of them
+  // moves. In order, every row is: only the new ones are looked for.
   let lo = 0;
-  while (lo < n && places[lo] === lo) lo++;
   let hi = n;
-  while (hi > lo && places[hi - 1] >= lo && places[hi - 1] === hi - 1 + m - n) hi--;
+  if (sorted) {
+    lo = matched === n ? n : places.indexOf(-1);
+    hi = matched === n ? n : places.lastIndexOf(-1) + 1;
+  } else {
+    while (lo < n && places[lo] === lo) lo++;
+    while (hi > lo && places[hi - 1] >= lo && places[hi - 1] === hi - 1 + m - n) hi--;
+  }
   const stays = sorted ? null : stayingIn(places, lo, hi);
   const parent = range.end.parentNode;
   // The row after the one being placed, and what it begins with, once a row
@@ -3876,12 +3883,14 @@ function rowMoved(parent, nodes, anchor) {
 
 /** **What a list's own code would have found, found by the rows' keys**
  * (`rowsFound`): each row's place among `a`, -1 for a key none of them has,
- * which of them it holds, whether the places of those that stay increase,
- * and the rows made again. A list shown the first time looks for none. */
+ * how many of them it holds and, where it holds some, those it does not,
+ * whether the places of those that stay increase, and the rows made again.
+ * A list shown the first time looks for none. */
 function foundByKeys(a, b) {
   const places = new Int32Array(b.length).fill(-1);
   const taken = new Uint8Array(a.length);
   const remade = [];
+  const gone = [];
   let matched = 0;
   let last = -1;
   let sorted = true;
@@ -3898,8 +3907,9 @@ function foundByKeys(a, b) {
       else last = j;
       if (b[i] !== a[j]) remade.push(i);
     }
+    if (matched > 0 && matched < a.length) for (let j = 0; j < a.length; j++) if (taken[j] === 0) gone.push(j);
   }
-  return { places, taken, matched, sorted, remade };
+  return { places, matched, sorted, remade, gone };
 }
 
 /** **The rows from `lo` to `hi` that need not move** (`rowsFound`), marked:

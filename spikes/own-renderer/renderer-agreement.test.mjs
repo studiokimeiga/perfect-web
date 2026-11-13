@@ -1085,8 +1085,9 @@ const rowsBy = (block) => new Map(block.lists.flatMap((list, k) => list.rows.map
  * **What a list's own code says it found** (ADR-0439), held to what the
  * rows' keys say of the rows it found them among (`from`, its rows at its
  * last render): each row's place there, or -1 where none had its key
- * (`places`); which rows there one of these is (`taken`), and how many
- * (`matched`); whether the places of the rows that stay increase (`sorted`);
+ * (`places`); which rows there one of these is (`taken`), how many
+ * (`matched`), and, where it holds some, those it does not (`gone`); whether
+ * the places of the rows that stay increase (`sorted`);
  * and the rows made again, a row of their key there and not that row
  * (`remade`). The runtime places the rows by these alone, looking no key up.
  * And of `items`, the list's items at this render: each whose row of the
@@ -1107,6 +1108,10 @@ function foundAgree(list, at, items) {
   const taken = [...from].map((row) => (now.has(row.key) ? 1 : 0));
   assert.deepEqual([...(list.taken ?? [])], taken, `which rows of its last render it holds: ${at}`);
   assert.equal(list.matched, taken.filter((t) => t === 1).length, `how many rows of its last render it holds: ${at}`);
+  // Those it does not hold, where it holds some: where it holds none, every
+  // row goes at once.
+  const gone = list.matched > 0 ? taken.flatMap((t, j) => (t === 0 ? [j] : [])) : [];
+  assert.deepEqual([...(list.gone ?? [])], gone, `the rows of its last render gone: ${at}`);
   const stay = places.filter((p) => p >= 0);
   const sorted = stay.every((p, k) => k === 0 || stay[k - 1] < p);
   assert.equal(list.sorted, sorted, `whether the rows that stay are in their order: ${at}`);

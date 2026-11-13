@@ -674,7 +674,7 @@ const OWN_KEPT = `(own, p, e, others, items) => {
     let last = -1;
     let sorted = true;
     for (let i = 0; i < n; i++) {
-      const item = opened(items[i]);
+      const item = PW_GRAPHS ? opened(items[i]) : items[i];
       let j = i;
       let o = i < m ? old[i] : undefined;
       if (o === undefined || o.item !== item) {
@@ -689,7 +689,9 @@ const OWN_KEPT = `(own, p, e, others, items) => {
         if (made !== null && made.has(key)) throw new Blocked("DuplicateLoopKey", key);
         o = was?.byKey.get(key);
         if (o !== undefined) {
-          j = o.at;
+          // Its place at the last render, as that render wrote it; one a
+          // render refused since wrote over is looked for.
+          j = old[o.at] === o ? o.at : old.indexOf(o);
           if (taken[j] === 1) throw new Blocked("DuplicateLoopKey", key);
         }
       }
@@ -697,6 +699,7 @@ const OWN_KEPT = `(own, p, e, others, items) => {
         places[i] = -1;
         const row = own.make(p, e, others, item, key);
         (made ??= new Map()).set(key, row);
+        row.at = i;
         rows[i] = row;
         continue;
       }
@@ -706,22 +709,30 @@ const OWN_KEPT = `(own, p, e, others, items) => {
       if (j < last) sorted = false;
       else last = j;
       if ((clean && o.item === item) || own.still(o, item, e, p)) {
+        o.at = i;
         rows[i] = o;
         continue;
       }
       key ??= own.key(item);
       const row = own.make(p, e, others, item, key);
       (made ??= new Map()).set(key, row);
+      row.at = i;
       rows[i] = row;
       remade.push(i);
     }
     let byKey = was?.byKey;
+    const gone = [];
     if (matched === 0) byKey = made ?? new Map();
     else {
-      if (matched < m) for (let j = 0; j < m; j++) if (taken[j] === 0) byKey.delete(own.key(old[j].item));
+      if (matched < m) {
+        for (let j = 0; j < m; j++) {
+          if (taken[j] === 1) continue;
+          gone.push(j);
+          byKey.delete(own.key(old[j].item));
+        }
+      }
       if (made !== null) for (const [key, row] of made) byKey.set(key, row);
     }
-    for (let i = 0; i < n; i++) rows[i].at = i;
     kept.set(p.id, { rows, byKey, page: e.page });
-    return { part: p.id, rows, of: p, from: old, places, taken, matched, sorted, remade, keyed };
+    return { part: p.id, rows, of: p, from: old, places, taken, matched, sorted, remade, keyed, gone };
   }`;
