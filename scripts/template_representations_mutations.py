@@ -67,7 +67,8 @@ MUTANTS = [
 CARGO = {
     "core": ["cargo", "test", "--quiet", "--locked", "-p", "pw-core",
              "--test", "template_representations", "--", "--format=pretty"],
-    "host": ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--",
+    "host": ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server",
+             "--bin", "pw-dev-server", "--",
              "an_opaque_values_representation", "--format=pretty"],
 }
 SOURCES = {

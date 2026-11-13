@@ -156,6 +156,7 @@ CARGO = {
     "templates": ["cargo", "test", "--quiet", "--locked", "-p", "pw-core",
              "--test", "template_values", "--", "--format=pretty"],
     "host": ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server",
+             "--bin", "pw-dev-server",
              "--", "a_condition_", "from_a_signal", "--format=pretty"],
 }
 NAMES = {

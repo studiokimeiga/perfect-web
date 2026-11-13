@@ -140,6 +140,20 @@ What is left: the full verify at this train's head, every recipe and the
 three browser suites, and its fetch; and, under "Depends on", the deploy
 track's production allow-list for `/bench/*` (L6, ADR-0396).
 
+**Its first full verify** (43310750773, at `e1133034`) passed the three
+browser suites and 353 of its 356 recipes. The other three were strict
+mutation scripts refusing their own baselines, as they must:
+`computed_conditions_mutations.py`, `template_representations_mutations.py`
+and `upload_metadata_mutations.py` ran `cargo test -p pw-dev-server --
+<filter>`, which runs every test binary of the server, and this train's
+`tests/durable_tables.rs` is a second one. Its summary (`0 passed; 1
+filtered out`) gave each command two, where `cargo_assertion_results`
+accepts one inventory a command. Each now names its binary, `--bin
+pw-dev-server`, as every other strict script of the server already did
+(`command_deadline`, `data_path`, `durable_tables`, `upload_authority` and
+nine more). The train lands with trains 31 to 33 (ADR-0436 to ADR-0438),
+merged onto it, under one full verify at their head.
+
 ## Context
 
 - **Two pieces, not joined.** `data-path` serves the guide's guestbook with
