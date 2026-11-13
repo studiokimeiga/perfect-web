@@ -1,8 +1,8 @@
 ADR-0209 - a command computes the entries it invalidates
 
 produced by: just e14-command-invalidations
-commit: a3cab774e9569baddae69bd0d294487eaa3b697e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the command's component (compiler/pw-conformance/tests/invalidations.rs)
@@ -10,7 +10,7 @@ rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 test a_command_leaves_a_position_to_every_value ... ok
 test its_contract_imports_the_invalidations_under_the_outbox ... ok
 test a_command_computes_the_entries_it_invalidates ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
 
 == the store's commands, against their references
 
@@ -20,17 +20,17 @@ test the_kiokun_search_agrees_with_its_reference ... ok
 test the_oracle_notices_a_reference_that_is_wrong ... ok
 test the_stores_queries_agree_with_their_reference ... ok
 test the_stores_commands_agree_with_their_reference ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.62s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 13.48s
 
 == the server's drops
 
 test tests::an_invalidated_entry_is_dropped_by_the_key_the_command_computed ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1094 filtered out; finished in 7.19s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1094 filtered out; finished in 9.12s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
 
 == the store's artifacts, as the compiler emits them
 
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.77s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.25s
 
 == mutation controls (scripts/command_invalidations_mutations.py)
 

@@ -1,8 +1,8 @@
 ADR-0085 - a call carries what it is given
 
 produced by: just e10-labels-through-plain-values
-commit: a3cab774e9569baddae69bd0d294487eaa3b697e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == labels through plain values (compiler/pw-core/tests/labels_through_plain_values.rs)
@@ -10,7 +10,7 @@ rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 test an_element_a_secret_chooses_carries_its_label ... ok
 test a_parameter_that_states_a_label_keeps_its_contract ... ok
 test a_string_function_carries_what_it_is_given ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.91s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.43s
 
 == mutation controls (scripts/label_plain_mutations.py)
 

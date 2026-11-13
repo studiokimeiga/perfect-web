@@ -2,27 +2,27 @@ ADR-0055 - slicing, and the standard library's placeholders computed
 ADR-0422 - the numbers from one to another are a list
 
 produced by: just e10-slices
-commit: a3cab774e9569baddae69bd0d294487eaa3b697e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
 == against Vec and str (compiler/pw-conformance/tests/stdlib.rs)
 
-test group_by_finds_runs_of_equal_keys ... ok
 test an_int_becomes_the_nearest_float ... ok
+test group_by_finds_runs_of_equal_keys ... ok
 test ranges_agree_with_rust_and_a_range_too_long_traps_for_its_cause ... ok
 test indexing_taking_and_joining_lists ... ok
 test joining_strings_and_functions_by_name ... ok
 test records_are_sorted_stably_and_built_in_lists ... ok
-test sum_and_maximum_compute ... ok
 test slices_drops_and_reversals_agree_with_vec_and_str ... ok
-test swaps_agree_with_vec_and_a_place_outside_leaves_the_list ... ok
+test sum_and_maximum_compute ... ok
 test string_operations_agree_with_str ... ok
-test list_operations_agree_with_vec ... ok
+test swaps_agree_with_vec_and_a_place_outside_leaves_the_list ... ok
 test text_is_rebuilt_from_code_points_and_bad_ones_trap ... ok
+test list_operations_agree_with_vec ... ok
 test what_stays_outside_is_refused_by_name ... ok
-test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.79s
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.78s
 
 == the component and the JavaScript module, on the same arguments
 

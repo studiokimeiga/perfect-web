@@ -1081,10 +1081,65 @@ function answerOf(fn) {
 /** Every row of `block` by its list and key. */
 const rowsBy = (block) => new Map(block.lists.flatMap((list, k) => list.rows.map((row) => [`${k}|${row.key}`, row])));
 
+/**
+ * **What a list's own code says it found** (ADR-0439), held to what the
+ * rows' keys say of the rows it found them among (`from`, its rows at its
+ * last render): each row's place there, or -1 where none had its key
+ * (`places`); which rows there one of these is (`taken`), how many
+ * (`matched`), and, where it holds some, those it does not (`gone`); whether
+ * the places of the rows that stay increase (`sorted`);
+ * and the rows made again, a row of their key there and not that row
+ * (`remade`). The runtime places the rows by these alone, looking no key up.
+ * And of `items`, the list's items at this render: each whose row of the
+ * last render is at its place, or as far from the list's end, is found
+ * there, by its item, and no other is (`keyed`, the rows looked for by their
+ * keys). Returns what it held: whether any row moved, went, or was made
+ * again.
+ */
+function foundAgree(list, at, items) {
+  const from = list.from;
+  assert.ok(from && typeof from.length === "number", `a list its own code keeps says what it found its rows among: ${at}`);
+  // Each array read into one of this realm, as the renderer's are its own.
+  const rows = [...list.rows];
+  const before = new Map([...from].map((row, j) => [row.key, j]));
+  const places = rows.map((row) => before.get(row.key) ?? -1);
+  assert.deepEqual([...(list.places ?? [])], places, `each row's place at its list's last render: ${at}`);
+  const now = new Set(rows.map((row) => row.key));
+  const taken = [...from].map((row) => (now.has(row.key) ? 1 : 0));
+  assert.deepEqual([...(list.taken ?? [])], taken, `which rows of its last render it holds: ${at}`);
+  assert.equal(list.matched, taken.filter((t) => t === 1).length, `how many rows of its last render it holds: ${at}`);
+  // Those it does not hold, where it holds some: where it holds none, every
+  // row goes at once.
+  const gone = list.matched > 0 ? taken.flatMap((t, j) => (t === 0 ? [j] : [])) : [];
+  assert.deepEqual([...(list.gone ?? [])], gone, `the rows of its last render gone: ${at}`);
+  const stay = places.filter((p) => p >= 0);
+  const sorted = stay.every((p, k) => k === 0 || stay[k - 1] < p);
+  assert.equal(list.sorted, sorted, `whether the rows that stay are in their order: ${at}`);
+  const remade = places.flatMap((p, i) => (p >= 0 && rows[i] !== from[p] ? [i] : []));
+  assert.deepEqual([...(list.remade ?? [])], remade, `the rows made again: ${at}`);
+  // Where the list has as many rows as it had and holds each, those out of
+  // their places, while they are four at most: the runtime looks among them
+  // alone for the rows to move.
+  const out = places.flatMap((p, i) => (p !== i ? [i] : []));
+  const displaced = rows.length === from.length && list.matched === rows.length && out.length <= 4 ? out : null;
+  assert.ok(list.displaced === null || Array.isArray(list.displaced), `says which rows are out of their places, or that it does not: ${at}`);
+  assert.deepEqual(list.displaced === null ? null : [...list.displaced], displaced, `the rows out of their places: ${at}`);
+  // A graph's item is the tree read from it, which this realm does not see.
+  if (Array.isArray(items) && !items.some((v) => typeof v === "object" && v !== null && "$graph" in v)) {
+    const [m, n] = [from.length, items.length];
+    const there = items.filter((v, i) => from[i]?.item === v || (i + m - n >= 0 && from[i + m - n]?.item === v)).length;
+    assert.equal(list.keyed, n - there, `the rows looked for by their keys, none found by its item: ${at}`);
+  }
+  return { moved: !sorted, gone: taken.includes(0), remade: remade.length > 0, kept: places.some((p, i) => p >= 0 && rows[i] === from[p]), few: !sorted && displaced !== null };
+}
+
 /** **Each request rendered by both**, the page's own code and the general
  * code, twice, the second time over values changed a little: the same rows,
- * the same refusals, the same text and captures, the same rows kept. */
-function ownAgree(requests, computes = new Map(), functions = null) {
+ * the same refusals, the same text and captures, the same rows kept; and what
+ * the page's own code says it found, held to the rows' keys (`foundAgree`).
+ * `rounds` and `next` render each more times, over the values `next` gives
+ * after each. */
+function ownAgree(requests, computes = new Map(), functions = null, { rounds = 2, next = null } = {}) {
   const entries = [];
   for (const [, request] of requests) {
     const names = new Set(Object.keys(request.values ?? {}));
@@ -1098,7 +1153,7 @@ function ownAgree(requests, computes = new Map(), functions = null) {
     general.rowsComputed(functions, asked);
   }
   const written = new Set(own.written.map((w) => w.part));
-  const held = { written: written.size, refusedLists: own.refused.length, rows: 0, own: 0, kept: 0, refused: 0, why: {} };
+  const held = { written: written.size, refusedLists: own.refused.length, rows: 0, own: 0, kept: 0, refused: 0, why: {}, found: 0, moved: 0, few: 0, gone: 0, remade: 0, keptFound: 0, last: 0 };
   // Why the packaging refused what it refused, by the start of what it says.
   for (const { why } of own.refused) {
     const said = why.split(" ").slice(0, 5).join(" ");
@@ -1110,7 +1165,10 @@ function ownAgree(requests, computes = new Map(), functions = null) {
     const r = random(7_000_000 + i);
     let values = request.values ?? {};
     let before = [null, null];
-    for (let round = 0; round < 2; round++) {
+    // Each list its own code keeps, its rows at the render before, where
+    // that render showed it and nothing refused since.
+    const last = new Map();
+    for (let round = 0; round < rounds; round++) {
       const at = `${wire({ part: request.part, values })} (render ${round + 1})`;
       const ours = answerOf(() => mine.block(request.part, mine.env(Object.entries(values)), []));
       const theirs = answerOf(() => general.block(request.part, general.env(Object.entries(values)), []));
@@ -1119,6 +1177,8 @@ function ownAgree(requests, computes = new Map(), functions = null) {
         assert.equal(ours[1], theirs[1], `the two refused ${at} differently`);
         held.refused += 1;
         before = [null, null];
+        // A list kept before the render refused keeps what it kept.
+        last.clear();
       } else {
         const [a, b] = [ours[1], theirs[1]];
         assert.deepEqual([...a.strs], [...b.strs], `the block around its lists: ${at}`);
@@ -1158,8 +1218,29 @@ function ownAgree(requests, computes = new Map(), functions = null) {
           }
         }
         before = [rowsBy(a), rowsBy(b)];
+        // What each list its own code keeps says it found (ADR-0439): the
+        // rows of its last render, where the render before showed it, and
+        // none where it is shown the first time.
+        for (const list of a.lists) {
+          if (!written.has(list.part)) continue;
+          if (last.has(list.part)) {
+            assert.equal(list.from, last.get(list.part), `the rows it found its rows among are its last render's: ${at}`);
+            held.last += 1;
+          } else if (round === 0) {
+            assert.equal(list.from?.length, 0, `a list kept the first time found its rows among none: ${at}`);
+          }
+          const said = foundAgree(list, at, readPath(values, list.of.collection));
+          held.found += 1;
+          if (said.moved) held.moved += 1;
+          if (said.few) held.few += 1;
+          if (said.gone) held.gone += 1;
+          if (said.remade) held.remade += 1;
+          if (said.kept) held.keptFound += 1;
+        }
+        last.clear();
+        for (const list of a.lists) if (written.has(list.part)) last.set(list.part, list.rows);
       }
-      values = round === 0 && r.chance(0.5) ? values : perturbed(r, values);
+      values = next ? next(r, values) : round === 0 && r.chance(0.5) ? values : perturbed(r, values);
     }
   };
   requests.forEach(ownAt);
@@ -1235,6 +1316,145 @@ test("a list's own code keeps and makes its rows as the general code does, over 
   const held = ownAgree(plannedRequests(compiledRequests([...COMPILED, ...BUILT])));
   t.diagnostic(`held: ${JSON.stringify(held)}`);
   assert.ok(held.written > 10 && held.own > 50, JSON.stringify(held));
+});
+
+/** A list's item no other is, of the shape of `like`: its id, name and
+ * `r.id` its own, so that a list keyed by any of them takes it. */
+let freshItems = 0;
+function freshItem(r, like) {
+  const n = 1_000_000 + freshItems++;
+  const item = { ...(like && typeof like === "object" && !Array.isArray(like) ? like : {}), id: n, name: `n${n}` };
+  if ("r" in item) item.r = { id: `r${n}` };
+  if (r.chance(0.3) && "on" in item) item.on = !item.on;
+  return item;
+}
+
+/** **A list as a press leaves it** (ADR-0439): its very items, two swapped,
+ * one gone, added, moved, made again or changed, written twice, all
+ * reversed, shuffled, rotated, cleared or replaced, or the list itself. */
+function reordered(r, list) {
+  const out = [...list];
+  const at = (extra = 0) => r.int(out.length + extra);
+  switch (r.int(16)) {
+    case 0:
+      return list;
+    case 1:
+      if (out.length > 1) {
+        const [i, j] = [at(), at()];
+        [out[i], out[j]] = [out[j], out[i]];
+      }
+      return out;
+    case 2:
+      if (out.length) out.splice(at(), 1);
+      return out;
+    case 3:
+      if (out.length > 2) out.splice(at(), 1 + r.int(2));
+      return out;
+    case 4:
+      out.splice(at(1), 0, freshItem(r, out[0]));
+      return out;
+    case 5:
+      if (out.length > 1) {
+        const [moved] = out.splice(at(), 1);
+        out.splice(at(1), 0, moved);
+      }
+      return out;
+    case 6:
+      return out.reverse();
+    case 7:
+      for (let i = out.length - 1; i > 0; i--) {
+        const j = r.int(i + 1);
+        [out[i], out[j]] = [out[j], out[i]];
+      }
+      return out;
+    case 8:
+      return out.length ? [...out.slice(1), out[0]] : out;
+    case 9:
+      return [];
+    case 10:
+      return out.map((item) => freshItem(r, item));
+    case 11:
+      if (out.length) {
+        const i = at();
+        out[i] = typeof out[i] === "object" && out[i] !== null ? { ...out[i] } : out[i];
+      }
+      return out;
+    case 12:
+      if (out.length) {
+        const i = at();
+        out[i] = typeof out[i] === "object" && out[i] !== null ? { ...out[i], name: r.pick(NASTY) } : out[i];
+      }
+      return out;
+    case 13:
+      if (out.length) out.splice(at(1), 0, out[at()]);
+      return out;
+    case 14:
+      return [...out, freshItem(r, out[0]), ...(r.chance(0.5) ? [freshItem(r, out[0])] : [])];
+    default:
+      return [freshItem(r, out[0]), ...out];
+  }
+}
+
+/** **The page's values after a press**: each list's very items reordered,
+ * a value beside them changed now and then, or values changed a little. */
+function pressed(r, values) {
+  if (r.chance(0.15)) return perturbed(r, values);
+  const out = { ...values };
+  for (const [name, v] of Object.entries(values)) if (Array.isArray(v) && r.chance(0.85)) out[name] = reordered(r, v);
+  if (r.chance(0.25)) {
+    const beside = Object.keys(values).filter((k) => !Array.isArray(values[k]));
+    if (beside.length) {
+      const k = r.pick(beside);
+      out[k] = perturbed(r, values[k]);
+    }
+  }
+  return out;
+}
+
+/** Planned lists of as many as forty rows of one shape, a table's as the
+ * large list's is: their keys their own, a row's class read of the page or
+ * of the row, and a handler that captures the row. */
+function longLists(cases) {
+  const requests = [];
+  for (let seed = 1; seed <= cases; seed++) {
+    const r = random(4_000_000 + seed);
+    const items = Array.from({ length: r.int(41) }, (_, id) => ({ id, name: r.pick(NASTY), on: r.chance(0.5) }));
+    const body = [
+      { chunk: "static", value: "<tr " },
+      { chunk: "dynamic", value: { part: "attribute", id: 0, owner: 0, name: "class", value: r.pick(["row.name", "sel", "row.id"]), context: "attribute" } },
+      { chunk: "static", value: "><td>" },
+      { chunk: "dynamic", value: { part: "text", id: 1, value: "row.id", context: "text" } },
+      { chunk: "static", value: "</td><td>" },
+      { chunk: "dynamic", value: { part: "text", id: 2, value: r.pick(["row.name", "note"]), context: "text" } },
+      { chunk: "static", value: "</td><td><button " },
+      { chunk: "dynamic", value: { part: "event", id: 3, owner: 1, event: "press", handler: "h", name: "n", captures: r.chance(0.8) ? ["row.id"] : ["sel"] } },
+      { chunk: "static", value: ">x</button></td></tr>" },
+    ];
+    requests.push(["render_part", { part: { part: "each", id: 900, collection: "list", binding: "row", key: "id", body }, values: { list: items, sel: r.pick([0, 1, "x"]), note: r.pick(NASTY) } }]);
+  }
+  return requests;
+}
+
+test("a list's own code finds its rows where they were, and says what it found as their keys say", (t) => {
+  // Render after render, each list's very items reordered as presses do:
+  // what its own code keeps and makes is the general code's, and what it
+  // says it found is what the rows' keys say (ADR-0439).
+  const held = ownAgree(plannedRequests([...plannedLists(2500), ...rowShapes(1500), ...longLists(800)]), new Map(), null, { rounds: 8, next: pressed });
+  t.diagnostic(`held: ${JSON.stringify(held)}`);
+  assert.ok(held.found > 15_000 && held.last > 12_000, JSON.stringify(held));
+  assert.ok(held.moved > 1_500 && held.few > 600 && held.gone > 1_800 && held.remade > 1_500 && held.keptFound > 7_000 && held.own > 100_000, JSON.stringify(held));
+  assert.ok(held.refused > 1_000, JSON.stringify(held));
+});
+
+test("a list's own code finds its rows where they were as what they compute moves and does not", (t) => {
+  // The large list's kind: a value each row computes from its row and the
+  // page's selection, which the press beside moves or does not.
+  const compute = (row, sel) => (row.id === sel ? "danger" : row.id === 2 ? [row.id] : "");
+  const computes = new Map(COMPUTED_NAMES.map((name) => [name, ["row", "sel"]]));
+  const functions = Object.fromEntries(COMPUTED_NAMES.map((name) => [name, compute]));
+  const held = ownAgree(plannedRequests(computedLists(1200)), computes, functions, { rounds: 8, next: pressed });
+  t.diagnostic(`held: ${JSON.stringify(held)}`);
+  assert.ok(held.found > 3_000 && held.moved > 300 && held.few > 250 && held.gone > 300 && held.keptFound > 1_500, JSON.stringify(held));
 });
 
 const PARTS = [

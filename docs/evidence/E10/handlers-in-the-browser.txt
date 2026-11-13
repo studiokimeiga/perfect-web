@@ -1,15 +1,15 @@
 ADR-0113 - a resumable handler runs in the browser
 
 produced by: just e10-handlers-in-the-browser
-commit: a3cab774e9569baddae69bd0d294487eaa3b697e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == handlers in the browser (compiler/pw-core/tests/handlers_in_the_browser.rs)
 
 test a_handler_performs_only_what_the_browser_may ... ok
 test a_function_named_as_a_handler_performs_only_what_the_browser_may ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.89s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.34s
 
 == mutation controls (scripts/handler_placement_mutations.py)
 

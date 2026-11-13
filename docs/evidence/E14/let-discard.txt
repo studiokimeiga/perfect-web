@@ -1,8 +1,8 @@
 ADR-0250 - let _ discards a value, and an acquisition is held or refused
 
 produced by: just e14-let-discard
-commit: a3cab774e9569baddae69bd0d294487eaa3b697e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the parser (compiler/pw-syntax/src/grammar.rs)
@@ -25,7 +25,7 @@ test a_resources_acquire_clause_holds_its_value ... ok
 test a_resource_kept_in_a_value_or_returned_by_a_function_value_is_refused ... ok
 test a_declaration_gives_its_caller_what_it_declares ... ok
 test an_affine_resource_discarded_is_refused_as_never_consumed ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.62s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.82s
 
 == the Koka translation, and a handler (koka_backend.rs, handlers.rs)
 
@@ -33,11 +33,11 @@ test a_discard_is_kokas_wildcard_val ... ok
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9 filtered out; finished in 0.00s
 test a_handler_that_discards_its_answer_with_underscore_sends_it ... ok
 test a_handler_that_discards_its_answer_by_name_sends_it ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 20 filtered out; finished in 0.04s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 20 filtered out; finished in 0.03s
 
 == the generality witnesses (examples/generality/affine_not_consumed_once)
 
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 209.25s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 104.84s
 
 == mutation controls (scripts/let_discard_mutations.py)
 

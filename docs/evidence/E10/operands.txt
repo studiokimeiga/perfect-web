@@ -1,8 +1,8 @@
 ADR-0043 - operands are typed, and Float.from_int
 
 produced by: just e10-operands
-commit: a3cab774e9569baddae69bd0d294487eaa3b697e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the value relations (compiler/pw-core/tests/value_relations.rs)
@@ -10,12 +10,12 @@ rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 test an_operator_takes_operands_of_the_types_it_takes ... ok
 test an_untyped_operand_is_undecided_not_refused ... ok
 test the_accepted_corpus_disagrees_nowhere_and_decides_a_floor ... ok
-test result: ok. 42 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.51s
+test result: ok. 42 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.57s
 
 == Float.from_int (compiler/pw-conformance/tests/stdlib.rs)
 
 test an_int_becomes_the_nearest_float ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.13s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.14s
 
 == mutation controls (scripts/operand_mutations.py)
 

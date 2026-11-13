@@ -1,8 +1,8 @@
 ADR-0240 - a clause is read once
 
 produced by: just e14-clauses-read-once
-commit: a3cab774e9569baddae69bd0d294487eaa3b697e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the checker (compiler/pw-core/tests/clauses_read_once.rs)
@@ -10,14 +10,14 @@ rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 test an_interfaces_clause_is_parsed_with_its_terms ... ok
 test a_parenthesis_in_a_keys_string_ends_nothing ... ok
 test an_interfaces_keys_are_bound_and_typed ... ok
-test an_interfaces_terms_are_checked_as_any_declarations ... ok
 test the_graph_reads_the_keys_lowering_made ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.72s
+test an_interfaces_terms_are_checked_as_any_declarations ... ok
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.66s
 
 == the committed store graph (pw-cli)
 
 test tests::the_committed_graph_matches_what_the_compiler_emits ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.23s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.19s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.00s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 15 filtered out; finished in 0.00s
@@ -33,7 +33,7 @@ accepted: 49/49 charter §16 categories covered
 rejected: 106 files
 rejected: 106/106 charter §16 categories covered
 corpus-check: OK
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 160.44s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 149.66s
 
 == mutation controls (scripts/clauses_read_once_mutations.py)
 

@@ -3280,6 +3280,7 @@ let rewritten = false;
 
 // --- which rows changed ---
 
+// general rows: the general placing's questions (ADR-0439).
 /** For each index of `b`, the index in `a` of the row with its key, or -1. */
 function placesOf(a, b) {
   const at = new Map(a.map((row, i) => [row.key, i]));
@@ -3307,6 +3308,7 @@ function staying(places) {
   for (let i = tails.length > 0 ? tails[tails.length - 1] : -1; i >= 0; i = before[i]) out.add(i);
   return out;
 }
+// :general rows
 // --- end of which rows changed
 
 /** Each row of list `part` the document holds, by its key: its two anchors,
@@ -3406,6 +3408,7 @@ function rowsParsed(rows, shown, inserted) {
   return content;
 }
 
+// general rows: the general placing's (ADR-0439).
 /** The nodes of one row put before `anchor`, from wherever they are. */
 function rowPut(parent, [start, end], anchor) {
   for (let n = start; ; ) {
@@ -3415,6 +3418,7 @@ function rowPut(parent, [start, end], anchor) {
     n = next;
   }
 }
+// :general rows
 
 // --- rows a plan makes ---
 
@@ -3697,6 +3701,15 @@ function listMade(was, now, inserted, range = index.get(addressOf([], now.part))
   now.nodes = shown;
   const a = was.rows;
   const b = now.rows;
+  // own rows: **rows the page's own code found** (ADR-0439), among the rows
+  // the document shows: placed by what it found, no key looked up; found by
+  // their keys where it found them among others (a block shown again, the
+  // document's rows). Where every list is the page's own, this is how each
+  // is placed, and a build holds no other placing.
+  if (PW_OWN && (!PW_UNOWNED || now.from !== undefined)) return rowsFound(a, b, now.from === a ? now : foundByKeys(a, b), shown, plan, range, inserted);
+  // :own rows
+  // general rows: **the general placing** (ADR-0439), which a build every
+  // list of which is its page's own does not hold.
   // **Each row where it was, and any new ones after them** (ADR-0432): an
   // update, a list made from none, rows added at its end. The rows there are
   // changed in place, and the new ones go in after them as one: no row is
@@ -3722,8 +3735,10 @@ function listMade(was, now, inserted, range = index.get(addressOf([], now.part))
   if (b.length > kept) range.end.parentNode.insertBefore(rowsNew(b.slice(kept), plan, shown, inserted), range.end);
   REPORT: log.push(`rows in order: ${changed.length} changed, ${b.length - kept} added`);
   return true;
+  // :general rows
 }
 
+// general rows: the general placing (ADR-0439).
 /** **Rows some of which stay, placed** (`listMade`): those gone taken out,
  * those changed set, the new ones put in, and as few moved as leave the
  * rest in their order. */
@@ -3767,6 +3782,211 @@ function rowsPlaced(a, b, places, shown, plan, range, inserted) {
   REPORT: log.push(`rows placed: ${a.length - stay.size} gone, ${changed.length} changed, ${fresh.length} added`);
   return true;
 }
+// :general rows
+
+// own rows: **Rows placed by what the page's own code found** (ADR-0439):
+// each row's place among the rows the document shows, -1 for a key none of
+// them has (`places`), how many of those it holds (`matched`) and those it
+// does not (`gone`, where it holds some), whether the places of the rows
+// that stay increase (`sorted`), and the rows made again (`remade`). Those
+// gone are taken out, at once where none stays; those made again set where
+// they differ; where the rows that stay are out of their order, as few moved
+// as leave the rest in it (`stayingIn`), from the first row out of its place
+// to the last, or, where no more than four are out of their places and
+// every other row is where it was (`displaced`), looked for among those
+// alone (`fewMoved`); and the new ones put in, those side by side as one,
+// where they are in order looked for from the end as far as the first of
+// them. A row is looked up by its key only to be moved, or as what one moved
+// or put in goes before.
+function rowsFound(a, b, now, shown, plan, range, inserted) {
+  const { places, matched, sorted, remade, gone, displaced } = now;
+  const m = a.length;
+  const n = b.length;
+  REPORT: window.__pw.found = (window.__pw.found ?? 0) + 1;
+  if (matched === 0 && m > 0) {
+    // None stays: every row goes, at once where no dialog is among them.
+    if (!PW_DIALOGS) rowsAllGone(range);
+    else for (const row of a) rowGone(shown.get(row.key));
+    shown.clear();
+    REPORT: log.push(`rows replaced: ${m} gone`);
+  } else {
+    for (const j of gone) {
+      rowGone(shown.get(a[j].key));
+      shown.delete(a[j].key);
+    }
+  }
+  const changed = [];
+  for (const i of remade) {
+    const old = a[places[i]];
+    if (rowDiffers(old, b[i])) changed.push([shown.get(b[i].key), b[i], old]);
+  }
+  if (PW_PLANS) rowsChanged(changed, plan, inserted);
+  else rowsMorphed(changed, inserted);
+  const parent = range.end.parentNode;
+  let fresh = 0;
+  if (!sorted && displaced !== null) {
+    // A few rows out of their places, every other where it was: each to
+    // move goes before the row after it, the last first.
+    REPORT: window.__pw.few = (window.__pw.few ?? 0) + 1;
+    const moved = fewMoved(places, displaced);
+    for (let k = moved.length - 1; k >= 0; k--) {
+      const i = moved[k];
+      const nodes = shown.get(b[i].key);
+      rowMoved(parent, between(nodes[0], nodes[1]), i + 1 < n ? shown.get(b[i + 1].key)[0] : range.end);
+      REPORT: window.__pw.moves = (window.__pw.moves ?? 0) + 1;
+    }
+  } else {
+    // The rows in their places at either end, as many as are: none of them
+    // moves. In order, every row is: only the new ones are looked for.
+    let lo = 0;
+    let hi = n;
+    if (sorted) {
+      lo = matched === n ? n : places.indexOf(-1);
+      hi = matched === n ? n : places.lastIndexOf(-1) + 1;
+    } else {
+      while (lo < n && places[lo] === lo) lo++;
+      while (hi > lo && places[hi - 1] >= lo && places[hi - 1] === hi - 1 + m - n) hi--;
+    }
+    const stays = sorted ? null : stayingIn(places, lo, hi);
+    // The row after the one being placed, and what it begins with, once a
+    // row goes before it.
+    let after = hi;
+    let anchor = hi < n ? null : range.end;
+    for (let i = hi - 1; i >= lo; i--) {
+      if (places[i] >= 0 && (stays === null || stays[i - lo] === 1)) {
+        after = i;
+        anchor = null;
+        continue;
+      }
+      anchor ??= shown.get(b[after].key)[0];
+      if (places[i] >= 0) {
+        const nodes = shown.get(b[i].key);
+        rowMoved(parent, between(nodes[0], nodes[1]), anchor);
+        REPORT: window.__pw.moves = (window.__pw.moves ?? 0) + 1;
+        anchor = nodes[0];
+        after = i;
+        continue;
+      }
+      let first = i;
+      while (first > lo && places[first - 1] === -1) first--;
+      parent.insertBefore(rowsNew(b.slice(first, i + 1), plan, shown, inserted), anchor);
+      fresh += i + 1 - first;
+      anchor = shown.get(b[first].key)[0];
+      after = first;
+      i = first;
+    }
+  }
+  // Said as the general code says it: in order where every row that was
+  // stays where it was and the new ones follow them.
+  REPORT: log.push(matched === 0 || (matched === m && sorted && places[m - 1] === m - 1) ? `rows in order: ${changed.length} changed, ${fresh} added` : `rows placed: ${m - matched} gone, ${changed.length} changed, ${fresh} added`);
+  return true;
+}
+
+/** **A row moved** (`rowsFound`): as `moveNodes` moves it where the engine
+ * moves nodes whole or the row holds what has focus; else put where it
+ * goes, what has focus not being in it, so that neither its caret nor its
+ * scroll is read: an element's scroll is read off its layout, and a row
+ * moved after another laid the list out again for it (ADR-0439). */
+function rowMoved(parent, nodes, anchor) {
+  const active = document.activeElement;
+  if (ATOMIC_MOVE || (active !== null && nodes.some((n) => n.contains(active)))) {
+    moveNodes(parent, nodes, anchor);
+    return;
+  }
+  for (const node of nodes) parent.insertBefore(node, anchor);
+}
+
+/** **What a list's own code would have found, found by the rows' keys**
+ * (`rowsFound`): each row's place among `a`, -1 for a key none of them has,
+ * how many of them it holds and, where it holds some, those it does not,
+ * whether the places of those that stay increase, and the rows made again;
+ * not which are out of their places. A list shown the first time looks for
+ * none. */
+function foundByKeys(a, b) {
+  const places = new Int32Array(b.length).fill(-1);
+  const taken = new Uint8Array(a.length);
+  const remade = [];
+  const gone = [];
+  let matched = 0;
+  let last = -1;
+  let sorted = true;
+  if (a.length > 0) {
+    const at = new Map();
+    for (let j = 0; j < a.length; j++) at.set(a[j].key, j);
+    for (let i = 0; i < b.length; i++) {
+      const j = at.get(b[i].key);
+      if (j === undefined) continue;
+      places[i] = j;
+      taken[j] = 1;
+      matched += 1;
+      if (j < last) sorted = false;
+      else last = j;
+      if (b[i] !== a[j]) remade.push(i);
+    }
+    if (matched > 0 && matched < a.length) for (let j = 0; j < a.length; j++) if (taken[j] === 0) gone.push(j);
+  }
+  return { places, matched, sorted, remade, gone, displaced: null };
+}
+
+/** **The rows from `lo` to `hi` that need not move** (`rowsFound`), marked:
+ * a longest run of them whose places increase (`staying`'s), a new row's
+ * place (-1) aside. A place past the run's last adds to it at once. */
+function stayingIn(places, lo, hi) {
+  const tails = new Int32Array(hi - lo);
+  const before = new Int32Array(hi - lo);
+  let length = 0;
+  for (let i = lo; i < hi; i++) {
+    const value = places[i];
+    if (value < 0) continue;
+    let low = length;
+    if (length > 0 && places[tails[length - 1]] > value) {
+      low = 0;
+      let high = length;
+      while (low < high) {
+        const middle = (low + high) >> 1;
+        if (places[tails[middle]] < value) low = middle + 1;
+        else high = middle;
+      }
+    }
+    before[i - lo] = low > 0 ? tails[low - 1] : -1;
+    tails[low] = i;
+    if (low === length) length += 1;
+  }
+  const stays = new Uint8Array(hi - lo);
+  for (let i = length > 0 ? tails[length - 1] : -1; i >= 0; i = before[i - lo]) stays[i - lo] = 1;
+  return stays;
+}
+
+/** **The rows to move where no more than four are out of their places**
+ * (`rowsFound`): `displaced`, where each row out of its place now is, in
+ * order, every other row where it was. Those of them kept where they are
+ * keep their order, and each such row moves every row in its place between
+ * where it was and where it is: of each choice of those kept, one that
+ * moves fewest, as many as `stayingIn` leaves out, each choice given up once
+ * it moves as many as the fewest yet. Where the rows to move now are, in
+ * order. */
+function fewMoved(places, displaced) {
+  let fewest = displaced;
+  next: for (let kept = 1; kept < 1 << displaced.length; kept++) {
+    const moved = [];
+    let at = -1;
+    for (let t = 0; t < displaced.length && moved.length < fewest.length; t++) {
+      const i = displaced[t];
+      const p = places[i];
+      if (((kept >> t) & 1) === 0) moved.push(i);
+      else if (p < at) continue next;
+      else {
+        at = p;
+        for (let f = Math.min(i, p) + 1; f < Math.max(i, p) && moved.length < fewest.length; f++) {
+          if (places[f] === f && !moved.includes(f)) moved.push(f);
+        }
+      }
+    }
+    if (moved.length < fewest.length) fewest = moved;
+  }
+  return fewest.sort((x, y) => x - y);
+}
+// :own rows
 
 /** **New rows, as one fragment**, each noted in `shown`: made by the plan
  * where each row's values are a plan's, parsed as one otherwise. */

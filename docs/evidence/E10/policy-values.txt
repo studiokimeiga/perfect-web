@@ -1,8 +1,8 @@
 ADR-0089 - a policy's value is one its domain has
 
 produced by: just e10-policy-values
-commit: a3cab774e9569baddae69bd0d294487eaa3b697e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == policy values (compiler/pw-core/tests/policy_values.rs)
@@ -11,14 +11,14 @@ test a_key_separates_a_partition_by_naming_it ... ok
 test a_key_names_a_parameter_or_a_partition ... ok
 test a_session_query_in_a_shared_cache_is_refused_however_it_is_spelled ... ok
 test a_session_read_is_never_stale_however_it_is_written ... ok
+test a_type_a_policy_names_is_visible ... ok
 test a_retried_command_is_idempotent_whatever_it_retries_on ... ok
 test a_duration_is_a_count_and_a_unit ... ok
-test a_type_a_policy_names_is_visible ... ok
 test a_word_is_one_its_domain_lists ... ok
 test only_transport_only_is_transport_only ... ok
 test a_world_is_one_a_platform_has ... ok
 test an_operator_is_given_its_arguments ... ok
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.65s
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.71s
 
 == mutation controls (scripts/policy_value_mutations.py)
 
