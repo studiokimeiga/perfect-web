@@ -2,6 +2,31 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**Train-32, 2026-11-12:** on train-31. A planned list's rows are kept and made
+by its page's own code (ADR-0437, ADR-0434's first step): the packaging writes
+each such list's key, hold and making, and a walk to its holes that the
+runtime compares with the browser's parse once a plan; what it does not write
+it says, and the general code keeps. The agreement holds that code to the
+general code row by row, and now holds a planned row to the server's, which
+found a row that read `NaN` made again at every render (fixed apart). The first
+"create 1,000 rows": 9.48 ms of JavaScript to Svelte's 9.09, from 12.40. The
+builds visited in turn: quicker past the spread in Firefox and under Slow 4G,
+every press of a warm visit 7.9 ms quicker in Chromium, and a cold append
+slower (+6.4 ms in Chromium, +25.8 under Slow 4G): V8's initial global limit,
+shrunk by its scavenges' survival, which is lower as a row keeps less, starts
+a major collection in it, recorded and accepted (ADR-0437, NEXT). TodoMVC
+is sent the bytes it was but the `NaN` fix's (+12 B with Brotli); the large
+list's page is 175 B heavier with Brotli for its own code.
+
+**Train-31, 2026-11-12:** on trains 27 and 28, its full verify after theirs
+(#106). An `Option` that `List.get`, `Map.get` or `List.find` makes, read
+only by the match after it, is never made in a browser's module (ADR-0436):
+the match is an `if` on its test, `Some`'s arm reading the payload there,
+and a value read again is made from the same test and payload. The large
+list's label made three a row; its row-making handlers are 667 bytes lighter
+(117 with Brotli) and the store's `dollars_typed` 187; the two builds visited
+in turn, eleven rounds a cell, moved no press past its rounds' spread.
+
 **Trains 27 and 28, 2026-11-12:** on train-26, landing together. A list's
 rows are made as they changed (ADR-0432): an update, a list made from none
 and rows added at its end change the rows in place and put the new ones in

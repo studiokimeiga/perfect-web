@@ -1,8 +1,8 @@
 ADR-0101 - a command invalidates what it writes
 
 produced by: just e10-writes-invalidated
-commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 120e64874756e73da22b9f55f10ad0e567536627
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == writes invalidated (compiler/pw-core/tests/writes_invalidated.rs, effects.rs)
@@ -14,7 +14,7 @@ test an_event_the_reader_does_not_hear_invalidates_nothing ... ok
 test a_write_reaches_the_readers_of_its_domain_only ... ok
 test the_write_is_underlined_and_the_reader_named ... ok
 test a_command_invalidates_what_it_writes ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.55s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.53s
 test effects::tests::a_database_effect_names_its_domain ... ok
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 197 filtered out; finished in 0.00s
 

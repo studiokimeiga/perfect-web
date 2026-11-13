@@ -1,8 +1,8 @@
 ADR-0053 - a lambda's parameters take the types its use declares
 
 produced by: just e10-callbacks
-commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 120e64874756e73da22b9f55f10ad0e567536627
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the callback tests (compiler/pw-core/tests/callback_parameters.rs)
@@ -16,17 +16,17 @@ test a_parameter_known_in_part_is_checked_by_that_part ... ok
 test a_piped_lists_callback_still_takes_its_element ... ok
 test a_programs_own_callback_takes_its_declared_parameter_types ... ok
 test a_returned_lambda_takes_its_parameters_from_the_declared_result ... ok
-test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
 
 == an effect through a callback (compiler/pw-core/tests/causal_evidence.rs)
 
 test a_folds_accumulator_is_not_its_lists_element ... ok
 test a_receiver_with_no_such_member_produces_no_chain ... ok
 test no_conclusion_was_reached_by_a_program_wide_name ... ok
-test the_effect_is_caused_by_a_receiver_type_resolution ... ok
-test a_callbacks_later_parameter_is_typed_by_the_callees_declaration ... ok
 test the_effect_travelled_through_the_callback ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test a_callbacks_later_parameter_is_typed_by_the_callees_declaration ... ok
+test the_effect_is_caused_by_a_receiver_type_resolution ... ok
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
 == what must stay clean: errors reported
 

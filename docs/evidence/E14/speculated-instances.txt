@@ -1,15 +1,15 @@
 ADR-0234 - a view's instance given a speculated value is rendered again with it
 
 produced by: just e14-speculated-instances
-commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 120e64874756e73da22b9f55f10ad0e567536627
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the module (compiler/pw-core/tests/speculated_instances.rs)
 
 test an_instance_the_module_would_not_reach_is_refused_by_name ... ok
 test an_instance_given_a_speculated_value_is_a_region ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s
 
 == mutation controls (scripts/speculated_instances_mutations.py)
 

@@ -1,8 +1,8 @@
 E10 gate item 1 - the store builds from source, without Koka or Marko
 
 produced by: just e10-build
-commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 120e64874756e73da22b9f55f10ad0e567536627
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the control: the ordinary PATH
@@ -34,7 +34,7 @@ pw build: 8 template(s), 34 handler(s), 55 component(s), 69 contract(s) -> OUT
   handler    6157a6a5babb44ef  `choose_tip` calls `store.page.choose_tip`  1569 bytes
   handler    8e028bbd31639049  `choose_tip` calls `store.page.choose_tip`  1567 bytes
   handler    55314a08032a0a1d  `` calls ``  299 bytes
-  handler    18a30e7eda6408b5  `dollars_typed` calls `store.page.choose_tip`  9685 bytes
+  handler    18a30e7eda6408b5  `dollars_typed` calls `store.page.choose_tip`  9498 bytes
   handler    b5c3e56ff370a6a8  `clear_cart` calls `store.page.clear_cart`  1391 bytes
   handler    0567c01c8c1d4702  `place_order` calls `store.page.place_order`  21912 bytes
   handler    88497d21af8270bf  `choose_time` calls `store.page.choose_time`  3582 bytes
@@ -132,7 +132,7 @@ pw build: 8 template(s), 34 handler(s), 55 component(s), 69 contract(s) -> OUT
   speculate  store.page.StorePage~ui  store.page.add_to_cart, store.page.decrease_in_cart, store.page.increase_in_cart, store.page.remove_from_cart on cart  25536 bytes
   speculate  store.page.CartPage~ui  store.page.decrease_in_cart, store.page.increase_in_cart, store.page.remove_from_cart on cart  17746 bytes
   computed   store.rate.RatePage~ui  1149 bytes
-  build      bd0fbe95005b8121b
+  build      b4aff707f5f5afc05
 
 == what was written
     47172  app.wit
@@ -202,7 +202,7 @@ pw build: 8 template(s), 34 handler(s), 55 component(s), 69 contract(s) -> OUT
       609  handlers/144ae10590824570.mjs
      1456  handlers/15483a28f370066a.mjs
      1568  handlers/1788d84a81fb0dc3.mjs
-     9685  handlers/18a30e7eda6408b5.mjs
+     9498  handlers/18a30e7eda6408b5.mjs
      2328  handlers/26058453d2c7def8.mjs
      1344  handlers/2a2607ad200b08c0.mjs
      7303  handlers/481e071528717f3b.mjs
@@ -281,7 +281,7 @@ pw build: 8 template(s), 34 handler(s), 55 component(s), 69 contract(s) -> OUT
 test a_placeholder_that_something_depends_on_is_a_refusal ... ok
 test a_program_that_does_not_check_builds_nothing ... ok
 test the_store_builds_every_artifact_from_source ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.26s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.23s
 
 Since ADR-0125 the development server runs the store's queries and
 the cart's count (UserCarts.line_count since track store-accounts) by

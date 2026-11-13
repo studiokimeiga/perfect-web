@@ -1,8 +1,8 @@
 ADR-0311 - a page states its canonical address
 
 produced by: just e14-canonical
-commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 120e64874756e73da22b9f55f10ad0e567536627
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -12,15 +12,15 @@ playwright: Version 1.58.0
 test a_page_is_called_nowhere_else ... ok
 test an_address_carries_nothing_of_the_page_it_names ... ok
 test a_page_s_canonical_address_is_a_part_of_its_head_after_its_metadata ... ok
-test a_canonical_link_is_the_page_s_once_at_the_top_of_its_view ... ok
 test its_arguments_are_the_page_s_parameters ... ok
+test a_canonical_link_is_the_page_s_once_at_the_top_of_its_view ... ok
 test open_graph_s_address_is_the_host_s ... ok
 test a_canonical_address_is_a_page_s ... ok
 test its_arguments_are_given_by_the_parameter_each_gives ... ok
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
 test a_link_html_allows_in_the_body_is_written_where_it_is ... ok
 test a_link_the_head_holds_is_refused_in_markup ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 
 == the head it is written into (runtime/pw-render/tests/canonical.rs)
 
@@ -33,7 +33,7 @@ test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 test identity::tests::an_origin_is_a_scheme_a_host_and_a_port ... ok
 test tests::a_page_s_canonical_address_is_written_with_the_deployment_s_origin ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1046 filtered out; finished in 13.34s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1046 filtered out; finished in 17.94s
 
 == the corpus at C19 (corpus-check, generality.rs, checking_source.rs)
 
@@ -42,12 +42,12 @@ accepted: 44/44 charter §16 categories covered
 rejected: 97 files
 rejected: 97/97 charter §16 categories covered
 corpus-check: OK
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 133.03s
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 127.39s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 199.35s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 193.41s
 
 == a canonical address, and a navigation's head, in three engines (e2e/canonical.spec.mjs)
 
-  6 passed (13.9s)
+  6 passed (27.4s)
 
 == mutation controls (scripts/canonical_mutations.py)
 

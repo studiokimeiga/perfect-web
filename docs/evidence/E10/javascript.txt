@@ -1,8 +1,8 @@
 ADR-0044 - pure computation as JavaScript modules, against the components
 
 produced by: just e10-javascript
-commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 120e64874756e73da22b9f55f10ad0e567536627
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
@@ -11,33 +11,39 @@ node: v22.21.1
 javascript: 3 queries over cases written alone, 600 calls, component and module agree (57 trapped in both)
 javascript: 5 queries over trees, 1000 calls, component and module agree (155 trapped in both)
 javascript: 5 queries over values held in place, 1000 calls, component and module agree (132 trapped in both)
-javascript: 97 queries, 19400 calls, component and module agree (1446 trapped in both)
+javascript: 103 queries, 20600 calls, component and module agree (1424 trapped in both)
 javascript: kiokun's 2 shard queries, 400 calls, component and module agree
-test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 56.34s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 134.07s
 
 == mutation controls (scripts/javascript_mutations.py)
 
-baseline: 9 passed, 0 failed
-a String is ordered by UTF-16 unit, as JavaScript's `<` is: KILLED (1 of 9 tests fail)
-String.trim is ECMAScript's trim: KILLED (1 of 9 tests fail)
-String.length counts UTF-16 units: KILLED (1 of 9 tests fail)
-an Int does not trap on overflow: KILLED (5 of 9 tests fail)
-an Int's overflow is that of 63 bits: KILLED (4 of 9 tests fail)
-a list of literals is made at each call: KILLED (1 of 9 tests fail)
-an empty list is a value of the module: KILLED (1 of 9 tests fail)
-a list of literals of the module is not frozen: KILLED (1 of 9 tests fail)
-the literals a list of the module read are written: KILLED (1 of 9 tests fail)
-a function value's lists of literals are not the module's: KILLED (2 of 9 tests fail)
-the module's lists of literals are not given to its prelude: KILLED (2 of 9 tests fail)
-`/` truncates toward zero, as a number's does: KILLED (2 of 9 tests fail)
-`/` past 2^53 truncates toward zero, as BigInt's does: KILLED (1 of 9 tests fail)
-`%` takes the dividend's sign, as a number's does: KILLED (4 of 9 tests fail)
-`%` past 2^53 takes the dividend's sign, as BigInt's does: KILLED (3 of 9 tests fail)
-from_codepoints accepts surrogates: KILLED (1 of 9 tests fail)
-sort_by puts the left element first on a positive comparison: KILLED (1 of 9 tests fail)
-List.get reads one past the end: KILLED (1 of 9 tests fail)
-List.take reads a negative count from the end: KILLED (1 of 9 tests fail)
-19 of 19 mutants killed
+baseline: 10 passed, 0 failed
+a String is ordered by UTF-16 unit, as JavaScript's `<` is: KILLED (1 of 10 tests fail)
+String.trim is ECMAScript's trim: KILLED (1 of 10 tests fail)
+String.length counts UTF-16 units: KILLED (1 of 10 tests fail)
+an Int does not trap on overflow: KILLED (5 of 10 tests fail)
+an Int's overflow is that of 63 bits: KILLED (4 of 10 tests fail)
+a list of literals is made at each call: KILLED (1 of 10 tests fail)
+an empty list is a value of the module: KILLED (1 of 10 tests fail)
+a list of literals of the module is not frozen: KILLED (1 of 10 tests fail)
+the literals a list of the module read are written: KILLED (1 of 10 tests fail)
+a function value's lists of literals are not the module's: KILLED (2 of 10 tests fail)
+the module's lists of literals are not given to its prelude: KILLED (2 of 10 tests fail)
+`/` truncates toward zero, as a number's does: KILLED (2 of 10 tests fail)
+`/` past 2^53 truncates toward zero, as BigInt's does: KILLED (1 of 10 tests fail)
+`%` takes the dividend's sign, as a number's does: KILLED (4 of 10 tests fail)
+`%` past 2^53 takes the dividend's sign, as BigInt's does: KILLED (3 of 10 tests fail)
+from_codepoints accepts surrogates: KILLED (1 of 10 tests fail)
+sort_by puts the left element first on a positive comparison: KILLED (1 of 10 tests fail)
+List.get reads one past the end: KILLED (1 of 10 tests fail)
+List.take reads a negative count from the end: KILLED (1 of 10 tests fail)
+an Option read again is taken apart where it is made: KILLED (2 of 10 tests fail)
+a region's value is not a read: KILLED (2 of 10 tests fail)
+a body's value is not a read: KILLED (2 of 10 tests fail)
+a case's payload is not a read: KILLED (2 of 10 tests fail)
+an Option taken apart takes Some's arm where its test fails: KILLED (1 of 10 tests fail)
+List.find takes the last that holds: KILLED (1 of 10 tests fail)
+25 of 25 mutants killed
 memory bound: no process was stopped
 
 NOT CLAIMED: a handler that computes, Wasm in the browser, or the modules

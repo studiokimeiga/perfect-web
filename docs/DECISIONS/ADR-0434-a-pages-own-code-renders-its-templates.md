@@ -8,7 +8,10 @@ fixed or recorded. To be built in trains of its own, each with its result;
 nothing of it is built yet. Builds on ADR-0413 (a page that talks to no
 server), ADR-0426 (a page alone in its build), ADR-0427 (a row a plan
 makes), ADR-0428 (what a device's page holds is what its build reaches),
-ADR-0432 and ADR-0433. Date: 2026-11-12. Milestone: E14.
+ADR-0432 and ADR-0433. Date: 2026-11-12. Milestone: E14. Its first step,
+planned rows, is ADR-0437 (accepted 2026-11-12, train-32, its cold append recorded), which amends
+decision 5 for that step: its bytes said, landed where its presses are
+quicker past the rounds' spread.
 
 ## Context
 

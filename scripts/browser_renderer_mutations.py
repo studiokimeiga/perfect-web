@@ -109,6 +109,16 @@ MUTANTS = [
     ("a changed list in a row is not told", RUNTIME, "            if (!same(x, y) && listChanged(p, x, y, after, others)) out.push([p.id, { list: true }]);\n", ""),
     ("a list's change is told as the row's, set in place", RUNTIME, "      return found && found.some(([, change]) => change.list) ? null : found;\n", "      return found;\n"),
     ("two values of another type are one", RUNTIME, """  const scalar = (v) => (typeof v === "boolean" ? "b" : isInt(v) ? "i" : "t") + shown(v);\n""", """  const scalar = (v) => shown(v);\n"""),
+    # --- what a row kept read (found by the planned rows' agreement) -----------
+    ("a NaN the page holds is not what a row read of it", RUNTIME, "  const unmoved = (now, was) => now === was || (now !== now && was !== was);\n", "  const unmoved = (now, was) => now === was;\n"),
+    # --- a planned row, as a device build makes it (ADR-0427) -------------------
+    ("a planned row's text hole is not its part's text", RUNTIME, """      else if (q.part === "text") holes[h] = raws[h] = needText(env, q.value);\n""", """      else if (q.part === "text") holes[h] = raws[h] = needText(env, q.value).trim();\n"""),
+    ("a planned row's scope does not hold its item", RUNTIME, "    const env = { ...e, reads, ...computing, names: { name: p.binding, value: item, up: e.names }, frames: [...e.frames, { scope: p.id, instance: token }] };\n", "    const env = { ...e, reads, ...computing, frames: [...e.frames, { scope: p.id, instance: token }] };\n"),
+    ("a planned row's absent boolean attribute is there", RUNTIME, """        holes[h] = present ? q.name : "";\n""", """        holes[h] = q.name;\n"""),
+    ("a planned row's attribute is set as it is compared", RUNTIME, "        raws[h] = [name, value];\n", """        raws[h] = [name, `${name}="${value}"`];\n"""),
+    ("a planned row's handlers capture nothing", RUNTIME, "    found = { parts, capturing: parts.some((q) => Array.isArray(q) && q.some((v) => v.captures?.length > 0)) };\n", "    found = { parts, capturing: false };\n"),
+    ("a planned row's text is written in the block's scope", RUNTIME, "      : (row) => (row.text ??= rowText(row.of, { ...row.env, computedValues: null }, row.others, row.key)),\n", "      : (row) => (row.text ??= rowText(row.of, { ...row.env, names: row.names, computedValues: null }, row.others, row.key)),\n"),
+    ("a kept row's texts keep their anchors", RUNTIME, "      out.bare = !PW_SERVER && DELEGATED_ROWS;\n", "      out.bare = false;\n"),
     # --- a list inside a row ---------------------------------------------------
     ("a new list's missing key is taken", RUNTIME, """        if (key === "") throw new Blocked("MissingLoopKey", p.key);\n        if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);\n        seen.add(key);\n      }\n""", """        if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);\n        seen.add(key);\n      }\n"""),
     ("a new list's repeated key is taken", RUNTIME, """        if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);\n        seen.add(key);\n      }\n""", """        seen.add(key);\n      }\n"""),

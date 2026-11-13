@@ -1,8 +1,8 @@
 ADR-0259 - a map or set from outside is sorted on arrival
 
 produced by: just e14-arrival
-commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 120e64874756e73da22b9f55f10ad0e567536627
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
@@ -15,39 +15,39 @@ test a_map_or_set_out_of_order_is_sorted_on_arrival ... ok
 test a_map_keyed_by_a_bool_or_an_opaque_type_answers_as_a_btreemap_does ... ok
 test a_map_answers_as_a_btreemap_does ... ok
 test a_set_answers_as_a_btreeset_does ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.76s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.97s
 
 == the browser's module against the component (compiler/pw-conformance/tests/javascript.rs)
 
 test the_modules_entry_check_is_the_components ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8 filtered out; finished in 1.05s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9 filtered out; finished in 1.58s
 
 == mutation controls (scripts/arrival_mutations.py)
 
-baseline: 16 passed, 0 failed
-the component reads what arrives as it came: KILLED (5 of 16 tests fail)
-the component sorts what arrives in reverse: KILLED (8 of 16 tests fail)
-the browser's module reads what arrives as it came: KILLED (2 of 16 tests fail)
+baseline: 17 passed, 0 failed
+the component reads what arrives as it came: KILLED (5 of 17 tests fail)
+the component sorts what arrives in reverse: KILLED (8 of 17 tests fail)
+the browser's module reads what arrives as it came: KILLED (2 of 17 tests fail)
 3 of 3 mutants killed
 memory bound: no process was stopped
 
 == ADR-0057's, three re-anchored (scripts/map_mutations.py)
 
-baseline: 16 passed, 0 failed
-an Int key is never above another: KILLED (5 of 16 tests fail)
-String keys are ordered backwards: KILLED (6 of 16 tests fail)
-a search passes over the key it seeks: KILLED (9 of 16 tests fail)
-a replaced entry is kept beside its replacement: KILLED (5 of 16 tests fail)
-a map's value is read from its key's place: KILLED (7 of 16 tests fail)
-a sort of entries is not stable: KILLED (2 of 16 tests fail)
-a repeated key is kept: KILLED (4 of 16 tests fail)
-a union leaves out what only the second has: KILLED (2 of 16 tests fail)
-the entry check lets a key through twice: KILLED (5 of 16 tests fail)
-a map from outside is not checked: KILLED (3 of 16 tests fail)
-a map a host answers is not checked: KILLED (1 of 16 tests fail)
-the module orders Int keys backwards: KILLED (1 of 16 tests fail)
-the module keeps the first of a repeated key: KILLED (1 of 16 tests fail)
-the module's union leaves out what only the second has: KILLED (1 of 16 tests fail)
-the module's entry check lets a key through twice: KILLED (2 of 16 tests fail)
+baseline: 17 passed, 0 failed
+an Int key is never above another: KILLED (5 of 17 tests fail)
+String keys are ordered backwards: KILLED (6 of 17 tests fail)
+a search passes over the key it seeks: KILLED (9 of 17 tests fail)
+a replaced entry is kept beside its replacement: KILLED (5 of 17 tests fail)
+a map's value is read from its key's place: KILLED (7 of 17 tests fail)
+a sort of entries is not stable: KILLED (2 of 17 tests fail)
+a repeated key is kept: KILLED (4 of 17 tests fail)
+a union leaves out what only the second has: KILLED (2 of 17 tests fail)
+the entry check lets a key through twice: KILLED (5 of 17 tests fail)
+a map from outside is not checked: KILLED (3 of 17 tests fail)
+a map a host answers is not checked: KILLED (1 of 17 tests fail)
+the module orders Int keys backwards: KILLED (1 of 17 tests fail)
+the module keeps the first of a repeated key: KILLED (1 of 17 tests fail)
+the module's union leaves out what only the second has: KILLED (1 of 17 tests fail)
+the module's entry check lets a key through twice: KILLED (2 of 17 tests fail)
 15 of 15 mutants killed
 memory bound: no process was stopped

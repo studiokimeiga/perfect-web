@@ -50,7 +50,7 @@ use crate::resolve::DefId;
 use super::case::{self, Case};
 use super::ir::{
     BinaryOp, BuiltinCase, Case as VariantCase, Const, EachKind, Function, Instr, Intrinsic,
-    Program, Region, Shape, Terminator, Type, UnaryOp, ValueId,
+    MatchArm, Program, Region, Shape, Terminator, Type, UnaryOp, ValueId,
 };
 
 /// **A query's pure computation, as an ES module.** `Err` names what the
@@ -783,8 +783,50 @@ struct Emitter<'p> {
     /// arrives rather than being carried on; the page's own values, its
     /// signals, captures and events, are read as they are (ADR-0433).
     outside: bool,
+    /// **How many times each value of the body is read** (ADR-0436),
+    /// counted before it is written: an `Option` the match after it reads,
+    /// and nothing else, is taken apart where it is made.
+    reads: BTreeMap<ValueId, usize>,
+    /// The values so never made: the body is refused if it names one
+    /// (`unmade_unread`).
+    unmade: BTreeSet<ValueId>,
     body: String,
     depth: usize,
+}
+
+/// **An `Option` as a test and a payload** (ADR-0436): what `List.get`,
+/// `Map.get` and `List.find` make, as the lines that come first, the test
+/// that holds where it is `Some`, and what `Some` holds, read only where the
+/// test holds.
+struct Opened {
+    before: Vec<String>,
+    test: String,
+    payload: String,
+}
+
+/// The arms of a match that takes `Some` in one and `None` in the other,
+/// each case alone: the match an [`Opened`] value is taken apart by.
+fn option_arms(arms: &[MatchArm]) -> Option<(&MatchArm, &MatchArm)> {
+    let alone = |c: BuiltinCase| arms.iter().find(|a| a.cases == [VariantCase::Builtin(c)]);
+    match (
+        arms.len(),
+        alone(BuiltinCase::Some),
+        alone(BuiltinCase::None),
+    ) {
+        (2, Some(some), Some(none)) => Some((some, none)),
+        _ => None,
+    }
+}
+
+/// How many times `name` is in `body` as a name, not part of a longer one.
+fn named(body: &str, name: &str) -> usize {
+    let word =
+        |c: Option<char>| c.is_some_and(|c| c.is_ascii_alphanumeric() || c == '_' || c == '$');
+    body.match_indices(name)
+        .filter(|(at, _)| {
+            !word(body[..*at].chars().next_back()) && !word(body[at + name.len()..].chars().next())
+        })
+        .count()
 }
 
 /// Each prelude function, by name, and what it calls.
@@ -1046,6 +1088,8 @@ impl<'p> Emitter<'p> {
             handler: false,
             graphs: false,
             outside: false,
+            reads: BTreeMap::new(),
+            unmade: BTreeSet::new(),
             body: String::new(),
             depth: 1,
         }
@@ -1096,20 +1140,10 @@ impl<'p> Emitter<'p> {
     /// (ADR-0427): a literal's line goes where its name is nowhere else in
     /// the body, as each literal a list was written with is read by it alone.
     fn unread_dropped(&mut self) {
-        let word =
-            |c: Option<char>| c.is_some_and(|c| c.is_ascii_alphanumeric() || c == '_' || c == '$');
         for v in std::mem::take(&mut self.hoisted) {
             let name = val(v);
-            let read = self
-                .body
-                .match_indices(&name)
-                .filter(|(at, _)| {
-                    !word(self.body[..*at].chars().next_back())
-                        && !word(self.body[at + name.len()..].chars().next())
-                })
-                .count();
             let line = format!("const {name} = ");
-            if read != 1 {
+            if named(&self.body, &name) != 1 {
                 continue;
             }
             let Some(at) = self.body.find(&line) else {
@@ -1186,12 +1220,11 @@ impl<'p> Emitter<'p> {
             self.line(&format!("const {} = {decoded};", val(*v)));
             self.types.insert(*v, t.clone());
         }
-        for i in &entry.instrs {
-            self.instr(i)?;
-        }
+        self.reads = super::ir::reads(&entry.instrs, *result);
+        self.instrs(&entry.instrs)?;
         self.line(&format!("return {};", val(*result)));
         self.unread_dropped();
-        Ok(())
+        self.unmade_unread()
     }
 
     /// An instance's shape: its declaration's, under its arguments
@@ -1688,12 +1721,169 @@ impl<'p> Emitter<'p> {
         for (v, t) in &f.params {
             self.types.insert(*v, t.clone());
         }
-        for i in &entry.instrs {
-            self.instr(i)?;
-        }
+        self.reads = super::ir::reads(&entry.instrs, *result);
+        self.instrs(&entry.instrs)?;
         self.line(&format!("return {};", val(*result)));
         self.unread_dropped();
+        self.unmade_unread()
+    }
+
+    /// **Refused: a value left unmade that the body names** (ADR-0436).
+    /// [`reads`](super::ir::reads) counted it read once, by the match that
+    /// took it apart where it was made; a read it did not count would be a
+    /// name nothing declares, a `ReferenceError` where the page runs.
+    fn unmade_unread(&self) -> Result<(), String> {
+        match self
+            .unmade
+            .iter()
+            .find(|v| named(&self.body, &val(**v)) > 0)
+        {
+            Some(v) => Err(format!("{}, which is never made, is read", val(*v))),
+            None => Ok(()),
+        }
+    }
+
+    /// **A body's instructions, in order** (ADR-0436): an `Option` that
+    /// `List.get`, `Map.get` or `List.find` makes, read only by the match
+    /// that comes next, is taken apart there and never made: the match is
+    /// an `if` on its test, `Some`'s arm reading its payload.
+    fn instrs(&mut self, is: &[Instr]) -> Result<(), String> {
+        let mut k = 0;
+        while let Some(i) = is.get(k) {
+            if let Some(
+                m @ Instr::Match {
+                    scrutinee, arms, ..
+                },
+            ) = is.get(k + 1)
+                && *scrutinee == i.result()
+                && self.reads.get(scrutinee) == Some(&1)
+                && let Some((some, none)) = option_arms(arms)
+                && let Some(o) = self.opened(i)?
+            {
+                self.taken_apart(i, o, m, some, none)?;
+                k += 2;
+                continue;
+            }
+            self.instr(i)?;
+            k += 1;
+        }
         Ok(())
+    }
+
+    /// **An `Option` made** (ADR-0436): its test, and `Some` of its payload
+    /// where the test holds.
+    fn made(&mut self, i: &Instr, o: Opened) {
+        for l in &o.before {
+            self.line(l);
+        }
+        let (some, none) = (self.uses("some"), self.uses("none"));
+        self.line(&format!(
+            "const {} = {} ? {some}({}) : {none};",
+            val(i.result()),
+            o.test,
+            o.payload
+        ));
+    }
+
+    /// **An `Option` taken apart where it is made** (ADR-0436): the match
+    /// `m` as an `if` on `o`'s test, `Some`'s arm binding its payload, and
+    /// the `Option` itself never made.
+    fn taken_apart(
+        &mut self,
+        i: &Instr,
+        o: Opened,
+        m: &Instr,
+        some: &MatchArm,
+        none: &MatchArm,
+    ) -> Result<(), String> {
+        let Type::Option(held) = i.ty() else {
+            return Err("an Option opened that is not one".into());
+        };
+        let r = val(m.result());
+        self.types.insert(i.result(), i.ty().clone());
+        self.types.insert(m.result(), m.ty().clone());
+        for l in &o.before {
+            self.line(l);
+        }
+        self.line(&format!("let {r};"));
+        self.line(&format!("if ({}) {{", o.test));
+        self.depth += 1;
+        if let [Some(b)] = some.bindings.as_slice() {
+            self.types.insert(*b, (**held).clone());
+            self.line(&format!("const {} = {};", val(*b), o.payload));
+        }
+        self.region(&some.body, m.result())?;
+        self.depth -= 1;
+        self.line("} else {");
+        self.depth += 1;
+        self.region(&none.body, m.result())?;
+        self.depth -= 1;
+        self.line("}");
+        self.unmade.insert(i.result());
+        Ok(())
+    }
+
+    /// **What `List.get`, `Map.get` and `List.find` make, opened**
+    /// (ADR-0436); `None` for any other instruction. `List.find`'s function
+    /// is written here, so this is asked once of each instruction.
+    fn opened(&mut self, i: &Instr) -> Result<Option<Opened>, String> {
+        let r = val(i.result());
+        let a: Vec<String> = match i {
+            Instr::Intrinsic { args, .. } => args.iter().map(|v| val(*v)).collect(),
+            _ => Vec::new(),
+        };
+        let arg = |k: usize| a.get(k).cloned().unwrap_or_default();
+        Ok(Some(match i {
+            // A place past 2^53 is a BigInt, and no array's.
+            Instr::Intrinsic {
+                op: Intrinsic::ListGet,
+                ..
+            } => {
+                let (xs, i) = (arg(0), arg(1));
+                Opened {
+                    before: Vec::new(),
+                    test: format!("{i} >= 0 && {i} < {xs}.length"),
+                    payload: format!("{xs}[{i}]"),
+                }
+            }
+            // Maps and sets (ADR-0057): arrays in ascending key order, a
+            // map's entries `[key, value]`.
+            Instr::Intrinsic {
+                op: Intrinsic::MapGet,
+                ..
+            } => {
+                let (m, k) = (arg(0), arg(1));
+                let place = self.uses("place");
+                Opened {
+                    before: vec![format!("const {r}_at = {place}({m}, {k}, (e) => e[0]);")],
+                    test: format!("{r}_at[1]"),
+                    payload: format!("{m}[{r}_at[0]][1]"),
+                }
+            }
+            Instr::Each {
+                kind: EachKind::Find,
+                list,
+                params,
+                body,
+                ..
+            } => {
+                let element = match self.type_of(*list)? {
+                    Type::List(t) => (**t).clone(),
+                    t => return Err(format!("a list operation over a {t:?}")),
+                };
+                for p in params {
+                    self.types.insert(*p, element.clone());
+                }
+                let f = self.lambda(params, body)?;
+                let xs = val(*list);
+                Opened {
+                    before: vec![format!("const {r}_at = {xs}.findIndex({f});")],
+                    test: format!("{r}_at >= 0"),
+                    payload: format!("{xs}[{r}_at]"),
+                }
+            }
+            _ => return Ok(None),
+        }))
     }
 
     fn line(&mut self, s: &str) {
@@ -1717,9 +1907,7 @@ impl<'p> Emitter<'p> {
 
     /// A region's instructions, then its value assigned to `target`.
     fn region(&mut self, r: &Region, target: ValueId) -> Result<(), String> {
-        for i in &r.instrs {
-            self.instr(i)?;
-        }
+        self.instrs(&r.instrs)?;
         self.line(&format!("{} = {};", val(target), val(r.value)));
         Ok(())
     }
@@ -1731,11 +1919,9 @@ impl<'p> Emitter<'p> {
         self.depth = 1;
         // A function value is not async: no command is awaited in it.
         let handler = std::mem::replace(&mut self.handler, false);
-        for i in &r.instrs {
-            if let Err(e) = self.instr(i) {
-                self.handler = handler;
-                return Err(e);
-            }
+        if let Err(e) = self.instrs(&r.instrs) {
+            self.handler = handler;
+            return Err(e);
         }
         self.handler = handler;
         self.line(&format!("return {};", val(r.value)));
@@ -1800,6 +1986,10 @@ impl<'p> Emitter<'p> {
     fn instr(&mut self, i: &Instr) -> Result<(), String> {
         let r = val(i.result());
         self.types.insert(i.result(), i.ty().clone());
+        if let Some(o) = self.opened(i)? {
+            self.made(i, o);
+            return Ok(());
+        }
         match i {
             Instr::Const { value, .. } => {
                 let lit = match value {
@@ -2179,9 +2369,7 @@ impl<'p> Emitter<'p> {
                     let xs = val(*list);
                     self.line(&format!("for (const {} of {xs}) {{", val(params[0])));
                     self.depth += 1;
-                    for i in &body.instrs {
-                        self.instr(i)?;
-                    }
+                    self.instrs(&body.instrs)?;
                     self.depth -= 1;
                     self.line("}");
                     self.line(&format!("const {r} = undefined;"));
@@ -2198,12 +2386,7 @@ impl<'p> Emitter<'p> {
                         let s = seed.ok_or("a fold with no seed")?;
                         format!("{xs}.reduce({f}, {})", val(s))
                     }
-                    EachKind::Find => {
-                        let (some, none) = (self.uses("some"), self.uses("none"));
-                        format!(
-                            "((f) => {{ for (const x of {xs}) if (f(x)) return {some}(x); return {none}; }})({f})"
-                        )
-                    }
+                    EachKind::Find => unreachable!("an Option is opened above"),
                     // Stable, as the component's merge sort is: `compare(a, b)
                     // > 0` puts `b` first, and a tie keeps the list's order.
                     EachKind::SortBy => {
@@ -2220,14 +2403,8 @@ impl<'p> Emitter<'p> {
                 let arg = |k: usize| a.get(k).cloned().unwrap_or_default();
                 let expr = match op {
                     Intrinsic::ListLength => format!("{}.length", arg(0)),
-                    // A place past 2^53 is a BigInt, and no array's.
-                    Intrinsic::ListGet => {
-                        let (some, none) = (self.uses("some"), self.uses("none"));
-                        format!(
-                            "{i} >= 0 && {i} < {xs}.length ? {some}({xs}[{i}]) : {none}",
-                            xs = arg(0),
-                            i = arg(1)
-                        )
+                    Intrinsic::ListGet | Intrinsic::MapGet => {
+                        unreachable!("an Option is opened above")
                     }
                     Intrinsic::ListTake => format!(
                         "{xs}.slice(0, {n} < 0 ? 0 : {n} > {xs}.length ? {xs}.length : {n})",
@@ -2290,15 +2467,6 @@ impl<'p> Emitter<'p> {
                     // order, a map's entries `[key, value]`.
                     Intrinsic::MapEmpty | Intrinsic::SetEmpty => "[]".to_string(),
                     Intrinsic::MapSize | Intrinsic::SetSize => format!("{}.length", arg(0)),
-                    Intrinsic::MapGet => {
-                        let (some, none) = (self.uses("some"), self.uses("none"));
-                        format!(
-                            "((p) => p[1] ? {some}({m}[p[0]][1]) : {none})({}({m}, {k}, (e) => e[0]))",
-                            self.uses("place"),
-                            m = arg(0),
-                            k = arg(1)
-                        )
-                    }
                     Intrinsic::MapContains => {
                         format!(
                             "{}({}, {}, (e) => e[0])[1]",

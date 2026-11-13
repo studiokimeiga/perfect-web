@@ -1,8 +1,8 @@
 ADR-0194 - a type that contains itself compiles, and crosses as its nodes
 
 produced by: just e14-recursive-types
-commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 120e64874756e73da22b9f55f10ad0e567536627
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
@@ -11,11 +11,11 @@ node: v22.21.1
 test a_type_that_contains_itself_crosses_as_its_nodes ... ok
 test a_type_that_contains_itself_in_place_is_compiled_boxed ... ok
 test a_value_of_a_type_that_contains_itself_is_put_on_the_browsers_wire_as_its_nodes ... ok
-test a_type_that_contains_itself_otherwise_crosses_no_boundary_yet ... ok
 test an_invariant_inside_a_tree_holds_at_every_node ... ok
+test a_type_that_contains_itself_otherwise_crosses_no_boundary_yet ... ok
 test a_type_no_finite_value_has_is_refused_where_it_is_declared ... ok
 test a_type_that_can_be_built_without_itself_is_not ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.60s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.68s
 
 == components through the E8 host (compiler/pw-conformance/tests/recursive_types.rs)
 
@@ -29,12 +29,12 @@ test a_value_as_deep_as_a_host_nests_stays_within_half_a_thread_stack ... ok
 test nodes_that_are_not_one_tree_in_level_order_trap ... ok
 test trees_held_by_other_types_cross_both_ways ... ok
 test two_types_that_hold_each_other_through_a_list_compile_inside_a_component ... ok
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.00s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.52s
 
 == the JavaScript modules, against their components under Node (compiler/pw-conformance/tests/javascript.rs)
 
 javascript: 5 queries over trees, 1000 calls, component and module agree (155 trapped in both)
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8 filtered out; finished in 1.50s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9 filtered out; finished in 1.69s
 
 == the corpus at C13 (corpus-check, generality.rs, checking_source.rs)
 
@@ -48,9 +48,9 @@ test every_rejected_fixtures_rule_is_a_code_its_check_reports ... ok
 test every_rejected_fixture_emits_only_its_own_defect ... ok
 test every_diagnostic_carries_what_charter_16_3_requires has been running for over 60 seconds
 test every_diagnostic_carries_what_charter_16_3_requires ... ok
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 130.89s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 141.78s
 test generality_is_reported_separately_from_conformance ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 125.95s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 143.38s
 
 == mutation controls (scripts/recursive_types_mutations.py)
 

@@ -1,19 +1,19 @@
 ADR-0431 - a failure the runtime recovers from is told the developer
 
 produced by: just e14-failures-told
-commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 120e64874756e73da22b9f55f10ad0e567536627
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
 
 == the demos and the feed as developed, in three engines
 
-  33 passed (54.3s)
+  33 passed (32.0s)
 
 == TodoMVC as served, in three engines (e2e/device-runtime.spec.mjs)
 
-  3 passed (8.8s)
+  3 passed (6.2s)
 
 == mutation controls (scripts/failures_told_mutations.py)
 

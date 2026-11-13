@@ -1,8 +1,8 @@
 ADR-0255 - a materialization may read another
 
 produced by: just e14-materialization-chains
-commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 120e64874756e73da22b9f55f10ad0e567536627
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the checker (compiler/pw-core/tests/materialization_chains.rs)
@@ -16,15 +16,15 @@ test a_shared_materialization_reads_no_private_one ... ok
 test what_a_materialization_reads_itself_passes_to_its_readers ... ok
 test what_it_gives_the_one_it_reads_is_checked ... ok
 test a_write_reaches_what_reads_a_materialization_it_changes ... ok
-test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.40s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.41s
 
 == the runtime's reads (runtime/pw-materialize/tests/reads.rs)
 
+test an_event_reaches_what_reads_a_materialization_it_reaches ... ok
 test a_node_read_twice_is_followed_at_each_key ... ok
 test a_key_the_reader_does_not_supply_reaches_every_entry ... ok
-test an_event_reaches_what_reads_a_materialization_it_reaches ... ok
-test reads_that_form_a_cycle_end ... ok
 test a_reader_of_what_the_event_does_not_reach_is_untouched ... ok
+test reads_that_form_a_cycle_end ... ok
 test an_event_reaches_what_reads_its_listener ... ok
 test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 

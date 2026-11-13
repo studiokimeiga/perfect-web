@@ -1,55 +1,55 @@
 ADR-0148 - out-of-order streaming, script start and first paint, per engine
 
 produced by: just e14-stream-probes
-commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 120e64874756e73da22b9f55f10ad0e567536627
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 playwright: Version 1.58.0
 
-chrome (installed) 156.0.8078.79
+chrome (installed) 157.0.8103.50
   before the patch:  <p#shell> <section> <!--pw:s7--> <?start name="pw-7"?> <p#ph> <?end ?> <!--pw:e7--> <p>
   after the patch:   <p#shell> <section> <!--pw:s7--> <p#ready> <!--pw:e7--> <p>
   JavaScript off:    patched
   deferred module   ran only after it ends (at 1507 ms)
-  async module      ran while the response is open (at 38 ms)
-  async classic     ran while the response is open (at 37 ms)
-  inline import()   ran while the response is open (at 26 ms)
-     0 characters   painted while the response is open (at 36 ms)
-   200 characters   painted while the response is open (at 28 ms)
+  async module      ran while the response is open (at 50 ms)
+  async classic     ran while the response is open (at 27 ms)
+  inline import()   ran while the response is open (at 44 ms)
+     0 characters   painted while the response is open (at 40 ms)
+   200 characters   painted while the response is open (at 32 ms)
    300 characters   painted while the response is open (at 36 ms)
   1000 characters   painted while the response is open (at 44 ms)
 chromium (playwright) 145.0.7632.6
   before the patch:  <p#shell> <section> <!--pw:s7--> <!--?start name="pw-7"--> <p#ph> <!--?end--> <!--pw:e7--> <p>
   after the patch:   <p#shell> <section> <!--pw:s7--> <!--?start name="pw-7"--> <p#ph> <!--?end--> <!--pw:e7--> <p> <template> <p#ready>
   JavaScript off:    the placeholder stays
-  deferred module   ran only after it ends (at 1502 ms)
-  async module      ran while the response is open (at 12 ms)
-  async classic     ran while the response is open (at 11 ms)
-  inline import()   ran while the response is open (at 14 ms)
-     0 characters   painted while the response is open (at 32 ms)
-   200 characters   painted while the response is open (at 28 ms)
+  deferred module   ran only after it ends (at 1503 ms)
+  async module      ran while the response is open (at 15 ms)
+  async classic     ran while the response is open (at 14 ms)
+  inline import()   ran while the response is open (at 15 ms)
+     0 characters   painted while the response is open (at 28 ms)
+   200 characters   painted while the response is open (at 24 ms)
    300 characters   painted while the response is open (at 28 ms)
-  1000 characters   painted while the response is open (at 36 ms)
+  1000 characters   painted while the response is open (at 32 ms)
 firefox (playwright) 146.0.1
   before the patch:  <p#shell> <section> <!--pw:s7--> <!--?start name="pw-7"--> <p#ph> <!--?end--> <!--pw:e7--> <p>
   after the patch:   <p#shell> <section> <!--pw:s7--> <!--?start name="pw-7"--> <p#ph> <!--?end--> <!--pw:e7--> <p> <template> <p#ready>
   JavaScript off:    the placeholder stays
-  deferred module   ran only after it ends (at 1502 ms)
-  async module      ran while the response is open (at 31 ms)
-  async classic     ran while the response is open (at 31 ms)
-  inline import()   ran while the response is open (at 55 ms)
-     0 characters   painted while the response is open (at 45 ms)
-   200 characters   painted while the response is open (at 48 ms)
-   300 characters   painted while the response is open (at 39 ms)
-  1000 characters   painted while the response is open (at 44 ms)
+  deferred module   ran only after it ends (at 1500 ms)
+  async module      ran while the response is open (at 33 ms)
+  async classic     ran while the response is open (at 33 ms)
+  inline import()   ran while the response is open (at 51 ms)
+     0 characters   painted while the response is open (at 38 ms)
+   200 characters   painted while the response is open (at 36 ms)
+   300 characters   painted while the response is open (at 38 ms)
+  1000 characters   painted while the response is open (at 47 ms)
 webkit (playwright) 26.0
   before the patch:  <p#shell> <section> <!--pw:s7--> <!--?start name="pw-7"--> <p#ph> <!--?end--> <!--pw:e7--> <p> <template> <p#ready>
   after the patch:   <p#shell> <section> <!--pw:s7--> <!--?start name="pw-7"--> <p#ph> <!--?end--> <!--pw:e7--> <p> <template> <p#ready>
   JavaScript off:    the placeholder stays
-  deferred module   ran while the response is open (at 1511 ms)
-  async module      ran while the response is open (at 1511 ms)
+  deferred module   ran while the response is open (at 1514 ms)
+  async module      ran while the response is open (at 1512 ms)
   async classic     ran while the response is open (at 1511 ms)
-  inline import()   ran while the response is open (at 1512 ms)
-     0 characters   painted while the response is open (at 1507 ms)
+  inline import()   ran while the response is open (at 1511 ms)
+     0 characters   painted while the response is open (at 1506 ms)
    200 characters   painted while the response is open (at 1506 ms)
-   300 characters   painted while the response is open (at 1509 ms)
-  1000 characters   painted while the response is open (at 22 ms)
+   300 characters   painted while the response is open (at 1506 ms)
+  1000 characters   painted while the response is open (at 21 ms)

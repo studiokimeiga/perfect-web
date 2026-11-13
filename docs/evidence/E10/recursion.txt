@@ -1,37 +1,37 @@
 ADR-0050 - recursion and generic callees compile
 
 produced by: just e10-recursion
-commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 120e64874756e73da22b9f55f10ad0e567536627
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
 == recursions through the host (pw-conformance/tests/recursion.rs)
 
-test a_generic_recursion_is_compiled_once_per_instance ... ok
 test a_recursion_builds_a_string_and_an_option ... ok
+test a_generic_recursion_is_compiled_once_per_instance ... ok
 test an_exported_query_calls_itself ... ok
 test an_overflow_inside_a_recursion_traps ... ok
 test two_functions_call_each_other ... ok
 test a_function_calls_itself ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.31s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.47s
 
 == the component and the JavaScript module, on the same arguments
 
 javascript: 3 queries over cases written alone, 600 calls, component and module agree (57 trapped in both)
 javascript: 5 queries over trees, 1000 calls, component and module agree (155 trapped in both)
 javascript: 5 queries over values held in place, 1000 calls, component and module agree (132 trapped in both)
-javascript: 97 queries, 19400 calls, component and module agree (1446 trapped in both)
+javascript: 103 queries, 20600 calls, component and module agree (1424 trapped in both)
 
 == mutation controls (scripts/recursion_mutations.py)
 
-baseline: 26 passed, 0 failed
-a recursion's callee is never compiled: KILLED (11 of 26 tests fail)
-every instance of a callee is one: KILLED (2 of 26 tests fail)
-a callee compiled beside the export forgets its instance: KILLED (2 of 26 tests fail)
-a list's element type binds nothing: KILLED (2 of 26 tests fail)
-a callee's result is left on the stack: KILLED (10 of 26 tests fail)
-the module omits its callees: KILLED (3 of 26 tests fail)
+baseline: 27 passed, 0 failed
+a recursion's callee is never compiled: KILLED (12 of 27 tests fail)
+every instance of a callee is one: KILLED (2 of 27 tests fail)
+a callee compiled beside the export forgets its instance: KILLED (2 of 27 tests fail)
+a list's element type binds nothing: KILLED (2 of 27 tests fail)
+a callee's result is left on the stack: KILLED (10 of 27 tests fail)
+the module omits its callees: KILLED (3 of 27 tests fail)
 6 of 6 mutants killed
 memory bound: no process was stopped
 

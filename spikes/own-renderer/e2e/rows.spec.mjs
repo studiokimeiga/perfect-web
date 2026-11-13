@@ -325,6 +325,103 @@ test("rows where they were are changed in place and new ones go in after them, a
   expect(page.errors).toEqual([]);
 });
 
+/** Each plan's word on which walk reaches its holes (ADR-0437), as its log
+ * says it once the plan is made: `plan <part>: its own walk` or `... the
+ * general walk`. */
+const walks = (page) => page.evaluate(() => window.__pw.log.filter((l) => /^plan \d+: /.test(l)));
+
+test("the large list's rows are made by its own code, its holes reached by the walk the packaging wrote", { tag: "@report" }, async ({ page }) => {
+  await open(page);
+  await created(page);
+  expect(await firstDifference(page, 1000)).toBe("");
+  expect(await walks(page)).toEqual(["plan 6: its own walk"]);
+  // Each of the thousand rows by that walk.
+  expect(await page.evaluate(() => window.__pw.walked)).toBe(1000);
+  await page.click("#update");
+  await page.locator("#tbody tr").nth(4).locator(".select").click();
+  await expect(page.locator("#tbody tr").nth(4)).toHaveClass("danger");
+  expect(await firstDifference(page, 1000)).toBe("");
+  expect(page.errors).toEqual([]);
+});
+
+test("a row whose markup the parser reads otherwise is reached by the general walk, and shows what its row says", { tag: "@report" }, async ({ page }) => {
+  await open(page, "/events");
+  const cells = () => page.locator("#cells .cell").allTextContents();
+  await page.click("#add-cell");
+  await expect(page.locator("#cells .cell")).toHaveCount(3);
+  // The parser puts the row's table row in a `<tbody>` the markup does not
+  // write: the packaging's reading of it is not the browser's.
+  expect((await walks(page)).filter((l) => l.endsWith("the general walk"))).toHaveLength(1);
+  expect(await page.evaluate(() => window.__pw.walked ?? 0)).toBe(0);
+  expect(await page.locator("#cells li").nth(2).evaluate((li) => li.querySelector("table > tbody > tr > td.cell") !== null)).toBe(true);
+  expect(await cells()).toEqual(["one", "two", "three"]);
+  await page.click("#rename-cell");
+  await expect(page.locator("#cells .cell").nth(0)).toHaveText("renamed");
+  expect(await cells()).toEqual(["renamed", "two", "three"]);
+  expect(page.errors).toEqual([]);
+});
+
+test("a list inside a case's arm is kept by the general code, and shows what its rows say", async ({ page }) => {
+  // Its row reads the name the arm binds, which the page's own code does not
+  // (ADR-0437): the general code makes its rows by their plan, each kind of
+  // hole there is, and its handler is pressed with what its row holds.
+  await open(page, "/events");
+  const row = (i) => page.locator("#matched .matched").nth(i);
+  const names = () => page.locator("#matched .mname").allTextContents();
+  expect(await names()).toEqual(["one 1", "two 1"]);
+  await page.click("#next-maybe");
+  await expect(row(0).locator(".mname")).toHaveText("one 2");
+  await page.click("#rename");
+  await expect(row(1).locator(".mname")).toHaveText("renamed 2");
+  expect(await names()).toEqual(["one 2", "renamed 2"]);
+  // An attribute and a boolean attribute follow the row.
+  expect(await row(1).getAttribute("title")).toBe("renamed");
+  expect(await row(1).locator(".moff").evaluate((s) => s.hidden)).toBe(true);
+  expect(await row(0).locator(".moff").evaluate((s) => s.hidden)).toBe(false);
+  // And its handler is given what its row holds now.
+  await row(1).locator(".mpick").click();
+  await expect(page.locator("#picked")).toHaveText("renamed");
+  await row(0).locator(".mpick").click();
+  await expect(page.locator("#picked")).toHaveText("one");
+  expect(page.errors).toEqual([]);
+});
+
+test("a list the general code keeps leaves a row where it was where what it shows and computes is the same", async ({ page }) => {
+  // The case's arm's list again (ADR-0437): each row's class is what it
+  // computes from the page's `picked`, and its button has two handlers, one
+  // hole. A press that changes one row's class leaves the other's node the
+  // one it was, as what the other computes comes out the same.
+  await open(page, "/events");
+  const row = (i) => page.locator("#matched .matched").nth(i);
+  await page.click("#next-maybe");
+  await expect(row(1).locator(".mname")).toHaveText("two 2");
+  await expect(row(0)).toHaveAttribute("class", "matched");
+  await row(1).evaluate((li) => (li.__kept = true));
+  await row(0).locator(".mpick").click();
+  await expect(row(0)).toHaveAttribute("class", "matched chosen");
+  await expect(row(1)).toHaveAttribute("class", "matched");
+  expect(await row(1).evaluate((li) => li.__kept === true)).toBe(true);
+  expect(await row(1).locator(".moff").evaluate((s) => s.hidden)).toBe(false);
+  expect(await row(0).getAttribute("title")).toBe("one");
+  expect(page.errors).toEqual([]);
+});
+
+test("a press writes the one row of a list the general code keeps that it changed, by what the row computes", { tag: "@report" }, async ({ page }) => {
+  // What the other row computes reads the page too, and comes out the same:
+  // it is kept, not written again (the large list's own code is held so by
+  // "a press writes the text of the rows it changed").
+  await open(page, "/events");
+  const row = (i) => page.locator("#matched .matched").nth(i);
+  await page.click("#next-maybe");
+  await expect(row(1).locator(".mname")).toHaveText("two 2");
+  const before = await page.evaluate(() => window.__pw.log.length);
+  await row(0).locator(".mpick").click();
+  await expect(row(0)).toHaveAttribute("class", "matched chosen");
+  await page.waitForFunction((n) => window.__pw.log.slice(n).some((l) => / of 2 rows$/.test(l)), before);
+  const lines = await page.evaluate((n) => window.__pw.log.slice(n), before);
+  expect(lines.filter((l) => / of 2 rows$/.test(l)).map((l) => l.replace(/^block \d+ /, ""))).toEqual(["wrote 1 of 2 rows"]);
+});
+
 test("a press writes the text of the rows it changed and indexes nothing inside them", { tag: "@report" }, async ({ page }) => {
   await open(page);
   await created(page);

@@ -18,6 +18,8 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
+import { withOwnRows } from "./optimize-assets.mjs";
+import { OWN_ROWS, keptLists as keptOf, ownRows } from "./own-rows.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, "../..");
@@ -25,11 +27,18 @@ const runtime = readFileSync(path.join(here, "public/pw-runtime.mjs"), "utf8");
 const BEGIN = "const renderer = (() => {";
 const END = "// --- end of the browser's renderer";
 
-function loadRenderer(server = true) {
-  const start = runtime.indexOf(BEGIN);
-  const end = runtime.indexOf(END);
+/** The renderer of `source`, between its markers. */
+function rendererOf(source) {
+  const start = source.indexOf(BEGIN);
+  const end = source.indexOf(END);
   assert.ok(start >= 0 && end > start, "the runtime holds the renderer between its markers");
-  return vm.runInNewContext(`${runtime.slice(start, end)}\nrenderer`, {
+  return source.slice(start, end);
+}
+
+/** The renderer as a build none of whose lists its page's own code keeps
+ * has it (ADR-0437): the packaging's own lines cut, as it cuts them. */
+function loadRenderer(server = true, flags = {}) {
+  return vm.runInNewContext(`${rendererOf(withOwnRows(runtime, { rows: null }))}\nrenderer`, {
     TextEncoder,
     PW_SERVER: server,
     PW_LINKS: true,
@@ -41,6 +50,7 @@ function loadRenderer(server = true) {
     // it (ADR-0205), which the agreement holds: the renderer as a build that
     // writes graphs has it (ADR-0428).
     PW_GRAPHS: true,
+    ...flags,
   });
 }
 const renderer = loadRenderer();
@@ -318,7 +328,7 @@ function generated(seed) {
     }
   }
 
-  return { r, value, chunks, record, scope };
+  return { r, value, chunks, record, scope, rows };
 }
 
 function readPath(values, at) {
@@ -505,11 +515,24 @@ function askedInScope(r, chunks, values, templates, out) {
   return out;
 }
 
-function compiledRequests() {
+/** The compiler's templates of the store and of kiokun, recorded. */
+const COMPILED = ["spikes/own-renderer/store-ir.json", "docs/evidence/E10/kiokun/templates.json"];
+
+/** And the large list's and its fixture of presses, as their builds write
+ * them (`rows.sh`, `row-events.sh`): pages whose lists a plan makes. */
+const BUILT = ["spikes/own-renderer/dist-rows/build/templates.json", "spikes/own-renderer/dist-row-events/build/templates.json"];
+
+function compiledRequests(files = COMPILED) {
   const requests = [];
   const r = random(424242);
-  for (const file of ["spikes/own-renderer/store-ir.json", "docs/evidence/E10/kiokun/templates.json"]) {
-    const templates = JSON.parse(readFileSync(path.join(root, file), "utf8"));
+  for (const file of files) {
+    let text;
+    try {
+      text = readFileSync(path.join(root, file), "utf8");
+    } catch (error) {
+      assert.fail(`${file}: ${error.code} (spikes/own-renderer/rows.sh and row-events.sh build it; just e14-browser-renderer runs them)`);
+    }
+    const templates = JSON.parse(text);
     for (const template of templates) {
       for (let round = 0; round < 4; round++) {
         askedInScope(r, template.chunks, shaped(r, template.chunks, {}), templates, requests);
@@ -616,10 +639,479 @@ test("a row is written again when what a block around it bound changes", () => {
   assert.match(textOfKept(second), />b<|-->b<!--/);
 });
 
+test("a row that read NaN of the page is the row kept, and its computed value is not computed again", () => {
+  // `NaN` is no `===` of itself: a row that read it of the page was made
+  // again at every render, and a value it computed from it computed again
+  // (found by the planned rows' agreement, 2026-11-12). With views and with
+  // none, where a plan makes the row.
+  for (const device of [loadRenderer(false), loadRenderer(false, { PW_VIEWS: false })]) {
+    const items = [{ id: 1, name: "a" }];
+    const part = { part: "each", id: 3, collection: "items", binding: "item", key: "id", body: [text("item.name", 4), text("note", 5)] };
+    const render = (note) => device.block(part, device.env(Object.entries({ items, note })), []).lists[0].rows[0];
+    const first = render(Number.NaN);
+    assert.equal(render(Number.NaN), first, "a row that read NaN of the page is kept");
+    assert.notEqual(render(0), first, "and one whose NaN became a number is not");
+    let computed = 0;
+    device.rowsComputed({ "#t~9": (item, n) => `${item.name}${(computed += 1, n)}` }, [{ name: "#t~9", inputs: ["item", "n"] }]);
+    const counted = { part: "each", id: 6, collection: "items", binding: "item", key: "id", body: [text("item.#t~9", 7)] };
+    const again = () => device.block(counted, device.env(Object.entries({ items, n: Number.NaN })), []).lists[0].rows[0];
+    const once = again();
+    assert.equal(again(), once, "a row whose computed value read NaN is kept");
+    assert.equal(computed, 1, "and its value is computed once");
+  }
+});
+
 test("the two renderers agree over the compiler's own templates", () => {
   const { answered, refused } = agree(compiledRequests());
   assert.ok(answered > 1_000, `asked ${answered}`);
   assert.ok(refused < answered * 0.5, `${refused} of ${answered} refused`);
+});
+
+// --- a planned row, as a production device build makes it -----------------
+//
+// A page that talks to no server and shows no view (ADR-0413) makes the rows
+// of a keyed list at the top of a block by its plan (ADR-0427): each hole
+// computed alone (`plannedRowOf`), the row's text written only when something
+// reads it (`textOf`), and what its handlers capture only when one is
+// pressed. Its text is the server's, less the anchors of each text inside a
+// row, which nothing there addresses (`out.bare`); each hole is what the
+// server writes for its part in the row's scope; and a capture the server
+// refuses as it renders is refused as the row's text is read, as a press reads
+// it (ADR-0427, decision 4). Until 2026-11-12 no test held a planned row to
+// the server: the renderer above has views, so no list of it is a plan's.
+
+/** The renderer as a production device build with a plan has it. */
+const device = loadRenderer(false, { PW_VIEWS: false });
+
+/** A part a row's plan sets, as the runtime's `planned` reads it. */
+const HOLE = (v) =>
+  (v.part === "text" && v.context === "text") ||
+  (v.part === "attribute" && v.context !== "content") ||
+  v.part === "interpolated_attribute" ||
+  v.part === "boolean_attribute" ||
+  v.part === "event";
+
+const isPlan = (list) => list.body.every((c) => c.chunk === "static" || HOLE(c.value));
+
+/** The keyed lists a block keeps (`rowsKept`), in its order: each at its
+ * top, in no row of a keyed list. An unkeyed list's rows are the block's. */
+function keptLists(chunks, out = []) {
+  for (const c of chunks) {
+    if (c.chunk !== "dynamic") continue;
+    const p = c.value;
+    if (p.part === "each" && p.key !== null && p.key !== undefined) {
+      out.push(p);
+      continue;
+    }
+    for (const inner of [p.then, p.otherwise, p.body, p.placeholder, ...(p.arms ?? []).map((a) => a.body)]) {
+      if (inner) keptLists(inner, out);
+    }
+  }
+  return out;
+}
+
+const wrapped = (part) => [{ chunk: "dynamic", value: part }];
+
+/** `part`, each id inside it one no other request's part has: what the
+ * renderer keeps of a list is by its id, and one request's lists are no
+ * other's. */
+let numberedParts = 0;
+function renumbered(part) {
+  const copy = structuredClone(part);
+  const ids = new Map();
+  for (const q of dynamicParts(wrapped(copy))) {
+    if (typeof q.id !== "number") continue;
+    if (!ids.has(q.id)) ids.set(q.id, numberedParts++);
+    q.id = ids.get(q.id);
+  }
+  return copy;
+}
+
+/** `part` as the device renders it before a press: no handler of a list a
+ * plan makes captures anything yet. */
+function uncaptured(part) {
+  const copy = structuredClone(part);
+  for (const list of keptLists(wrapped(copy)).filter(isPlan)) {
+    for (const c of list.body) {
+      if (c.chunk !== "dynamic" || c.value.part !== "event") continue;
+      c.value.captures = [];
+      delete c.value.renames;
+    }
+  }
+  return copy;
+}
+
+/** The server's text of `part`, less the anchors of each text inside a row of
+ * a list a block keeps. */
+function bare(html, part) {
+  const ids = new Set();
+  for (const list of keptLists(wrapped(part))) for (const q of dynamicParts(list.body)) if (q.part === "text") ids.add(q.id);
+  return ids.size === 0 ? html : html.replace(new RegExp(`<!--pw:[se](?:${[...ids].join("|")})-->`, "g"), "");
+}
+
+/** A planned list's holes in its plan's order, as `holesOf` has them: each
+ * part, and an element's handlers side by side as one run. */
+function holesOfList(list) {
+  const out = [];
+  for (let i = 0; i < list.body.length; i++) {
+    const c = list.body[i];
+    if (c.chunk === "static") continue;
+    if (c.value.part !== "event") {
+      out.push(c.value);
+      continue;
+    }
+    const run = [c.value];
+    while (list.body[i + 1]?.value?.part === "event" && list.body[i + 1].value.owner === c.value.owner) run.push(list.body[++i].value);
+    out.push(run);
+  }
+  return out;
+}
+
+const escText = (v) => v.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+
+/** Each hole of a planned row, held to what the server's renderer writes for
+ * its part in the row's own scope; the number of holes held. */
+function holesAgree(row, at) {
+  const parts = holesOfList(row.of);
+  assert.equal(row.holes.length, parts.length, `a hole for each part: ${at}`);
+  parts.forEach((q, h) => {
+    if (Array.isArray(q)) {
+      assert.equal(row.holes[h], "", `a handler's hole holds nothing: ${at}`);
+      assert.equal(row.raws[h], undefined, `a handler's hole sets nothing: ${at}`);
+    } else if (q.part === "text") {
+      assert.equal(`<!--pw:s${q.id}-->${escText(row.holes[h])}<!--pw:e${q.id}-->`, renderer.part(q, row.env, []), `text hole ${q.id}: ${at}`);
+      assert.equal(row.raws[h], row.holes[h], `text hole ${q.id} is set as it is compared: ${at}`);
+    } else {
+      const [name, value] = renderer.attribute(q, row.env);
+      // An array of the renderer's realm, read into one of this.
+      const raw = row.raws[h] === null || row.raws[h] === undefined ? row.raws[h] : [...row.raws[h]];
+      if (q.part === "boolean_attribute") {
+        assert.deepEqual([row.holes[h], raw], value === null ? ["", null] : [name, [name, ""]], `boolean hole ${q.id}: ${at}`);
+      } else {
+        assert.deepEqual([row.holes[h], raw], [`${name}="${value}"`, [name, value]], `attribute hole ${q.id}: ${at}`);
+      }
+    }
+  });
+  const captures = parts.some((q) => Array.isArray(q) && q.some((v) => v.captures?.length > 0));
+  assert.equal(row.capturing, captures, `whether its handlers capture: ${at}`);
+  return parts.length;
+}
+
+/** Each request to render a part that holds a list a block keeps, and no
+ * view, which no planned build has; each numbered apart. */
+function plannedRequests(requests) {
+  return requests
+    .filter(([name, r]) => name === "render_part" && keptLists(wrapped(r.part)).length > 0)
+    .filter(([, r]) => !dynamicParts(wrapped(r.part)).some((q) => q.part === "instance"))
+    .map(([name, r]) => [name, { part: renumbered(r.part), values: r.values }]);
+}
+
+/** Every request rendered by the device as the server renders it; how many
+ * rows, planned rows and holes were held, and how many were refused. */
+function plannedAgree(requests) {
+  const server = fromTheServer(requests);
+  const before = fromTheServer(requests.map(([name, r]) => [name, { ...r, part: uncaptured(r.part) }]));
+  const held = { rows: 0, planned: 0, holes: 0, refused: 0 };
+  /** Request `i`, its planned rows held to the server's. */
+  const plannedAt = ([, request], i) => {
+    const at = wire(request);
+    const values = () => device.env(Object.entries(request.values ?? {}));
+    let block;
+    try {
+      block = device.block(request.part, values(), []);
+    } catch (error) {
+      if (error.kind === undefined) throw error;
+      assert.notEqual(before[i][0], 0, `only the device refused ${at}: ${error.kind}`);
+      assert.equal(error.kind, refusal(before[i]), `the two refused ${at} differently: ${before[i][1]}`);
+      held.refused += 1;
+      return;
+    }
+    assert.equal(before[i][0], 0, `only the server refused ${at}: ${before[i][1]}`);
+    let text = null;
+    let failed = null;
+    try {
+      text = block.lists.reduce((t, list, k) => t + list.rows.map(device.textOf).join("") + block.strs[k + 1], block.strs[0]);
+    } catch (error) {
+      if (error.kind === undefined) throw error;
+      failed = error.kind;
+    }
+    if (server[i][0] === 0) {
+      assert.equal(failed, null, `only the device refused ${at} as its rows were read`);
+      assert.equal(numbered(text), numbered(bare(server[i][1], request.part)), `the two rendered ${at} differently`);
+    } else {
+      assert.equal(failed, refusal(server[i]), `the two refused ${at} differently: ${server[i][1]}`);
+      held.refused += 1;
+    }
+    for (const list of block.lists) {
+      for (const row of list.rows) {
+        held.rows += 1;
+        if (!row.holes) continue;
+        held.planned += 1;
+        held.holes += holesAgree(row, at);
+      }
+    }
+    // Rendered again with nothing changed, each row is the one kept, where
+    // the block shows its list once.
+    const again = device.block(request.part, values(), []);
+    const shown = new Map();
+    for (const list of block.lists) shown.set(list.part, (shown.get(list.part) ?? 0) + 1);
+    block.lists.forEach((list, k) => {
+      if (shown.get(list.part) !== 1) return;
+      list.rows.forEach((row, n) => assert.equal(again.lists[k].rows[n], row, `a row nothing changed is the row kept: ${at}`));
+    });
+  };
+  requests.forEach(plannedAt);
+  return held;
+}
+
+/** Keyed lists of the generated parts a row's plan sets, mostly: each at the
+ * top of a block, or inside a block's branch, a case's arm or an unkeyed
+ * list's row, over rows of one shape and the page's values. */
+function plannedLists(cases) {
+  const requests = [];
+  for (let seed = 1; seed <= cases; seed++) {
+    const g = generated(1_000_000 + seed);
+    const { r } = g;
+    const values = {};
+    for (let i = r.int(4); i >= 0; i--) values[r.pick(["a", "b", "c", "#t~1", "X~holds", "flag"])] = g.value(2);
+    const items = g.rows(2);
+    // Most lists' keys are each row's own; some repeat, and some are missing.
+    if (r.chance(0.85)) items.forEach((item, i) => (item.id = i));
+    values.list = items;
+    const binding = r.pick(["it", "row"]);
+    const key = r.pick(["id", "id", "id", "id", "name", "r.id", ""]);
+    const body = g.chunks({ ...values, [binding]: items[0] ?? { id: 0, name: "n" } }, 0, []);
+    // The body's parts are numbered from 0, these past them.
+    let part = { part: "each", id: 900, collection: "list", binding, key, body };
+    const around = r.int(5);
+    if (around === 1) part = { part: "conditional", id: 901, value: "flag", then: [{ chunk: "dynamic", value: part }], otherwise: [] };
+    if (around === 2) part = { part: "match", id: 901, value: "v", arms: [{ case: "Some", binding: "x", body: [{ chunk: "dynamic", value: part }] }, { case: "None", body: [] }] };
+    if (around === 3) part = { part: "each", id: 901, collection: "outer", binding: "o", key: null, body: [{ chunk: "dynamic", value: part }] };
+    if (around === 1) values.flag = true;
+    if (around === 2) values.v = { $case: "Some", value: r.pick(NASTY) };
+    if (around === 3) values.outer = [{ n: 1 }, { n: 2 }];
+    requests.push(["render_part", { part, values }]);
+  }
+  return requests;
+}
+
+test("a planned row agrees with the server over generated templates", (t) => {
+  const held = plannedAgree(plannedRequests([...generatedRequests(1500), ...plannedLists(6000)]));
+  t.diagnostic(`held: ${JSON.stringify(held)}`);
+  // Enough rows a plan made, and refusals among them, that this holds the
+  // planned rows to something.
+  assert.ok(held.planned > 3_000 && held.holes > 5_000, JSON.stringify(held));
+  assert.ok(held.refused > 1_000 && held.rows > held.planned, JSON.stringify(held));
+});
+
+test("a planned row agrees with the server over the compiler's own templates", (t) => {
+  const held = plannedAgree(plannedRequests(compiledRequests([...COMPILED, ...BUILT])));
+  t.diagnostic(`held: ${JSON.stringify(held)}`);
+  assert.ok(held.planned > 20 && held.holes > 60, JSON.stringify(held));
+});
+
+// --- a list the page's own code keeps (ADR-0437) ---------------------------
+//
+// The packaging writes, for each list a device's page keeps whose rows a plan
+// makes, the list's own key, hold and making (`own-rows.mjs`), spliced into
+// the renderer where it holds a place for them. That code is the general
+// code's for the list, partially evaluated, so it is held to it here: each row
+// it makes is the row `plannedRowOf` makes, field by field, refused where that
+// one is; its text and what its handlers capture are the same; and it keeps
+// the rows the general code keeps, render after render. The general code is
+// held to the server above.
+
+/** The device's renderer with the code `ownRows` writes for `entries`
+ * spliced in as the packaging splices it (`withOwnRows`), for a page of
+ * template `template` some of whose lists are the general code's. */
+function loadOwn(entries, template) {
+  const own = ownRows(entries);
+  assert.equal(rendererOf(runtime).split(OWN_ROWS).length, 2, "the renderer holds one place for a page's own lists");
+  const source = `${rendererOf(withOwnRows(runtime, { ...own, unowned: true }))}\nrenderer`;
+  const flags = { PW_SERVER: false, PW_LINKS: true, PW_MATCH: true, PW_VIEWS: false, PW_DIALOGS: true, PW_PLANS: true, PW_GRAPHS: true };
+  return { renderer: vm.runInNewContext(source, { TextEncoder, ...flags, parts: { template } }), own };
+}
+
+/** What the general code reads of a row, in a form two realms compare. */
+function rowFields(row) {
+  return wire({
+    key: row.key,
+    holes: row.holes ? [...row.holes] : null,
+    raws: row.raws ? [...row.raws].map((raw) => (raw === undefined ? "(none)" : raw === null ? "(null)" : typeof raw === "string" ? raw : [...raw])) : null,
+    reads: [...row.reads],
+    names: row.names,
+    capturing: row.capturing ?? null,
+    computing: row.computing && { reads: [...row.computing.computedReads], values: row.computing.computedValues },
+  });
+}
+
+/** `fn()`'s answer, or the kind of what refused it. */
+function answerOf(fn) {
+  try {
+    return [0, fn()];
+  } catch (error) {
+    if (error.kind === undefined) throw error;
+    return [1, error.kind];
+  }
+}
+
+/** Every row of `block` by its list and key. */
+const rowsBy = (block) => new Map(block.lists.flatMap((list, k) => list.rows.map((row) => [`${k}|${row.key}`, row])));
+
+/** **Each request rendered by both**, the page's own code and the general
+ * code, twice, the second time over values changed a little: the same rows,
+ * the same refusals, the same text and captures, the same rows kept. */
+function ownAgree(requests, computes = new Map(), functions = null) {
+  const entries = [];
+  for (const [, request] of requests) {
+    const names = new Set(Object.keys(request.values ?? {}));
+    for (const { list, around } of keptOf(wrapped(request.part))) entries.push({ template: "t", list, around, names, computes });
+  }
+  const { renderer: mine, own } = loadOwn(entries, "t");
+  const general = loadRenderer(false, { PW_VIEWS: false });
+  if (functions) {
+    const asked = [...computes].map(([name, inputs]) => ({ name, inputs }));
+    mine.rowsComputed(functions, asked);
+    general.rowsComputed(functions, asked);
+  }
+  const written = new Set(own.written.map((w) => w.part));
+  const held = { written: written.size, refusedLists: own.refused.length, rows: 0, own: 0, kept: 0, refused: 0, why: {} };
+  // Why the packaging refused what it refused, by the start of what it says.
+  for (const { why } of own.refused) {
+    const said = why.split(" ").slice(0, 5).join(" ");
+    held.why[said] = (held.why[said] ?? 0) + 1;
+  }
+  /** Request `i`, its rows kept and made by the page's own code and the
+   * general code over rounds of values perturbed. */
+  const ownAt = ([, request], i) => {
+    const r = random(7_000_000 + i);
+    let values = request.values ?? {};
+    let before = [null, null];
+    for (let round = 0; round < 2; round++) {
+      const at = `${wire({ part: request.part, values })} (render ${round + 1})`;
+      const ours = answerOf(() => mine.block(request.part, mine.env(Object.entries(values)), []));
+      const theirs = answerOf(() => general.block(request.part, general.env(Object.entries(values)), []));
+      assert.equal(ours[0], theirs[0], `only one refused ${at}: ${ours[1]} / ${theirs[1]}`);
+      if (ours[0] === 1) {
+        assert.equal(ours[1], theirs[1], `the two refused ${at} differently`);
+        held.refused += 1;
+        before = [null, null];
+      } else {
+        const [a, b] = [ours[1], theirs[1]];
+        assert.deepEqual([...a.strs], [...b.strs], `the block around its lists: ${at}`);
+        assert.equal(a.lists.length, b.lists.length, at);
+        a.lists.forEach((list, k) => {
+          const other = b.lists[k];
+          assert.equal(list.part, other.part, at);
+          assert.equal(list.of, other.of, `whether a plan makes its rows: ${at}`);
+          assert.equal(list.rows.length, other.rows.length, at);
+          list.rows.forEach((row, n) => {
+            const theirRow = other.rows[n];
+            held.rows += 1;
+            if (written.has(list.part)) held.own += 1;
+            assert.equal(row.item, theirRow.item, `the row's item: ${at}`);
+            assert.equal(rowFields(row), rowFields(theirRow), `row ${row.key}: ${at}`);
+            // What each of its handlers captures, as a press computes it,
+            // before anything has read the row's text, which makes its
+            // scope: a press can come first.
+            (row.holes ?? []).forEach((_, h) => {
+              const nodes = row.holes.map((_, x) => ({ x }));
+              const theirNodes = row.holes.map((_, x) => ({ x }));
+              const captured = answerOf(() => mine.capturesOf(row, nodes, nodes[h]));
+              assert.deepEqual(captured, answerOf(() => general.capturesOf(theirRow, theirNodes, theirNodes[h])), `row ${row.key}'s captures at ${h}: ${at}`);
+            });
+            const text = answerOf(() => mine.textOf(row));
+            assert.deepEqual(text, answerOf(() => general.textOf(theirRow)), `row ${row.key}'s text: ${at}`);
+            assert.equal(rowFields(row), rowFields(theirRow), `row ${row.key}, its text read: ${at}`);
+          });
+        });
+        // The rows each kept of the render before, by its list and key.
+        if (before[0]) {
+          const [oursThen, theirsThen] = before;
+          for (const [key, row] of rowsBy(a)) {
+            const kept = oursThen.get(key) === row;
+            assert.equal(kept, theirsThen.get(key) === rowsBy(b).get(key), `whether row ${key} is the one kept: ${at}`);
+            if (kept) held.kept += 1;
+          }
+        }
+        before = [rowsBy(a), rowsBy(b)];
+      }
+      values = round === 0 && r.chance(0.5) ? values : perturbed(r, values);
+    }
+  };
+  requests.forEach(ownAt);
+  return held;
+}
+
+/** The names a row's computed value is held under: of one field, and of two
+ * as the compiler names each (`#t.P~ui~5`, a `BrowserRow`'s path less its
+ * row's name). */
+const COMPUTED_NAMES = ["#t~c", "#t.P~ui~5"];
+
+/** Planned lists whose rows compute a value (ADR-0424), as the large list's
+ * class does from its row and the page's selection: given by the page's
+ * computed module, held by a row the host rendered, or none to be had. */
+function computedLists(cases) {
+  const requests = [];
+  for (let seed = 1; seed <= cases; seed++) {
+    const g = generated(2_000_000 + seed);
+    const { r } = g;
+    const items = g.rows(1);
+    // A name of one field, or of two as the compiler names one
+    // (`row.#t.P~ui~5`), whose first a host's item may hold a record at.
+    const name = r.pick(COMPUTED_NAMES);
+    items.forEach((item, i) => {
+      item.id = i;
+      if (r.chance(0.2)) item[name] = r.pick(NASTY);
+      if (name.includes(".") && r.chance(0.3)) item["#t"] = r.chance(0.7) ? { "P~ui~5": r.pick(NASTY) } : r.pick(NASTY);
+    });
+    const values = { list: items, sel: r.pick([0, 1, 2, "x", Number.NaN]) };
+    if (r.chance(0.1)) delete values.sel;
+    const computed = `row.${name}`;
+    const read = r.chance(0.8) ? computed : r.pick(["row.id", "row.name", "sel"]);
+    const body = [
+      { chunk: "static", value: "<tr " },
+      { chunk: "dynamic", value: { part: "attribute", id: 0, owner: 0, name: "class", value: read, context: "attribute" } },
+      { chunk: "static", value: "><td>" },
+      { chunk: "dynamic", value: { part: "text", id: 1, value: "row.id", context: "text" } },
+      { chunk: "static", value: "</td><td>" },
+      { chunk: "dynamic", value: { part: "text", id: 2, value: computed, context: "text" } },
+      { chunk: "static", value: "</td><td><button " },
+      { chunk: "dynamic", value: { part: "event", id: 3, owner: 1, event: "press", handler: "h", name: "n", captures: ["row.id"] } },
+      { chunk: "static", value: ">x</button></td></tr>" },
+    ];
+    requests.push(["render_part", { part: { part: "each", id: 900, collection: "list", binding: "row", key: "id", body }, values }]);
+  }
+  return requests;
+}
+
+test("a list's own code keeps and makes its rows as the general code does, over generated templates", (t) => {
+  const held = ownAgree(plannedRequests([...generatedRequests(1500), ...plannedLists(6000)]));
+  t.diagnostic(`held: ${JSON.stringify(held)}`);
+  // Enough lists written, rows made by them and kept, and refusals of both
+  // kinds (of a render and of a list), that this holds the code to much.
+  assert.ok(held.written > 3_000 && held.own > 3_000 && held.kept > 1_000, JSON.stringify(held));
+  assert.ok(held.refused > 1_000 && held.refusedLists > 100, JSON.stringify(held));
+});
+
+test("a list's own code computes what its rows compute as the general code does", (t) => {
+  const compute = (row, sel) => (row.id === sel ? "danger" : row.id === 2 ? [row.id] : "");
+  const computes = new Map(COMPUTED_NAMES.map((name) => [name, ["row", "sel"]]));
+  const functions = Object.fromEntries(COMPUTED_NAMES.map((name) => [name, compute]));
+  const held = ownAgree(plannedRequests(computedLists(1500)), computes, functions);
+  t.diagnostic(`held: ${JSON.stringify(held)}`);
+  assert.ok(held.written > 1_000 && held.own > 1_000 && held.kept > 300 && held.refused > 50, JSON.stringify(held));
+  // And where the page's computed module gives no function for it: its
+  // path's fields, as the general code reads them, which most rows lack.
+  const unanswered = ownAgree(plannedRequests(computedLists(600)), computes);
+  t.diagnostic(`held with no function: ${JSON.stringify(unanswered)}`);
+  assert.ok(unanswered.written > 400 && unanswered.refused > 300 && unanswered.own > 60, JSON.stringify(unanswered));
+});
+
+test("a list's own code keeps and makes its rows as the general code does, over the compiler's own templates", (t) => {
+  const held = ownAgree(plannedRequests(compiledRequests([...COMPILED, ...BUILT])));
+  t.diagnostic(`held: ${JSON.stringify(held)}`);
+  assert.ok(held.written > 10 && held.own > 50, JSON.stringify(held));
 });
 
 const PARTS = [

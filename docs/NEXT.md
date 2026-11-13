@@ -6,6 +6,46 @@
 
 # Next
 
+## After train-32, 2026-11-12
+
+A planned list's rows are kept and made by its page's own code (ADR-0437),
+ADR-0434's first step. The first "create 1,000 rows" of a cold visit spends
+9.48 ms of JavaScript to Svelte's 9.09 (12.40 before), 43.10 to 46.52 with the
+processor slowed four times; the builds visited in turn have it quicker past
+the rounds' spread in Firefox (create −5.0 ms, replace −4.0, every press −6.0)
+and under Slow 4G (create −15.2 cold, append −44.6 warm), and every press of a
+warm visit −7.9 in Chromium. Its cold append is slower, and recorded
+(ADR-0437, Consequences). What is left, each measured, none decided:
+
+1. **Two comments a row** (item 4 after trains 27 and 28): the next step of
+   ADR-0434's rows, two of every three nodes a thousand rows insert, and
+   Firefox's layout of them, where its cold create, append and replace are
+   behind Svelte's. It is also the first remedy for item 2. **Its check**, as
+   ADR-0437's result measured it: in a trace of the head-to-head's own cold
+   visit (`v8`, `disabled-by-default-v8.gc`), the global allocation limit at
+   the last scavenge before the append (`V8.GCTraceGCNVP`'s
+   `global_allocation_limit`), and where the first mark-compact falls
+   (`V8.GCIncrementalMarkingStart`, its `gc_reason` and time against the
+   append's click).
+2. **A cold append, slower to its frame**: +6.4 ms in Chromium (3.5..8.6) on
+   a quiet machine, +4.9 (1.6..7.4) with the final code under load, accepted
+   and recorded (ADR-0437, Consequences). This build keeps less (a row
+   3,016 B against 3,326) and allocates less in every press, so its
+   scavenges' average survival is 39.6 % against 48.7 %; V8 shrinks its
+   initial global limit by that ratio after each scavenge until its first
+   mark-compact, to 43 to 49 MB against 68 to 75, and the append's DOM and
+   layout reach it inside the press in every round. What would move it:
+   fewer nodes a row (item 1), or a scavenge fewer before the append (2 to
+   4 MB less garbage, most of it the general renderer's block generators and
+   maps, ADR-0434's later steps; about 3 MB is the harness's own). The warm
+   replace, slower past its spread under load, is not traced.
+3. **Bytes**: the large list's page alone is 175 B heavier with Brotli (+700
+   decoded) for its own code; TodoMVC's is byte for byte what it was before
+   this step. The byte rows are ADR-0434's later steps' (a block's markup,
+   the general renderer folded away where every template is written).
+4. **Swap and remove** spend what placing the rows costs (`rowsPlaced`,
+   `staying`, `placesOf`), which no page's own code writes yet.
+
 ## After trains 27 and 28, 2026-11-12
 
 A list's rows are made as they changed, and a planned row is a plain object
@@ -14,12 +54,13 @@ value the page holds is read as it is (ADR-0433). The large list's presses do
 less; their record is the head-to-head their full verify is recorded with.
 What is left, each measured, none decided:
 
-1. **An `Option` made only to be matched.** `match List.get(xs, i) { Some(w)
-   => w, None => "" }` makes `{ $case: "some", value }` and switches on it at
-   once: three objects a row of the large list, and every `List.get`,
-   `Map.get` and `List.find` the same. A match on a value the same function
-   made from a case could take the case's arm with its payload, and the
-   object never be made: the compiler's lowering or its JavaScript backend.
+1. **Done, within the record's spread: an `Option` made only to be
+   matched is not made** (train-31, ADR-0436, to land after trains 27 and
+   28): a `List.get`, `Map.get` or `List.find` read only by the match after
+   it is an `if` on its test. The large list's three objects a row are gone
+   and its row-making handlers 667 bytes lighter (117 with Brotli); the
+   builds visited in turn moved no press past its rounds' spread. A profile
+   of the first press would say what share of it they were.
 2. **A warm append's frame, later in some rounds.** With trains 27 and 28
    a warm "append 1,000 rows" reaches the document sooner in every round
    (under Slow 4G 29.6 to 33.9 ms after the click, to 34.4 to 40.7) and its

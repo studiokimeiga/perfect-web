@@ -41,6 +41,17 @@ const PW_KEPT = true;
 const PW_FRAGMENT = true;
 const PW_AUTOFOCUS = true;
 const PW_PLANS = true;
+// own rows: **whether a list a block keeps is kept by its page's own code**
+// (ADR-0437), which the packaging writes for each list of a device's page
+// whose rows a plan makes (`own-rows.mjs`), and whether any such list is the
+// general code's: one whose rows no plan makes, or one the packaging did not
+// write. The runtime as written has no page's own code. A build that writes
+// none holds none of the lines marked as these are, and is minified from the
+// runtime it was before there was any: folded away, they would still move
+// esbuild's names, which it gives by what the whole source holds.
+const PW_OWN = false;
+const PW_UNOWNED = true;
+// :own rows
 
 /** **Whether a value of a type that contains itself can reach the page**
  * (ADR-0428), as its nodes (`$graph`, ADR-0205): only where a file of its
@@ -1673,10 +1684,21 @@ const renderer = (() => {
   /** What each keyed list at the top of a block last wrote, by its key: each
    * row's value, what it read of the page, and its text. */
   const kept = new Map();
+  // own rows: **the page's own lists** (ADR-0437): for each list of the page
+  // whose rows a plan makes, its own key, hold and making, by its part, which
+  // the packaging writes here with the helpers they call (`own-rows.mjs`),
+  // and `ownKept`, which keeps a list's rows by them. None as written.
+  const OWN_ROWS = null;
+  // :own rows
 
   /** **The rows of list `p`**, each the one kept where nothing it reads has
    * changed, so a press writes the text of the rows it changed. */
   function rowsKept(p, e, others, items) {
+    // own rows: a list the page's own code keeps (ADR-0437): every list,
+    // where none is the general code's, so that none of what follows is in
+    // such a build; else each its code was written for.
+    if (PW_OWN && (!PW_UNOWNED || OWN_ROWS?.[p.id])) return ownKept(OWN_ROWS?.[p.id], p, e, others, items);
+    // :own rows
     const was = kept.get(p.id);
     // Each row by its key, which is also what says a key is taken (ADR-0432).
     const now = new Map();
@@ -1700,9 +1722,15 @@ const renderer = (() => {
     for (let a = row.names, b = e.names; a || b; a = a.up, b = b.up) {
       if (!a || !b || !same(a.value, b.value)) return false;
     }
-    for (const [name, value] of row.reads) if (e.page.get(name) !== value) return false;
+    for (const [name, value] of row.reads) if (!unmoved(e.page.get(name), value)) return false;
     return computedHold(row, item, e, p);
   }
+
+  /** **Whether what the page holds is what a row read of it**: the very
+   * value, or `NaN` for `NaN`, which no `===` holds of itself. A row that read
+   * `NaN` was made again at every render (found 2026-11-12 by the planned
+   * rows' agreement). */
+  const unmoved = (now, was) => now === was || (now !== now && was !== was);
 
   /** **Whether what a row computes still comes out as it did** (ADR-0424):
    * where nothing it read of the page moved, so; else
@@ -1715,7 +1743,7 @@ const renderer = (() => {
     if (!computing || computing.computedValues.length === 0) return true;
     let moved = false;
     for (const [name, value] of computing.computedReads) {
-      if (e.page.get(name) !== value) {
+      if (!unmoved(e.page.get(name), value)) {
         moved = true;
         break;
       }
@@ -1731,6 +1759,10 @@ const renderer = (() => {
   }
 
   function rowOf(p, e, others, item, key) {
+    // own rows: where the page's own code keeps every list (ADR-0437), none
+    // is the general code's, and none of what follows is in such a build.
+    if (!PW_UNOWNED) return null;
+    // :own rows
     rowsWritten += 1;
     const reads = new Map();
     const token = tokenOf(e, p.id, key);
@@ -2043,6 +2075,10 @@ const renderer = (() => {
       for (const { name, inputs } of entries) {
         const f = functions[name];
         if (!f) continue;
+        // own rows: the page's own code calls it with its inputs read as it
+        // reads them (ADR-0437).
+        if (PW_OWN) ownFunctions.set(name, f);
+        // :own rows
         // What it reads of the page is its row's computed reads, apart from
         // what the row's markup reads, and what it computes is kept with the
         // row: a change it reads keeps the row where each comes out the same.
@@ -3288,6 +3324,13 @@ function rowPut(parent, [start, end], anchor) {
 
 /** What each list part's plan is, once made; `null` where none holds. */
 const plans = new WeakMap();
+// own rows: **the walks the packaging wrote** (ADR-0437): for each list of
+// the page whose rows its own code makes, each hole's path as the packaging
+// read the row's markup, and the steps from a row's clone to each hole along
+// them; and the path of no steps, where a walk took them. None as written.
+const OWN_WALKS = null;
+const NO_STEPS = [];
+// :own rows
 
 /** **One row's plan**: its markup parsed once, an empty text where each text
  * hole is and a mark on the element each attribute hole is on, so a new row is
@@ -3338,6 +3381,15 @@ function planOf(p) {
     return path;
   };
   const plan = found.every(Boolean) ? { proto: template.content, kinds, paths: found.map(pathOf) } : null;
+  // own rows: **the walk the packaging wrote**, where its reading of the
+  // row's markup is this parse's (ADR-0437), compared once a plan; the
+  // general walk where the parser reads it otherwise.
+  if (PW_OWN && plan) {
+    const own = OWN_WALKS?.[p.id];
+    plan.walk = own?.paths === plan.paths.join("|") ? own.walk : null;
+    REPORT: log.push(`plan ${p.id}: ${plan.walk ? "its own walk" : "the general walk"}`);
+  }
+  // :own rows
   plans.set(p, plan);
   return plan;
 }
@@ -3420,6 +3472,10 @@ function rowsPlanned(rows, plan, shown, inserted) {
   for (const row of rows) {
     const clone = plan.proto.cloneNode(true);
     const holes = new Array(plan.paths.length);
+    // own rows: each row the steps the packaging wrote reach (ADR-0437),
+    // which a build that writes them takes where they are this parse's.
+    REPORT: if (PW_OWN && plan.walk) window.__pw.walked = (window.__pw.walked ?? 0) + 1;
+    // :own rows
     const nodes = [null, null, holes, row];
     for (let h = 0; h < holes.length; h++) {
       // By its siblings: a node's `childNodes` is a list each step makes.

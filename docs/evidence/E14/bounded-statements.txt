@@ -1,8 +1,8 @@
 NEXT 4b - a read is a bounded number of statements on PostgreSQL
 
 produced by: just e14-bounded-statements
-commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 120e64874756e73da22b9f55f10ad0e567536627
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 postgres: 18.6 (Debian 18.6-1.pgdg13+2)
 
@@ -84,13 +84,13 @@ test tests::bounded_statements::a_pending_real_payment_webhook_is_not_a_complete
 test tests::bounded_statements::scheduled_state_writes_feed_ran_waits_for_a_command ... ok
 test tests::bounded_statements::scheduled_state_writes_feed_retry_waits_for_a_command ... ok
 test tests::bounded_statements::scheduled_state_writes_store_ran_waits_for_a_command ... ok
-test tests::bounded_statements::scheduled_state_writes_store_retry_waits_for_a_command ... ok
 test tests::bounded_statements::a_commands_commit_is_counted_with_it ... ok
+test tests::bounded_statements::scheduled_state_writes_store_retry_waits_for_a_command ... ok
 test tests::bounded_statements::sweep_cleanup_and_payment_commit_share_the_same_write_guard ... ok
+test tests::bounded_statements::placing_and_settling_where_payments_are_taken_is_bounded ... ok
 statements per page and command:
 test tests::bounded_statements::each_page_and_command_is_a_bounded_number_of_statements ... ok
-test tests::bounded_statements::placing_and_settling_where_payments_are_taken_is_bounded ... ok
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 1038 filtered out; finished in 16.04s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 1038 filtered out; finished in 15.22s
 
 == mutation controls (scripts/bounded_statements_mutations.py)
 

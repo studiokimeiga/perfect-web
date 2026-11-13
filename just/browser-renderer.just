@@ -7,11 +7,15 @@
 
 # The browser's renderer and the server's give one answer: the same requests
 # to each, over the compiler's templates, generated ones of every part and
-# context, and every code point; the browser suites that render through it in
-# three engines; and the mutation controls.
+# context, and every code point; a planned row as a device build makes it,
+# over the large list's and its fixture's templates too (`rows.sh`,
+# `row-events.sh`); the browser suites that render through it in three
+# engines; and the mutation controls.
 e14-browser-renderer:
     @BUILD_ONLY=1 bash spikes/own-renderer/run.sh > /dev/null
     @bash spikes/own-renderer/feed.sh > /dev/null
+    @bash spikes/own-renderer/rows.sh > /dev/null
+    @bash spikes/own-renderer/row-events.sh > /dev/null
     @cargo build --quiet --locked -p pw-dev-server -p kiokun-server -p pw-render-oracle
     @mkdir -p docs/evidence/E14
     @{ echo "the browser renders with a page of JavaScript, held to the server's renderer"; echo; \
