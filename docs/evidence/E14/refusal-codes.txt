@@ -1,7 +1,8 @@
 ADR-0400 - a refusal has a code and a page, and the browser's decision carries no words
 
 produced by: just e14-refusal-codes
-commit: c7bf000458618f0ee59507b2b8f00c5606b0707a
+commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -12,13 +13,13 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 test result: ok. 38 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 
 == the decision without it, as the browser's build has it (runtime/pw-resume --no-default-features, runtime/pw-resume-wasm)
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 test result: ok. 38 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
@@ -29,7 +30,7 @@ EVIDENCE static-route-script-bytes=0 wasm-bytes=0
 EVIDENCE interactive-script-bytes=262839 brotli=67331
 EVIDENCE interactive-wasm-bytes=0 brotli=0
 EVIDENCE  script 262839 gzip=80439 brotli=67331 http://127.0.0.1:3148/pw-runtime.mjs
-  17 passed (11.4s)
+  17 passed (19.7s)
 
 == mutation controls (scripts/refusal_codes_mutations.py)
 

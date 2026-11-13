@@ -1,8 +1,8 @@
 ADR-0195 ruling 13 - every HTML answer carries a Content-Security-Policy generated from its build, and the build refuses what it would refuse
 
 produced by: just e14-page-policy
-commit: a3cab774e9569baddae69bd0d294487eaa3b697e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 playwright: Version 1.58.0
 
@@ -15,7 +15,7 @@ test an_address_names_another_origin_as_a_browser_reads_it ... ok
 test a_links_address_is_written_as_text ... ok
 test a_load_from_another_origin_is_refused_where_it_is_written ... ok
 test a_load_from_this_origin_and_what_is_no_load_check_clean ... ok
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
 
 == the corpus at C22 (corpus-check, corpus_history.rs, generality.rs, checking_source.rs)
 
@@ -24,9 +24,9 @@ accepted: 49/49 charter §16 categories covered
 rejected: 106 files
 rejected: 106/106 charter §16 categories covered
 corpus-check: OK
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 198.64s
-test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.53s
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 193.19s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 218.42s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.87s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 211.11s
 
 == the policy, and the answers it is sent with (csp.rs, tests/page_policy.rs)
 
@@ -49,12 +49,12 @@ test tests::page_policy::every_other_html_answer_runs_nothing ... ok
 test tests::sign_in::the_development_provider_signs_up_and_in_through_the_flow ... ok
 test tests::page_policy::the_host_writes_no_style_attribute ... ok
 test tests::redirects::a_page_at_another_address_of_the_page_is_moved_there_for_good ... ok
-test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 1076 filtered out; finished in 35.73s
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 1076 filtered out; finished in 41.28s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
 
 == the pages the suite serves, under it, in three engines (e2e/page-policy.spec.mjs)
 
-  51 passed (2.3m)
+  51 passed (2.2m)
 
 == mutation controls (scripts/page_policy_mutations.py)
 

@@ -1,25 +1,25 @@
 ADR-0065 - a value that holds at every type
 
 produced by: just e10-any
-commit: a3cab774e9569baddae69bd0d294487eaa3b697e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == None, [], Err, todo, a free parameter, a let mut (compiler/pw-core/tests/any_type.rs)
 
 test a_case_passed_as_a_function_keeps_its_link ... ok
-test a_generic_case_nothing_fixes_is_any_instance ... ok
 test a_failure_is_a_result_of_any_success ... ok
+test a_generic_case_nothing_fixes_is_any_instance ... ok
 test a_mutable_binding_is_one_type ... ok
 test a_seed_its_context_does_not_type_is_built_at_the_folds_type ... ok
-test an_early_return_is_any_success ... ok
 test a_value_of_any_type_fixes_no_variable ... ok
 test a_parameter_no_field_mentions_is_any_type ... ok
+test an_early_return_is_any_success ... ok
 test a_folds_accumulator_is_what_its_function_builds ... ok
 test todo_is_any_value ... ok
 test none_is_an_option_of_anything ... ok
 test an_empty_list_is_a_list_of_anything ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.33s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s
 
 == what the value relations decide: the store program
 

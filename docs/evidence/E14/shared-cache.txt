@@ -1,8 +1,8 @@
 ADR-0128 - a shared cache holds no one reader's value, whatever its declaration says
 
 produced by: just e14-shared-cache
-commit: a3cab774e9569baddae69bd0d294487eaa3b697e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == regression tests (compiler/pw-core/tests/shared_cache_holds_no_readers_value.rs)
@@ -12,9 +12,9 @@ test a_shared_fragment_of_a_query_given_the_session_is_refused ... ok
 test a_key_naming_the_reader_does_not_make_their_value_shareable ... ok
 test the_parameter_a_readers_value_comes_from_is_noted_in_a_whole_sentence ... ok
 test the_parameter_is_noted_with_its_own_label_where_more_are_given ... ok
-test a_query_given_the_session_holds_the_sessions_value_whatever_its_keyword ... ok
 test a_tenants_value_may_be_shared_keyed_by_its_tenant ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.46s
+test a_query_given_the_session_holds_the_sessions_value_whatever_its_keyword ... ok
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.87s
 
 == generality (just generality)
 

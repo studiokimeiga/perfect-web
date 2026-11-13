@@ -1,37 +1,37 @@
 Effect propagation reaches a fixed point before checking or granting
 
 produced by: just e14-effect-convergence
-commit: a3cab774e9569baddae69bd0d294487eaa3b697e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 
 running 1 test
-reference_feed: median_us=439349, min_us=438707, max_us=440015, diagnostics=0
-chain_15_reverse_false: median_us=111894, min_us=111261, max_us=112101, diagnostics=1
-chain_15_reverse_true: median_us=111115, min_us=111028, max_us=111833, diagnostics=1
-chain_100_reverse_false: median_us=201584, min_us=201463, max_us=202336, diagnostics=1
-chain_100_reverse_true: median_us=200901, min_us=200267, max_us=201206, diagnostics=1
-chain_250_reverse_false: median_us=437680, min_us=436878, max_us=443345, diagnostics=1
-chain_250_reverse_true: median_us=435254, min_us=434776, max_us=436907, diagnostics=1
+reference_feed: median_us=482972, min_us=479845, max_us=486050, diagnostics=0
+chain_15_reverse_false: median_us=125354, min_us=125056, max_us=125923, diagnostics=1
+chain_15_reverse_true: median_us=125636, min_us=124663, max_us=126455, diagnostics=1
+chain_100_reverse_false: median_us=227847, min_us=226951, max_us=228223, diagnostics=1
+chain_100_reverse_true: median_us=226745, min_us=226100, max_us=229735, diagnostics=1
+chain_250_reverse_false: median_us=490981, min_us=490256, max_us=508961, diagnostics=1
+chain_250_reverse_true: median_us=488971, min_us=488806, max_us=492942, diagnostics=1
 .
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 11.64s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 13.06s
 
 
 running 6 tests
-test a_deep_member_helper_chain_is_effectful_in_either_declaration_order ... ok
 test a_deep_direct_helper_chain_is_effectful_in_either_declaration_order ... ok
+test a_deep_member_helper_chain_is_effectful_in_either_declaration_order ... ok
 test recursive_helper_cycles_converge_with_and_without_an_effect ... ok
 test late_named_function_values_reach_the_query_contract_through_cycles ... ok
 test late_noninvoked_member_values_reach_purity_and_contracts ... ok
 test deep_helper_effects_reach_the_query_contract_in_either_declaration_order ... ok
 
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 2.93s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 3.44s
 
 
 baseline: 6 passed, 0 failed
 
 running 6 tests
-test a_deep_member_helper_chain_is_effectful_in_either_declaration_order ... FAILED
 test a_deep_direct_helper_chain_is_effectful_in_either_declaration_order ... FAILED
+test a_deep_member_helper_chain_is_effectful_in_either_declaration_order ... FAILED
 test deep_helper_effects_reach_the_query_contract_in_either_declaration_order ... FAILED
 test late_named_function_values_reach_the_query_contract_through_cycles ... FAILED
 test recursive_helper_cycles_converge_with_and_without_an_effect ... FAILED
@@ -39,38 +39,38 @@ test late_noninvoked_member_values_reach_purity_and_contracts ... ok
 
 failures:
 
----- a_deep_member_helper_chain_is_effectful_in_either_declaration_order stdout ----
+---- a_deep_direct_helper_chain_is_effectful_in_either_declaration_order stdout ----
 
-thread 'a_deep_member_helper_chain_is_effectful_in_either_declaration_order' (96077) panicked at compiler/pw-core/tests/effect_convergence.rs:89:9:
-assertion `left == right` failed: effect escaped: reverse=false, cycle=false, leaf=item.label
+thread 'a_deep_direct_helper_chain_is_effectful_in_either_declaration_order' (19424) panicked at compiler/pw-core/tests/effect_convergence.rs:89:9:
+assertion `left == right` failed: effect escaped: reverse=false, cycle=false, leaf=label(item)
   left: []
  right: [("PW0401", "hop0(item)")]
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
----- a_deep_direct_helper_chain_is_effectful_in_either_declaration_order stdout ----
+---- a_deep_member_helper_chain_is_effectful_in_either_declaration_order stdout ----
 
-thread 'a_deep_direct_helper_chain_is_effectful_in_either_declaration_order' (96076) panicked at compiler/pw-core/tests/effect_convergence.rs:89:9:
-assertion `left == right` failed: effect escaped: reverse=false, cycle=false, leaf=label(item)
+thread 'a_deep_member_helper_chain_is_effectful_in_either_declaration_order' (19425) panicked at compiler/pw-core/tests/effect_convergence.rs:89:9:
+assertion `left == right` failed: effect escaped: reverse=false, cycle=false, leaf=item.label
   left: []
  right: [("PW0401", "hop0(item)")]
 
 ---- deep_helper_effects_reach_the_query_contract_in_either_declaration_order stdout ----
 
-thread 'deep_helper_effects_reach_the_query_contract_in_either_declaration_order' (96078) panicked at compiler/pw-core/tests/effect_convergence.rs:127:17:
+thread 'deep_helper_effects_reach_the_query_contract_in_either_declaration_order' (19426) panicked at compiler/pw-core/tests/effect_convergence.rs:127:17:
 assertion `left == right` failed: capability escaped: reverse=false, cycle=false, leaf=label(item)
   left: []
  right: ["database.read<Item>"]
 
 ---- late_named_function_values_reach_the_query_contract_through_cycles stdout ----
 
-thread 'late_named_function_values_reach_the_query_contract_through_cycles' (96079) panicked at compiler/pw-core/tests/effect_convergence.rs:160:17:
+thread 'late_named_function_values_reach_the_query_contract_through_cycles' (19427) panicked at compiler/pw-core/tests/effect_convergence.rs:160:17:
 assertion `left == right` failed: reverse=false, cycle=false
   left: []
  right: ["database.read<Item>"]
 
 ---- recursive_helper_cycles_converge_with_and_without_an_effect stdout ----
 
-thread 'recursive_helper_cycles_converge_with_and_without_an_effect' (96081) panicked at compiler/pw-core/tests/effect_convergence.rs:89:9:
+thread 'recursive_helper_cycles_converge_with_and_without_an_effect' (19429) panicked at compiler/pw-core/tests/effect_convergence.rs:89:9:
 assertion `left == right` failed: effect escaped: reverse=false, cycle=true, leaf=label(item)
   left: []
  right: [("PW0401", "hop0(item)")]
@@ -83,7 +83,7 @@ failures:
     late_named_function_values_reach_the_query_contract_through_cycles
     recursive_helper_cycles_converge_with_and_without_an_effect
 
-test result: FAILED. 1 passed; 5 failed; 0 ignored; 0 measured; 1 filtered out; finished in 1.24s
+test result: FAILED. 1 passed; 5 failed; 0 ignored; 0 measured; 1 filtered out; finished in 1.39s
 
 error: test failed, to rerun pass `-p pw-core --test effect_convergence`
 
@@ -101,7 +101,7 @@ failures:
 
 ---- a_deep_direct_helper_chain_is_effectful_in_either_declaration_order stdout ----
 
-thread 'a_deep_direct_helper_chain_is_effectful_in_either_declaration_order' (96446) panicked at compiler/pw-core/tests/effect_convergence.rs:89:9:
+thread 'a_deep_direct_helper_chain_is_effectful_in_either_declaration_order' (19791) panicked at compiler/pw-core/tests/effect_convergence.rs:89:9:
 assertion `left == right` failed: effect escaped: reverse=false, cycle=false, leaf=label(item)
   left: []
  right: [("PW0401", "hop0(item)")]
@@ -109,35 +109,35 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- a_deep_member_helper_chain_is_effectful_in_either_declaration_order stdout ----
 
-thread 'a_deep_member_helper_chain_is_effectful_in_either_declaration_order' (96447) panicked at compiler/pw-core/tests/effect_convergence.rs:89:9:
+thread 'a_deep_member_helper_chain_is_effectful_in_either_declaration_order' (19792) panicked at compiler/pw-core/tests/effect_convergence.rs:89:9:
 assertion `left == right` failed: effect escaped: reverse=false, cycle=false, leaf=item.label
   left: []
  right: [("PW0401", "hop0(item)")]
 
 ---- deep_helper_effects_reach_the_query_contract_in_either_declaration_order stdout ----
 
-thread 'deep_helper_effects_reach_the_query_contract_in_either_declaration_order' (96448) panicked at compiler/pw-core/tests/effect_convergence.rs:127:17:
+thread 'deep_helper_effects_reach_the_query_contract_in_either_declaration_order' (19793) panicked at compiler/pw-core/tests/effect_convergence.rs:127:17:
 assertion `left == right` failed: capability escaped: reverse=false, cycle=false, leaf=label(item)
   left: []
  right: ["database.read<Item>"]
 
 ---- late_named_function_values_reach_the_query_contract_through_cycles stdout ----
 
-thread 'late_named_function_values_reach_the_query_contract_through_cycles' (96449) panicked at compiler/pw-core/tests/effect_convergence.rs:160:17:
+thread 'late_named_function_values_reach_the_query_contract_through_cycles' (19794) panicked at compiler/pw-core/tests/effect_convergence.rs:160:17:
 assertion `left == right` failed: reverse=false, cycle=false
   left: []
  right: ["database.read<Item>"]
 
 ---- recursive_helper_cycles_converge_with_and_without_an_effect stdout ----
 
-thread 'recursive_helper_cycles_converge_with_and_without_an_effect' (96451) panicked at compiler/pw-core/tests/effect_convergence.rs:89:9:
+thread 'recursive_helper_cycles_converge_with_and_without_an_effect' (19796) panicked at compiler/pw-core/tests/effect_convergence.rs:89:9:
 assertion `left == right` failed: effect escaped: reverse=false, cycle=true, leaf=label(item)
   left: []
  right: [("PW0401", "hop0(item)")]
 
 ---- late_noninvoked_member_values_reach_purity_and_contracts stdout ----
 
-thread 'late_noninvoked_member_values_reach_purity_and_contracts' (96450) panicked at compiler/pw-core/tests/effect_convergence.rs:192:13:
+thread 'late_noninvoked_member_values_reach_purity_and_contracts' (19795) panicked at compiler/pw-core/tests/effect_convergence.rs:192:13:
 assertion `left == right` failed
   left: []
  right: ["database.read<Item>"]
@@ -151,7 +151,7 @@ failures:
     late_noninvoked_member_values_reach_purity_and_contracts
     recursive_helper_cycles_converge_with_and_without_an_effect
 
-test result: FAILED. 0 passed; 6 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.39s
+test result: FAILED. 0 passed; 6 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.44s
 
 error: test failed, to rerun pass `-p pw-core --test effect_convergence`
 
