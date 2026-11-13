@@ -6,6 +6,35 @@
 
 # Next
 
+## After L2, row ownership, 2026-11-12
+
+L2, the second train of the declared data layer's landing (ADR-0395, with
+ADR-0407's amendments), on L1: a table says whose its rows are. `owned by
+<field>` keys its rows by their owner, each read and write by the reader's
+handle; `public table` is read by anyone and written by its owner; a table
+a reader's command writes says `owned by` or `written by anyone` (PW6920);
+a predicate may be written in Pleris and is asked by the engine itself.
+The guestbook's entries are owned by their author, its `remove` structural.
+What stays open, in order:
+
+1. **L2's record**: the full verify at its head, every recipe and the three
+   browser suites, then `evidence-fetch`: `e14-row-ownership` (its receipt
+   is verify 41491093145's, at `83761ca3`) and the receipts the merge took
+   L1's side of, with `e14-durable-tables`' and L1's own still unrecorded
+   (L1's item 1 below). Then the PR into master after L1's.
+2. **One count of a transaction's boundaries**: L1's `begun` (the
+   conformance suite) and the integration's `operation_statements` (the
+   PostgreSQL layer's measured statements) both stand; keep one, with a
+   test of it that fails without it.
+3. **L3 to L5** as after L1 (below): the platform's prerequisites (guest
+   rows, `invoked_by Identity`, the outbox's tail), bounded reads, declared
+   uploads, each numbered after `evidence-fetch`, past ADR-0437.
+4. **What ADR-0395 leaves**: H3 (`written when`, `shares when`, a reference
+   that says what deleting does), H4 (a bound per owner, cursors, a
+   predicate's cost), H9 (erasure, and PW6920's `UserId` clause), a
+   platform command writing its owner's rows (a payment's settlement), and
+   a page asking a program predicate.
+
 ## After L1, durable tables, 2026-11-12
 
 L1, the first train of the declared data layer's landing: a program's

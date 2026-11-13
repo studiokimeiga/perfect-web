@@ -2,6 +2,35 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**L2, row ownership, 2026-11-12:** on L1 (`e1133034`), the second train of
+the declared data layer's landing (`wip/l2-row-ownership`). A table says
+whose its rows are (ADR-0395, with ADR-0407's amendments): `owned by
+<field>` keys its rows by their owner and takes the reader's handle, which
+only the platform makes, in that field's place in every read and write;
+`shares with` answers others a seen row without the `private` fields; a
+`public table` is read by anyone and written by its owner; a table a
+reader's command writes says `owned by` or `written by anyone` (PW6920);
+and a predicate may be written in Pleris, asked by the engine itself from
+the command's staging or the query's snapshot, on memory and PostgreSQL.
+The guestbook's entries are owned by their author, its `remove` structural.
+The merge (`a9a8d79e`, the track and the integration's slice; the second
+review's repairs already in its history) had 14 conflicts and 52 receipts
+(L1's side); what git did not show, each repaired with a test: PW0367
+twice in the registry (the track's is PW0370), PW69xx's owner renamed
+(master's `DataPath` kept), thirteen commands without `requires`, and the
+`owned` browser role's ports taken by master's rows roles. PR #91's races
+and its platform test are rewritten for A, and the integration's clock-run
+witness ported. Measured here, each recipe whole with its mutation script (PostgreSQL
+18.6): `e14-row-ownership` 94 of 94 mutants killed (L2's 23 among them;
+the owned rows in three engines), `e14-durable-tables` 53 of 53 (the
+guestbook and the owned rows on PostgreSQL in three engines, the clock
+witness's mutant among them), `e14-d3-postgres` 62 of 62, `e14-data-path`
+60 of 60 (after the memory adapter's index read was made total: the
+script's mutant of another table's state had panicked inside it),
+`e14-tables` 44 of 44, `e14-refusal` 23 of 23, `e14-refusal-2` 7 of 7,
+`e14-check-is-build` 51 of 51, `e14-who-may-run` 10 of 10, `e14-guide` 75
+of 75, the corpus 106 of 106; the workspace's 4,143 tests pass. Its full verify is the record, not yet run.
+
 **L1, durable tables, 2026-11-12:** on trains 27 and 28 (master at
 `d570bdb5`), the first train of the declared data layer's landing
 (`wip/l1-durable-tables`). A

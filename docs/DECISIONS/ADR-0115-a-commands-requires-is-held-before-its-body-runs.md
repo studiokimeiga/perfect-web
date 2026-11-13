@@ -93,7 +93,7 @@ cannot bypass evaluating it.
 
 The integrator ruled on ADR-0384 (its ruling 2) that a program may give a
 predicate a body, so who may act is in the program where the checker sees
-it. Built by `ADR-XXXX-owned-tables`:
+it. Built by [ADR-0395](ADR-0395-owned-tables.md):
 
 1. **Decision 1, amended**: a predicate the program declares with a body
    (`predicate Wrote(id: NoteId) says ".." { .. }`) is the program's: its
