@@ -37,6 +37,31 @@ pub fn admit(access: &Access, caller: &Caller, args: Vec<Val>) -> Result<Vec<Val
         return Ok(args);
     };
     let import = access.import();
+    // A transition grants only the old owner's read/delete side. Narrow it
+    // to one ordinary caller before applying every existing argument/row check.
+    let narrowed;
+    let caller = if let Caller::IdentityTransition {
+        previous_guest,
+        current,
+    } = caller
+    {
+        let old_owner_access = match access {
+            Access::Read(read) => read.key.first() == Some(&handle.field),
+            Access::Write(write) => {
+                matches!(write.primitive, Primitive::Delete | Primitive::DeletePrefix)
+            }
+        };
+        let previous = matches!(args.first(), Some(Val::String(given)) if given == previous_guest);
+        let user = if previous && old_owner_access {
+            previous_guest
+        } else {
+            current
+        };
+        narrowed = Caller::User(user.clone());
+        &narrowed
+    } else {
+        caller
+    };
     let Caller::User(user) = caller else {
         return Err(format!(
             "`{import}` reads or writes an owned table's rows, and no one makes this call: a \
@@ -378,6 +403,86 @@ mod tests {
                 vec![Val::String("alice".into()), note("alice", "d")]
             ),
             Ok(vec![note("alice", "d")])
+        );
+    }
+    #[test]
+    fn a_transition_reads_and_deletes_old_owner_rows_but_only_writes_new_rows() {
+        let transition = Caller::IdentityTransition {
+            previous_guest: "guest".into(),
+            current: "alice".into(),
+        };
+        let Access::Write(write) = put() else {
+            unreachable!()
+        };
+        let own = Access::Read(Read {
+            import: "pw:tables/notes#get".into(),
+            table: "Notes".into(),
+            primitive: Primitive::Get,
+            by: vec![string("author"), string("id")],
+            row: write.row.clone(),
+            key: write.key.clone(),
+            order: None,
+            sorted_by: Vec::new(),
+            unique: false,
+            bounded: None,
+            handle: write.handle.clone(),
+        });
+        let old = vec![Val::String("guest".into()), Val::String("n1".into())];
+        assert_eq!(admit(&own, &transition, old.clone()), Ok(old.clone()));
+        let mut delete = write.clone();
+        delete.primitive = Primitive::Delete;
+        delete.by = vec![string("author"), string("id")];
+        assert_eq!(
+            admit(&Access::Write(delete), &transition, old.clone()),
+            Ok(old)
+        );
+        assert_eq!(
+            admit(
+                &put(),
+                &transition,
+                vec![Val::String("alice".into()), note("alice", "d")]
+            ),
+            Ok(vec![note("alice", "d")])
+        );
+        assert!(
+            admit(
+                &put(),
+                &transition,
+                vec![Val::String("guest".into()), note("guest", "d")]
+            )
+            .is_err(),
+            "previous guest has no put authority"
+        );
+        assert!(
+            admit(
+                &put(),
+                &transition,
+                vec![Val::String("alice".into()), note("guest", "d")]
+            )
+            .is_err(),
+            "current cannot forge old owner"
+        );
+        assert!(
+            admit(&by_to(), &transition, vec![Val::String("guest".into())]).is_err(),
+            "previous guest has no sharer-index authority"
+        );
+        assert!(
+            admit(
+                &own,
+                &transition,
+                vec![Val::String("bob".into()), Val::String("n1".into())]
+            )
+            .is_err(),
+            "no third user's rows"
+        );
+        assert!(
+            admit(
+                &own,
+                &Caller::User("alice".into()),
+                vec![Val::String("guest".into()), Val::String("n1".into())]
+            )
+            .is_err(),
+            "ordinary callers gain no transition privilege"
         );
     }
 }

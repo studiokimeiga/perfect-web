@@ -69,3 +69,8 @@ type Account = Account { id: UserId, name: String }
 // shared cache refuses it (PW5001).
 fn account_of(user: User<UserId>) -> Option<Account> !{ session.read }
     host "pw:host/principal#account"
+
+// The checked identity lifecycle's previous guest. None outside that one
+// invocation; browser arguments never manufacture this handle.
+fn previous_user() -> Option<User<UserId>> !{ session.read }
+    host "pw:host/principal#previous"

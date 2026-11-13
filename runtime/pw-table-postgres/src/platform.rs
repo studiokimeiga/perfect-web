@@ -160,6 +160,7 @@ impl Statements {
         let sessions = format!("{s}.pw_sessions");
         let sign_ins = format!("{s}.pw_sign_ins");
         let outbox = format!("{s}.pw_outbox");
+        let watermark = format!("{s}.pw_outbox_trimmed");
         // A session alive by both lifetimes on the database's clock; and its
         // use due to be recorded, last recorded more than `$4` seconds ago.
         let lifetimes = "opened > clock_timestamp() - make_interval(secs => $2) \
@@ -243,11 +244,17 @@ impl Statements {
                  WHERE started < clock_timestamp() - make_interval(secs => $1) \
                  LIMIT $2 FOR UPDATE SKIP LOCKED) RETURNING 1"
             ),
-            forget_outbox: format!("DELETE FROM {outbox} WHERE id = ANY($1) RETURNING 1"),
+            forget_outbox: format!(
+                "WITH gone AS (DELETE FROM {outbox} WHERE id = ANY($1) RETURNING id), \
+                 marked AS (UPDATE {watermark} SET through = greatest(through, \
+                     coalesce((SELECT max(id) FROM gone), 0))) SELECT 1 FROM gone"
+            ),
             trim_outbox: format!(
-                "DELETE FROM {outbox} WHERE id IN (SELECT id FROM {outbox} \
+                "WITH gone AS (DELETE FROM {outbox} WHERE id IN (SELECT id FROM {outbox} \
                  WHERE created < clock_timestamp() - make_interval(secs => $1) \
-                 LIMIT $2 FOR UPDATE SKIP LOCKED) RETURNING 1"
+                 ORDER BY id LIMIT $2 FOR UPDATE SKIP LOCKED) RETURNING id), \
+                 marked AS (UPDATE {watermark} SET through = greatest(through, \
+                     coalesce((SELECT max(id) FROM gone), 0))) SELECT 1 FROM gone"
             ),
         }
     }
@@ -969,9 +976,10 @@ impl PgTables {
             .map(|rows| rows.len() as u64)
     }
 
-    /// **The outbox's rows `ids`, delivered, forgotten**: a host that reads
-    /// no other host's commits (ADR-0369's reader) forgets each commit's rows
-    /// once it has delivered them. How many.
+    /// Explicit maintenance removal of outbox rows. The same statement
+    /// advances the trim watermark, so a shared-log reader detects a gap.
+    /// Normal host delivery retains its rows until the shared retention age.
+    /// Returns how many rows were removed.
     pub fn forget_outbox(&self, ids: &[i64]) -> Result<u64, Error> {
         if ids.is_empty() {
             return Ok(0);
@@ -981,9 +989,9 @@ impl PgTables {
             .map(|rows| rows.len() as u64)
     }
 
-    /// **The outbox's rows older than `age`, forgotten**, `limit` at most:
-    /// those a host left behind (it ended between a commit and forgetting
-    /// its rows). How many.
+    /// Outbox rows older than `age`, removed in a batch of at most `limit`,
+    /// with their highest ID recorded in the same statement's watermark.
+    /// Returns how many rows were removed.
     pub fn trim_outbox(&self, age: Duration, limit: usize) -> Result<u64, Error> {
         let limit = i64::try_from(limit).unwrap_or(i64::MAX);
         self.inner

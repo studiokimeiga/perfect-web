@@ -868,6 +868,22 @@ impl Principals {
         run()
     }
 
+    /// A browser invocation admitted explicitly as anonymous can keep its
+    /// guest-owned rows in accounts mode. This does not turn Anonymous into
+    /// Guest: SignedIn, receipt partitions, delivery and commit fences keep
+    /// the admitted identity unchanged. A mutable cache observation cannot
+    /// create this authority, and platform on-behalf calls use their own proof.
+    pub(crate) fn anonymous_row_user(&self, session: &str) -> Option<String> {
+        if session.is_empty() || session.starts_with(ON_BEHALF) {
+            return None;
+        }
+        matches!(
+            self.invocation_reader(session),
+            Some(ReaderIdentity::Anonymous)
+        )
+        .then(|| guest_user(session))
+    }
+
     fn invocation_reader(&self, session: &str) -> Option<ReaderIdentity> {
         INVOCATION_READERS.with(|readers| {
             readers
@@ -1202,15 +1218,16 @@ impl Principals {
 
     /// **`session` signed in as `principal`**: kept first where sessions are
     /// kept, so that no host knows a sign-in the others cannot.
-    fn sign_in(&self, session: &str, principal: Principal) -> Result<(), String> {
+    fn sign_in(&self, session: &str, principal: Principal) -> Result<SessionIdentity, String> {
         let epoch = random_bytes();
         if let Some(kept) = self.0.kept.get() {
             kept.open(&kept_hash(session), &principal, &epoch)?;
         }
         // TRACK SEAM (data-path): the account recorded, as the platform's.
         self.record_account(&principal);
-        self.open_identity(session, SessionIdentity { principal, epoch });
-        Ok(())
+        let opened = SessionIdentity { principal, epoch };
+        self.open_identity(session, opened.clone());
+        Ok(opened)
     }
 
     /// **`session` signed out**: no one wherever it is kept, then here.
@@ -1401,6 +1418,78 @@ pub struct SignedIn<'a> {
     pub guest: &'a str,
     pub session: &'a str,
     pub principal: &'a Principal,
+    // Only a checked callback can construct this one-use proof. Its target
+    // is the exact opened generation, never a reread of the mutable cache.
+    target: SessionIdentity,
+    target_session: String,
+    previous_guest: String,
+    principals: Principals,
+}
+
+struct TransitionBinding {
+    principals: Principals,
+    session: String,
+    component: String,
+    previous_guest: String,
+}
+
+thread_local! {
+    static IDENTITY_TRANSITIONS: std::cell::RefCell<Vec<TransitionBinding>> = const {
+        std::cell::RefCell::new(Vec::new())
+    };
+}
+
+impl SignedIn<'_> {
+    /// Consumes the proof and retires its binding on every exit, including a
+    /// refusal, trap or uncertain outcome. It cannot authorize another root.
+    pub(crate) fn invoke<T>(self, component: &str, run: impl FnOnce() -> T) -> T {
+        struct Restore;
+        impl Drop for Restore {
+            fn drop(&mut self) {
+                IDENTITY_TRANSITIONS.with(|held| {
+                    held.borrow_mut().pop();
+                });
+            }
+        }
+        IDENTITY_TRANSITIONS.with(|held| {
+            held.borrow_mut().push(TransitionBinding {
+                principals: self.principals.clone(),
+                session: self.target_session.clone(),
+                component: component.into(),
+                previous_guest: self.previous_guest,
+            })
+        });
+        let _restore = Restore;
+        self.principals.with_reader(
+            &self.target_session,
+            &ReaderIdentity::Account(self.target),
+            run,
+        )
+    }
+}
+
+impl Principals {
+    pub(crate) fn transition_previous(&self, session: &str, component: &str) -> Option<String> {
+        IDENTITY_TRANSITIONS.with(|held| {
+            held.borrow()
+                .iter()
+                .rev()
+                .find(|bound| {
+                    Arc::ptr_eq(&bound.principals.0, &self.0)
+                        && bound.session == session
+                        && bound.component == component
+                })
+                .map(|bound| bound.previous_guest.clone())
+        })
+    }
+}
+
+pub(crate) fn previous_operation(previous: Option<String>) -> HostFn {
+    Arc::new(move |_| {
+        Ok(vec![Val::Option(
+            previous.clone().map(|user| Box::new(Val::String(user))),
+        )])
+    })
 }
 /// How long a sign-in may be in flight.
 pub(crate) const SIGN_IN_LIFETIME: Duration = Duration::from_secs(600);
@@ -1557,7 +1646,7 @@ impl Identity {
     /// browser sends no `Sec-Fetch-Site`, as Go 1.25's
     /// `http.CrossOriginProtection` decides it.
     #[allow(clippy::too_many_arguments)]
-    pub fn answer(
+    pub(crate) fn answer(
         &self,
         method: &str,
         route: &str,
@@ -1567,7 +1656,8 @@ impl Identity {
         body: &[u8],
         stream: &mut TcpStream,
         query: &str,
-        on_sign_in: &dyn Fn(&SignedIn),
+        admitted: Option<&ReaderIdentity>,
+        on_sign_in: &dyn Fn(SignedIn<'_>),
     ) -> bool {
         if let Err(why) = same_origin(method, headers) {
             Reply::text(403, &why).write(stream, session, fresh);
@@ -1576,7 +1666,13 @@ impl Identity {
         let reply = match (method, route) {
             ("POST", "/sign-out") => Some(self.sign_out(session)),
             ("GET", "/sign-in") | ("GET", "/sign-up") => self.start(headers, route == "/sign-up"),
-            ("GET", CALLBACK) => self.callback(headers, session, query, on_sign_in),
+            ("GET", CALLBACK) => match admitted {
+                Some(reader) => self.callback(headers, session, query, reader, on_sign_in),
+                None => Some(Reply::text(
+                    400,
+                    "the sign-in request has no admitted reader",
+                )),
+            },
             _ => self.served(method, route, query, body),
         };
         match reply {
@@ -1666,12 +1762,19 @@ impl Identity {
         headers: &str,
         session: &str,
         query: &str,
-        on_sign_in: &dyn Fn(&SignedIn),
+        admitted: &ReaderIdentity,
+        on_sign_in: &dyn Fn(SignedIn<'_>),
     ) -> Option<Reply> {
         let mode = self.mode.read().expect("mode");
         let Mode::Accounts(accounts) = &*mode else {
             return None;
         };
+        // Eligibility belongs to HTTP admission, before provider exchange.
+        // Anonymous is no current account, not a claim about session history:
+        // the only source this can grant is guest_user(session).
+        let was_guest = !session.is_empty()
+            && !session.starts_with(ON_BEHALF)
+            && matches!(admitted, ReaderIdentity::Guest | ReaderIdentity::Anonymous);
         let fields = parse_form(query);
         let refused = |why: &str| {
             Reply::page(
@@ -1743,23 +1846,27 @@ impl Identity {
         // A guest's, where no sign-in opened the session it came with: a
         // signed-in session that signs in again is signed out, and what it
         // held is its user's, never the next one's.
-        let was_guest = self.principals.of(session).is_none_or(|p| p.is_guest());
         // TRACK SEAM (second-host): kept where the hosts share them, before
         // the browser is answered (ADR-0369).
-        if let Err(why) = self
+        let opened = match self
             .principals
             .sign_out(session)
             .and_then(|()| self.principals.sign_in(&rotated, principal.clone()))
         {
-            return Some(refused(&format!("the session was not kept: {why}")));
-        }
+            Ok(opened) => opened,
+            Err(why) => return Some(refused(&format!("the session was not kept: {why}"))),
+        };
         // TRACK SEAM (store-accounts): the deployment told, before the
         // browser is answered.
         if was_guest && !session.is_empty() {
-            on_sign_in(&SignedIn {
+            on_sign_in(SignedIn {
                 guest: session,
                 session: &rotated,
                 principal: &principal,
+                target: opened,
+                target_session: rotated.clone(),
+                previous_guest: guest_user(session),
+                principals: self.principals.clone(),
             });
         }
         let secure = *SECURE_COOKIES.get().unwrap_or(&false);
@@ -3131,5 +3238,68 @@ mod invocation_tests {
             );
         });
         assert_eq!(p.user_of("reader"), guest_user("alice"));
+    }
+}
+
+#[cfg(test)]
+mod transition_tests {
+    use super::*;
+
+    #[test]
+    fn transition_proof_is_private_scoped_and_retired_after_return_or_unwind() {
+        let principals = Principals::default();
+        principals.set_accounts(true);
+        let principal = Principal {
+            user: "target".into(),
+            handle: "@target".into(),
+            name: "Target".into(),
+            issuer: "fixture".into(),
+        };
+        let opened = principals
+            .sign_in("new-session", principal.clone())
+            .unwrap();
+        for unwind in [false, true] {
+            let mut proof = SignedIn {
+                guest: "old",
+                session: "new-session",
+                principal: &principal,
+                target: opened.clone(),
+                target_session: "new-session".into(),
+                previous_guest: guest_user("old"),
+                principals: principals.clone(),
+            };
+            proof.guest = "forged-source";
+            proof.session = "forged-target";
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                proof.invoke("joined", || {
+                    let observed = (
+                        principals.transition_previous("new-session", "joined"),
+                        principals.transition_previous("new-session", "other"),
+                        principals.transition_previous("forged-target", "joined"),
+                        Principals::default().transition_previous("new-session", "joined"),
+                        principals.user_of("new-session"),
+                    );
+                    if unwind {
+                        // Resume an unwind without invoking a global panic
+                        // hook. Assertions stay outside the caught scope.
+                        std::panic::resume_unwind(Box::new(()));
+                    }
+                    observed
+                })
+            }));
+            assert_eq!(result.is_err(), unwind);
+            if let Ok((previous, other_root, other_session, other_instance, current)) = result {
+                assert_eq!(previous, Some(guest_user("old")));
+                assert_eq!(other_root, None);
+                assert_eq!(other_session, None);
+                assert_eq!(other_instance, None);
+                assert_eq!(current, "target");
+            }
+            assert_eq!(
+                principals.transition_previous("new-session", "joined"),
+                None
+            );
+            assert!(principals.invocation_reader("new-session").is_none());
+        }
     }
 }

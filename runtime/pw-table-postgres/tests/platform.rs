@@ -843,6 +843,10 @@ fn the_outboxs_delivered_rows_are_forgotten() {
     assert_eq!(ids.len(), 3);
     assert_eq!(tables.forget_outbox(&ids[..2]), Ok(2));
     assert_eq!(scratch.texts("SELECT name FROM pw_outbox"), ["c"]);
+    assert_eq!(
+        scratch.texts("SELECT through::text FROM pw_outbox_trimmed"),
+        [ids[1].to_string()]
+    );
     assert_eq!(tables.forget_outbox(&[]), Ok(0));
     // Left behind: kept while young, forgotten once older than the age.
     assert_eq!(tables.trim_outbox(Duration::from_secs(60), 10), Ok(0));
@@ -851,6 +855,10 @@ fn the_outboxs_delivered_rows_are_forgotten() {
         .assert_ok("aged");
     assert_eq!(tables.trim_outbox(Duration::from_secs(60), 10), Ok(1));
     assert_eq!(scratch.texts("SELECT count(*)::text FROM pw_outbox"), ["0"]);
+    assert_eq!(
+        scratch.texts("SELECT through::text FROM pw_outbox_trimmed"),
+        [ids[2].to_string()]
+    );
 }
 
 /// **A render's reads end at a read that fails**: the snapshot's

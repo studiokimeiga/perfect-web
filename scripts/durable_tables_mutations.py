@@ -37,7 +37,7 @@ anywhere but an assertion is no kill):
    taken or not current;
 6. the review of 3ccd083a (2026-11-02): a command waiting for its session
    while it holds its host's turn, a command holding the turn waiting for a
-   connection; the outbox's delivered rows kept, its leftovers never
+   connection; the shared outbox consumed too soon, its old rows never
    trimmed; the host never sweeping, or sweeping at every pass, sessions or
    sign-ins never swept, a sweep unbounded or waiting for a row a command
    holds; a rolled-back commit answered as unknown, by the layer or by the
@@ -80,6 +80,9 @@ LAYER = SERVER / "src/tables_pg.rs"
 MAIN = SERVER / "src/main.rs"
 
 MUTANTS = [
+    ("an owned Clock action forgets its scheduling owner", MAIN,
+     '            &format!("schedule-{}", run.id),\n            &run.user,\n',
+     '            &format!("schedule-{}", run.id),\n            "nobody",\n'),
     # 1. the routing
     ("a database named for the tables is not read", MAIN,
      '    let tables = match std::env::var("PW_TABLES_DATABASE_URL") {\n',
@@ -225,9 +228,13 @@ MUTANTS = [
      "        let lease = open.lease.as_mut().ok_or(Error::Ended)?;\n",
      "        drop(self.pool.take()?);\n"
      "        let lease = open.lease.as_mut().ok_or(Error::Ended)?;\n"),
-    ("a commit's delivered outbox rows are kept", LAYER,
-     "        if let Err(e) = self.layer.tables.forget_outbox(&ids) {\n",
-     "        if let Err(e) = self.layer.tables.forget_outbox(&ids[..0]) {\n"),
+    ('a delivered outbox is deleted before another host can read it', LAYER,
+     '        // Every host has a cursor. Local delivery leaves the retained log\n',
+     (
+            '        let ids: Vec<i64> = committed.outbox.iter().map(|(id, _)| *id).collect();\n'
+            '        let _ = self.layer.tables.forget_outbox(&ids);\n'
+            '        // Every host has a cursor. Local delivery leaves the retained log\n'
+        )),
     ("the outbox rows a host left behind are never trimmed", LAYER,
      "                self.tables.trim_outbox(OUTBOX_LEFT, SWEPT),\n",
      "                self.tables.trim_outbox(OUTBOX_LEFT, 0),\n"),
@@ -275,6 +282,19 @@ MUTANTS = [
     ('a durable table read is made three times', LAYER,
      '        read.map_err(|e| format!("`{}`\'s tables: {e:?}", contract.component_id))\n',
      '        read.map(|ops| ops.into_iter().map(|(name, f)| {\n            let thrice: HostFn = Arc::new(move |args: &[Val]| { let _ = f(args); let _ = f(args); f(args) });\n            (name, thrice)\n        }).collect()).map_err(|e| format!("`{}`\'s tables: {e:?}", contract.component_id))\n'),
+    # Cross-host compatibility required by the protected feed/store migration.
+    ('a generic PostgreSQL host has no shared-log reader', LAYER,
+     '    fn tail(&self) -> Option<&hosts::Tail> {\n        Some(&self.tail)\n    }\n',
+     '    fn tail(&self) -> Option<&hosts::Tail> {\n        None\n    }\n'),
+    ('a generic PostgreSQL host has no distinct document instance', LAYER,
+     '    fn instance(&self) -> Option<u64> {\n        Some(self.instance)\n    }\n',
+     '    fn instance(&self) -> Option<u64> {\n        None\n    }\n'),
+    ('a generic PostgreSQL commit sends no wakeup', LIB,
+     "pg_notify($6, '')",
+     '$6::text'),
+    ('a generic outbox trim exceeds its bounded batch', LAYER,
+     '                self.tables.trim_outbox(OUTBOX_LEFT, SWEPT),\n',
+     '                self.tables.trim_outbox(OUTBOX_LEFT, SWEPT + 1),\n'),
 ]
 
 # Each Cargo test binary apart: names can repeat between binaries, and the
@@ -283,7 +303,8 @@ TESTS = [
     (["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "compiled_owned"], []),
     (["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "platform"], []),
     (["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server"],
-     ["tests::tables_pg::", "tests::owned_clock::"]),
+     ["tests::tables_pg::", "tests::owned_clock::", "tests::protected_migration::",
+      "identity::transition_tests::"]),
     (["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--test", "durable_tables"], []),
 ]
 
@@ -296,6 +317,8 @@ SOURCES = [
     ADAPTER / "tests/common/mod.rs",
     SERVER / "src/tests/tables_pg.rs",
     SERVER / "src/tests/owned_clock.rs",
+    SERVER / "src/tests/protected_migration.rs",
+    SERVER / "src/identity.rs",
     SERVER / "src/tests/tables.rs",
     SERVER / "src/tests/conformance.rs",
     SERVER / "tests/durable_tables.rs",
