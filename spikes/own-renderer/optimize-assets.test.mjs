@@ -1187,6 +1187,35 @@ test("a build whose presses are not heard at its documents says no row is its ow
   assert.equal(served.templates[0].chunks[0].value.row_anchor, undefined);
 });
 
+test("a page its server renders, in a build whose other page says its row its own anchor, says none", async () => {
+  // Its rows are the server's, whose runtime reads no row its own anchor.
+  const dir = await mkdtemp(path.join(tmpdir(), "pw-assets-"));
+  const write = process.stderr.write;
+  try {
+    await copyFile(RUNTIME_SOURCE, path.join(dir, "pw-runtime.mjs"));
+    const item = [st("<li>"), dynamic({ part: "text", id: 9, value: "row.name", context: "text" }), st("</li>")];
+    await aBuild(dir, {
+      ...LARGE_HANDLERS,
+      "pages/p.json": JSON.stringify(LARGE_PLAN),
+      "pages/q.json": JSON.stringify({ ...LARGE_PLAN, prerender: false, live: [{ part: 8, kind: "each" }] }),
+      "templates.json": JSON.stringify([
+        { path: "p", chunks: [dynamic(keyedList(6, LARGE_ROW))] },
+        { path: "q", chunks: [dynamic(keyedList(8, item))] },
+      ]),
+    });
+    process.stderr.write = () => true;
+    await optimizeAssets(dir);
+    process.stderr.write = write;
+    const templates = JSON.parse(await readFile(path.join(dir, "build/templates.json"), "utf8"));
+    const said = (page) => templates.find((t) => t.path === page).chunks[0].value.row_anchor;
+    assert.equal(said("p"), "element");
+    assert.equal(said("q"), undefined);
+  } finally {
+    process.stderr.write = write;
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("the runtime marks each line only a row its own anchor needs", async () => {
   const source = await readFile(RUNTIME_SOURCE, "utf8");
   // The key's symbol and reading, the index, the renderer's writing and the
