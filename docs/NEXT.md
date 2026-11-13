@@ -68,8 +68,10 @@ they were. What is left, each measured, none decided:
    tokens as the device does, or the device reads the document's.
 6. **Bytes**: the large list's page alone is 769 B heavier with Brotli than
    train-33's (+2,032 decoded), the found rows' placing and what the keep
-   loop says of them; 148 of it the few rows' placing. The byte rows are
-   ADR-0434's later steps'.
+   loop says of them; 148 of it the few rows' placing. The runtime as the
+   development host sends it, its comments in it, is 67,331 B with Brotli,
+   bounded at 72 KiB since this step (ADR-0188's gate item 7b, amended). The
+   byte rows are ADR-0434's later steps'.
 7. **The earlier items after train-33**, below: the cold append and Slow 4G's
    append (its item 2) are unchanged by this step; train-32's fourth, the
    swap and the remove, done here.

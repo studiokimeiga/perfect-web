@@ -107,6 +107,14 @@ engine (`t34/clear-forms.txt`).
    code's holds both; one with no list of its own holds the general placing
    alone, every own line cut, and is minified to the bytes it was: TodoMVC's
    document and runtime and a server's runtime byte for byte.
+6. **The interactive route's activation is bounded at 72 KiB** (ADR-0188's
+   gate item 7b, amended; `e2e/runtime-size.spec.mjs`): the development host
+   sends the runtime as it is written, its comments in it, the found rows'
+   placing beside the general placing that a build with a list of the
+   general code's still holds; 67,331 B with Brotli, past ADR-0188's 64 KiB
+   (train-33's 65,188). A bound, not a target, as before: the control that
+   grows the script by 48 KB that does not compress fails it still
+   (`runtime_size_mutations.py`).
 
 ## Why not the other ways
 
@@ -138,6 +146,11 @@ engine (`t34/clear-forms.txt`).
 - **`insertBefore` for every row moved**: `moveBefore` costs Chromium and
   Firefox no more (`t34/move-forms.txt`), and keeps what a moved row holds
   (focus, a frame, an animation) as the runtime's moves have.
+- **The runtime's documentation shortened to fit 64 KiB**: 1,795 B of
+  Brotli, some seven thousand bytes of comments, other steps' as much as this
+  one's; the bound reads what the development host sends, and a production
+  build sends 15,007 B of runtime with Brotli (the large list's device
+  runtime) or 21,971 (a server's).
 - **One placing in every build**: the general placing replaced in TodoMVC's
   runtime too would move its bytes and its esbuild names, for no list of its
   own; the cut keeps a build none of whose lists is its own as it was.
@@ -347,6 +360,9 @@ scratchpad, its tools and logs.
   list's own code keeps holds its place at its render (`at`), written as the
   loop finds it. *What the loop says*: two arrays a render (`places`,
   `taken`) and, where a few rows are out of their places, the list of them.
+  *The runtime as written*: 67,331 B with Brotli as the development host
+  sends it, 2,143 more than train-33's, past ADR-0188's 64 KiB, now bounded
+  at 72 KiB (decision 6).
   *Firefox's cold replace* spends 1.48 ms more script than train-33's
   (1.06..2.18), from this step's first commit on (`t34/press-split.txt`,
   `ef585c84`: +1.80), its warm one +0.42 (−0.02..0.88) and Chromium's +0.10:

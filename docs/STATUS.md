@@ -17,7 +17,9 @@ or warm, Slow 4G included; against train-33 the swap −4.8 ms and the remove
 Firefox's remove still spends 0.2 ms of script more than Svelte's (the
 handler's check of each `Int`, 0.12 of it, the compiler's: NEXT), and its cold
 replace 1.5 more than train-33's, untraced. TodoMVC and a server's runtime are
-sent the bytes they were; the large list's page is 769 B heavier with Brotli.
+sent the bytes they were; the large list's page is 769 B heavier with Brotli,
+and the runtime as the development host sends it, 67,331 B, is bounded at 72
+KiB (ADR-0188's 64, amended).
 
 **Train-33, 2026-11-12:** on train-32. A planned row that is one element is
 its own anchor (ADR-0438): where the packaging reads a planned list's row as
