@@ -161,3 +161,88 @@ test("a list with nothing in common has nothing that stays", () => {
   assert.deepEqual([...staying([0, 1, 2])].sort(), [0, 1, 2]);
 });
 
+
+/** The question the page's own code's placing asks (ADR-0439): of the rows
+ * between `lo` and `hi`, which need not move. */
+function ownOrder() {
+  return vm.runInNewContext(`${source("function stayingIn(places, lo, hi) {", "/** **New rows, as one fragment**")}\nstayingIn`);
+}
+
+test("of the rows between two places, as many as can stay stay, those that stay in order and none new", () => {
+  const stayingIn = ownOrder();
+  // A seeded walk: each list the last's places, some shuffled whole, most
+  // in order with a few swapped or moved, some rows new; and a range of it.
+  let seed = 11;
+  const next = (n) => (seed = (seed * 16807) % 2147483647) % n;
+  for (let round = 0; round < 1000; round++) {
+    const size = next(41);
+    const places = Array.from({ length: size }, (_, i) => i);
+    if (round % 3 === 0) {
+      for (let i = size - 1; i > 0; i--) {
+        const j = next(i + 1);
+        [places[i], places[j]] = [places[j], places[i]];
+      }
+    } else {
+      for (let k = next(4); k > 0 && size > 1; k--) {
+        const [i, j] = [next(size), next(size)];
+        if (next(2) === 0) [places[i], places[j]] = [places[j], places[i]];
+        else places.splice(j, 0, ...places.splice(i, 1));
+      }
+    }
+    for (let i = 0; i < size; i++) if (next(6) === 0) places[i] = -1;
+    const lo = next(size + 1);
+    const hi = lo + next(size - lo + 1);
+    const stays = stayingIn(Int32Array.from(places), lo, hi);
+    assert.equal(stays.length, hi - lo, JSON.stringify({ places, lo, hi }));
+    const still = [...stays].flatMap((s, k) => (s === 1 ? [lo + k] : []));
+    assert.equal(still.length, longestRun(places.slice(lo, hi)), JSON.stringify({ places, lo, hi }));
+    for (const i of still) assert.ok(places[i] >= 0, "a new row does not stay");
+    for (let k = 1; k < still.length; k++) assert.ok(places[still[k - 1]] < places[still[k]], JSON.stringify({ places, lo, hi }));
+  }
+  // Two rows of a thousand swapped, between the rows in their places at
+  // either end: the two move, the rest stay.
+  const swapped = Int32Array.from({ length: 1000 }, (_, i) => i);
+  [swapped[1], swapped[998]] = [998, 1];
+  const stays = stayingIn(swapped, 1, 999);
+  assert.equal(stays.reduce((t, s) => t + s, 0), 996);
+  assert.deepEqual([stays[0], stays[1], stays[996], stays[997]], [0, 1, 1, 0]);
+  assert.equal(stayingIn(Int32Array.from([-1, -1]), 0, 2).reduce((t, s) => t + s, 0), 0);
+  assert.equal(stayingIn(new Int32Array(0), 0, 0).length, 0);
+});
+
+/** What the runtime finds of a list's rows by their keys, where its own
+ * code found them among other rows than the document shows (ADR-0439). */
+function foundOrder() {
+  return vm.runInNewContext(`${source("function foundByKeys(a, b) {", "/** **The rows from `lo` to `hi` that need not move**")}\nfoundByKeys`);
+}
+
+test("rows found by their keys are each at its place among the rows before, or new, as the keys say", () => {
+  const foundByKeys = foundOrder();
+  let seed = 23;
+  const next = (n) => (seed = (seed * 16807) % 2147483647) % n;
+  for (let round = 0; round < 600; round++) {
+    const a = Array.from({ length: next(30) }, (_, i) => ({ key: `k${i}` }));
+    // The next render's rows: some of these, the very rows or made again
+    // under their keys, in another order, and some new.
+    const b = [];
+    for (const row of a) if (next(4) > 0) b.push(next(5) === 0 ? { key: row.key } : row);
+    for (let i = b.length - 1; i > 0; i--) if (next(3) === 0) {
+      const j = next(i + 1);
+      [b[i], b[j]] = [b[j], b[i]];
+    }
+    for (let k = next(4); k > 0; k--) b.splice(next(b.length + 1), 0, { key: `new${round}-${k}` });
+    const said = foundByKeys(a, b);
+    const at = new Map(a.map((row, j) => [row.key, j]));
+    const places = b.map((row) => at.get(row.key) ?? -1);
+    assert.deepEqual([...said.places], places, JSON.stringify({ a: a.length, b: b.map((r) => r.key) }));
+    const now = new Set(b.map((row) => row.key));
+    assert.deepEqual([...said.taken], a.map((row) => (now.has(row.key) ? 1 : 0)));
+    assert.equal(said.matched, a.filter((row) => now.has(row.key)).length);
+    const stay = places.filter((p) => p >= 0);
+    assert.equal(said.sorted, stay.every((p, k) => k === 0 || stay[k - 1] < p));
+    assert.deepEqual([...said.remade], places.flatMap((p, i) => (p >= 0 && b[i] !== a[p] ? [i] : [])));
+  }
+  // Shown the first time: every row new, none looked for.
+  const first = foundByKeys([], [{ key: "a" }, { key: "b" }]);
+  assert.deepEqual([[...first.places], first.matched, first.sorted, [...first.remade]], [[-1, -1], 0, true, []]);
+});

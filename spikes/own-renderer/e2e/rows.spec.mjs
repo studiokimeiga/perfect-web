@@ -837,3 +837,162 @@ test("a row's boolean attribute follows its row, on a row a plan made and one it
   await expect(page.locator("#tags .on").nth(1)).not.toHaveAttribute("hidden");
   await expect(page.locator("#tags .on").nth(2)).toHaveAttribute("hidden", "");
 });
+
+// --- rows the page's own code found where they were (ADR-0439) -------------
+
+/** The fixture's list it reorders every way a press does, as it starts. */
+const FIRST_ORDER = ["one", "two", "three", "four", "five", "six"].map((name, i) => ({ id: i + 1, name }));
+
+/** **Each press of the fixture's reordered list** (`examples/rows/events.pw`):
+ * what it makes of the list, as its handler does, and whether it is pressed
+ * on a list of `n` rows, where its handler's places are inside the list. */
+const ORDER_PRESSES = {
+  reverse: { can: () => true, made: (xs) => [...xs].reverse() },
+  turn: { can: (n) => n > 0, made: (xs) => [...xs.slice(1), ...xs.slice(0, 1)] },
+  "turn-back": { can: (n) => n > 0, made: (xs) => [...xs.slice(-1), ...xs.slice(0, -1)] },
+  "turn-three": { can: (n) => n >= 3, made: (xs) => [...xs.slice(3), ...xs.slice(0, 3)] },
+  swap: {
+    can: (n) => n >= 3,
+    made: (xs) => {
+      const out = [...xs];
+      [out[1], out[xs.length - 2]] = [out[xs.length - 2], out[1]];
+      return out;
+    },
+  },
+  move: { can: (n) => n >= 5, made: (xs) => [...xs.slice(0, 1), ...xs.slice(2, 5), ...xs.slice(1, 2), ...xs.slice(5)] },
+  drop: { can: (n) => n >= 3, made: (xs) => [...xs.slice(0, 2), ...xs.slice(3)] },
+  insert: { can: (n) => n >= 3, made: (xs, fresh) => [...xs.slice(0, 3), fresh, ...xs.slice(3)] },
+  sort: { can: () => true, made: (xs) => [...xs].sort((a, b) => a.id - b.id) },
+  rename: { can: () => true, made: (xs) => xs.map((x) => (x.id === 3 ? { id: 3, name: "renamed" } : x)) },
+  clear: { can: () => true, made: () => [] },
+  refill: { can: () => true, made: () => FIRST_ORDER },
+};
+
+/** The reordered list as the document shows it: the table's rows, `[id,
+ * name, its element's mark]`, the list's items, `[name, mark]`, and the
+ * general code's, `[text, mark]`. */
+const orderShown = (page) =>
+  page.evaluate(() => ({
+    rows: [...document.querySelectorAll("#order tr")].map((tr) => [tr.querySelector(".oid").textContent, tr.querySelector(".oname").textContent, tr.mark ?? null]),
+    items: [...document.querySelectorAll("#order-items li")].map((li) => [li.textContent, li.mark ?? null]),
+    kept: [...document.querySelectorAll("#order-kept li")].map((li) => [li.textContent, li.mark ?? null]),
+  }));
+
+/** Each row element of the reordered list marked, on itself, with its id:
+ * a row kept or moved is the element it was, and a new one has no mark. */
+const orderMarked = (page) =>
+  page.evaluate(() => {
+    for (const tr of document.querySelectorAll("#order tr")) tr.mark = tr.querySelector(".oid").textContent;
+    const ids = [...document.querySelectorAll("#order tr")].map((tr) => tr.mark);
+    document.querySelectorAll("#order-items li").forEach((li, i) => (li.mark = ids[i]));
+    document.querySelectorAll("#order-kept li").forEach((li, i) => (li.mark = ids[i]));
+  });
+
+/** What the document should show of `order` after a press, each row that
+ * was before it its element marked with its id. */
+const orderSaid = (order, was) => {
+  const before = new Set(was.map((o) => String(o.id)));
+  const mark = (o) => (before.has(String(o.id)) ? String(o.id) : null);
+  return {
+    rows: order.map((o) => [String(o.id), o.name, mark(o)]),
+    items: order.map((o) => [o.name, mark(o)]),
+    kept: order.map((o) => [`${o.name} 1`, mark(o)]),
+  };
+};
+
+test("rows reordered every way a press does are where their list says, each the element it was", async ({ page }) => {
+  // Eighty presses of a seeded walk, the same in every engine: each compared
+  // whole, a table's rows each their own anchor and a list's between their
+  // comments, every row that was before the press the element it was. The
+  // first press after the document morphs each block whole, its rows made
+  // again: the host's tokens are not the device's.
+  test.setTimeout(120_000);
+  await open(page, "/events");
+  await page.click("#order-reverse");
+  let order = ORDER_PRESSES.reverse.made(FIRST_ORDER);
+  const ids = (shown) => JSON.stringify(shown.rows.map(([id]) => id));
+  await expect.poll(async () => ids(await orderShown(page))).toBe(JSON.stringify(order.map((o) => String(o.id))));
+  let seed = 4321;
+  const next = (n) => (seed = (seed * 16807) % 2147483647) % n;
+  const names = Object.keys(ORDER_PRESSES);
+  let fresh = 100;
+  for (let step = 0; step < 80; step++) {
+    const can = names.filter((name) => ORDER_PRESSES[name].can(order.length));
+    const name = can[next(can.length)];
+    await orderMarked(page);
+    const was = order;
+    order = ORDER_PRESSES[name].made(order, { id: fresh, name: `new ${fresh}` });
+    if (name === "insert") fresh += 1;
+    await page.click(`#order-${name}`);
+    const said = orderSaid(order, was);
+    await expect.poll(async () => JSON.stringify(await orderShown(page)), { timeout: 10_000, intervals: [16, 50, 100, 250], message: `after ${name}, press ${step}` }).toBe(JSON.stringify(said));
+  }
+  expect(page.errors).toEqual([]);
+});
+
+test("a list its own code keeps is placed by what that code found, each press after the first", { tag: "@report" }, async ({ page }) => {
+  // The first press after the document morphs the block whole; each one
+  // after places each of the two lists by what its own code found: no key
+  // is looked up to say which rows stay, moved, went or came (ADR-0439).
+  await open(page, "/events");
+  await page.click("#order-reverse");
+  await page.waitForFunction(() => window.__pw.log.some((l) => /^signal order -> block/.test(l)));
+  let order = ORDER_PRESSES.reverse.made(FIRST_ORDER);
+  let fresh = 100;
+  for (const name of ["turn", "swap", "move", "drop", "insert", "sort", "rename", "turn-three", "clear", "refill", "turn-back", "reverse"]) {
+    const before = await page.evaluate(() => window.__pw.found ?? 0);
+    await orderMarked(page);
+    const was = order;
+    order = ORDER_PRESSES[name].made(order, { id: fresh, name: `new ${fresh}` });
+    if (name === "insert") fresh += 1;
+    await page.click(`#order-${name}`);
+    await page.waitForFunction((b) => (window.__pw.found ?? 0) >= b + 2, before);
+    expect(await page.evaluate(() => window.__pw.found), `found after ${name}`).toBe(before + 2);
+    await expect.poll(async () => JSON.stringify(await orderShown(page)), { timeout: 10_000, message: `after ${name}` }).toBe(JSON.stringify(orderSaid(order, was)));
+  }
+  expect(page.errors).toEqual([]);
+});
+
+/** The fewest rows of `was` that must move for it to read `now`, of the rows
+ * both hold, by their ids: those outside a longest run of them in order. */
+function fewestMoved(was, now) {
+  const at = new Map(was.map((o, i) => [o.id, i]));
+  const places = now.map((o) => at.get(o.id) ?? -1).filter((p) => p >= 0);
+  const best = places.map(() => 1);
+  places.forEach((v, i) => {
+    for (let j = 0; j < i; j++) if (places[j] < v) best[i] = Math.max(best[i], best[j] + 1);
+  });
+  return places.length - Math.max(0, ...best);
+}
+
+test("rows its list's own code found out of their order are as few moved as leave the rest in it", { tag: "@report" }, async ({ page }) => {
+  // Each press of the fixture's reordered list, after the one that morphs
+  // its blocks: its two lists its own code keeps each move the fewest rows
+  // that leave the rest in order, and a row put in or gone moves none
+  // (ADR-0439). And the large list's swap of two rows moves those two.
+  await open(page, "/events");
+  await page.click("#order-reverse");
+  await page.waitForFunction(() => window.__pw.log.some((l) => /^signal order -> block/.test(l)));
+  let order = ORDER_PRESSES.reverse.made(FIRST_ORDER);
+  let fresh = 100;
+  // Each press one that changes the list: a renamed row while it is there.
+  for (const name of ["swap", "turn", "rename", "reverse", "move", "drop", "insert", "turn-three", "sort", "turn-back", "swap"]) {
+    const before = await page.evaluate(() => [window.__pw.found ?? 0, window.__pw.moves ?? 0]);
+    const was = order;
+    order = ORDER_PRESSES[name].made(order, { id: fresh, name: `new ${fresh}` });
+    if (name === "insert") fresh += 1;
+    await page.click(`#order-${name}`);
+    await page.waitForFunction((b) => (window.__pw.found ?? 0) >= b + 2, before[0]);
+    const moved = (await page.evaluate(() => window.__pw.moves ?? 0)) - before[1];
+    expect(moved, `rows moved by ${name}, in each of two lists`).toBe(2 * fewestMoved(was, order));
+  }
+  await open(page);
+  await created(page);
+  await page.click("#update");
+  await expect(page.locator("#tbody tr").nth(0).locator(".select")).toContainText("!!!");
+  const before = await page.evaluate(() => window.__pw.moves ?? 0);
+  await page.click("#swaprows");
+  await page.waitForFunction(() => document.getElementById("tbody").children[1].querySelector(".id").textContent === "999");
+  expect((await page.evaluate(() => window.__pw.moves ?? 0)) - before, "rows moved by a swap of two").toBe(2);
+  expect(page.errors).toEqual([]);
+});

@@ -77,6 +77,14 @@ page Events() {
     signal deck: Int = 0
     signal decked: Bool = true
     signal dropped: List<Item> = [Item { id: 1, name: "one" }, Item { id: 2, name: "two" }]
+    // Rows the page's own code finds where they were (ADR-0439), reordered
+    // every way a press does: reversed, turned, two swapped, one moved, one
+    // gone, one put in, sorted, one renamed, all gone and back. Shown three
+    // times: a table's rows, each its own anchor, and a list's items, each
+    // between its comments; and the general code's, in a case's arm that
+    // binds a name its rows read.
+    signal order: List<Item> = [Item { id: 1, name: "one" }, Item { id: 2, name: "two" }, Item { id: 3, name: "three" }, Item { id: 4, name: "four" }, Item { id: 5, name: "five" }, Item { id: 6, name: "six" }]
+    signal next_order: Int = 100
 
     view {
         <title>Events</title>
@@ -174,6 +182,42 @@ page Events() {
                     {/each}
                 </tbody>
             </table>
+            <button id="order-reverse" type="button" on:press={() => order = List.reverse(order)}>Reverse</button>
+            <button id="order-turn" type="button" on:press={() => order = List.concat(List.drop(order, 1), List.take(order, 1))}>Turn</button>
+            <button id="order-turn-back" type="button" on:press={() => order = List.concat(List.drop(order, List.length(order) - 1), List.take(order, List.length(order) - 1))}>Turn back</button>
+            <button id="order-turn-three" type="button" on:press={() => order = List.concat(List.drop(order, 3), List.take(order, 3))}>Turn three</button>
+            <button id="order-swap" type="button" on:press={() => order = List.swap(order, 1, List.length(order) - 2)}>Swap</button>
+            <button id="order-move" type="button" on:press={() => order = List.concat(List.concat(List.take(order, 1), List.slice(order, 2, 5)), List.concat(List.slice(order, 1, 2), List.drop(order, 5)))}>Move</button>
+            <button id="order-drop" type="button" on:press={() => order = List.concat(List.take(order, 2), List.drop(order, 3))}>Drop</button>
+            <button id="order-insert" type="button" on:press={() => {
+                order = List.concat(List.concat(List.take(order, 3), [Item { id: next_order, name: "new {next_order}" }]), List.drop(order, 3))
+                next_order = next_order + 1
+            }}>Insert</button>
+            <button id="order-sort" type="button" on:press={() => order = List.sort_by(order, (a, b) => a.id - b.id)}>Sort</button>
+            <button id="order-rename" type="button" on:press={() => order = renamed(order, 3)}>Rename</button>
+            <button id="order-clear" type="button" on:press={() => order = []}>Clear</button>
+            <button id="order-refill" type="button" on:press={() => order = [Item { id: 1, name: "one" }, Item { id: 2, name: "two" }, Item { id: 3, name: "three" }, Item { id: 4, name: "four" }, Item { id: 5, name: "five" }, Item { id: 6, name: "six" }]}>Refill</button>
+            <table>
+                <tbody id="order">
+                    {#each order as o (o.id)}
+                        <tr><td class="oid">{o.id}</td><td class="oname">{o.name}</td><td><button class="opick" type="button" on:press={resumable(captures = { o }) => picked = o.name}>Pick</button></td></tr>
+                    {/each}
+                </tbody>
+            </table>
+            <ul id="order-items">
+                {#each order as o (o.id)}
+                    <li class="oitem">{o.name}</li>
+                {/each}
+            </ul>
+            {#match maybe}
+            {:Some(n)}
+                <ol id="order-kept">
+                    {#each order as o (o.id)}
+                        <li class="okept">{o.name} {n}</li>
+                    {/each}
+                </ol>
+            {:None}
+            {/match}
         </main>
     }
 }

@@ -40,6 +40,12 @@ export const OWN_WALKS = "const OWN_WALKS = null;";
  * list of its own would be sent other bytes than before. */
 export const OWN_LINES = /^[ \t]*\/\/ own rows:.*\n[\s\S]*?^[ \t]*\/\/ :own rows\n/gm;
 
+/** **The lines of the general placing** (ADR-0439), each run between
+ * `// general rows:` and `// :general rows`: a build every list of which is
+ * its page's own places each by what its own code found (`rowsFound`), and
+ * holds none of them. */
+export const GENERAL_LINES = /^[ \t]*\/\/ general rows:.*\n[\s\S]*?^[ \t]*\/\/ :general rows\n/gm;
+
 /** **The lines the runtime holds only for a row that is its own anchor**
  * (ADR-0438), each run between `// element rows:` and `// :element rows`: a
  * build none of whose lists' rows is so, and a server's runtime, hold none
@@ -136,6 +142,8 @@ const HELPERS = {
   scopeOf: `const scopeOf = (row) =>
     (row.env ??= { ...row.e, reads: row.reads, ...row.computing, names: { name: row.of.binding, value: row.item, up: row.names }, frames: [...row.e.frames, { scope: row.of.id, instance: row.token }] });`,
   ownFunctions: "const ownFunctions = new Map();",
+  // The rows a list kept the first time is found among (ADR-0439).
+  NO_ROWS: "const NO_ROWS = [];",
   NO_READS: "const NO_READS = new Map();",
   textAt: `const textAt = (v, path) => {
     const s = v === NONE ? null : shown(v);
@@ -168,8 +176,11 @@ const HELPERS = {
 /** **How one list's paths are read** where its row is made: each an
  * expression of `item`, `e`, `reads` and `computing` with `read`'s value, or
  * a refusal. `uses` notes each helper an expression calls; `reaches` whether
- * one reads the page (`page`) or a value the row computes (`computed`). */
+ * one reads the page (`page`) or a value the row computes (`computed`), and
+ * each name of the page one reads, its own or what a value it computes reads
+ * (`names`, ADR-0439). */
 function reader({ list, names, computes }, uses, reaches) {
+  reaches.names ??= new Set();
   const B = list.binding;
   /** The longest head of `segments` the page holds by name, and where its
    * rest starts: of a path whose first name is not the row's, so that no
@@ -193,6 +204,7 @@ function reader({ list, names, computes }, uses, reaches) {
     // The whole path a name the page holds, as `bound` finds it first.
     if (names.has(path)) {
       reaches.page = true;
+      reaches.names.add(path);
       uses.add("pageAt");
       return `pageAt(e, reads, ${q(path)})`;
     }
@@ -208,6 +220,7 @@ function reader({ list, names, computes }, uses, reaches) {
           if (input === B) return "item";
           if (names.has(input)) {
             uses.add("needed").add("pageAt");
+            reaches.names.add(input);
             return `needed(pageAt(e, computing.computedReads, ${q(input)}), ${q(input)})`;
           }
           return refuse(`what its row computes for ${path} reads ${input}, which is neither its row nor a value of the page`);
@@ -235,6 +248,7 @@ function reader({ list, names, computes }, uses, reaches) {
     if (!head) return "NONE";
     if (computedTail(segments, head[1]) >= 0) refuse(`${path} reads a value a row computes inside a value of the page`);
     reaches.page = true;
+    reaches.names.add(head[0]);
     uses.add("pageAt").add("fieldsOf");
     return `fieldsOf(pageAt(e, reads, ${q(head[0])}), cutsOf(${q(path)}), ${head[1]})`;
   };
@@ -331,16 +345,23 @@ function listSource(entry, uses) {
   const key = list.key.split(".").filter((s) => s !== "");
   const keyOf =
     key.length === 0 ? "(item) => shown(item) ?? \"\"" : key.length === 1 ? `(item) => (isRecord(item) ? (shown(field(item, ${q(key[0])})) ?? "") : "")` : `(item) => keyOf(item, ${q(list.key)})`;
+  // **What its rows can read of the page, by name** (ADR-0439): a row whose
+  // item is the very one it was made from is the row kept, where none of it
+  // has moved since the list's last render. None said where a handler's
+  // captures read the page, which a press reads in the scope the row was
+  // made in: each such row is held as the general code holds it.
+  const pageReads = reachesPage ? "null" : q([...reaches.names].sort());
   return `{
       key: ${keyOf},
       still: ${unread ? "stillUnread" : "holdsStill"},
+      reads: ${pageReads},
       make(p, e, others, item, key) {
         rowsWritten += 1;
         const token = tokenOf(e, ${list.id}, key);
         const reads = ${unread ? "NO_READS" : "new Map()"};
         const computing = rowComputes.size ? { computedReads: new Map(), computedValues: [] } : null;${reaches.computed ? "\n        let v, f;" : ""}
         ${lines.join("\n        ")}
-        return { key: \`${list.id}@\${token}\`, text: null, item, reads, names: e.names, computing, holes: [${holes.join(", ")}], raws: [${raws.join(", ")}], of: p, env: null, e, token, capturing: ${capturing}, others };
+        return { key: \`${list.id}@\${token}\`, text: null, item, reads, names: e.names, computing, holes: [${holes.join(", ")}], raws: [${raws.join(", ")}], of: p, env: null, e, token, capturing: ${capturing}, others, at: 0 };
       },
     }`;
 }
@@ -605,7 +626,7 @@ export function ownRows(entries) {
     walks.get(template).push(`    ${list.id}: {\n      paths: ${q(from.map((p) => p.join(",")).join("|"))},\n      walk: ${walkSource(from)},\n    }`);
   }
   const table = (by) => `{\n${[...by].map(([template, items]) => `  ${q(template)}: {\n${items.join(",\n")},\n  }`).join(",\n")},\n}[parts.template]`;
-  if (written.length > 0) uses.add("scopeOf").add("ownFunctions");
+  if (written.length > 0) uses.add("scopeOf").add("ownFunctions").add("NO_ROWS");
   const helpers = Object.entries(HELPERS)
     .filter(([name]) => uses.has(name))
     .map(([, source]) => `  ${source}`)
@@ -618,23 +639,89 @@ export function ownRows(entries) {
   };
 }
 
-/** **A list the page's own code keeps** (`rowsKept`'s, by its own key, hold
- * and making): every row by its key, which is also what says a key is
- * taken. */
+/**
+ * **A list the page's own code keeps** (`rowsKept`'s, by its own key, hold
+ * and making, ADR-0437), **its rows found where they were** (ADR-0439): a
+ * row whose item is the very one at its place in the list's last render, or
+ * as far from its end, is that render's row, its key not computed, and is
+ * kept where nothing its rows read of the page has moved since (`own.reads`),
+ * else held as the general code holds it; any other by its key, among the
+ * last render's rows (`byKey`, each row's place there its `at`). A key is
+ * taken where its row of the last render is (`taken`) or a row of it was
+ * made (`made`). What it found it says, and the runtime places the rows by
+ * it: each row's place at the last render, -1 for a key none had
+ * (`places`), which of those rows it holds (`taken`, `matched`), whether the
+ * places of the rows that stay increase (`sorted`), the rows made again
+ * (`remade`), and how many rows it looked for by their keys (`keyed`). What
+ * it keeps changes once every row is found, so a render refused keeps the
+ * last one's.
+ */
 const OWN_KEPT = `(own, p, e, others, items) => {
     if (!own) throw malformed(\`list \${p.id} is kept by no code of its page\`);
     const was = kept.get(p.id);
-    const now = new Map();
-    const rows = items.map((raw) => {
-      const item = opened(raw);
-      const key = own.key(item);
-      if (key === "") throw new Blocked("MissingLoopKey", p.key);
-      if (now.has(key)) throw new Blocked("DuplicateLoopKey", key);
-      const old = was?.get(key);
-      const row = old && own.still(old, item, e, p) ? old : own.make(p, e, others, item, key);
-      now.set(key, row);
-      return row;
-    });
-    kept.set(p.id, now);
-    return { part: p.id, rows, of: p };
+    const old = was === undefined ? NO_ROWS : was.rows;
+    const m = old.length;
+    const n = items.length;
+    let clean = was !== undefined && own.reads !== null;
+    if (clean) for (const name of own.reads) if (!unmoved(e.page.get(name), was.page.get(name))) clean = false;
+    const rows = new Array(n);
+    const places = new Int32Array(n);
+    const taken = new Uint8Array(m);
+    const remade = [];
+    let made = null;
+    let matched = 0;
+    let keyed = 0;
+    let last = -1;
+    let sorted = true;
+    for (let i = 0; i < n; i++) {
+      const item = opened(items[i]);
+      let j = i;
+      let o = i < m ? old[i] : undefined;
+      if (o === undefined || o.item !== item) {
+        j = i + m - n;
+        o = j >= 0 && j < m && old[j].item === item ? old[j] : undefined;
+      }
+      let key;
+      if (o === undefined || taken[j] === 1) {
+        keyed += 1;
+        key = own.key(item);
+        if (key === "") throw new Blocked("MissingLoopKey", p.key);
+        if (made !== null && made.has(key)) throw new Blocked("DuplicateLoopKey", key);
+        o = was?.byKey.get(key);
+        if (o !== undefined) {
+          j = o.at;
+          if (taken[j] === 1) throw new Blocked("DuplicateLoopKey", key);
+        }
+      }
+      if (o === undefined) {
+        places[i] = -1;
+        const row = own.make(p, e, others, item, key);
+        (made ??= new Map()).set(key, row);
+        rows[i] = row;
+        continue;
+      }
+      taken[j] = 1;
+      matched += 1;
+      places[i] = j;
+      if (j < last) sorted = false;
+      else last = j;
+      if ((clean && o.item === item) || own.still(o, item, e, p)) {
+        rows[i] = o;
+        continue;
+      }
+      key ??= own.key(item);
+      const row = own.make(p, e, others, item, key);
+      (made ??= new Map()).set(key, row);
+      rows[i] = row;
+      remade.push(i);
+    }
+    let byKey = was?.byKey;
+    if (matched === 0) byKey = made ?? new Map();
+    else {
+      if (matched < m) for (let j = 0; j < m; j++) if (taken[j] === 0) byKey.delete(own.key(old[j].item));
+      if (made !== null) for (const [key, row] of made) byKey.set(key, row);
+    }
+    for (let i = 0; i < n; i++) rows[i].at = i;
+    kept.set(p.id, { rows, byKey, page: e.page });
+    return { part: p.id, rows, of: p, from: old, places, taken, matched, sorted, remade, keyed };
   }`;
