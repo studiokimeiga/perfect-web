@@ -970,7 +970,8 @@ test("rows its list's own code found out of their order are as few moved as leav
   // Each press of the fixture's reordered list, after the one that morphs
   // its blocks: its two lists its own code keeps each move the fewest rows
   // that leave the rest in order, and a row put in or gone moves none
-  // (ADR-0439). And the large list's swap of two rows moves those two.
+  // (ADR-0439). And the large list's swap of two rows moves those two,
+  // found among the rows out of their places alone.
   await open(page, "/events");
   await page.click("#order-reverse");
   await page.waitForFunction(() => window.__pw.log.some((l) => /^signal order -> block/.test(l)));
@@ -987,14 +988,31 @@ test("rows its list's own code found out of their order are as few moved as leav
     const moved = (await page.evaluate(() => window.__pw.moves ?? 0)) - before[1];
     expect(moved, `rows moved by ${name}, in each of two lists`).toBe(2 * fewestMoved(was, order));
   }
+  // The list made short: each press that keeps its rows leaves no more than
+  // four out of their places, and is placed among those alone, the rows
+  // where the list says, each the element it was.
+  for (const name of ["drop", "drop", "turn", "reverse", "turn-back", "swap"]) {
+    const before = await page.evaluate(() => [window.__pw.found ?? 0, window.__pw.moves ?? 0, window.__pw.few ?? 0]);
+    await orderMarked(page);
+    const was = order;
+    order = ORDER_PRESSES[name].made(order);
+    await page.click(`#order-${name}`);
+    await page.waitForFunction((b) => (window.__pw.found ?? 0) >= b + 2, before[0]);
+    const [moves, few] = await page.evaluate(() => [window.__pw.moves ?? 0, window.__pw.few ?? 0]);
+    expect(moves - before[1], `rows moved by ${name} of ${was.length}, in each of two lists`).toBe(2 * fewestMoved(was, order));
+    expect(few - before[2], `${name} of ${was.length} placed among the rows out of their places, in each of two lists`).toBe(name === "drop" ? 0 : 2);
+    await expect.poll(async () => JSON.stringify(await orderShown(page)), { timeout: 10_000, message: `after ${name} of ${was.length}` }).toBe(JSON.stringify(orderSaid(order, was)));
+  }
   await open(page);
   await created(page);
   await page.click("#update");
   await expect(page.locator("#tbody tr").nth(0).locator(".select")).toContainText("!!!");
-  const before = await page.evaluate(() => window.__pw.moves ?? 0);
+  const before = await page.evaluate(() => [window.__pw.moves ?? 0, window.__pw.few ?? 0]);
   await page.click("#swaprows");
   await page.waitForFunction(() => document.getElementById("tbody").children[1].querySelector(".id").textContent === "999");
-  expect((await page.evaluate(() => window.__pw.moves ?? 0)) - before, "rows moved by a swap of two").toBe(2);
+  const [moves, few] = await page.evaluate(() => [window.__pw.moves ?? 0, window.__pw.few ?? 0]);
+  expect(moves - before[0], "rows moved by a swap of two").toBe(2);
+  expect(few - before[1], "a swap of two placed among the rows out of their places").toBe(1);
   expect(page.errors).toEqual([]);
 });
 

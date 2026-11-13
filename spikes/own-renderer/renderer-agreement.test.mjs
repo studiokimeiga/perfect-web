@@ -1117,13 +1117,20 @@ function foundAgree(list, at, items) {
   assert.equal(list.sorted, sorted, `whether the rows that stay are in their order: ${at}`);
   const remade = places.flatMap((p, i) => (p >= 0 && rows[i] !== from[p] ? [i] : []));
   assert.deepEqual([...(list.remade ?? [])], remade, `the rows made again: ${at}`);
+  // Where the list has as many rows as it had and holds each, those out of
+  // their places, while they are four at most: the runtime looks among them
+  // alone for the rows to move.
+  const out = places.flatMap((p, i) => (p !== i ? [i] : []));
+  const displaced = rows.length === from.length && list.matched === rows.length && out.length <= 4 ? out : null;
+  assert.ok(list.displaced === null || Array.isArray(list.displaced), `says which rows are out of their places, or that it does not: ${at}`);
+  assert.deepEqual(list.displaced === null ? null : [...list.displaced], displaced, `the rows out of their places: ${at}`);
   // A graph's item is the tree read from it, which this realm does not see.
   if (Array.isArray(items) && !items.some((v) => typeof v === "object" && v !== null && "$graph" in v)) {
     const [m, n] = [from.length, items.length];
     const there = items.filter((v, i) => from[i]?.item === v || (i + m - n >= 0 && from[i + m - n]?.item === v)).length;
     assert.equal(list.keyed, n - there, `the rows looked for by their keys, none found by its item: ${at}`);
   }
-  return { moved: !sorted, gone: taken.includes(0), remade: remade.length > 0, kept: places.some((p, i) => p >= 0 && rows[i] === from[p]) };
+  return { moved: !sorted, gone: taken.includes(0), remade: remade.length > 0, kept: places.some((p, i) => p >= 0 && rows[i] === from[p]), few: !sorted && displaced !== null };
 }
 
 /** **Each request rendered by both**, the page's own code and the general
@@ -1146,7 +1153,7 @@ function ownAgree(requests, computes = new Map(), functions = null, { rounds = 2
     general.rowsComputed(functions, asked);
   }
   const written = new Set(own.written.map((w) => w.part));
-  const held = { written: written.size, refusedLists: own.refused.length, rows: 0, own: 0, kept: 0, refused: 0, why: {}, found: 0, moved: 0, gone: 0, remade: 0, keptFound: 0, last: 0 };
+  const held = { written: written.size, refusedLists: own.refused.length, rows: 0, own: 0, kept: 0, refused: 0, why: {}, found: 0, moved: 0, few: 0, gone: 0, remade: 0, keptFound: 0, last: 0 };
   // Why the packaging refused what it refused, by the start of what it says.
   for (const { why } of own.refused) {
     const said = why.split(" ").slice(0, 5).join(" ");
@@ -1225,6 +1232,7 @@ function ownAgree(requests, computes = new Map(), functions = null, { rounds = 2
           const said = foundAgree(list, at, readPath(values, list.of.collection));
           held.found += 1;
           if (said.moved) held.moved += 1;
+          if (said.few) held.few += 1;
           if (said.gone) held.gone += 1;
           if (said.remade) held.remade += 1;
           if (said.kept) held.keptFound += 1;
@@ -1434,7 +1442,7 @@ test("a list's own code finds its rows where they were, and says what it found a
   const held = ownAgree(plannedRequests([...plannedLists(2500), ...rowShapes(1500), ...longLists(800)]), new Map(), null, { rounds: 8, next: pressed });
   t.diagnostic(`held: ${JSON.stringify(held)}`);
   assert.ok(held.found > 15_000 && held.last > 12_000, JSON.stringify(held));
-  assert.ok(held.moved > 1_500 && held.gone > 1_800 && held.remade > 1_500 && held.keptFound > 7_000 && held.own > 100_000, JSON.stringify(held));
+  assert.ok(held.moved > 1_500 && held.few > 600 && held.gone > 1_800 && held.remade > 1_500 && held.keptFound > 7_000 && held.own > 100_000, JSON.stringify(held));
   assert.ok(held.refused > 1_000, JSON.stringify(held));
 });
 
@@ -1446,7 +1454,7 @@ test("a list's own code finds its rows where they were as what they compute move
   const functions = Object.fromEntries(COMPUTED_NAMES.map((name) => [name, compute]));
   const held = ownAgree(plannedRequests(computedLists(1200)), computes, functions, { rounds: 8, next: pressed });
   t.diagnostic(`held: ${JSON.stringify(held)}`);
-  assert.ok(held.found > 3_000 && held.moved > 300 && held.gone > 300 && held.keptFound > 1_500, JSON.stringify(held));
+  assert.ok(held.found > 3_000 && held.moved > 300 && held.few > 250 && held.gone > 300 && held.keptFound > 1_500, JSON.stringify(held));
 });
 
 const PARTS = [

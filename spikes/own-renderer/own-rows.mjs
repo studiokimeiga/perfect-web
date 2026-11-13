@@ -673,6 +673,11 @@ const OWN_KEPT = `(own, p, e, others, items) => {
     let keyed = 0;
     let last = -1;
     let sorted = true;
+    // The places of the last render past which the rows found in order
+    // jumped: what is gone is among them. And where the list has as many
+    // rows as it had, those out of their places, while they are four at most.
+    const skips = [];
+    let displaced = n === m ? [] : null;
     for (let i = 0; i < n; i++) {
       const item = PW_GRAPHS ? opened(items[i]) : items[i];
       let j = i;
@@ -707,7 +712,14 @@ const OWN_KEPT = `(own, p, e, others, items) => {
       matched += 1;
       places[i] = j;
       if (j < last) sorted = false;
-      else last = j;
+      else {
+        if (j > last + 1) skips.push(last + 1, j);
+        last = j;
+      }
+      if (j !== i && displaced !== null) {
+        if (displaced.length === 4) displaced = null;
+        else displaced.push(i);
+      }
       if ((clean && o.item === item) || own.still(o, item, e, p)) {
         o.at = i;
         rows[i] = o;
@@ -725,14 +737,18 @@ const OWN_KEPT = `(own, p, e, others, items) => {
     if (matched === 0) byKey = made ?? new Map();
     else {
       if (matched < m) {
-        for (let j = 0; j < m; j++) {
-          if (taken[j] === 1) continue;
-          gone.push(j);
-          byKey.delete(own.key(old[j].item));
+        skips.push(last + 1, m);
+        for (let s = 0; s < skips.length; s += 2) {
+          for (let j = skips[s]; j < skips[s + 1]; j++) {
+            if (taken[j] === 1) continue;
+            gone.push(j);
+            byKey.delete(own.key(old[j].item));
+          }
         }
       }
       if (made !== null) for (const [key, row] of made) byKey.set(key, row);
     }
+    if (matched !== n) displaced = null;
     kept.set(p.id, { rows, byKey, page: e.page });
-    return { part: p.id, rows, of: p, from: old, places, taken, matched, sorted, remade, keyed, gone };
+    return { part: p.id, rows, of: p, from: old, places, taken, matched, sorted, remade, keyed, gone, displaced };
   }`;

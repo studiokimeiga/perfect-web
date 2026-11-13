@@ -247,4 +247,69 @@ test("rows found by their keys are each at its place among the rows before, or n
   // Shown the first time: every row new, none looked for.
   const first = foundByKeys([], [{ key: "a" }, { key: "b" }]);
   assert.deepEqual([[...first.places], first.matched, first.sorted, [...first.remade], [...first.gone]], [[-1, -1], 0, true, [], []]);
+  // Found by their keys, the rows are not said to be few out of their places.
+  assert.equal(foundByKeys([{ key: "a" }, { key: "b" }], [{ key: "b" }, { key: "a" }]).displaced, null);
+});
+
+/** The rows the page's own code's placing moves where no more than four are
+ * out of their places and every other is where it was (ADR-0439). */
+function fewOrder() {
+  return vm.runInNewContext(`${source("function fewMoved(places, displaced) {", "/** **New rows, as one fragment**")}\nfewMoved`);
+}
+
+test("of rows a few of which are out of their places, as few move as leave the rest in order, found among those few", (t) => {
+  const fewMoved = fewOrder();
+  // A seeded walk: lists in order, the rows at two to four places put in
+  // one another's, those places near one another, anywhere, or two on
+  // either side of a row that stays in its place.
+  let seed = 31;
+  const next = (n) => (seed = (seed * 16807) % 2147483647) % n;
+  const held = { fewer: 0, inPlace: 0 };
+  for (let round = 0; round < 6000; round++) {
+    const size = 5 + next(40);
+    const way = next(3);
+    const from = next(size - 4);
+    const chosen =
+      way === 2
+        ? [from, from + 1, from + 3, from + 4]
+        : [...new Set(Array.from({ length: 2 + next(3) }, () => (way === 0 ? Math.min(size - 1, from + next(6)) : next(size))))];
+    const shuffled = [...chosen];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = next(i + 1);
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    const places = Array.from({ length: size }, (_, i) => i);
+    chosen.forEach((i, k) => (places[i] = shuffled[k]));
+    const displaced = places.flatMap((p, i) => (p !== i ? [i] : []));
+    if (displaced.length === 0) continue;
+    const at = JSON.stringify({ places, displaced });
+    const moved = [...fewMoved(Int32Array.from(places), displaced)];
+    // Each once, in order; as many as a longest run in order leaves out;
+    // and the rest in order.
+    for (let k = 1; k < moved.length; k++) assert.ok(moved[k - 1] < moved[k], at);
+    assert.equal(moved.length, places.length - longestRun(places), at);
+    const still = places.filter((_, i) => !moved.includes(i));
+    for (let k = 1; k < still.length; k++) assert.ok(still[k - 1] < still[k], at);
+    if (moved.length < displaced.length) held.fewer += 1;
+    if (moved.some((i) => places[i] === i)) held.inPlace += 1;
+  }
+  // Often a row out of its place stays where it is, and now and then one
+  // in its place moves, for fewer to move: two rows on either side of one
+  // swapped, the one between and two others move.
+  t.diagnostic(JSON.stringify(held));
+  assert.ok(held.fewer > 1_500 && held.inPlace > 150, JSON.stringify(held));
+  assert.deepEqual([...fewMoved(Int32Array.from([3, 4, 2, 0, 1]), [0, 1, 3, 4])], [2, 3, 4]);
+  // Two rows of a thousand swapped: those two move, and of the rows' places
+  // no more than a few are read.
+  const swapped = Int32Array.from({ length: 1000 }, (_, i) => i);
+  [swapped[1], swapped[998]] = [998, 1];
+  let reads = 0;
+  const counted = new Proxy(swapped, {
+    get: (target, k) => {
+      if (typeof k === "string" && /^\d+$/.test(k)) reads += 1;
+      return target[k];
+    },
+  });
+  assert.deepEqual([...fewMoved(counted, [1, 998])], [1, 998]);
+  assert.ok(reads <= 32, `places read: ${reads}`);
 });
