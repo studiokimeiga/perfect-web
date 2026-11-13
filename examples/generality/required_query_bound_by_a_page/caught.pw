@@ -1,0 +1,27 @@
+// @status: GENERAL
+// @invariant: required_query_bound_by_a_page
+//
+// Structurally different from R-117: the caller is a command, and the
+// guarded query requires a predicate the deployment answers. The command's
+// body would read `Specials` with nothing asked of its reader.
+
+module Lounge
+
+predicate Regular()
+    says "Regulars only."
+
+public query Specials() -> String
+    consistency snapshot
+    cache       private
+    requires    Regular
+{
+    "TODAY"
+}
+
+command order() -> ()
+    requires    Anyone
+    transaction serializable
+{
+    let _special = Specials()
+    ()
+}

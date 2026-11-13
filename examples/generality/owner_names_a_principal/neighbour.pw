@@ -1,0 +1,19 @@
+// @status: NEIGHBOUR
+// @invariant: owner_names_a_principal
+// @dimension: valid neighbour — the same table, owned by a principal's id
+//
+// A rule that refused `owned by` rather than an owner that is no
+// principal's id would refuse this.
+
+module Diaries
+
+import capability.{ UserId }
+
+opaque type EntryId = String
+
+type Entry = Entry { writer: UserId, id: EntryId, text: String }
+
+table Diaries
+    row   Entry
+    key   writer, id
+    owned by writer

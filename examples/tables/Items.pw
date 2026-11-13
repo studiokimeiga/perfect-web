@@ -29,9 +29,12 @@ type Item = Item {
     note: Option<String>,
 }
 
+// Any reader's request keeps or drops an item of any list, as the lists
+// are anyone's (`written by anyone`, ADR-0395's PW6920).
 table Items
-    row    Item
-    key    list, id
-    order  added
-    index  by_done on done
-    refers list to Lists
+    row     Item
+    key     list, id
+    order   added
+    index   by_done on done
+    refers  list to Lists
+    written by anyone

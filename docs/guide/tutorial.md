@@ -102,17 +102,22 @@ module Books
 type Book = Book { name: String, signed: Int }
 
 table Books
-    row Book
-    key name
+    row     Book
+    key     name
+    written by anyone
 ```
 
 ```pw file=guestbook/Entries.pw
 type Entry = Entry { book: String, number: Int, author: UserId, name: String, text: Words }
 
-table Entries
+public table Entries
     row     Entry
-    key     book, number
+    key     author, book, number
+    order   number
+    index   by_book on book
+    unique  by_number on book, number
     refers  book to Books
+    owned   by author
     bounded 1000
 
 fn most() -> Int !{} {
@@ -125,8 +130,23 @@ fn most() -> Int !{} {
   text, or one longer than 280 characters. An entry's author is a `UserId`,
   an id that names someone and grants nothing: a row never holds a reader's
   handle, which every reader of the table would then read (PW6901).
+- `owned by author`: each entry is its author's. Every write takes the
+  writer's handle in the author's place, which only the platform makes
+  from the reader's session, so a reader writes and removes their own
+  entries and no one else's, whatever their request says.
+- `public table`: every reader reads every entry, by any of its keys or
+  indexes, with no handle. An owned table that is not `public` is read by
+  its owner alone (and those it `shares with`).
+- `written by anyone`: a book is written by whichever reader signs it, on
+  purpose. A table that a reader's command writes says one or the other:
+  `owned by` a field, or `written by anyone` (PW6920).
 - `key` is the fields that find one row: a book by its name, an entry by
-  its book and its number. No two rows have one key.
+  its author, its book and its number. An owned table's key leads with its
+  owner, so no reader can write a key another's row holds. No two rows have
+  one key.
+- `order number`: an entry's reads answer in the order of its number.
+- `index by_book on book` reads a book's entries; `unique by_number on
+  book, number` holds one entry to a number in a book, whoever wrote it.
 - `refers book to Books`: an entry's book is a row of `Books`. A commit
   that would leave an entry of no book is refused.
 - `bounded 1000`: the table holds at most 1,000 entries, and a write past
@@ -141,18 +161,21 @@ program's only way to its rows:
 | --- | --- |
 | `Books.get(name)` | the book of that name, or `None` |
 | `Books.put(book)` | the book, whole, written by its key |
-| `Entries.get(book, number)` | the entry of that key, or `None` |
-| `Entries.of_book(book)` | every entry of a book, in the key's order |
+| `Entries.get(author, book, number)` | the entry of that key, or `None` |
+| `Entries.by_book(book)` | every entry of a book, in number order |
+| `Entries.by_number(book, number)` | the entry of that number, whoever wrote it, or `None` |
 | `Entries.all()` | every entry, of a table that states `bounded` |
-| `Entries.insert(entry)` | a new entry: `Err(row)` where its key is held |
-| `Entries.delete(book, number)` | the entry of that key, gone |
+| `Entries.insert(me, entry)` | a new entry of the reader's: `Err(row)` where its key or number is held |
+| `Entries.delete(me, book, number)` | the reader's entry of that key, gone |
 
-Each function has the effect it does: `Entries.of_book` performs
-`database.read<Entries>`, and `Entries.insert` `database.write<Entries>`.
-A function that calls one performs it too, and the server grants it only
-where the code may run (at the server, never in the browser). And each set
-form you do not use here, `get_many` and `of_book_many`, reads several keys
-in one call.
+`me` is the reader's handle, `current_user()`: an entry whose author is
+not the handle's is refused before it is written, and a delete names the
+reader's own entries alone. Each function has the effect it does:
+`Entries.by_book` performs `database.read<Entries>`, and `Entries.insert`
+`database.write<Entries>`. A function that calls one performs it too, and
+the server grants it only where the code may run (at the server, never in
+the browser). And each set form you do not use here, such as `get_many`
+and `by_book_many`, reads several keys in one call.
 
 The number of an entry is the book's count, so a removed entry's number is
 never given again, as it would be by counting the entries there are.
@@ -166,7 +189,7 @@ module guestbook.book
 
 import List
 import context.{ current_user, account_of, Account }
-import capability.{ User, UserId }
+import capability.{ User, UserId, id_of }
 import Books.{ Book }
 import Books
 import Entries.{ Entry, Words, text_of, most }
@@ -292,7 +315,7 @@ user query Latest(reader: User<UserId>, limit: Int) -> List<Line>
     timeout        2.seconds
 {
     let account = account_of(reader)
-    List.map(List.take(List.reverse(Entries.of_book(guestbook())), limit), e => line(e, account))
+    List.map(List.take(List.reverse(Entries.by_book(guestbook())), limit), e => line(e, account))
 }
 ```
 
@@ -307,7 +330,8 @@ user query Latest(reader: User<UserId>, limit: Int) -> List<Line>
   among them. Whose account it is says who reads, so the compiler treats
   it as the reader's too: return it from a query cached for every reader
   and it refuses the query (PW5001).
-- `Entries.of_book` reads every entry of the book, in number order;
+- `Entries.by_book` reads every entry of the book, in number order, by
+  no handle: the table is `public`, so every reader reads it alike;
   `List.reverse` puts the newest first, and `List.take` the first `limit`.
   Pleris has no paged read of a table yet, so the guestbook is read whole
   each time, which is why `Entries` states its bound.
@@ -348,7 +372,7 @@ command sign(text: Words) -> Result<Entry, BookError>
             }
             Books.put(Book { name: guestbook(), signed: number })
             let entry = Entry { book: guestbook(), number: number, author: account.id, name: account.name, text: text }
-            match Entries.insert(entry) {
+            match Entries.insert(current_user(), entry) {
                 Ok(_) => Ok(entry),
                 Err(_) => Err(Unavailable),
             }
@@ -373,10 +397,12 @@ fn pending(shown: List<Line>, text: Words) -> List<Line> !{} {
   table would refuse the 1,001st entry anyway, but as a failed write, which
   says nothing a reader can read. `Full` is the program's own answer, and
   the page says it (step 6).
-- `Entries.insert` answers `Err(row)` where the key is held already, and
-  the compiler makes the program handle it. Here it cannot be (the number
-  was just counted), so it answers `Unavailable`, and a declared error
-  commits nothing, the count's write with it.
+- `Entries.insert(current_user(), entry)` is given the reader's handle,
+  and the server refuses an entry whose author is not the handle's before
+  it is written. It answers `Err(row)` where the key or the number is held
+  already, and the compiler makes the program handle it. Here it cannot be
+  (the number was just counted), so it answers `Unavailable`, and a
+  declared error commits nothing, the count's write with it.
 - `requires SignedIn`: checked by the server before the body runs. A
   refused press is answered 403, and the page says the predicate's words
   where the button was.
@@ -398,22 +424,25 @@ command remove(number: Int) -> Result<Int, BookError>
     idempotent_by InteractionId
     emits         Removed(number)
 {
-    match Entries.get(guestbook(), number) {
-        None => Err(NotFound),
-        Some(entry) => if mine(entry, account_of(current_user())) {
-            Entries.delete(guestbook(), number)
+    match Entries.get(id_of(current_user()), guestbook(), number) {
+        Some(_) => {
+            Entries.delete(current_user(), guestbook(), number)
             Ok(number)
-        } else {
-            Err(NotYours)
+        },
+        None => match Entries.by_number(guestbook(), number) {
+            Some(_) => Err(NotYours),
+            None => Err(NotFound),
         },
     }
 }
 ```
 
-Only the author can remove an entry: the command reads it and compares its
-author with the reader's account, in the same transaction as the delete,
-so the entry it deletes is the entry it found theirs. Another reader's
-press answers `NotYours`, and nothing commits.
+Only the author can remove an entry, and not because the command checks:
+`Entries.delete` takes the reader's handle in the author's place, so it
+deletes the reader's own entry of that number or nothing, whatever the
+request names. The command reads the reader's own entry by its key to say
+which: another reader's entry of that number answers `NotYours`, a number
+no entry holds `NotFound`, and nothing commits.
 
 ## 6. The page
 

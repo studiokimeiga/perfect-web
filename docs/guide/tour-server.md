@@ -58,6 +58,7 @@ table Notes
     key     id
     order   added
     bounded 100
+    written by anyone
 
 query Newest() -> List<Note>
     consistency strong
@@ -77,6 +78,14 @@ command keep(note: Note) -> Result<(), Note>
 - `row` is the record each row is, `key` the fields that find one, `order`
   how rows of one prefix of the key come back, and `bounded 100` the most
   rows the table holds, which is what lets it be read whole (`all()`).
+- `written by anyone`: any reader's request writes any row, on purpose. A
+  table a reader's command writes says who may write its rows (PW6920):
+  this, or `owned by <field>`, the field holding each row's owner's
+  `capability.UserId`. An owned table's key leads with its owner, and each
+  read and write takes the reader's handle there, which only the platform
+  makes, so a reader reaches their own rows alone; `public table` reads it
+  as every reader's, written by its owner (ADR-0395). The
+  [tutorial](tutorial.md)'s entries are owned by their author.
 - The functions are `Notes.get(id)`, `Notes.get_many(ids)`, `Notes.all()`,
   `Notes.insert(note)` (refused, answering the row that holds its key),
   `Notes.put(note)` and `Notes.delete(id)`; an `index` adds reads by other

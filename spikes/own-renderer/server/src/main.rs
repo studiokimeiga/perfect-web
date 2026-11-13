@@ -1001,7 +1001,90 @@ mod tables_pg;
 /// **The table functions a call links, by its component's contract and
 /// grant** (TRACK SEAM (tables), track `data-path`): a query's reads, a
 /// command's staged reads and writes, or none.
-type TableFns<'a> = dyn Fn(&ComponentContract, &Granted) -> Result<data::Ops, String> + 'a;
+trait TableFns {
+    fn functions(
+        &self,
+        contract: &ComponentContract,
+        granted: &Granted,
+    ) -> Result<data::Ops, String>;
+    fn predicate_reads(
+        &self,
+        contract: &ComponentContract,
+        granted: &Granted,
+    ) -> Result<data::Ops, String>;
+}
+
+impl<F> TableFns for F
+where
+    F: Fn(&ComponentContract, &Granted) -> Result<data::Ops, String>,
+{
+    fn functions(
+        &self,
+        contract: &ComponentContract,
+        granted: &Granted,
+    ) -> Result<data::Ops, String> {
+        self(contract, granted)
+    }
+
+    fn predicate_reads(
+        &self,
+        contract: &ComponentContract,
+        granted: &Granted,
+    ) -> Result<data::Ops, String> {
+        self(contract, granted)
+    }
+}
+
+/// A command's predicate reads its staged state through the predicate gate,
+/// while the command body links its admitted reads and writes.
+struct StagedTables<'a>(&'a dyn data::Staged);
+
+impl TableFns for StagedTables<'_> {
+    fn functions(
+        &self,
+        contract: &ComponentContract,
+        granted: &Granted,
+    ) -> Result<data::Ops, String> {
+        self.0.table_ops(contract, granted)
+    }
+
+    fn predicate_reads(
+        &self,
+        contract: &ComponentContract,
+        granted: &Granted,
+    ) -> Result<data::Ops, String> {
+        if !tables::imports_tables(std::slice::from_ref(contract)) {
+            return Ok(data::Ops::new());
+        }
+        self.0.table_predicate_reads(contract, granted)
+    }
+}
+
+/// The engine owns predicate execution, caller checks and the shared fuel
+/// budget. This bridge supplies only callbacks on one selected data state.
+struct TableCall<'a> {
+    manifest: &'a pw_host::tables::Manifest,
+    body: data::Ops,
+    source: &'a dyn TableFns,
+}
+
+impl pw_host::engine::CallTables for TableCall<'_> {
+    fn manifest(&self) -> &pw_host::tables::Manifest {
+        self.manifest
+    }
+
+    fn functions(&self, _: &ComponentContract, _: &Granted) -> Result<data::Ops, String> {
+        Ok(self.body.clone())
+    }
+
+    fn predicate_reads(
+        &self,
+        contract: &ComponentContract,
+        granted: &Granted,
+    ) -> Result<data::Ops, String> {
+        self.source.predicate_reads(contract, granted)
+    }
+}
 
 /// **A call that links no table function**: a pure one (a member, a
 /// computed part), or a materialization's, which reads through its queries.
@@ -1977,13 +2060,25 @@ impl Server {
                 Err(e) if e.kind() == std::io::ErrorKind::NotFound => BTreeMap::new(),
                 Err(e) => return Err(format!("predicates.json: {e}")),
             };
+        let bodied: std::collections::BTreeSet<&str> = contracts
+            .iter()
+            .flat_map(|c| &c.exports)
+            .filter(|e| e.kind == "predicate")
+            .map(|e| e.name.as_str())
+            .collect();
         let unknown: std::collections::BTreeSet<&str> = contracts
             .iter()
             .flat_map(|c| c.exports.iter())
             .filter_map(|e| e.component.as_ref())
             .flat_map(|e| e.authorization.iter())
+            .filter(|a| a.component.is_none())
             .map(|a| a.predicate.as_str())
-            .chain(words.keys().map(String::as_str))
+            .chain(
+                words
+                    .keys()
+                    .map(String::as_str)
+                    .filter(|name| !bodied.contains(name)),
+            )
             .filter(|p| identity::says(p).is_none())
             .collect();
         if !unknown.is_empty() {
@@ -2025,6 +2120,11 @@ impl Server {
         uploads.identified_by(server.identity.principals());
         server.uploads = uploads;
         server.words = words;
+        // Validate each referenced compiled predicate before serving. No
+        // deployment callback can stand in for an absent or malformed body.
+        for contract in &server.contracts {
+            server.program_predicates(contract)?;
+        }
         // **What the program imports, its data layer supplies** (ADR-0218):
         // refused here, as uncompiled handlers are, rather than when a press
         // first reaches the operation.
@@ -2763,9 +2863,21 @@ impl Server {
         component_id: &str,
         session: &str,
         host: &BTreeMap<String, HostFn>,
-        tables: &TableFns<'_>,
+        tables: &dyn TableFns,
         args: &[Val],
     ) -> Result<Vec<Val>, String> {
+        self.run_invocation(component_id, session, host, tables, args)
+            .map_err(|error| error.to_string())
+    }
+
+    fn run_invocation(
+        &self,
+        component_id: &str,
+        session: &str,
+        host: &BTreeMap<String, HostFn>,
+        tables: &dyn TableFns,
+        args: &[Val],
+    ) -> Result<Vec<Val>, pw_host::engine::InvocationError> {
         let granted = self.authorise(component_id)?;
         let contract = self
             .contracts
@@ -2781,19 +2893,35 @@ impl Server {
             .get(component_id)
             .ok_or_else(|| format!("no compiled component `{component_id}`"))?
             .prepared;
-        let limits = Limits {
-            fuel: Some(50_000_000),
-            memory_bytes: Some(16 * 1024 * 1024),
-            table_elements: Some(1_000),
-        };
+        let limits = Self::invocation_limits();
         let path = [&export.interface[..], &export.function[..]];
+        let predicates = self.program_predicates(contract)?;
+        let caller = self.invocation_caller(session);
+        let command = contract.exports[0].kind == "command";
+        let evaluate = |predicate: &str, bound: &[&Val]| {
+            if command {
+                self.identity.requires(predicate, bound, session, host)
+            } else {
+                self.identity.holds(predicate, bound, session, host)
+            }
+        };
+        let failure = |error: pw_host::engine::InvocationError| {
+            if command {
+                if let Some(predicate) = error.refused() {
+                    identity::record_refusal(predicate);
+                }
+                error
+            } else {
+                error
+            }
+        };
         let results = match self.data.tables() {
             // TRACK SEAM (tables): **a program's tables link through the gate
             // alone** (track `data-path`), each component's host map holding
             // the platform's operations and its own admitted functions.
             Some(manifest) => {
                 let mut linked = host.clone();
-                linked.extend(tables(contract, &granted)?);
+                linked.extend(tables.functions(contract, &granted)?);
                 #[cfg(test)]
                 self.table_maps.lock().expect("table maps").push((
                     component_id.to_string(),
@@ -2803,35 +2931,104 @@ impl Server {
                         .cloned()
                         .collect(),
                 ));
-                prepared.call_authorized_with_tables(
-                    contract,
-                    &granted,
-                    &limits,
-                    &linked,
+                let call = TableCall {
                     manifest,
-                    &path,
-                    args,
-                    |predicate, bound| self.identity.requires(predicate, bound, session, &linked),
-                )?
+                    body: linked
+                        .into_iter()
+                        .filter(|(name, _)| pw_host::tables::is_table_import(name))
+                        .collect(),
+                    source: tables,
+                };
+                prepared
+                    .call_authorized_with_tables_as(
+                        contract,
+                        &granted,
+                        &limits,
+                        host,
+                        &call,
+                        &predicates,
+                        &caller,
+                        &path,
+                        args,
+                        evaluate,
+                    )
+                    .map_err(failure)?
             }
-            None => prepared.call_authorized_within(
-                contract,
-                &granted,
-                &limits,
-                host,
-                &path,
-                args,
-                // TRACK SEAM (identity, ADR-0253): what `requires` is told.
-                // The important property is that each predicate is
-                // evaluated, and an unknown one cannot run. A predicate over
-                // the command's parameters reads through the command's own
-                // operations.
-                |predicate, bound| self.identity.requires(predicate, bound, session, host),
-            )?,
+            None => {
+                let manifest = pw_host::tables::Manifest::from_json(r#"{"tables":[]}"#)?;
+                let call = TableCall {
+                    manifest: &manifest,
+                    body: tables.functions(contract, &granted)?,
+                    source: tables,
+                };
+                prepared
+                    .call_authorized_with_tables_as(
+                        contract,
+                        &granted,
+                        &limits,
+                        host,
+                        &call,
+                        &predicates,
+                        &caller,
+                        &path,
+                        args,
+                        evaluate,
+                    )
+                    .map_err(failure)?
+            }
         };
         // A type that contains itself arrives as its nodes, and a page reads
         // it nested (ADR-0194).
-        prepared.untangled(&path, results)
+        prepared.untangled(&path, results).map_err(Into::into)
+    }
+
+    /// The compiled predicates named by this export, independently admitted
+    /// on this node for this invocation. Prepared code is shared; grants are
+    /// obtained again rather than cached with it.
+    fn program_predicates(
+        &self,
+        contract: &ComponentContract,
+    ) -> Result<pw_host::engine::Predicates, String> {
+        let ids: std::collections::BTreeSet<&str> = contract
+            .exports
+            .iter()
+            .filter_map(|e| e.component.as_ref())
+            .flat_map(|e| &e.authorization)
+            .filter_map(|r| r.component.as_deref())
+            .collect();
+        let mut predicates = Vec::new();
+        for id in ids {
+            let body = self
+                .contracts
+                .iter()
+                .find(|c| c.component_id == id)
+                .ok_or_else(|| format!("no contract for program predicate `{id}`"))?;
+            let loaded = self
+                .components
+                .get(id)
+                .ok_or_else(|| format!("no compiled program predicate `{id}`"))?;
+            predicates.push(pw_host::engine::Predicate::new(
+                loaded.prepared.clone(),
+                body.clone(),
+                self.authorise(id)?,
+            )?);
+        }
+        pw_host::engine::Predicates::new(predicates)
+    }
+
+    fn invocation_limits() -> Limits {
+        Limits {
+            fuel: Some(50_000_000),
+            memory_bytes: Some(16 * 1024 * 1024),
+            table_elements: Some(1_000),
+        }
+    }
+
+    fn invocation_caller(&self, session: &str) -> pw_host::tables::Caller {
+        match self.identity.principals().of(session) {
+            Some(principal) => pw_host::tables::Caller::User(principal.user),
+            None => pw_host::tables::Caller::Nobody,
+        }
     }
 
     /// The platform's session operation: the request's session, and nothing
@@ -3072,9 +3269,7 @@ impl Server {
             let staged_events = self.outbox(component_id, &mut host)?;
             // TRACK SEAM (tables): its tables' reads and writes, staged in
             // this command's transaction, as the gate admits them.
-            let tables = |contract: &ComponentContract, granted: &Granted| {
-                staging.table_ops(contract, granted)
-            };
+            let tables = StagedTables(&*staging);
             let out = self.run(component_id, session, &host, &tables, args)?;
             let result = out.first().map(answer_json);
             if let [Val::Result(Err(_))] = out.as_slice() {
@@ -4662,7 +4857,7 @@ impl Server {
         if self.derives(resource) {
             return self.materialized(resource, args).map_err(Unread::Failed);
         }
-        let answer = self.fetch_answer(session, binding, args)?;
+        let answer = self.fetch_invocation(session, binding, args)?;
         // A declared error the page says means it is not found (ADR-0163),
         // told from every other failure.
         if let Val::Result(Err(Some(e))) = &answer
@@ -4702,13 +4897,23 @@ impl Server {
         binding: &serde_json::Value,
         args: &[Val],
     ) -> Result<Val, String> {
+        self.fetch_invocation(session, binding, args)
+            .map_err(Into::into)
+    }
+
+    fn fetch_invocation(
+        &self,
+        session: &str,
+        binding: &serde_json::Value,
+        args: &[Val],
+    ) -> Result<Val, Unread> {
         let key = self.answer_key(session, binding, args)?;
         // Held while it runs (ADR-0152): `pw-resource` stops a flight when
         // its last holder lets go, and a keyed read's `cancel` is a holder
         // letting go. Every other reader holds it too, so a flight is stopped
         // only when nobody is waiting for it.
         let _held = self.queries.subscribe(&key);
-        self.fetch_answer_at(session, binding, args, &key)
+        self.fetch_invocation_at(session, binding, args, &key)
     }
 
     /// **The `pw-resource` key a binding's read of `args` runs under**: its
@@ -4746,12 +4951,26 @@ impl Server {
         args: &[Val],
         key: &pw_resource::Key,
     ) -> Result<Val, String> {
+        self.fetch_invocation_at(session, binding, args, key)
+            .map_err(Into::into)
+    }
+
+    fn fetch_invocation_at(
+        &self,
+        session: &str,
+        binding: &serde_json::Value,
+        args: &[Val],
+        key: &pw_resource::Key,
+    ) -> Result<Val, Unread> {
         self.read_checked(|| self.fetch_open_answer(session, binding, args, key))
     }
 
     /// A cache hit, a shared flight and a fallback are reads too. A layer
     /// closed while the answer was being read must refuse its delivery.
-    fn read_checked(&self, read: impl FnOnce() -> Result<Val, String>) -> Result<Val, String> {
+    fn read_checked<E: From<String>>(
+        &self,
+        read: impl FnOnce() -> Result<Val, E>,
+    ) -> Result<Val, E> {
         self.data.check_read()?;
         let answer = read()?;
         self.data.check_read()?;
@@ -4764,7 +4983,7 @@ impl Server {
         binding: &serde_json::Value,
         args: &[Val],
         key: &pw_resource::Key,
-    ) -> Result<Val, String> {
+    ) -> Result<Val, Unread> {
         let resource = binding["resource"].as_str().unwrap_or_default();
         let manifest = runtime_manifest(resource, &binding["policy"]);
         let key = key.clone();
@@ -4793,11 +5012,16 @@ impl Server {
         // invalidation, so it is as new as the commit that caused it, and
         // nothing can take its result away.
         for _ in 0..2 {
-            match self.fetch_once(session, resource, &manifest, &key, args) {
+            let (fetched, failure) = self.fetch_once(session, resource, &manifest, &key, args);
+            let reused = !matches!(&fetched, pw_resource::Fetched::Fresh(_));
+            match fetched {
                 pw_resource::Fetched::Cancelled(pw_resource::StopReason::Invalidated) => continue,
                 pw_resource::Fetched::Fresh(v)
                 | pw_resource::Fetched::FromCache(v)
                 | pw_resource::Fetched::Deduplicated(v) => {
+                    if reused {
+                        self.authorize_reused_answer(resource, session, args)?;
+                    }
                     if matches!(*v, Val::Result(Err(_))) {
                         self.queries.invalidate_key(&key);
                     }
@@ -4811,17 +5035,29 @@ impl Server {
                 // The origin failed, and the query is public and declares
                 // `fallback last_known_good` (ADR-0177): the last value kept.
                 pw_resource::Fetched::LastKnownGood(v) => {
+                    self.authorize_reused_answer(resource, session, args)?;
                     trace(TraceEvent::QueryFallback);
                     return Ok(Val::clone(&v));
                 }
-                pw_resource::Fetched::Failed(e) => return Err(format!("{resource}: {e}")),
-                pw_resource::Fetched::Cancelled(r) => {
-                    return Err(format!("{resource}: stopped, {r:?}"));
+                pw_resource::Fetched::Failed(e) => {
+                    if let Some(error) = failure {
+                        return Err(error.into());
+                    }
+                    // A failed joined flight carries only pw-resource's diagnostic.
+                    // Ask this invocation's requirements for its own typed refusal.
+                    self.authorize_reused_answer(resource, session, args)?;
+                    return Err(Unread::Failed(format!("{resource}: {e}")));
                 }
-                pw_resource::Fetched::TimedOut => return Err(format!("{resource}: timed out")),
+                pw_resource::Fetched::Cancelled(r) => {
+                    return Err(Unread::Failed(format!("{resource}: stopped, {r:?}")));
+                }
+                pw_resource::Fetched::TimedOut => {
+                    return Err(Unread::Failed(format!("{resource}: timed out")));
+                }
             }
         }
-        self.answer(resource, session, args)
+        self.answer_invocation(resource, session, args, None)
+            .map_err(Into::into)
     }
 
     /// One fetch of a binding's query through `pw-resource`.
@@ -4832,8 +5068,12 @@ impl Server {
         manifest: &pw_resource::Manifest,
         key: &pw_resource::Key,
         args: &[Val],
-    ) -> pw_resource::Fetched<Arc<Val>> {
+    ) -> (
+        pw_resource::Fetched<Arc<Val>>,
+        Option<pw_host::engine::InvocationError>,
+    ) {
         self.sync_query_clock();
+        let failure = Mutex::new(None);
         let load = |_attempt, cancellation: &pw_resource::Cancellation<Arc<Val>>| {
             // What a slow source polls, to end early a read nobody is
             // waiting for any longer (ADR-0152).
@@ -4842,7 +5082,7 @@ impl Server {
             // What the value holds until (ADR-0304), kept with it before
             // it is published, so a reader its flight answers knows too.
             let (answer, until) =
-                clock::noting(|| self.answer_within(resource, session, args, Some(stopped)));
+                clock::noting(|| self.answer_invocation(resource, session, args, Some(stopped)));
             // A read held in flight once it has read, as a test asks (NEXT
             // 4c): taken first, so no other read waits on the hook while it
             // holds this one.
@@ -4857,7 +5097,11 @@ impl Server {
                 Some(until) => held.insert(key.clone(), until),
                 None => held.remove(key),
             };
-            answer.map(Arc::new)
+            answer.map(Arc::new).map_err(|error| {
+                let why = error.to_string();
+                *failure.lock().expect("query failure") = Some(error);
+                why
+            })
         };
         // TRACK SEAM (render-merge): in a render, as of the invalidations
         // when it began (NEXT 4c, the integrator's ruling 3): where nothing
@@ -4866,13 +5110,14 @@ impl Server {
         // and is taken as the query's policy says; where something did, the
         // render reads it alone in its own snapshot, and never keeps or
         // hands another reader what may be older than the change.
-        match render_merge::reading(&*self.data) {
+        let fetched = match render_merge::reading(&*self.data) {
             Some(render) => {
                 self.queries
                     .fetch_cancellable_as_of(manifest, key, render.as_of(), load)
             }
             None => self.queries.fetch_cancellable(manifest, key, load),
-        }
+        };
+        (fetched, failure.into_inner().expect("query failure"))
     }
 
     /// **Drop what a commit made stale** (ADR-0127): each entry a command
@@ -5455,6 +5700,17 @@ impl Server {
         args: &[Val],
         stopped: Option<Stopped>,
     ) -> Result<Val, String> {
+        self.answer_invocation(component_id, session, args, stopped)
+            .map_err(|error| error.to_string())
+    }
+
+    fn answer_invocation(
+        &self,
+        component_id: &str,
+        session: &str,
+        args: &[Val],
+        stopped: Option<Stopped>,
+    ) -> Result<Val, pw_host::engine::InvocationError> {
         self.read_checked(|| self.answer_open(component_id, session, args, stopped))
     }
 
@@ -5464,7 +5720,76 @@ impl Server {
         session: &str,
         args: &[Val],
         stopped: Option<Stopped>,
-    ) -> Result<Val, String> {
+    ) -> Result<Val, pw_host::engine::InvocationError> {
+        self.with_query_ops(session, stopped, |host, tables| {
+            let out = self.run_invocation(component_id, session, host, tables, args)?;
+            out.into_iter()
+                .next()
+                .ok_or_else(|| format!("{component_id} returned nothing").into())
+        })
+    }
+
+    /// A reused value still needs this request's authorization. A failure
+    /// escapes the cache/fallback layer; no stale value can replace it.
+    fn authorize_reused_answer(
+        &self,
+        component_id: &str,
+        session: &str,
+        args: &[Val],
+    ) -> Result<(), pw_host::engine::InvocationError> {
+        let contract = self
+            .contracts
+            .iter()
+            .find(|c| c.component_id == component_id)
+            .ok_or_else(|| format!("no contract for `{component_id}`"))?;
+        let export = contract.exports[0]
+            .component
+            .as_ref()
+            .ok_or_else(|| format!("`{component_id}` has no export path"))?;
+        if export.authorization.is_empty() {
+            return Ok(());
+        }
+        let _granted = self.authorise(component_id)?;
+        let prepared = &self
+            .components
+            .get(component_id)
+            .ok_or_else(|| format!("no compiled component `{component_id}`"))?
+            .prepared;
+        let predicates = self.program_predicates(contract)?;
+        let caller = self.invocation_caller(session);
+        let empty = pw_host::tables::Manifest::from_json(r#"{"tables":[]}"#)?;
+        let manifest = self.data.tables().unwrap_or(&empty);
+        self.with_query_ops(session, None, |host, tables| {
+            let call = TableCall {
+                manifest,
+                body: data::Ops::new(),
+                source: tables,
+            };
+            prepared
+                .authorize_with_tables_as(
+                    contract,
+                    &Self::invocation_limits(),
+                    host,
+                    &call,
+                    &predicates,
+                    &caller,
+                    &[&export.interface, &export.function],
+                    args,
+                    |predicate, bound| self.identity.holds(predicate, bound, session, host),
+                )
+                .map(|_| ())
+        })
+    }
+
+    /// Execution and cached authorization select the same reader operations
+    /// and the same render or standalone snapshot, without running a body
+    /// merely to recheck a predicate.
+    fn with_query_ops<T, E: From<String>>(
+        &self,
+        session: &str,
+        stopped: Option<Stopped>,
+        use_ops: impl FnOnce(&data::Ops, &dyn TableFns) -> Result<T, E>,
+    ) -> Result<T, E> {
         // Each operation counted as it runs (`/metrics`).
         let counted = |name: &str, f: HostFn| -> HostFn {
             let (calls, name) = (self.calls.clone(), name.to_string());
@@ -5511,7 +5836,22 @@ impl Server {
         // TRACK SEAM (tables): its tables' reads, as the gate admits them for
         // this query, reading the render's snapshot where it reads one, each
         // counted and merged as the layer's reads are (NEXT 4c).
-        let snapshot = render.as_ref().and_then(|render| render.snapshot());
+        let standalone = if render.is_none() && self.data.tables().is_some() {
+            self.data.snapshot()
+        } else {
+            None
+        };
+        let snapshot = render
+            .as_ref()
+            .and_then(|render| render.snapshot())
+            .or(standalone.as_ref());
+        if self.data.tables().is_some() && snapshot.is_none() {
+            return Err(
+                "a table query requires one snapshot for its predicate and body"
+                    .to_string()
+                    .into(),
+            );
+        }
         let tables = |contract: &ComponentContract, granted: &Granted| {
             Ok(self
                 .data
@@ -5546,10 +5886,7 @@ impl Server {
             let f = counted(&name, f);
             (name, f)
         }));
-        let out = self.run(component_id, session, &host, &tables, args)?;
-        out.into_iter()
-            .next()
-            .ok_or_else(|| format!("{component_id} returned nothing"))
+        use_ops(&host, &tables)
     }
 
     /// **A query's value**: its answer's `Ok` value. A declared error is a
@@ -9214,6 +9551,8 @@ enum Unread {
     /// A binding's query answered the case the page's `not_found_on` names:
     /// answered 404.
     NotFound(String),
+    /// An explicit predicate denial, retaining its authored identity.
+    Refused(String),
     /// A binding's query answered the case the page's `redirect_on` names
     /// (ADR-0295): answered 308, or 307, to the page's route at `to`.
     Moved { to: String, permanent: bool },
@@ -9227,7 +9566,17 @@ impl Unread {
         match self {
             Unread::NotFound(why) => Unread::NotFound(format!("{what}: {why}")),
             moved @ Unread::Moved { .. } => moved,
+            refused @ Unread::Refused(_) => refused,
             Unread::Failed(why) => Unread::Failed(format!("{what}: {why}")),
+        }
+    }
+}
+
+impl From<pw_host::engine::InvocationError> for Unread {
+    fn from(error: pw_host::engine::InvocationError) -> Self {
+        match error.refused() {
+            Some(predicate) => Self::Refused(predicate.to_string()),
+            None => Self::Failed(error.to_string()),
         }
     }
 }
@@ -9242,6 +9591,7 @@ impl std::fmt::Display for Unread {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Unread::NotFound(why) => write!(f, "not found: {why}"),
+            Unread::Refused(predicate) => write!(f, "`{predicate}` denied"),
             Unread::Moved { to, .. } => write!(f, "moved to `{to}`"),
             Unread::Failed(why) => f.write_str(why),
         }
@@ -12581,6 +12931,26 @@ fn serve_bound(
                 ),
                 // A page whose values could not be read is answered as
                 // unavailable, and the server goes on (E14, T04).
+                Unread::Refused(predicate) => {
+                    let says = server
+                        .words
+                        .get(&predicate)
+                        .map(String::as_str)
+                        .or_else(|| identity::says(&predicate))
+                        .unwrap_or("This is not permitted.");
+                    respond(
+                        stream,
+                        403,
+                        "text/html; charset=utf-8",
+                        session,
+                        fresh,
+                        format!(
+                            "<!doctype html><title>Not permitted</title><main>{}</main>",
+                            identity::escape(says)
+                        )
+                        .as_bytes(),
+                    );
+                }
                 Unread::Failed(why) => respond(
                     stream,
                     503,
@@ -18515,7 +18885,9 @@ public query Store(",
                 });
             }
         }
-        let build = pw_core::build::build(&units).expect("the feed builds");
+        let build = pw_core::build::build(&units);
+        assert!(build.is_ok(), "the feed builds: {:?}", build.as_ref().err());
+        let build = build.expect("the build was asserted");
         assert!(build.refusals().is_empty(), "{:?}", build.refusals());
         let out = dir.path().join("build");
         build.write(&out).expect("the build is written");
@@ -18655,6 +19027,11 @@ public query Store(",
     mod scheduled_orders;
     // Track `second-host` (ADR-0369): hosts sharing one database.
     mod second_host;
+    // Track `row-ownership` (ADR-0384's H2): a query that requires a
+    // predicate, read per reader and by a page's binding alone.
+    mod required_queries;
+    // L2 (ADR-0395): a clock run is its scheduling reader's, on owned rows.
+    mod owned_clock;
 
     /// **A second program is served by the same host** (ADR-0218): the
     /// feed's timeline from its data layer, and a post committed and sent

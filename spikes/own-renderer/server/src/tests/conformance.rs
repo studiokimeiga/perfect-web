@@ -1182,9 +1182,10 @@ fn the_suite_holds_for_the_guestbooks_tables() {
     );
     assert_eq!(
         (checked.writes, checked.staged_references),
-        (7, 1),
-        "Books' three writes and Entries' four, each measured; an entry referring to the book \
-         its command staged"
+        (8, 1),
+        "Books' three writes and Entries' five (their key leads with their author since L2, so a \
+         delete of each of two prefixes), each measured; an entry referring to the book its \
+         command staged"
     );
     eprintln!(
         "conformance: the guestbook's tables, {} reads checked, refusals {:?}, {} writes \
@@ -1254,7 +1255,7 @@ fn each_idempotent_command_sent_again_is_answered_once() {
             .asserted("the entries' reads");
         call(
             &ops,
-            "pw:tables/entries#of-book",
+            "pw:tables/entries#by-book",
             &[Val::String("guestbook".into())],
         )
     };
@@ -1355,7 +1356,7 @@ fn each_query_reads_its_tables_a_fixed_number_of_times_at_two_sizes() {
             &book,
             "guestbook.book.Latest",
             vec![text(&reader), Val::S64(20)],
-            vec!["pw:tables/entries#of-book"],
+            vec!["pw:tables/entries#by-book"],
         ),
         (&book, "guestbook.book.Me", vec![text(&reader)], vec![]),
     ];

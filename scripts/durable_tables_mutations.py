@@ -263,22 +263,39 @@ MUTANTS = [
     ("a run's key leaves out the user whose command scheduled it", LAYER,
      "                key: s.key.clone(),\n",
      "                key: format!(\"{}\\u{1f}{}\", s.command, s.args),\n"),
+    # 8. L2 (ADR-0395): a clock run is its scheduling reader's on owned rows
+    # (the integration's witness, 4f80e543, ported as tests/owned_clock.rs),
+    # and a durable command's predicate reads its own staging
+    ("an owned Clock action forgets its scheduling owner", MAIN,
+     '            &format!("schedule-{}", run.id),\n            &run.user,\n',
+     '            &format!("schedule-{}", run.id),\n            "nobody",\n'),
+    ('a durable owned command has no staged predicate reads', LAYER,
+     '    fn table_predicate_reads(\n        &self,\n        contract: &ComponentContract,\n        granted: &Granted,\n    ) -> Result<Ops, String> {\n        let mut turn = self.turn.borrow_mut();\n        if matches!(*turn, Turn::Committed) {\n            return Err("a command\'s predicate reads are linked before it commits".into());\n        }\n        turn.begun(&self.layer.tables)?\n            .predicate_host_fns(contract, granted)\n            .map_err(|e| format!("`{}`\'s predicate reads: {e:?}", contract.component_id))\n    }\n\n',
+     '    fn table_predicate_reads(&self, _contract: &ComponentContract, _granted: &Granted) -> Result<Ops, String> {\n        Err("this data adapter supplies no predicate reads in a command".into())\n    }\n\n'),
+    ('a durable table read is made three times', LAYER,
+     '        read.map_err(|e| format!("`{}`\'s tables: {e:?}", contract.component_id))\n',
+     '        read.map(|ops| ops.into_iter().map(|(name, f)| {\n            let thrice: HostFn = Arc::new(move |args: &[Val]| { let _ = f(args); let _ = f(args); f(args) });\n            (name, thrice)\n        }).collect()).map_err(|e| format!("`{}`\'s tables: {e:?}", contract.component_id))\n'),
 ]
 
 # Each Cargo test binary apart: names can repeat between binaries, and the
 # native assertion validator expects one complete inventory each.
 TESTS = [
+    (["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "compiled_owned"], []),
     (["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "platform"], []),
     (["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server"],
-     ["tests::tables_pg::"]),
+     ["tests::tables_pg::", "tests::owned_clock::"]),
     (["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--test", "durable_tables"], []),
 ]
 
 SOURCES = [
+    ADAPTER / "tests/compiled_owned.rs",
+    ROOT / "runtime/pw-table-memory/tests/support/owned.rs",
+    ROOT / "runtime/pw-table-memory/tests/support/assert_result.rs",
     ADAPTER / "tests/platform.rs",
     ADAPTER / "tests/support/assert_result.rs",
     ADAPTER / "tests/common/mod.rs",
     SERVER / "src/tests/tables_pg.rs",
+    SERVER / "src/tests/owned_clock.rs",
     SERVER / "src/tests/tables.rs",
     SERVER / "src/tests/conformance.rs",
     SERVER / "tests/durable_tables.rs",

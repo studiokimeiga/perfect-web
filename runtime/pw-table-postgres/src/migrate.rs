@@ -257,6 +257,12 @@ fn shapes_of(tables: &[TableSchema]) -> Result<Vec<TableShape>, Error> {
                 interface: String::new(),
                 row: String::new(),
                 bounded: None,
+                // Who reads a row is no part of what is stored (track
+                // `row-ownership`): a recorded schema states no owner.
+                owner: None,
+                shares: Vec::new(),
+                private: Vec::new(),
+                public: false,
                 functions: Vec::new(),
             })
             .collect(),

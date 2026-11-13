@@ -249,6 +249,13 @@ const NAMED_HEADS: &[&str] = &[
     "layout", "set", "sets", "row", "order", "index", "unique", "refers", "migrate",
 ];
 
+/// **A table's ownership clauses** (track `row-ownership`, ADR-0384 H1):
+/// `owned by owner`, `shares with to` and `written by anyone` (L2,
+/// ADR-0395) head a clause only where a name follows on their line, as
+/// [`NAMED_HEADS`] do; `owned`, `shares` and `written` are names a body may
+/// begin with.
+const OWNERSHIP_HEADS: &[&str] = &["owned", "shares", "written"];
+
 /// A table's bounded clause takes a literal count on its line, and so does
 /// the version of a signal the device keeps (track `device-store`):
 /// `version 2`.
@@ -306,6 +313,19 @@ pub const POLICY_KEYWORDS: &[&str] = &[
     "refers",
     "bounded",
     "migrate",
+    // Track `row-ownership` (ADR-0384, H1): whose a table's rows are, `owned
+    // by owner`, who else reads them, `shares with to`, and the fields their
+    // owner alone reads, `private sent, day`. `owned` and `shares` are
+    // clauses only where a name follows on their line (`NAMED_HEADS`);
+    // `private` is a declaration's visibility too, and heads a clause only
+    // where a field's name follows it (`private_heads_a_clause`).
+    "owned",
+    "shares",
+    "private",
+    // L2 (ADR-0395): who may write a table no one owns, `written by
+    // anyone`, a clause only where a name follows on its line
+    // (`OWNERSHIP_HEADS`).
+    "written",
     // Track `device-store` (ADR-0366): the version of a value the device
     // keeps, a clause only where its count follows on its line
     // (`COUNTED_HEADS`); its `migrate` is a table's word, for the same
@@ -2581,6 +2601,40 @@ impl<'a> P<'a> {
                 || (self.nth_is(1, Kind::Ident) && !self.nth_starts_line(1)))
             && (!COUNTED_HEADS.contains(&self.cur_text())
                 || (self.nth_is(1, Kind::Int) && !self.nth_starts_line(1)))
+            && (!OWNERSHIP_HEADS.contains(&self.cur_text()) || self.a_name_follows_on_its_line())
+            && (self.cur_text() != "private" || self.private_heads_a_clause())
+    }
+
+    /// Is the token after this one a name, on this one's line?
+    fn a_name_follows_on_its_line(&self) -> bool {
+        self.nth_is(1, Kind::Ident) && !self.nth_starts_line(1)
+    }
+
+    /// **Does the `private` here head a table's clause** (track
+    /// `row-ownership`, ADR-0384): `private sent, day`, a field's name after
+    /// it on its line? Anywhere a declaration's word follows it, `private fn`,
+    /// `private query`, `private user query`, it is that declaration's
+    /// visibility, as it always was.
+    fn private_heads_a_clause(&self) -> bool {
+        if !self.a_name_follows_on_its_line() {
+            return false;
+        }
+        let next = &self.src[self.nth(1).span.clone()];
+        if DECL_STARTERS.contains(&next) || UI_NOUNS.contains(&next) {
+            return false;
+        }
+        // `user` is a visibility only where a declaration's word follows it
+        // (`at_visibility`); a field named `user` is a field.
+        let after = self.nth(2);
+        let after_text = &self.src[after.span.clone()];
+        !(next == "user"
+            && after.kind == Kind::Ident
+            && (UI_NOUNS.contains(&after_text)
+                || RESOURCE_NOUNS.contains(&after_text)
+                || matches!(
+                    after_text,
+                    "type" | "opaque" | "fn" | "let" | "prelude" | "effect"
+                )))
     }
 
     fn policies(&mut self, in_block: bool) {
@@ -4467,6 +4521,84 @@ mod tests {
             1,
             "the function after it is a declaration of its own"
         );
+    }
+
+    /// **A table's ownership clauses** (track `row-ownership`, ADR-0384
+    /// H1): `owned by`, `shares with` and `private` each head a clause of a
+    /// table, a field named `user` among a private clause's; and `private`
+    /// is still a declaration's visibility wherever a declaration's word
+    /// follows it.
+    #[test]
+    fn a_tables_ownership_clauses_beside_privates_visibility() {
+        let src = "module Notes\n\ntable Notes\n    row         Note\n    key         \
+                   author, id\n    owned by    author\n    shares with to\n    private     \
+                   draft, user\n\nprivate fn after() -> Int !{} {\n    1\n}\n\nprivate query \
+                   Q() -> Int {\n    1\n}\n\ntable Users\n    row     User\n    key     id\n    \
+                   owned by id\n    private user\n\nprivate type T = T { a: Int }\n";
+        let p = parse_ok(src);
+        assert_lossless(src, &p);
+        let heads: Vec<String> = texts(&p, K::Policy)
+            .iter()
+            .map(|t| t.split_whitespace().next().unwrap_or_default().to_string())
+            .collect();
+        assert_eq!(
+            heads,
+            [
+                "row", "key", "owned", "shares", "private", "row", "key", "owned", "private"
+            ],
+            "{:?}",
+            texts(&p, K::Policy)
+        );
+        for (kind, want) in [(K::FnDecl, 1), (K::ResourceDecl, 3), (K::RecordDecl, 1)] {
+            assert_eq!(
+                p.green.descendants().filter(|n| n.kind() == kind).count(),
+                want,
+                "{kind:?}"
+            );
+        }
+    }
+
+    /// L2 (ADR-0395): `written by anyone` heads a table's clause, as `owned
+    /// by` does.
+    #[test]
+    fn written_by_anyone_is_a_tables_clause() {
+        let src = "table Topics\n    row     Topic\n    key     id\n    written by anyone\n";
+        let p = parse_ok(src);
+        assert_lossless(src, &p);
+        let heads: Vec<String> = texts(&p, K::Policy)
+            .iter()
+            .map(|t| t.split_whitespace().next().unwrap_or_default().to_string())
+            .collect();
+        assert_eq!(
+            heads,
+            ["row", "key", "written"],
+            "{:?}",
+            texts(&p, K::Policy)
+        );
+    }
+
+    /// The control: `owned`, `shares` and `written` are names a body may
+    /// begin with, a clause only where a name follows on their line.
+    #[test]
+    fn owned_and_shares_are_still_names_in_a_policy_block() {
+        for (head, rest) in [
+            ("owned", ".count"),
+            ("shares", " + 1"),
+            ("owned", ""),
+            ("written", " + 1"),
+            ("written", ""),
+        ] {
+            let src = format!(
+                "materialize M() {{\n    regenerate on_invalidation\n    {head}{rest}\n}}\n"
+            );
+            let p = parse_tree(&src);
+            assert_lossless(&src, &p);
+            assert!(
+                !texts(&p, K::Policy).iter().any(|t| t.starts_with(head)),
+                "`{head}{rest}` read as a clause: {:?}",
+                texts(&p, K::Policy)
+            );
+        }
     }
 
     /// The control: a table's word heads are names a body may begin with,

@@ -236,11 +236,15 @@ fn every_accepted_corpus_resource_produces_a_manifest_the_schema_understands() {
         }
     }
 
-    // The accepted corpus declares exactly 20 written resources: the 14
+    // The accepted corpus declares exactly 25 written resources: the 14
     // through C26 (including A-038's loop query), plus A-050's four table
-    // queries and two commands. Generated functions are not manifests.
-    // Pin every declaration so a missing lowering cannot shrink the sample.
-    assert_eq!(total, 20, "expected every accepted resource declaration");
+    // queries and two commands, A-058's command and query (track
+    // `row-ownership`, a predicate with a body required where it is
+    // imported), and A-060's query and two commands (L2, ADR-0395: a public
+    // table read by anyone and written by its owner). Generated functions
+    // and predicates are not manifests. Pin every declaration so a missing
+    // lowering cannot shrink the sample.
+    assert_eq!(total, 25, "expected every accepted resource declaration");
     assert!(
         unparsed.is_empty(),
         "{} policy value(s) the schema does not understand:\n{}",

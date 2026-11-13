@@ -157,13 +157,9 @@ MUTANTS = [
         "        if !unknown.is_empty() {\n",
         "        if false {\n",
     ),
-    (
-        "a predicate the program declares is not asked of the deployment",
-        "host",
-        SERVER,
-        "            .chain(words.keys().map(String::as_str))\n",
-        "",
-    ),
+    ('a predicate the program declares is not asked of the deployment', 'host', SERVER,
+     '            .chain(\n                words\n                    .keys()\n                    .map(String::as_str)\n                    .filter(|name| !bodied.contains(name)),\n            )\n',
+     ''),
     (
         "a page that binds no query is served without its announcer",
         "host",

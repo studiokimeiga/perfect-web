@@ -1,0 +1,28 @@
+// @corpus: rejected
+// @id: R-112
+// @category: a private field another reader selects rows by
+// @rule: PW0369
+// @invariant: private_field_unseen
+// @charter: §7.8, §9.2
+// @milestone: 14
+// @expect-error: `private mood` is in `by_reader_mood`, which a reader it shares with reads its rows by
+//
+// Track `row-ownership` (ADR-0384's H1): a private field is its owner's
+// alone. A reader who may select rows by it learns its values from which
+// rows come back (Hinge's 2024 distance filter, the same class).
+
+module Posts
+
+import capability.{ UserId }
+
+opaque type PostId = String
+
+type Post = Post { author: UserId, id: PostId, reader: UserId, mood: String, text: String }
+
+table Posts
+    row     Post
+    key     author, id
+    index   by_reader_mood on reader, mood
+    owned   by author
+    shares  with reader
+    private mood

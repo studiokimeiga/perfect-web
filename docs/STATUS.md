@@ -2,6 +2,37 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**L2, row ownership, 2026-11-12:** on L1 (`e1133034`), the second train of
+the declared data layer's landing (`wip/l2-row-ownership`), landing with
+L1 and train-33 under one full verify (`wip/l1-train-33`). A table says
+whose its rows are (ADR-0395, with ADR-0407's amendments): `owned by
+<field>` keys its rows by their owner and takes the reader's handle, which
+only the platform makes, in that field's place in every read and write;
+`shares with` answers others a seen row without the `private` fields; a
+`public table` is read by anyone and written by its owner; a table a
+reader's command writes says `owned by` or `written by anyone` (PW6920);
+and a predicate may be written in Pleris, asked by the engine itself from
+the command's staging or the query's snapshot, on memory and PostgreSQL.
+The guestbook's entries are owned by their author, its `remove` structural.
+The merge (`a9a8d79e`, the track and the integration's slice; the second
+review's repairs already in its history) had 14 conflicts and 52 receipts
+(L1's side); what git did not show, each repaired with a test: PW0367
+twice in the registry (the track's is PW0370), PW69xx's owner renamed
+(master's `DataPath` kept), thirteen commands without `requires`, and the
+`owned` browser role's ports taken by master's rows roles. PR #91's races
+and its platform test are rewritten for A, and the integration's clock-run
+witness ported. Measured here, each recipe whole with its mutation script (PostgreSQL
+18.6): `e14-row-ownership` 94 of 94 mutants killed (L2's 23 among them;
+the owned rows in three engines), `e14-durable-tables` 53 of 53 (the
+guestbook and the owned rows on PostgreSQL in three engines, the clock
+witness's mutant among them), `e14-d3-postgres` 62 of 62, `e14-data-path`
+60 of 60 (after the memory adapter's index read was made total: the
+script's mutant of another table's state had panicked inside it),
+`e14-tables` 44 of 44, `e14-refusal` 23 of 23, `e14-refusal-2` 7 of 7,
+`e14-check-is-build` 51 of 51, `e14-who-may-run` 10 of 10, `e14-guide` 75
+of 75, the corpus 106 of 106; the workspace's 4,143 tests pass. The full
+verify with L1 and train-33 is the record.
+
 **L1, durable tables, 2026-11-12:** on trains 27 and 28 (master at
 `d570bdb5`), the first train of the declared data layer's landing
 (`wip/l1-durable-tables`), landing with trains 31 to 33 under one full
@@ -273,6 +304,18 @@ race), #72 with the closed-table cache repair (ADR-0394), the performance stack
 
 The paragraphs below are dated history: #72 and the cache repair are merged.
 
+**Local row browsers and PostgreSQL, 2026-11-03:** code/test source
+`6b31f4ba` passed the whole row 71/71, data-path 60/60, D3 PostgreSQL 60/60,
+durable 51/51 and refusal 23/23 + 7/7 campaigns, and local CI (server
+951 passed, 9 ignored). The same six owned-row browser checks
+pass on memory and PostgreSQL in Chromium, Firefox and WebKit. Command
+predicates use their existing fenced PostgreSQL transaction; fresh query predicates
+and bodies share one snapshot. Independent final review is clear. Only hashed
+generated receipts were dirty CI inputs. Both original worktrees are preserved.
+These are local implementation results, not hosted landing evidence. See the
+[execution record](diagnostics/row-browser-postgres-2026-11-03.md); the older continuation sections below are history.
+The protected feed/store migration, H3/H4 and hosted landing gates remain open.
+
 **Local continuation, 2026-11-02:** freshly fetched `origin/master` is
 `5d4d4d55a36f52ea556aa8f2af3e70b1150ffcf6`. D3 (PR #66), the added-table
 reference repair (#69), session overlap (#67), and the disk-fixture repair
@@ -282,9 +325,17 @@ and guestbook are still unmerged at `687dd922`; its exact-head hosted CI and
 verify workflows report success, but this continuation has not independently
 audited every recipe artifact. Row-ownership's existing dirty work is preserved.
 
-The current local slice is a reproduced closed-table cache bypass, with a
-failing-first commit `069ffc6f` and repair on `fix/tables-cached-refusals` in
-the existing data-path checkout. See the [execution record](diagnostics/tables-cached-refusals-2026-11-02.md).
+The completed cache slice is on `fix/tables-cached-refusals`. The current
+2026-11-03 continuation is `fix/row-data-integration` in the same checkout:
+recovery snapshot `b407ede4`, combined baseline `cb34e638`, and snapshot
+repair `a35da34a`. The original row worktree's branch, index and 20 edited
+files remain untouched. Code/test source `497c0a6c` passed the whole row
+campaign (68/68), data-path (60/60 and 15 browser checks), both refusal parts
+(23/23 and 7/7), and local CI (server 918 passed/9 ignored). Independent final
+review is clear. Only four hashed generated receipts were dirty CI inputs;
+these are local source results, not published-head landing gates. See the
+[integration record](diagnostics/row-data-integration-2026-11-03.md)
+and the [cache record](diagnostics/tables-cached-refusals-2026-11-02.md).
 This is local implementation evidence; no new landing or production claim.
 The paid E14 study remains deferred.
 
@@ -494,6 +545,11 @@ stored media and private-media authorization/revocation remain outside this
 metadata-minimization claim.
 
 ## last passing commit
+
+Latest local source: `6b31f4ba3468fdd50d0fb4ce357a86b0e571f9b6` passed the complete browser/PostgreSQL
+and row/data/refusal gates plus local CI recorded above. Its later evidence
+commit changes documentation and receipts only. This supersedes the older
+local passing-source note below; no published-head acceptance is asserted.
 
 Local continuation source `b496bdc34467269c2b436350ba1cfb2a52e268ed` has the
 data-path and local CI receipts recorded above, including the generated-input

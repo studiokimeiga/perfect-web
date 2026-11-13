@@ -212,6 +212,7 @@ mod tests {
         let mut row = by.clone();
         row.push(Column::new("title", string(None)));
         Read {
+            handle: None,
             import: format!("pw:tables/items#{}", primitive.name()),
             table: "Items".into(),
             primitive,
@@ -420,6 +421,7 @@ mod tests {
     fn write(primitive: Primitive) -> Write {
         let row = row();
         Write {
+            handle: None,
             import: format!("pw:tables/items#{}", primitive.name()),
             table: "Items".into(),
             primitive,

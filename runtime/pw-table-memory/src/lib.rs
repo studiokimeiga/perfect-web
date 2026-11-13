@@ -668,6 +668,39 @@ impl Command {
         Ok(out)
     }
 
+    /// **A predicate's reads, inside this command's transaction** (ADR-0384's
+    /// H2; ADR-0115 as amended): the host asks a predicate the program gives
+    /// a body before the command's own body runs, in the command's
+    /// transaction, so what it read is what the command writes against. The
+    /// contract is one `predicate` export's, and the gate admits its reads
+    /// alone, as a query's; each reads this command's tables. Once the
+    /// command has ended, each fails.
+    pub fn predicate_host_fns(
+        &self,
+        contract: &pw_host::ComponentContract,
+        granted: &pw_host::Granted,
+    ) -> Result<BTreeMap<String, pw_host::engine::HostFn>, Error> {
+        use pw_host::engine::table_read_host;
+        one_predicate(contract)?;
+        let mut out = BTreeMap::new();
+        let reads = self
+            .inner
+            .host
+            .admit_reads(contract, granted)
+            .map_err(Error::Input)?;
+        for (import, read) in reads {
+            let inner = Arc::clone(&self.inner);
+            let (id, bound) = (self.id, import.clone());
+            let data = Arc::new(move |args: &[Value]| {
+                inner
+                    .command_read(id, &bound, args)
+                    .map_err(|error| format!("`{bound}`: {error:?}"))
+            });
+            out.insert(import, table_read_host::host_fn(read, data));
+        }
+        Ok(out)
+    }
+
     /// **The tables this command has written so far**, by name: what its
     /// commit publishes, and so what a host commits its outbox with
     /// (`Staged::rows`); none where it wrote nothing, a delete of a key no
@@ -718,6 +751,107 @@ impl Command {
     /// [`Command::prepare`], then [`Prepared::publish`].
     pub fn commit(self) -> Result<Committed, Error> {
         self.prepare()?.publish()
+    }
+}
+
+/// A predicate's reads are a predicate's: its contract is one `predicate`
+/// export (ADR-0384's H2), never a command's or a query's.
+fn one_predicate(contract: &pw_host::ComponentContract) -> Result<(), Error> {
+    match contract.exports.as_slice() {
+        [only] if only.kind == "predicate" => Ok(()),
+        _ => Err(Error::Input(
+            "a predicate's reads are a predicate's: one predicate export".into(),
+        )),
+    }
+}
+
+/// **A command's transaction, as the engine asks it** (track
+/// `row-ownership`; `pw_host::engine::CallTables`): the command's reads and
+/// writes ([`Command::host_fns`]), and each program predicate's reads
+/// ([`Command::predicate_host_fns`]), all on this transaction, so a
+/// predicate the engine asks before the command's body reads what the body
+/// writes against.
+impl pw_host::engine::CallTables for Command {
+    fn manifest(&self) -> &pw_host::tables::Manifest {
+        &self.inner.host
+    }
+
+    fn functions(
+        &self,
+        contract: &pw_host::ComponentContract,
+        granted: &pw_host::Granted,
+    ) -> Result<BTreeMap<String, pw_host::engine::HostFn>, String> {
+        self.host_fns(contract, granted)
+            .map_err(|error| format!("{error:?}"))
+    }
+
+    fn predicate_reads(
+        &self,
+        contract: &pw_host::ComponentContract,
+        granted: &pw_host::Granted,
+    ) -> Result<BTreeMap<String, pw_host::engine::HostFn>, String> {
+        self.predicate_host_fns(contract, granted)
+            .map_err(|error| format!("{error:?}"))
+    }
+}
+
+/// **The published tables, as the engine asks them for a query** (track
+/// `row-ownership`): the query's reads ([`MemoryTables::read_host_fns`]) and
+/// its program predicates' reads, each reading the tables as published when
+/// it reads. Two reads of one call may see a commit between them; one
+/// snapshot for a query and its predicates is a snapshot's to give.
+impl pw_host::engine::CallTables for MemoryTables {
+    fn manifest(&self) -> &pw_host::tables::Manifest {
+        &self.inner.host
+    }
+
+    fn functions(
+        &self,
+        contract: &pw_host::ComponentContract,
+        granted: &pw_host::Granted,
+    ) -> Result<BTreeMap<String, pw_host::engine::HostFn>, String> {
+        self.read_host_fns(contract, granted)
+            .map_err(|error| format!("{error:?}"))
+    }
+
+    fn predicate_reads(
+        &self,
+        contract: &pw_host::ComponentContract,
+        granted: &pw_host::Granted,
+    ) -> Result<BTreeMap<String, pw_host::engine::HostFn>, String> {
+        one_predicate(contract).map_err(|error| format!("{error:?}"))?;
+        self.read_host_fns(contract, granted)
+            .map_err(|error| format!("{error:?}"))
+    }
+}
+
+/// One query invocation's frozen table state, shared by its compiled
+/// predicates and its body. Every callback uses the existing snapshot read
+/// gate; creating another adapter handle here keeps the same inner identity.
+impl pw_host::engine::CallTables for Snapshot {
+    fn manifest(&self) -> &pw_host::tables::Manifest {
+        &self.inner.host
+    }
+
+    fn functions(
+        &self,
+        contract: &pw_host::ComponentContract,
+        granted: &pw_host::Granted,
+    ) -> Result<BTreeMap<String, pw_host::engine::HostFn>, String> {
+        MemoryTables {
+            inner: Arc::clone(&self.inner),
+        }
+        .read_host_fns_at(self, contract, granted)
+        .map_err(|error| format!("{error:?}"))
+    }
+
+    fn predicate_reads(
+        &self,
+        contract: &pw_host::ComponentContract,
+        granted: &pw_host::Granted,
+    ) -> Result<BTreeMap<String, pw_host::engine::HostFn>, String> {
+        one_predicate(contract).map_err(|error| format!("{error:?}"))?;
+        self.functions(contract, granted)
     }
 }
 
@@ -1532,8 +1666,14 @@ fn read(
                 .iter()
                 .position(|index| index.fields == function.by)
                 .ok_or_else(|| Error::Schema(format!("{import} reads by no index")))?;
+            // The state's index of that place, or a schema error: a state
+            // that is not this table's (a read of another table's rows, as
+            // data_path's mutant makes one) is refused, never a panic.
+            let held = data.indexes.get(index).ok_or_else(|| {
+                Error::Schema(format!("{}'s state holds no index {index}", table.name))
+            })?;
             for values in typed_selections(table, function, import, args)? {
-                for key in holding(&data.indexes[index], &values) {
+                for key in holding(held, &values) {
                     found.push(data.rows.get(key).ok_or_else(|| {
                         Error::Schema(format!("{}'s index names a missing row", table.name))
                     })?);

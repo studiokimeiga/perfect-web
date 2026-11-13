@@ -1,0 +1,58 @@
+// @corpus: accepted
+// @id: A-060
+// @category: a public table read by anyone and written by its owner
+// @charter: §7.8, §9.2
+// @milestone: 14
+//
+// The public form of an owned table (ADR-0395, ruling 4), beside R-110 to
+// R-112: a board's notices are owned by their poster, read by every
+// reader by any key or index with no handle, and written by their poster
+// alone. `post` gives the writer's handle, and the host refuses a notice
+// whose poster is not the handle's; `take_down` deletes the writer's own
+// notice of that id, or nothing. Its key leads with its poster, so no
+// reader writes a key another's notice holds.
+
+module Notices
+
+import capability.{ UserId, id_of }
+import context.{ current_user }
+
+opaque type NoticeId = String
+
+type Notice = Notice { poster: UserId, id: NoticeId, board: String, text: String }
+
+public table Notices
+    row     Notice
+    key     poster, id
+    index   by_board on board
+    owned   by poster
+    bounded 500
+
+source NoticeData
+    holds        Notices
+    transactions serializable
+    reads        strong
+    changes      none
+
+public query OnBoard(board: String) -> List<Notice>
+    consistency strong
+{
+    Notices.by_board(board)
+}
+
+command post(id: NoticeId, board: String, text: String) -> Result<(), Notice>
+    requires    Anyone
+    transaction serializable
+    invalidates OnBoard(board)
+{
+    let me = current_user()
+    Notices.insert(me, Notice { poster: id_of(me), id: id, board: board, text: text })
+}
+
+command take_down(id: NoticeId) -> ()
+    requires    Anyone
+    transaction serializable
+    invalidates OnBoard(_)
+{
+    Notices.delete(current_user(), id)
+}

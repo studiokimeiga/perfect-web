@@ -323,7 +323,7 @@ impl DataLayer for TablesPg {
 
     #[cfg(test)]
     fn statements(&self) -> Option<u64> {
-        Some(self.tables.statements())
+        Some(self.tables.operation_statements())
     }
 
     #[cfg(test)]
@@ -597,6 +597,20 @@ impl Staged for PgStaging<'_> {
             })
             .collect();
         Ok(linked)
+    }
+
+    fn table_predicate_reads(
+        &self,
+        contract: &ComponentContract,
+        granted: &Granted,
+    ) -> Result<Ops, String> {
+        let mut turn = self.turn.borrow_mut();
+        if matches!(*turn, Turn::Committed) {
+            return Err("a command's predicate reads are linked before it commits".into());
+        }
+        turn.begun(&self.layer.tables)?
+            .predicate_host_fns(contract, granted)
+            .map_err(|e| format!("`{}`'s predicate reads: {e:?}", contract.component_id))
     }
 
     /// Whether the command wrote, which its commit then keeps: the database

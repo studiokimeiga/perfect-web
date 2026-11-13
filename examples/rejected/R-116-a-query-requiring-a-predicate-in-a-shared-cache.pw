@@ -1,0 +1,31 @@
+// @corpus: rejected
+// @id: R-116
+// @category: a query requiring a predicate in a shared cache
+// @rule: PW6907
+// @invariant: required_query_unshared
+// @charter: §7.8, §9.2
+// @milestone: 14
+// @expect-error: `Opened` requires WroteLetter(id) and declares a shared cache
+//
+// Track `row-ownership` (the review's finding 7b): `Opened` is answered only
+// where `WroteLetter(id)` holds for its reader, and a shared cache keyed by
+// the letter would answer the next reader of that letter from the first
+// one's entry, never asking them.
+
+module LetterViews
+
+import Letters.{ LetterId, WroteLetter }
+import Letters
+
+public query Opened(id: LetterId) -> Bool
+    freshness     60.seconds
+    consistency   snapshot
+    cache         shared
+    key           id
+    requires      WroteLetter(id)
+    concurrency   one_per_key
+    on_key_change cancel
+    timeout       2.seconds
+{
+    true
+}

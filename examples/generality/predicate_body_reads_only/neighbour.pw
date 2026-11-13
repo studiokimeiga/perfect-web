@@ -1,0 +1,33 @@
+// @status: NEIGHBOUR
+// @invariant: predicate_body_reads_only
+// @dimension: valid neighbour — the same helper shape, reading
+//
+// A rule that refused a body calling a helper rather than one whose
+// helper writes would refuse this.
+
+module Diaries
+
+import capability.{ UserId }
+import context.{ current_user }
+
+opaque type EntryId = String
+
+type Entry = Entry { writer: UserId, id: EntryId, text: String }
+
+table Diaries
+    row   Entry
+    key   writer, id
+    owned by writer
+
+fn wrote(id: EntryId) -> Bool !{ session.read, database.read<Diaries> } {
+    match Diaries.get(current_user(), id) {
+        Some(_) => true,
+        None => false,
+    }
+}
+
+predicate Wrote(id: EntryId)
+    says "You can only see an entry you wrote."
+{
+    wrote(id)
+}

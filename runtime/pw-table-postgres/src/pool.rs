@@ -27,6 +27,7 @@ use crate::values::{Param, refs};
 #[derive(Debug, Default)]
 pub(crate) struct Counters {
     pub statements: AtomicU64,
+    pub operation_statements: AtomicU64,
     pub prepared: AtomicU64,
 }
 
@@ -69,6 +70,9 @@ impl Conn {
             }
         };
         counters.statements.fetch_add(1, Ordering::Relaxed);
+        counters
+            .operation_statements
+            .fetch_add(1, Ordering::Relaxed);
         self.client.query(&statement, &refs(params))
     }
 
@@ -76,6 +80,19 @@ impl Conn {
     /// statement.
     pub(crate) fn batch(&mut self, counters: &Counters, sql: &str) -> Result<(), postgres::Error> {
         counters.statements.fetch_add(1, Ordering::Relaxed);
+        if !matches!(
+            sql,
+            "BEGIN"
+                | "BEGIN ISOLATION LEVEL SERIALIZABLE"
+                | "BEGIN ISOLATION LEVEL READ COMMITTED"
+                | crate::READ_SNAPSHOT
+                | "COMMIT"
+                | "ROLLBACK"
+        ) {
+            counters
+                .operation_statements
+                .fetch_add(1, Ordering::Relaxed);
+        }
         self.client.batch_execute(sql)
     }
 

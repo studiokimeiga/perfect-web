@@ -139,6 +139,8 @@ pub(crate) trait DataLayer: Send + Sync {
     /// **The statements its reads and commands have run** (NEXT 4b): a
     /// layer that counts none (memory) says nothing.
     #[cfg(test)]
+    // Operation costs exclude database transaction boundaries; an adapter
+    // may expose its total including those separately (PgTables does).
     fn statements(&self) -> Option<u64> {
         None
     }
@@ -306,6 +308,16 @@ pub(crate) trait Staged {
     /// A layer that serves no tables links none.
     fn table_ops(&self, _contract: &ComponentContract, _granted: &Granted) -> Result<Ops, String> {
         Ok(Ops::new())
+    }
+
+    /// A compiled predicate's reads on this same staged state. Adapters
+    /// must opt in; a command's write callbacks are never reused as reads.
+    fn table_predicate_reads(
+        &self,
+        _contract: &ComponentContract,
+        _granted: &Granted,
+    ) -> Result<Ops, String> {
+        Err("this data adapter supplies no predicate reads in a command".into())
     }
 
     /// **What it staged, made part of the materializer's transaction**

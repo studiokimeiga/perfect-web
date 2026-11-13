@@ -1,0 +1,29 @@
+// @status: GENERAL
+// @invariant: predicate_answered_by_its_body
+//
+// Structurally different from R-115: no `requires` at all. A page asks a
+// predicate of its reader (ADR-0307), which a host answers from the
+// deployment's predicates by name; this one the program answers itself, in
+// a body that reads nothing (the review's probe E's shape), so a
+// deployment's `Maintenance` would answer in its place.
+
+module ShopHome
+
+predicate Maintenance()
+    says "The shop is closed for maintenance."
+{
+    false
+}
+
+session page ShopHome() {
+    route     "/shop"
+    placement origin
+    cache     private
+
+    view {
+        <title>Shop</title>
+        <main>
+            {#if Maintenance}<p id="closed">Closed for maintenance.</p>{/if}
+        </main>
+    }
+}
