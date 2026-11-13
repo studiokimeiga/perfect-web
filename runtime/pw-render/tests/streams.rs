@@ -51,6 +51,7 @@ fn page(streamed: bool) -> Template {
                         collection: "items".into(),
                         binding: "item".into(),
                         key: None,
+                        row_anchor: Default::default(),
                         body: vec![st("<li>"), text(2, "item.name"), st("</li>")],
                     }),
                     st("</ul>"),

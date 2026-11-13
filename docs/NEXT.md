@@ -15,8 +15,9 @@ command with every record of the platform's, one state a render, the
 reader's session the database's and each command fenced on it; the
 guestbook outlives its host in three engines. What stays open, in order:
 
-1. **L1's record**: the full verify at its head, every recipe and the three
-   browser suites, then `evidence-fetch`: `e14-durable-tables` (its receipt
+1. **L1's record**: the full verify at its head, with trains 31 to 33
+   merged onto it, every recipe and the three browser suites, then
+   `evidence-fetch`: `e14-durable-tables` (its receipt
    is round one's; round two's verify, 41529401386, was never fetched) and
    the receipts the merge took master's side of (`e14-d3-postgres`,
    `e14-data-path`, `e14-browser-host-map`), with `e14-guide`'s.
@@ -26,13 +27,101 @@ guestbook outlives its host in three engines. What stays open, in order:
    public-read owner-written form, `requires` on its five commands, and the
    guestbook on `owned by`.
 3. **L3 to L5**: the platform's prerequisites, bounded reads and declared
-   uploads, each numbered after `evidence-fetch`, past ADR-0437; the refusal
+   uploads, each numbered after `evidence-fetch`, past ADR-0438; the refusal
    at start of uploads beside declared tables stays until L5's bridge passes.
 4. **L6, a production host** (ADR-0396), rewritten on master: it closes
    ADR-0397's one open dependency, a production host refusing `/bench/*`.
 5. **What ADR-0397 leaves to the host**: a command run again after a
    serialization failure, for every layer at once; a second host told live
    of the first's commits on this layer, by a tail of its outbox (ADR-0369).
+
+## After train-33, 2026-11-12
+
+A planned row that is one element is its own anchor (ADR-0438): where the
+packaging reads a planned list's row as one element a parser keeps whole, it
+says so in the build's template IR, and the host and the device write the
+row's key on its element; a row a plan makes is its element cloned alone, its
+key under the runtime's symbol. The large list's thousand rows are a thousand
+nodes, not three thousand. The builds visited in turn have every press of a
+visit quicker in sum past its spread (Firefox −21.0 ms cold and −6.0 warm,
+Chromium −6.0 cold and −4.4 warm in 21 rounds, Slow 4G −16.7 cold and −28.2
+warm), and three presses slower to their frames where their own work is not
+(recorded, ADR-0438, Consequences).
+TodoMVC and a server's runtime are sent the bytes they were. What is left,
+each measured, none decided:
+
+1. **A row written with a space beside its element keeps its comments**:
+   the compiler writes a `<ul>`'s or an `<ol>`'s rows as ` <li>…</li> `,
+   three nodes, and the packaging refuses them by name (`it holds text
+   beside its element`), as every list of the rows fixture but its tables'.
+   TodoMVC's rows are no plan's (each holds an `{#if}`). Whether the
+   compiler may leave out what it writes between elements where HTML
+   renders none is the compiler's, a decision of its own.
+2. **The cold append's mark-compact, still inside the press** (item 2
+   after train-32, below): the global allocation limit at the last scavenge
+   before it is 51.5 MB against train-32's 48.8, and its marking and
+   finalizing 4.1 ms of the press in both. What is left to move it is
+   ADR-0437's other remedy, a scavenge fewer before the append (2 to 4 MB
+   less garbage, most of it the general renderer's block generators and
+   maps, ADR-0434's later steps; about 3 MB is the harness's own).
+3. **A time to the frame carries the frame's wait**: in the sequenced visit,
+   Firefox's warm update (+4.0 ms) and Chromium's warm clear (+2.3) and
+   select (+0.6) are slower to their frames with no more work of their own,
+   and none is slower with each click at a point of the frame interval
+   drawn for its round (`t33/press_random.mjs`). The record times each
+   press to the frame after it, begun where the press before it left the
+   frame interval (item 3 after trains 27 and 28). Whether the record also
+   times each press's own work (its script, its style and layout, its
+   paint) is the record's, a decision of its own.
+4. **Bytes**: the large list's page alone is 472 B heavier with Brotli
+   (+1,209 decoded), 346 B of it decoded the browser's writing of a row its
+   own anchor (`rowOwn`). One writer of every keyed row would make a
+   server's runtime 89 B lighter and move every build's names (ADR-0438,
+   why not), a step of its own. The byte rows are ADR-0434's later steps'.
+5. **The earlier items after train-32**, below: its first done here; the
+   swap and remove (its item 4).
+
+## After train-32, 2026-11-12
+
+A planned list's rows are kept and made by its page's own code (ADR-0437),
+ADR-0434's first step. The first "create 1,000 rows" of a cold visit spends
+9.48 ms of JavaScript to Svelte's 9.09 (12.40 before), 43.10 to 46.52 with the
+processor slowed four times; the builds visited in turn have it quicker past
+the rounds' spread in Firefox (create −5.0 ms, replace −4.0, every press −6.0)
+and under Slow 4G (create −15.2 cold, append −44.6 warm), and every press of a
+warm visit −7.9 in Chromium. Its cold append is slower, and recorded
+(ADR-0437, Consequences). What is left, each measured, none decided:
+
+1. **Done (train-33, ADR-0438): two comments a row** (item 4 after trains
+   27 and 28): the next step of ADR-0434's rows, two of every three nodes a
+   thousand rows insert, and Firefox's layout of them, where its cold
+   create, append and replace are behind Svelte's. It is also the first
+   remedy for item 2. **Its check**, as ADR-0437's result measured it: in a
+   trace of the head-to-head's own cold visit (`v8`,
+   `disabled-by-default-v8.gc`), the global allocation limit at the last
+   scavenge before the append (`V8.GCTraceGCNVP`'s
+   `global_allocation_limit`), and where the first mark-compact falls
+   (`V8.GCIncrementalMarkingStart`, its `gc_reason` and time against the
+   append's click). Measured with train-33: the limit 51.5 MB against 48.8,
+   and the first mark-compact still inside the append in every round.
+2. **A cold append, slower to its frame**: +6.4 ms in Chromium (3.5..8.6) on
+   a quiet machine, +4.9 (1.6..7.4) with the final code under load, accepted
+   and recorded (ADR-0437, Consequences). This build keeps less (a row
+   3,016 B against 3,326) and allocates less in every press, so its
+   scavenges' average survival is 39.6 % against 48.7 %; V8 shrinks its
+   initial global limit by that ratio after each scavenge until its first
+   mark-compact, to 43 to 49 MB against 68 to 75, and the append's DOM and
+   layout reach it inside the press in every round. What would move it:
+   fewer nodes a row (item 1), or a scavenge fewer before the append (2 to
+   4 MB less garbage, most of it the general renderer's block generators and
+   maps, ADR-0434's later steps; about 3 MB is the harness's own). The warm
+   replace, slower past its spread under load, is not traced.
+3. **Bytes**: the large list's page alone is 175 B heavier with Brotli (+700
+   decoded) for its own code; TodoMVC's is byte for byte what it was before
+   this step. The byte rows are ADR-0434's later steps' (a block's markup,
+   the general renderer folded away where every template is written).
+4. **Swap and remove** spend what placing the rows costs (`rowsPlaced`,
+   `staying`, `placesOf`), which no page's own code writes yet.
 
 ## After trains 27 and 28, 2026-11-12
 
@@ -42,12 +131,13 @@ value the page holds is read as it is (ADR-0433). The large list's presses do
 less; their record is the head-to-head their full verify is recorded with.
 What is left, each measured, none decided:
 
-1. **An `Option` made only to be matched.** `match List.get(xs, i) { Some(w)
-   => w, None => "" }` makes `{ $case: "some", value }` and switches on it at
-   once: three objects a row of the large list, and every `List.get`,
-   `Map.get` and `List.find` the same. A match on a value the same function
-   made from a case could take the case's arm with its payload, and the
-   object never be made: the compiler's lowering or its JavaScript backend.
+1. **Done, within the record's spread: an `Option` made only to be
+   matched is not made** (train-31, ADR-0436, to land after trains 27 and
+   28): a `List.get`, `Map.get` or `List.find` read only by the match after
+   it is an `if` on its test. The large list's three objects a row are gone
+   and its row-making handlers 667 bytes lighter (117 with Brotli); the
+   builds visited in turn moved no press past its rounds' spread. A profile
+   of the first press would say what share of it they were.
 2. **A warm append's frame, later in some rounds.** With trains 27 and 28
    a warm "append 1,000 rows" reaches the document sooner in every round
    (under Slow 4G 29.6 to 33.9 ms after the click, to 34.4 to 40.7) and its

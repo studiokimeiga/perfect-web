@@ -3422,6 +3422,15 @@ Proposed: the packaging writes each page's own renderer, the general one partial
 [ADR-0435](DECISIONS/ADR-0435-a-planned-rows-handlers-are-noted-on-their-element.md):
 A planned row's handlers are noted on their element, under a symbol of the runtime's own, not in a weak map: what a handler on a row a plan made captures is read from the element pressed.
 
+[ADR-0436](DECISIONS/ADR-0436-an-option-a-match-takes-apart-where-it-is-made-is-never-made.md):
+An `Option` that `List.get`, `Map.get` or `List.find` makes, read only by the match after it, is never made in a browser's module: the match is an `if` on the test that holds where it is `Some`, `Some`'s arm reading the payload there; each value's reads are counted over the body before it is written (`Instr::operands` names every instruction), a value read again is made from the same test and payload, and a body that names a value it left unmade is refused where it is built.
+
+[ADR-0437](DECISIONS/ADR-0437-a-planned-lists-rows-are-kept-and-made-by-its-pages-own-code.md):
+A planned list's rows are kept and made by its page's own code: the packaging writes, for each list a device's page keeps whose rows a plan makes, its key, hold and making (each path read as `read` reads it, each context's escaping chosen, the row's scope made when read) and a walk to its holes, which the runtime compares with the browser's parse once a plan; what it does not write it says, and the general code keeps; a build that writes none is packed from the runtime as it was, and one whose every list is its own holds none of the general code that would keep or make one.
+
+[ADR-0438](DECISIONS/ADR-0438-a-planned-row-that-is-one-element-is-its-own-anchor.md):
+A planned row that is one element is its own anchor: the packaging says so, in the build's template IR, of each planned list of a page that talks to no server and shows no view whose row is one element a parser keeps whole wherever it is written, and says why of each other, which keeps its comments; both renderers write such a row's key on its element, right after its name (`data-pw-row`); a row a plan makes is its element cloned alone, its key under the runtime's symbol and each hole's path from it; every reader reads both forms; the lines only such a row needs are cut from a build that has none and from a server's runtime, which are sent the bytes they were.
+
 **2026-11-12 — L1, durable tables.** The first train of the declared data layer's landing: track `durable-tables` merged onto master, numbered as train-14 reserved it, ahead of row ownership (ADR-0395, L2), as the landing plan rules.
 
 [ADR-0397](DECISIONS/ADR-0397-declared-tables-served-durably.md):

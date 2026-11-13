@@ -121,16 +121,6 @@
           "spikes/own-renderer/optimize-assets.mjs"
         ],
         "functions": [
-          "HOLES"
-        ],
-        "maxCrap": 57.0,
-        "reason": "The packaging's reading of a build (ADR-0412, ADR-0413, ADR-0417), held by optimize-assets.test.mjs. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411's analyzers)."
-      },
-      {
-        "files": [
-          "spikes/own-renderer/optimize-assets.mjs"
-        ],
-        "functions": [
           "aloneModule"
         ],
         "maxCrap": 91.0,
@@ -183,6 +173,16 @@
           "spikes/own-renderer/optimize-assets.mjs"
         ],
         "functions": [
+          "ownRowsOf"
+        ],
+        "maxCrap": 91.0,
+        "reason": "The packaging's splicing of a page's own lists into the device's runtime, and its cutting of the lines none needs (ADR-0437), held by optimize-assets.test.mjs, rows.spec.mjs and own_rows_mutations.py. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/optimize-assets.mjs"
+        ],
+        "functions": [
           "sharedPreludes"
         ],
         "maxCrap": 381.0,
@@ -198,6 +198,16 @@
         ],
         "maxCrap": 133.0,
         "reason": "The packaging's reading of a build (ADR-0412, ADR-0413, ADR-0417), held by optimize-assets.test.mjs. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/optimize-assets.mjs"
+        ],
+        "functions": [
+          "withOwnRows"
+        ],
+        "maxCrap": 31.0,
+        "reason": "The packaging's splicing of a page's own lists into the device's runtime, and its cutting of the lines none needs (ADR-0437), held by optimize-assets.test.mjs, rows.spec.mjs and own_rows_mutations.py. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -230,6 +240,122 @@
         "maxCognitive": 31,
         "maxCrap": 553.0,
         "reason": "A line of the runtime's code without the words of its strings, read a character at a time since a template may hold another, for the test that each report is a statement labeled REPORT and does nothing but report (ADR-0430). Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with and one (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/own-rows.mjs"
+        ],
+        "functions": [
+          "HOLES"
+        ],
+        "maxCrap": 57.0,
+        "reason": "The packaging's reading of a build (ADR-0412, ADR-0413, ADR-0417), held by optimize-assets.test.mjs; moved with what reads it into own-rows.mjs by train-32 (ADR-0437). Scored with no coverage data; ceilings at the scores they landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/own-rows.mjs"
+        ],
+        "functions": [
+          "holesOfList"
+        ],
+        "maxCrap": 57.0,
+        "reason": "A planned list's own code as the packaging writes it (ADR-0437): held to the general code row by row by renderer-agreement.test.mjs, its reading of a row's markup and its walk by optimize-assets.test.mjs, in three engines by rows.spec.mjs, and by own_rows_mutations.py. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/own-rows.mjs"
+        ],
+        "functions": [
+          "keptLists"
+        ],
+        "maxCrap": 183.0,
+        "maxCognitive": 19,
+        "reason": "A planned list's own code as the packaging writes it (ADR-0437): held to the general code row by row by renderer-agreement.test.mjs, its reading of a row's markup and its walk by optimize-assets.test.mjs, in three engines by rows.spec.mjs, and by own_rows_mutations.py. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/own-rows.mjs"
+        ],
+        "functions": [
+          "listSource"
+        ],
+        "maxCrap": 183.0,
+        "reason": "A planned list's own code as the packaging writes it (ADR-0437): held to the general code row by row by renderer-agreement.test.mjs, its reading of a row's markup and its walk by optimize-assets.test.mjs, in three engines by rows.spec.mjs, and by own_rows_mutations.py. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/own-rows.mjs"
+        ],
+        "functions": [
+          "ownRows"
+        ],
+        "maxCrap": 157.0,
+        "maxCognitive": 20,
+        "reason": "A planned list's own code as the packaging writes it (ADR-0437): held to the general code row by row by renderer-agreement.test.mjs, its reading of a row's markup and its walk by optimize-assets.test.mjs, in three engines by rows.spec.mjs, and by own_rows_mutations.py. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers). Raised by train-33, a planned row that is one element its own anchor (ADR-0438): such a list's walk written from its element."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/own-rows.mjs"
+        ],
+        "functions": [
+          "pageLists"
+        ],
+        "maxCrap": 157.0,
+        "maxCognitive": 17,
+        "reason": "A planned list's own code as the packaging writes it (ADR-0437): held to the general code row by row by renderer-agreement.test.mjs, its reading of a row's markup and its walk by optimize-assets.test.mjs, in three engines by rows.spec.mjs, and by own_rows_mutations.py. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/own-rows.mjs"
+        ],
+        "functions": [
+          "partOf"
+        ],
+        "maxCrap": 73.0,
+        "reason": "A planned list's own code as the packaging writes it (ADR-0437): held to the general code row by row by renderer-agreement.test.mjs, its reading of a row's markup and its walk by optimize-assets.test.mjs, in three engines by rows.spec.mjs, and by own_rows_mutations.py. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/own-rows.mjs"
+        ],
+        "functions": [
+          "reach"
+        ],
+        "maxCrap": 31.0,
+        "reason": "A planned list's own code as the packaging writes it (ADR-0437): held to the general code row by row by renderer-agreement.test.mjs, its reading of a row's markup and its walk by optimize-assets.test.mjs, in three engines by rows.spec.mjs, and by own_rows_mutations.py. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/own-rows.mjs"
+        ],
+        "functions": [
+          "readPath"
+        ],
+        "maxCrap": 133.0,
+        "maxCognitive": 18,
+        "reason": "A planned list's own code as the packaging writes it (ADR-0437): held to the general code row by row by renderer-agreement.test.mjs, its reading of a row's markup and its walk by optimize-assets.test.mjs, in three engines by rows.spec.mjs, and by own_rows_mutations.py. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/own-rows.mjs"
+        ],
+        "functions": [
+          "rowPaths"
+        ],
+        "maxCrap": 1057.0,
+        "maxCognitive": 61,
+        "maxCyclomatic": 33,
+        "reason": "A planned list's own code as the packaging writes it (ADR-0437): held to the general code row by row by renderer-agreement.test.mjs, its reading of a row's markup and its walk by optimize-assets.test.mjs, in three engines by rows.spec.mjs, and by own_rows_mutations.py. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/own-rows.mjs"
+        ],
+        "functions": [
+          "writeHole"
+        ],
+        "maxCrap": 91.0,
+        "reason": "A planned list's own code as the packaging writes it (ADR-0437): held to the general code row by row by renderer-agreement.test.mjs, its reading of a row's markup and its walk by optimize-assets.test.mjs, in three engines by rows.spec.mjs, and by own_rows_mutations.py. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -331,10 +457,10 @@
         "functions": [
           "buildIndex"
         ],
-        "maxCrap": 651.0,
-        "maxCognitive": 55,
-        "maxCyclomatic": 25,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "maxCrap": 813.0,
+        "maxCognitive": 64,
+        "maxCyclomatic": 29,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers). Raised by train-33, a planned row that is one element its own anchor (ADR-0438): its marked branch, cut where no list's row is one."
       },
       {
         "files": [
@@ -449,8 +575,8 @@
         "functions": [
           "emitEach"
         ],
-        "maxCrap": 111.0,
-        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named. Raised by the rows train, whose rows it reconciles."
+        "maxCrap": 133.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named. Raised by the rows train, whose rows it reconciles. Raised by train-33, a planned row that is one element its own anchor (ADR-0438): its marked branch, cut where no list's row is one."
       },
       {
         "files": [
@@ -572,8 +698,8 @@
         "functions": [
           "holesFound"
         ],
-        "maxCrap": 73.0,
-        "reason": "Raised by trains 18 and 19, the planned rows written straight into their holes and the lists that are blocks of their own (ADR-0420, ADR-0421, ADR-0424); each ceiling the score it landed with."
+        "maxCrap": 91.0,
+        "reason": "Raised by trains 18 and 19, the planned rows written straight into their holes and the lists that are blocks of their own (ADR-0420, ADR-0421, ADR-0424); each ceiling the score it landed with. Raised by train-33, a planned row that is one element its own anchor (ADR-0438): its marked branch, cut where no list's row is one."
       },
       {
         "files": [
@@ -642,6 +768,26 @@
           "spikes/own-renderer/public/pw-runtime.mjs"
         ],
         "functions": [
+          "rowOf"
+        ],
+        "maxCrap": 31.0,
+        "reason": "The device runtime's keyed rows (ADR-0417): a list its page's own code keeps is kept and made by it, and where every list is, the general code makes no planned row (ADR-0437); held by rows.spec.mjs, the renderer's agreement tests and the device runtime's and own rows' controls. Scored with no coverage data, so CRAP is complexity alone; the ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "rowsKept"
+        ],
+        "maxCrap": 73.0,
+        "reason": "The device runtime's keyed rows (ADR-0417): a list its page's own code keeps is kept and made by it, and where every list is, the general code makes no planned row (ADR-0437); held by rows.spec.mjs, the renderer's agreement tests and the device runtime's and own rows' controls. Scored with no coverage data, so CRAP is complexity alone; the ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
           "rowsPlaced"
         ],
         "maxCrap": 73.0,
@@ -675,10 +821,10 @@
         "functions": [
           "morphChildren"
         ],
-        "maxCrap": 703.0,
-        "maxCognitive": 58,
-        "maxCyclomatic": 26,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "maxCrap": 871.0,
+        "maxCognitive": 63,
+        "maxCyclomatic": 30,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers). Raised by train-33, a planned row that is one element its own anchor (ADR-0438): its marked branch, cut where no list's row is one."
       },
       {
         "files": [
@@ -717,9 +863,10 @@
         "functions": [
           "planOf"
         ],
-        "maxCrap": 421.0,
-        "maxCognitive": 32,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "maxCrap": 813.0,
+        "maxCognitive": 41,
+        "maxCyclomatic": 29,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers). Raised by train-32, the walk the packaging wrote for a page's own list taken where its paths are the browser's parse (ADR-0437); each ceiling the score it landed with. Raised by train-33, a planned row that is one element its own anchor (ADR-0438): its marked branch, cut where no list's row is one."
       },
       {
         "files": [
@@ -840,8 +987,8 @@
         "functions": [
           "rowsMorphed"
         ],
-        "maxCrap": 31.0,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "maxCrap": 43.0,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers). Raised by train-33, a planned row that is one element its own anchor (ADR-0438): its marked branch, cut where no list's row is one."
       },
       {
         "files": [
@@ -850,8 +997,8 @@
         "functions": [
           "rowsParsed"
         ],
-        "maxCrap": 31.0,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "maxCrap": 43.0,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers). Raised by train-33, a planned row that is one element its own anchor (ADR-0438): its marked branch, cut where no list's row is one."
       },
       {
         "files": [
@@ -860,8 +1007,9 @@
         "functions": [
           "rowsPlanned"
         ],
-        "maxCrap": 73.0,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers). Raised by trains 20 and 21, a page alone in its build as one document and the planned row computed, its captures held (ADR-0426, ADR-0427); each ceiling the score it landed with."
+        "maxCrap": 157.0,
+        "maxCognitive": 22,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers). Raised by trains 20 and 21, a page alone in its build as one document and the planned row computed, its captures held (ADR-0426, ADR-0427); each ceiling the score it landed with. Raised by train-32, the rows a page's own walk reaches counted where a page reports (ADR-0437); each ceiling the score it landed with. Raised by train-33, a planned row that is one element its own anchor (ADR-0438): its marked branch, cut where no list's row is one."
       },
       {
         "files": [
@@ -870,8 +1018,8 @@
         "functions": [
           "rowsShown"
         ],
-        "maxCrap": 91.0,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "maxCrap": 111.0,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers). Raised by train-33, a planned row that is one element its own anchor (ADR-0438): its marked branch, cut where no list's row is one."
       },
       {
         "files": [
@@ -980,6 +1128,16 @@
           "spikes/own-renderer/renderer-agreement.test.mjs"
         ],
         "functions": [
+          "HOLE"
+        ],
+        "maxCrap": 57.0,
+        "reason": "The agreement test's planned rows, as a device build makes them, held to the server's, and a list's own code held to the general code row by row (ADR-0437), with its generators of planned and computed lists. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/renderer-agreement.test.mjs"
+        ],
+        "functions": [
           "arm"
         ],
         "maxCrap": 31.0,
@@ -1001,6 +1159,16 @@
           "spikes/own-renderer/renderer-agreement.test.mjs"
         ],
         "functions": [
+          "bare"
+        ],
+        "maxCrap": 31.0,
+        "reason": "The agreement test's planned rows, as a device build makes them, held to the server's, and a list's own code held to the general code row by row (ADR-0437), with its generators of planned and computed lists. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/renderer-agreement.test.mjs"
+        ],
+        "functions": [
           "choose"
         ],
         "maxCrap": 31.0,
@@ -1015,6 +1183,16 @@
         ],
         "maxCrap": 57.0,
         "reason": "The agreement test's generators of templates and requests, whose branches are the IR's and the escapings'. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/renderer-agreement.test.mjs"
+        ],
+        "functions": [
+          "compiledRequests"
+        ],
+        "maxCrap": 31.0,
+        "reason": "The agreement test's planned rows, as a device build makes them, held to the server's, and a list's own code held to the general code row by row (ADR-0437), with its generators of planned and computed lists. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
       },
       {
         "files": [
@@ -1055,8 +1233,49 @@
         "functions": [
           "generatedRequests"
         ],
-        "maxCrap": 43.0,
-        "reason": "The agreement test's generators of templates and requests, whose branches are the IR's and the escapings'. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
+        "maxCrap": 111.0,
+        "reason": "The agreement test's generators of templates and requests, whose branches are the IR's and the escapings'. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411). Raised by train-33, a planned row that is one element its own anchor (ADR-0438): half the generated lists said so."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/renderer-agreement.test.mjs"
+        ],
+        "functions": [
+          "holesOfList"
+        ],
+        "maxCrap": 57.0,
+        "reason": "The agreement test's planned rows, as a device build makes them, held to the server's, and a list's own code held to the general code row by row (ADR-0437), with its generators of planned and computed lists. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/renderer-agreement.test.mjs"
+        ],
+        "functions": [
+          "keptLists"
+        ],
+        "maxCrap": 91.0,
+        "reason": "The agreement test's planned rows, as a device build makes them, held to the server's, and a list's own code held to the general code row by row (ADR-0437), with its generators of planned and computed lists. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/renderer-agreement.test.mjs"
+        ],
+        "functions": [
+          "ownAgree"
+        ],
+        "maxCrap": 57.0,
+        "reason": "The agreement test's planned rows, as a device build makes them, held to the server's, and a list's own code held to the general code row by row (ADR-0437), with its generators of planned and computed lists. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/renderer-agreement.test.mjs"
+        ],
+        "functions": [
+          "ownAt"
+        ],
+        "maxCrap": 91.0,
+        "maxCognitive": 21,
+        "reason": "The agreement test's planned rows, as a device build makes them, held to the server's, and a list's own code held to the general code row by row (ADR-0437), with its generators of planned and computed lists. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
       },
       {
         "files": [
@@ -1084,10 +1303,42 @@
           "spikes/own-renderer/renderer-agreement.test.mjs"
         ],
         "functions": [
+          "plannedAt"
+        ],
+        "maxCrap": 157.0,
+        "maxCognitive": 20,
+        "reason": "The agreement test's planned rows, as a device build makes them, held to the server's, and a list's own code held to the general code row by row (ADR-0437), with its generators of planned and computed lists. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411). Raised by train-33, a planned row that is one element its own anchor (ADR-0438): such rows held as the packaging says them."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/renderer-agreement.test.mjs"
+        ],
+        "functions": [
+          "plannedLists"
+        ],
+        "maxCrap": 133.0,
+        "maxCognitive": 19,
+        "reason": "The agreement test's planned rows, as a device build makes them, held to the server's, and a list's own code held to the general code row by row (ADR-0437), with its generators of planned and computed lists. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/renderer-agreement.test.mjs"
+        ],
+        "functions": [
           "requestsAbout"
         ],
         "maxCrap": 111.0,
         "reason": "The agreement test's generators of templates and requests, whose branches are the IR's and the escapings'. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/renderer-agreement.test.mjs"
+        ],
+        "functions": [
+          "rowFields"
+        ],
+        "maxCrap": 31.0,
+        "reason": "The agreement test's planned rows, as a device build makes them, held to the server's, and a list's own code held to the general code row by row (ADR-0437), with its generators of planned and computed lists. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
       },
       {
         "files": [
@@ -1110,6 +1361,16 @@
         "maxCognitive": 39,
         "maxCyclomatic": 25,
         "reason": "The agreement test's generators of templates and requests, whose branches are the IR's and the escapings'. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/renderer-agreement.test.mjs"
+        ],
+        "functions": [
+          "uncaptured"
+        ],
+        "maxCrap": 31.0,
+        "reason": "The agreement test's planned rows, as a device build makes them, held to the server's, and a list's own code held to the general code row by row (ADR-0437), with its generators of planned and computed lists. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
       },
       {
         "files": [
@@ -1140,6 +1401,89 @@
         ],
         "maxCrap": 57.0,
         "reason": "The renderer contract's tests of which rows stay. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/own-rows.mjs"
+        ],
+        "functions": [
+          "rowElement"
+        ],
+        "maxCrap": 601.0,
+        "maxCyclomatic": 25,
+        "maxCognitive": 41,
+        "reason": "Whether a planned row is one element HTML's parser keeps whole, a rule table over the parser's tree construction, held to three engines' parsers (ADR-0438). Scored with no coverage data; ceilings at the scores it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/renderer-agreement.test.mjs"
+        ],
+        "functions": [
+          "element"
+        ],
+        "maxCrap": 241.0,
+        "maxCognitive": 21,
+        "reason": "The agreement test's generator of rows of one element, every name, nesting and hole a parser might end or move (ADR-0438). Scored with no coverage data; ceilings at the scores it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/e2e/rows.spec.mjs"
+        ],
+        "functions": [
+          "element"
+        ],
+        "maxCrap": 91.0,
+        "reason": "The rows suite's generator of rows of one element, read by each engine's parser against the packaging's rule (ADR-0438). Scored with no coverage data; ceiling at the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/optimize-assets.mjs"
+        ],
+        "functions": [
+          "rowAnchors"
+        ],
+        "maxCrap": 91.0,
+        "reason": "The packaging's saying of each planned list whose row is its own anchor, and why of each other (ADR-0438). Scored with no coverage data; ceiling at the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/renderer-agreement.test.mjs"
+        ],
+        "functions": [
+          "rowShapes"
+        ],
+        "maxCrap": 57.0,
+        "reason": "The agreement test's lists of rows of one element and of none (ADR-0438). Scored with no coverage data; ceiling at the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/own-rows.mjs"
+        ],
+        "functions": [
+          "tagAt"
+        ],
+        "maxCrap": 43.0,
+        "reason": "The build's reading of one tag of a row's markup, moved out of `rowPaths` for `rowElement` (ADR-0438). Scored with no coverage data; ceiling at the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/renderer-agreement.test.mjs"
+        ],
+        "functions": [
+          "anchoredAsPacked"
+        ],
+        "maxCrap": 43.0,
+        "reason": "The agreement test's lists said their rows' own anchors as the packaging says them (ADR-0438). Scored with no coverage data; ceiling at the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "rowOwn"
+        ],
+        "maxCrap": 31.0,
+        "reason": "The browser's renderer writing a row that is its own anchor, its key after its element's name, the cut made once a list (ADR-0438). Scored with no coverage data; ceiling at the score it landed with (ADR-0411's analyzers)."
       }
     ]
   },

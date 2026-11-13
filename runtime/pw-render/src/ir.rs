@@ -161,6 +161,13 @@ pub enum Part {
         /// static one.
         key: Option<String>,
         body: Vec<Chunk>,
+        /// **Where each row's identity is written** (ADR-0438): between two
+        /// comments, as every keyed list's was, or on the row's one element,
+        /// where its build read the row as one element a parser keeps whole
+        /// and nothing addresses inside it (`own-rows.mjs`'s `rowElement`,
+        /// which the packaging writes here). The compiler writes none.
+        #[serde(default, skip_serializing_if = "RowAnchor::is_comments")]
+        row_anchor: RowAnchor,
     },
     /// `{#match value}{:Some(x)} .. {:None} .. {/match}`: the arm whose case
     /// the value is, with the case's payload bound to the arm's name
@@ -252,6 +259,25 @@ pub enum Part {
     /// is not proof, and a renderer that silently omits what it did not
     /// understand produces a page that looks correct and is missing something.
     Blocked { reason: String, at: String },
+}
+
+/// **Where a keyed list's row writes its identity** (ADR-0438).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RowAnchor {
+    /// `<!--pw:s3@T-->` the row `<!--pw:e3@T-->`: whatever the row is.
+    #[default]
+    Comments,
+    /// `<li data-pw-row="3@T">`: the row's one element is its own anchor,
+    /// two nodes fewer a row, where nothing addresses what is inside a row
+    /// (a page whose presses are heard at its document, ADR-0413).
+    Element,
+}
+
+impl RowAnchor {
+    pub fn is_comments(&self) -> bool {
+        *self == RowAnchor::Comments
+    }
 }
 
 /// One arm of a [`Part::Match`].

@@ -41,6 +41,17 @@ const PW_KEPT = true;
 const PW_FRAGMENT = true;
 const PW_AUTOFOCUS = true;
 const PW_PLANS = true;
+// own rows: **whether a list a block keeps is kept by its page's own code**
+// (ADR-0437), which the packaging writes for each list of a device's page
+// whose rows a plan makes (`own-rows.mjs`), and whether any such list is the
+// general code's: one whose rows no plan makes, or one the packaging did not
+// write. The runtime as written has no page's own code. A build that writes
+// none holds none of the lines marked as these are, and is minified from the
+// runtime it was before there was any: folded away, they would still move
+// esbuild's names, which it gives by what the whole source holds.
+const PW_OWN = false;
+const PW_UNOWNED = true;
+// :own rows
 
 /** **Whether a value of a type that contains itself can reach the page**
  * (ADR-0428), as its nodes (`$graph`, ADR-0205): only where a file of its
@@ -116,6 +127,18 @@ const entries = new Map(
  * a block with (ADR-0203). Empty where the page has none. */
 const TEMPLATES = Object.values(parts.templates ?? {}).map((t) => t.template);
 
+// element rows: **A row that is its own anchor** (ADR-0438): where a list's
+// row is one element a parser keeps whole (`row_anchor: "element"`, which the
+// packaging writes where nothing addresses what is inside a row), the row's
+// key is on its element, not between two comments: its `data-pw-row` where
+// markup wrote it, the host's or a parse's, and under a symbol of the
+// runtime's own where a plan made it, which sets no attribute. A build none
+// of whose lists is so holds none of the lines marked as these are.
+const ROW_KEY = Symbol("pw key");
+/** The key of the row `node` is, where it is one element; `null` where not. */
+const rowKeyOf = (node) => node[ROW_KEY] ?? node.getAttribute?.("data-pw-row") ?? null;
+// :element rows
+
 function buildIndex() {
   index.clear();
   const path = [];
@@ -133,6 +156,15 @@ function buildIndex() {
   let node;
   while ((node = walker.nextNode())) {
     if (node.nodeType === Node.ELEMENT_NODE) {
+      // element rows: a row that is its own anchor, gone past whole: nothing
+      // asks for what is inside it here (ADR-0438).
+      if (DELEGATED && rowKeyOf(node) !== null) {
+        let last = node;
+        while (last.lastChild) last = last.lastChild;
+        walker.currentNode = last;
+        continue;
+      }
+      // :element rows
       const owner = node.dataset?.pw;
       if (owner !== undefined) {
         // An element-anchored part is addressed by the path it sits in, which
@@ -1648,12 +1680,39 @@ const renderer = (() => {
       const key = rowKey(item, p, seen);
       seen.add(key);
       const token = tokenOf(e, p.id, key);
+      // element rows: a row that is its own anchor (ADR-0438).
+      if (p.row_anchor === "element") {
+        rowOwn(p, `${p.id}@${token}`, within(scoped, p.id, token), others, out);
+        continue;
+      }
+      // :element rows
       html.push(`<!--pw:s${p.id}@${token}-->`);
       emit(p.body, within(scoped, p.id, token), others, out);
       html.push(`<!--pw:e${p.id}@${token}-->`);
     }
     html.push(end);
   }
+
+  // element rows: **A keyed row that is its own anchor** (ADR-0438): its
+  // one element, its identity `at` an attribute right after the element's
+  // name, as HTML's tokenizer ends a tag's name, and the rest of its markup
+  // as written. The element's name is cut from the rest once a list; a row
+  // that begins with no element is refused. Each other keyed row is written
+  // between its two comments, where it is written.
+  const heads = new WeakMap();
+  function rowOwn(p, at, env, others, out) {
+    let cut = heads.get(p);
+    if (cut === undefined) {
+      const first = p.body[0];
+      const name = first?.chunk === "static" ? /^<[A-Za-z][^\t\n\f\r />]*/.exec(first.value) : null;
+      if (!name) throw unrepresented("a row that is its own anchor begins with no element");
+      cut = [name[0], first.value.slice(name[0].length), p.body.slice(1)];
+      heads.set(p, cut);
+    }
+    out.html.push(cut[0], ` data-pw-row="${at}"`, cut[1]);
+    emit(cut[2], env, others, out);
+  }
+  // :element rows
 
   /** An item's key in its list, and none of the keys `seen` holds, which
    * the caller notes. */
@@ -1673,10 +1732,21 @@ const renderer = (() => {
   /** What each keyed list at the top of a block last wrote, by its key: each
    * row's value, what it read of the page, and its text. */
   const kept = new Map();
+  // own rows: **the page's own lists** (ADR-0437): for each list of the page
+  // whose rows a plan makes, its own key, hold and making, by its part, which
+  // the packaging writes here with the helpers they call (`own-rows.mjs`),
+  // and `ownKept`, which keeps a list's rows by them. None as written.
+  const OWN_ROWS = null;
+  // :own rows
 
   /** **The rows of list `p`**, each the one kept where nothing it reads has
    * changed, so a press writes the text of the rows it changed. */
   function rowsKept(p, e, others, items) {
+    // own rows: a list the page's own code keeps (ADR-0437): every list,
+    // where none is the general code's, so that none of what follows is in
+    // such a build; else each its code was written for.
+    if (PW_OWN && (!PW_UNOWNED || OWN_ROWS?.[p.id])) return ownKept(OWN_ROWS?.[p.id], p, e, others, items);
+    // :own rows
     const was = kept.get(p.id);
     // Each row by its key, which is also what says a key is taken (ADR-0432).
     const now = new Map();
@@ -1700,9 +1770,15 @@ const renderer = (() => {
     for (let a = row.names, b = e.names; a || b; a = a.up, b = b.up) {
       if (!a || !b || !same(a.value, b.value)) return false;
     }
-    for (const [name, value] of row.reads) if (e.page.get(name) !== value) return false;
+    for (const [name, value] of row.reads) if (!unmoved(e.page.get(name), value)) return false;
     return computedHold(row, item, e, p);
   }
+
+  /** **Whether what the page holds is what a row read of it**: the very
+   * value, or `NaN` for `NaN`, which no `===` holds of itself. A row that read
+   * `NaN` was made again at every render (found 2026-11-12 by the planned
+   * rows' agreement). */
+  const unmoved = (now, was) => now === was || (now !== now && was !== was);
 
   /** **Whether what a row computes still comes out as it did** (ADR-0424):
    * where nothing it read of the page moved, so; else
@@ -1715,7 +1791,7 @@ const renderer = (() => {
     if (!computing || computing.computedValues.length === 0) return true;
     let moved = false;
     for (const [name, value] of computing.computedReads) {
-      if (e.page.get(name) !== value) {
+      if (!unmoved(e.page.get(name), value)) {
         moved = true;
         break;
       }
@@ -1731,6 +1807,10 @@ const renderer = (() => {
   }
 
   function rowOf(p, e, others, item, key) {
+    // own rows: where the page's own code keeps every list (ADR-0437), none
+    // is the general code's, and none of what follows is in such a build.
+    if (!PW_UNOWNED) return null;
+    // :own rows
     rowsWritten += 1;
     const reads = new Map();
     const token = tokenOf(e, p.id, key);
@@ -1747,6 +1827,9 @@ const renderer = (() => {
   function rowText(p, env, others, at) {
     return rendered(others, (out) => {
       out.bare = !PW_SERVER && DELEGATED_ROWS;
+      // element rows: a row that is its own anchor (ADR-0438).
+      if (p.row_anchor === "element") return rowOwn(p, at, env, others, out);
+      // :element rows
       out.html.push(`<!--pw:s${at}-->`);
       emit(p.body, env, others, out);
       out.html.push(`<!--pw:e${at}-->`);
@@ -2043,6 +2126,10 @@ const renderer = (() => {
       for (const { name, inputs } of entries) {
         const f = functions[name];
         if (!f) continue;
+        // own rows: the page's own code calls it with its inputs read as it
+        // reads them (ADR-0437).
+        if (PW_OWN) ownFunctions.set(name, f);
+        // :own rows
         // What it reads of the page is its row's computed reads, apart from
         // what the row's markup reads, and what it computes is kept with the
         // row: a change it reads keeps the row where each comes out the same.
@@ -2255,6 +2342,9 @@ const renderer = (() => {
       const token = tokenOf(e, p.id, key);
       const scoped = within(named(e, p.binding, item), p.id, token);
       return rendered(others, (out) => {
+        // element rows: a row that is its own anchor (ADR-0438).
+        if (p.row_anchor === "element") return rowOwn(p, `${p.id}@${token}`, scoped, others, out);
+        // :element rows
         out.html.push(`<!--pw:s${p.id}@${token}-->`);
         emit(p.body, scoped, others, out);
         out.html.push(`<!--pw:e${p.id}@${token}-->`);
@@ -2931,10 +3021,19 @@ function rowAnchor(node) {
 }
 
 /** `nodes` as the items a morph matches: each a node, or a row of a keyed
- * list, its anchors and what is between them. */
+ * list, its anchors and what is between them, or its one element where it
+ * is its own anchor (ADR-0438). */
 function rowsOf(nodes) {
   const items = [];
   for (let i = 0; i < nodes.length; i++) {
+    // element rows: a row that is its own anchor, its element: every row of
+    // a list is one, or each between comments.
+    const own = rowKeyOf(nodes[i]);
+    if (own !== null) {
+      items.push({ key: own, nodes: [nodes[i]], element: nodes[i] });
+      continue;
+    }
+    // :element rows
     const a = rowAnchor(nodes[i]);
     if (a?.start) {
       const close = `pw:e${a.part}@${a.token}`;
@@ -3004,6 +3103,14 @@ function morphChildren(parent, olds, freshes, before, inserted) {
   for (const f of fresh) {
     if (f.key) {
       const o = byKey.get(f.key);
+      // element rows: a row that is its own anchor is kept as its element.
+      if (o?.element && !used.has(o)) {
+        used.add(o);
+        morphNode(o.element, f.element, inserted);
+        placed.push(o.element);
+        continue;
+      }
+      // :element rows
       if (o && !used.has(o)) {
         used.add(o);
         const [start, ...rest] = o.nodes;
@@ -3202,12 +3309,23 @@ function staying(places) {
 }
 // --- end of which rows changed
 
-/** Each row of list `part` the document holds, by its key: its two anchors.
- * `null` where one is not closed. */
+/** Each row of list `part` the document holds, by its key: its two anchors,
+ * or its element twice where it is its own anchor (ADR-0438). `null` where
+ * one is not closed. */
 function rowsShown(part, range) {
   const shown = new Map();
   const opens = `pw:s${part}@`;
+  // element rows: the key a row of this list that is its own anchor begins with.
+  const ofList = `${part}@`;
+  // :element rows
   for (let n = range.start.nextSibling; n && n !== range.end; n = n.nextSibling) {
+    // element rows: a row that is its own anchor, its element.
+    const own = rowKeyOf(n);
+    if (own?.startsWith(ofList)) {
+      shown.set(own, [n, n]);
+      continue;
+    }
+    // :element rows
     if (n.nodeType !== Node.COMMENT_NODE || !n.data.startsWith(opens)) continue;
     const key = n.data.slice("pw:s".length);
     const close = `pw:e${key}`;
@@ -3248,6 +3366,13 @@ function rowsMorphed(changed, inserted) {
   const parsed = parseInstance(changed.map(([, row]) => renderer.textOf(row)).join(""));
   let at = 0;
   for (const [[start, end], row] of changed) {
+    // element rows: a row that is its own anchor is its one element, made
+    // the one its text parses to (ADR-0438).
+    if (start === end) {
+      morphNode(start, parsed[at++], inserted);
+      continue;
+    }
+    // :element rows
     const close = `pw:e${row.key}`;
     const from = at;
     while (!(parsed[at].nodeType === Node.COMMENT_NODE && parsed[at].data === close)) at++;
@@ -3264,6 +3389,13 @@ function rowsParsed(rows, shown, inserted) {
   const content = template.content;
   let n = content.firstChild;
   for (const row of rows) {
+    // element rows: a row that is its own anchor is its one element (ADR-0438).
+    if (rowKeyOf(n) === row.key) {
+      shown.set(row.key, [n, n]);
+      n = n.nextSibling;
+      continue;
+    }
+    // :element rows
     const close = `pw:e${row.key}`;
     const start = n;
     while (!(n.nodeType === Node.COMMENT_NODE && n.data === close)) n = n.nextSibling;
@@ -3288,6 +3420,13 @@ function rowPut(parent, [start, end], anchor) {
 
 /** What each list part's plan is, once made; `null` where none holds. */
 const plans = new WeakMap();
+// own rows: **the walks the packaging wrote** (ADR-0437): for each list of
+// the page whose rows its own code makes, each hole's path as the packaging
+// read the row's markup, and the steps from a row's clone to each hole along
+// them; and the path of no steps, where a walk took them. None as written.
+const OWN_WALKS = null;
+const NO_STEPS = [];
+// :own rows
 
 /** **One row's plan**: its markup parsed once, an empty text where each text
  * hole is and a mark on the element each attribute hole is on, so a new row is
@@ -3338,6 +3477,25 @@ function planOf(p) {
     return path;
   };
   const plan = found.every(Boolean) ? { proto: template.content, kinds, paths: found.map(pathOf) } : null;
+  // element rows: **a row that is its own anchor is its element alone**
+  // (ADR-0438), cloned with no fragment around it, and each hole's path is
+  // from it: the first step of each, to the one element, is gone. The plan
+  // as parsed finds the holes of a row it did not make (`holesFound`).
+  if (plan && p.row_anchor === "element") {
+    plan.found = { proto: plan.proto, paths: plan.paths };
+    plan.proto = plan.root = template.content.firstChild;
+    plan.paths = plan.paths.map((path) => path.slice(1));
+  }
+  // :element rows
+  // own rows: **the walk the packaging wrote**, where its reading of the
+  // row's markup is this parse's (ADR-0437), compared once a plan; the
+  // general walk where the parser reads it otherwise.
+  if (PW_OWN && plan) {
+    const own = OWN_WALKS?.[p.id];
+    plan.walk = own?.paths === plan.paths.join("|") ? own.walk : null;
+    REPORT: log.push(`plan ${p.id}: ${plan.walk ? "its own walk" : "the general walk"}`);
+  }
+  // :own rows
   plans.set(p, plan);
   return plan;
 }
@@ -3420,6 +3578,10 @@ function rowsPlanned(rows, plan, shown, inserted) {
   for (const row of rows) {
     const clone = plan.proto.cloneNode(true);
     const holes = new Array(plan.paths.length);
+    // own rows: each row the steps the packaging wrote reach (ADR-0437),
+    // which a build that writes them takes where they are this parse's.
+    REPORT: if (PW_OWN && plan.walk) window.__pw.walked = (window.__pw.walked ?? 0) + 1;
+    // :own rows
     const nodes = [null, null, holes, row];
     for (let h = 0; h < holes.length; h++) {
       // By its siblings: a node's `childNodes` is a list each step makes.
@@ -3433,6 +3595,16 @@ function rowsPlanned(rows, plan, shown, inserted) {
       if (plan.kinds[h] === "event") n[ROW_OF] = nodes;
       else if (!holeSet(plan.kinds[h], n, row.raws[h])) return null;
     }
+    // element rows: **its own anchor** (ADR-0438): the row is its element,
+    // its key under the runtime's symbol, and no comment is made.
+    if (plan.root) {
+      clone[ROW_KEY] = row.key;
+      nodes[0] = nodes[1] = clone;
+      content.appendChild(clone);
+      shown.set(row.key, nodes);
+      continue;
+    }
+    // :element rows
     nodes[0] = document.createComment(`pw:s${row.key}`);
     nodes[1] = document.createComment(`pw:e${row.key}`);
     content.append(nodes[0], clone, nodes[1]);
@@ -3472,6 +3644,12 @@ function rowsChanged(changed, plan, inserted) {
  * not, as where text beside a hole's text is one text node, or an empty
  * hole's text is none. */
 function holesFound([start, end], plan) {
+  // element rows: **a row that is its own anchor** (ADR-0438) is found as
+  // the one node between two anchors would be, by the plan as its parse
+  // holds it: from a stand-in for an anchor before its element, to whatever
+  // follows the element.
+  if (start === end) return holesFound([{ nextSibling: start }, start.nextSibling], plan.found);
+  // :element rows
   const row = [];
   for (let n = start.nextSibling; n && n !== end; n = n.nextSibling) row.push(n);
   const proto = [...plan.proto.childNodes];

@@ -41,7 +41,8 @@ pub use identity::{
     PartAddress, Partition, TemplateSchemaId,
 };
 pub use ir::{
-    Arm, Chunk, Context, Part, PartEntry, PartId, Segment, StreamArm, Template, TitlePiece,
+    Arm, Chunk, Context, Part, PartEntry, PartId, RowAnchor, Segment, StreamArm, Template,
+    TitlePiece,
 };
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -1002,6 +1003,7 @@ fn each_instance(
         binding,
         key,
         body,
+        row_anchor,
         ..
     } = part
     else {
@@ -1028,11 +1030,55 @@ fn each_instance(
     let token = env.domain.instance_token(&env.path, *id, &raw);
     let scoped = env.with(binding, item.clone()).within(*id, token.clone());
     rendered(others, |out| {
-        out.push_str(&format!("<!--pw:s{id}@{token}-->"));
-        emit(body, &scoped, others, out)?;
-        out.push_str(&format!("<!--pw:e{id}@{token}-->"));
-        Ok(())
+        row_written(*id, &token, *row_anchor, body, &scoped, others, out)
     })
+}
+
+/// **One row of a keyed list, its identity written** (ADR-0438): between
+/// its two comments, or, where the list's row is its own anchor, as an
+/// attribute of its one element, written right after the element's name. A
+/// row whose markup begins with no element is refused there: what is written
+/// must be one, as its build read it.
+fn row_written<'o>(
+    id: PartId,
+    token: &InstanceToken,
+    anchor: RowAnchor,
+    body: &[Chunk],
+    env: &Env,
+    others: &'o [Template],
+    out: &mut Out<'o>,
+) -> Result<(), Blocked> {
+    if anchor == RowAnchor::Comments {
+        out.push_str(&format!("<!--pw:s{id}@{token}-->"));
+        emit(body, env, others, out)?;
+        out.push_str(&format!("<!--pw:e{id}@{token}-->"));
+        return Ok(());
+    }
+    let Some((Chunk::Static(first), rest)) = body.split_first() else {
+        return Err(row_begins_with_no_element(id));
+    };
+    let named = first
+        .strip_prefix('<')
+        .filter(|name| name.starts_with(|c: char| c.is_ascii_alphabetic()));
+    let Some(name) = named else {
+        return Err(row_begins_with_no_element(id));
+    };
+    // The tag's name runs to a space, a `/` or its `>`, as HTML's tokenizer
+    // reads it (its tag name state).
+    let at = 1 + name
+        .find(['\t', '\n', '\u{c}', '\r', ' ', '/', '>'])
+        .unwrap_or(name.len());
+    out.push_str(&first[..at]);
+    out.push_str(&format!(" data-pw-row=\"{id}@{token}\""));
+    out.push_str(&first[at..]);
+    emit(rest, env, others, out)
+}
+
+fn row_begins_with_no_element(id: PartId) -> Blocked {
+    Blocked::UnrepresentedConstruct {
+        reason: "a row that is its own anchor begins with no element".into(),
+        at: format!("part {id}"),
+    }
 }
 
 /// The instance token an item would get in this template's loop.
@@ -2102,6 +2148,7 @@ fn emit_part<'o>(
             binding,
             key,
             body,
+            row_anchor,
         } => {
             let v = env.get(collection).ok_or(Blocked::MissingValue {
                 path: collection.clone(),
@@ -2157,9 +2204,8 @@ fn emit_part<'o>(
                                 second: raw,
                             });
                         }
-                        out.push_str(&format!("<!--pw:s{id}@{token}-->"));
-                        emit(body, &scoped.within(*id, token.clone()), others, out)?;
-                        out.push_str(&format!("<!--pw:e{id}@{token}-->"));
+                        let scoped = scoped.within(*id, token.clone());
+                        row_written(*id, &token, *row_anchor, body, &scoped, others, out)?;
                     }
                     // An UNKEYED list renders and promises nothing about
                     // per-item identity. No instance boundaries, because an

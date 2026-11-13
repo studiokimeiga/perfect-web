@@ -6,7 +6,8 @@ import path from "node:path";
 import test from "node:test";
 import { brotliDecompressSync, gunzipSync } from "node:zlib";
 import { mkdir } from "node:fs/promises";
-import { bundlePages, compressModules, optimizeAssets, sharedPreludes } from "./optimize-assets.mjs";
+import { bundlePages, compressModules, optimizeAssets, sharedPreludes, withOwnRows } from "./optimize-assets.mjs";
+import { ELEMENT_LINES, OWN_EDITS, OWN_LINES, OWN_ROWS, OWN_WALKS, ownRows, pageLists, rowElement, rowPaths, walkSource } from "./own-rows.mjs";
 
 test("the production build minifies and compresses only public client assets", async () => {
   const dir = await mkdtemp(path.join(tmpdir(), "pw-assets-"));
@@ -812,6 +813,420 @@ test("a page with no code of its own has no module alone", async () => {
     assert.equal(await aloneOf(dir, "app.Static~ui"), null);
   } finally {
     await rm(dir, { recursive: true, force: true });
+  }
+});
+
+// --- a page's own lists (ADR-0437) ------------------------------------------
+
+/** The large list's row, as its build writes it. */
+const LARGE_ROW = [
+  { chunk: "static", value: '<tr data-pw="6" ' },
+  dynamic({ part: "attribute", id: 7, owner: 6, name: "class", value: "row.#p~7", context: "attribute" }),
+  { chunk: "static", value: '><td class="id">' },
+  dynamic({ part: "text", id: 8, value: "row.id", context: "text" }),
+  { chunk: "static", value: '</td><td class="label"><button data-pw="7" type="button" class="select"' },
+  dynamic({ part: "event", id: 9, owner: 7, event: "press", handler: "h", captures: ["row.id"] }),
+  { chunk: "static", value: ">" },
+  dynamic({ part: "text", id: 10, value: "row.label", context: "text" }),
+  { chunk: "static", value: '</button></td><td class="rm"><button data-pw="8" type="button" class="remove"' },
+  dynamic({ part: "event", id: 11, owner: 8, event: "press", handler: "h2", captures: ["row.id"] }),
+  { chunk: "static", value: '>x</button></td><td class="pad"></td></tr>' },
+];
+const keyedList = (id, body, more = {}) => ({ part: "each", id, collection: "rows", binding: "row", key: "id", body, ...more });
+const LARGE_PLAN = {
+  prerender: true,
+  signals: [{ name: "rows" }, { name: "selected" }],
+  live: [{ part: 6, kind: "each" }],
+  browser_rows: [{ path: "row.#p~7", inputs: ["row", "selected"] }],
+};
+
+test("a page's own lists are those its blocks keep whose rows a plan makes", async () => {
+  const text = dynamic({ part: "text", id: 21, value: "row.name", context: "text" });
+  const chunks = [
+    dynamic(keyedList(6, LARGE_ROW)),
+    // In a block's branch: kept, and written.
+    dynamic({ part: "conditional", id: 20, value: "on", then: [dynamic(keyedList(22, [text]))], otherwise: [] }),
+    // In no block: the device never renders it again.
+    dynamic(keyedList(30, [text])),
+    // A row that changes its shape: kept, and no plan's.
+    dynamic({ part: "conditional", id: 40, value: "on", then: [dynamic(keyedList(41, [dynamic({ part: "conditional", id: 42, value: "row.on", then: [], otherwise: [] })]))], otherwise: [] }),
+    // Inside a case's arm, whose name its row could read: refused.
+    dynamic({ part: "match", id: 50, value: "o", arms: [{ case: "Some", binding: "x", body: [dynamic(keyedList(51, [text]))] }] }),
+  ];
+  const live = [{ part: 6, kind: "each" }, { part: 20, kind: "conditional" }, { part: 40, kind: "conditional" }, { part: 50, kind: "match" }];
+  const entries = pageLists("p", chunks, { ...LARGE_PLAN, live });
+  assert.deepEqual(entries.map((e) => e.list.id).sort((a, b) => a - b), [6, 22, 41, 51]);
+  assert.deepEqual([...entries[0].names].sort(), ["rows", "selected"]);
+  assert.deepEqual([...entries[0].computes], [["#p~7", ["row", "selected"]]]);
+  const own = ownRows(entries);
+  assert.deepEqual(own.written.map((w) => w.part).sort((a, b) => a - b), [6, 22]);
+  assert.deepEqual(own.refused, [{ template: "p", part: 51, why: "it is inside a block that binds x" }]);
+  assert.ok(own.rows.includes("const OWN_ROWS = {") && own.rows.endsWith("[parts.template];"), "a table of the page's lists, by its template");
+  assert.ok(own.walks.includes('paths: "0|0,0,0|0,1,0|0,1,0,0|0,2,0"'), "the large list's walk, as its markup is written");
+});
+
+test("what a list's own code cannot read as the general code does is refused, by what it is", () => {
+  const entry = (body, more = {}) => ({ template: "p", list: keyedList(6, body), around: [], names: new Set(["rows", "selected"]), computes: new Map(), ...more });
+  const said = (e) => ownRows([e]).refused.map((r) => r.why);
+  const text = (value) => dynamic({ part: "text", id: 9, value, context: "text" });
+  assert.deepEqual(said(entry([text("row.name")])), []);
+  // A path the page holds whole, which `bound` finds before the row's.
+  assert.deepEqual(said(entry([text("row.name")], { names: new Set(["row.name"]) })), ["the page holds a value as row.name, a path from its row"]);
+  // What a row computes, from what is neither its row nor the page's.
+  const computes = new Map([["#p~7", ["row", "elsewhere"]]]);
+  assert.deepEqual(said(entry([text("row.#p~7")], { computes })), ["what its row computes for row.#p~7 reads elsewhere, which is neither its row nor a value of the page"]);
+  // One inside another value it reads.
+  assert.deepEqual(said(entry([text("row.x.#p~7")], { computes: new Map([["#p~7", ["row"]]]) })), ["row.x.#p~7 reads a value its row computes inside another"]);
+  // An interpolation in a context no value is escaped for.
+  const styled = dynamic({ part: "interpolated_attribute", id: 9, owner: 0, name: "style", segments: [{ segment: "value", value: "row.name" }], context: "style" });
+  assert.deepEqual(said(entry([styled])), ["its attribute style interpolates in a context it does not escape: style"]);
+  // A row bound by a name a dot would cut apart.
+  assert.deepEqual(said({ ...entry([text("a.b.name")]), list: { ...keyedList(6, [text("a.b.name")]), binding: "a.b" } }), ["its row is bound as a.b"]);
+});
+
+test("the build reads a row's markup as it is written, element inside element", () => {
+  assert.deepEqual(rowPaths(LARGE_ROW), [[0], [0, 0, 0], [0, 1, 0], [0, 1, 0, 0], [0, 2, 0]]);
+  const s = (value) => ({ chunk: "static", value });
+  const t = (id) => dynamic({ part: "text", id, value: "row.v", context: "text" });
+  // Text beside a hole is a node of its own, as each hole is; a void element
+  // holds nothing; an attribute's quoted value is read past its `>`.
+  assert.deepEqual(rowPaths([s(" <li>a"), t(1), s('b<br><img alt="x > y"></li> ')]), [[1, 1]]);
+  assert.deepEqual(rowPaths([s("<li><input "), dynamic({ part: "boolean_attribute", id: 1, owner: 0, name: "disabled", value: "row.v" }), s("></li>")]), [[0, 0]]);
+  // A table's row as written: the parser puts it in a `<tbody>`, which the
+  // runtime finds where it compares this with its parse, and walks otherwise.
+  assert.deepEqual(rowPaths([s(" <li><table><tr><td>"), t(1), s("</td></tr></table></li> ")]), [[1, 0, 0, 0, 0]]);
+  // What a parser reads otherwise than as elements is not read.
+  assert.equal(rowPaths([s("<li><textarea>"), t(1), s("</textarea></li>")]), null);
+  assert.equal(rowPaths([s("<li><svg><g>"), t(1), s("</g></svg></li>")]), null);
+  assert.equal(rowPaths([s("<li><b>"), t(1), s("</li>")]), null);
+});
+
+test("the walk written to a row's holes reaches the node at each path", () => {
+  // A tree of nodes that know their first child and next sibling, as a DOM's.
+  const tree = (shape) => {
+    const node = { shape };
+    let before = null;
+    for (const child of shape.map(tree)) {
+      if (before) before.nextSibling = child;
+      else node.firstChild = child;
+      before = child;
+    }
+    return node;
+  };
+  const at = (node, path) =>
+    path.reduce((n, i) => {
+      let c = n.firstChild;
+      for (let k = 0; k < i; k++) c = c.nextSibling;
+      return c;
+    }, node);
+  const root = tree([[[[]], [[[]]], [[]], []], [], [[], [[], [[]]]]]);
+  const paths = [[0], [0, 0, 0], [0, 1, 0], [0, 1, 0, 0], [0, 2, 0], [2, 1, 1, 0], [1], [2]];
+  const walk = new Function(`return ${walkSource(paths)}`)();
+  assert.deepEqual(walk(root), paths.map((p) => at(root, p)));
+  // Each node once: the large list's five holes in eight steps.
+  assert.equal((walkSource([[0], [0, 0, 0], [0, 1, 0], [0, 1, 0, 0], [0, 2, 0]]).match(/\.(firstChild|nextSibling)/g) ?? []).length, 8);
+  // A row that is its own anchor is walked from its element, its paths from
+  // it (ADR-0438): the large list's in seven, the element itself the clone.
+  const element = root.firstChild;
+  const fromIt = paths.slice(0, 5).map((p) => p.slice(1));
+  assert.deepEqual(new Function(`return ${walkSource(fromIt)}`)()(element), fromIt.map((p) => at(element, p)));
+  assert.equal((walkSource(fromIt).match(/\.(firstChild|nextSibling)/g) ?? []).length, 7);
+  // One all of whose holes are on its element takes no step.
+  const none = walkSource([[], []]);
+  assert.equal(none, "(c) => [c, c]");
+  assert.deepEqual(new Function(`return ${none}`)()(element), [element, element]);
+});
+
+test("the runtime holds one place for a page's own lists, and once what the packaging writes otherwise there", async () => {
+  const source = await readFile(RUNTIME_SOURCE, "utf8");
+  for (const held of [OWN_ROWS, OWN_WALKS, "const PW_OWN = false;", "const PW_UNOWNED = true;", ...OWN_EDITS.map(([general]) => general)]) {
+    assert.equal(source.split(held).length, 2, held);
+  }
+  // Its own lines: the flags, the two places, and the hooks of `rowsKept`,
+  // `rowOf`, `rowsComputed`, `planOf` and `rowsPlanned`.
+  assert.equal(source.match(OWN_LINES).length, 8);
+  for (const [, mine] of OWN_EDITS) assert.ok(!source.includes(mine), `the runtime as written is the general code: ${mine}`);
+});
+
+/** What only a page's own code holds, by a word each leaves in a build:
+ * none of them is a name the minifier gives, so a reference left behind in a
+ * build without its declaration would read as one here. */
+const OWN_WORDS = ["is kept by no code of its page", "OWN_ROWS", "OWN_WALKS", "ownKept", "scopeOf", "ownFunctions", "PW_OWN", "PW_UNOWNED"];
+
+/** The modules of the large list's row's two handlers. */
+const LARGE_HANDLERS = { "handlers/h.mjs": handlerModule("h", "select"), "handlers/h2.mjs": handlerModule("h2", "remove") };
+
+test("a build of the large list keeps its rows by its own code, and holds none of the general code that would", async () => {
+  const runtime = await deviceRuntimeOf([dynamic(keyedList(6, LARGE_ROW))], LARGE_PLAN, LARGE_HANDLERS);
+  assert.ok(runtime.includes("is kept by no code of its page"), "its own lists' keeping");
+  // Its walk, from its row's element: the row is its own anchor (ADR-0438).
+  assert.ok(runtime.includes('paths:"|0,0|1,0|1,0,0|2,0"'), "its walk");
+  for (const word of OWN_WORDS.slice(1)) assert.ok(!runtime.includes(word), `no ${word} left unminified`);
+  // The general test of whether a list is planned, which only the general
+  // code's making of a row asks: its parts' kinds, written once.
+  assert.ok(!runtime.includes('.part==="boolean_attribute"||'), "no general test of a plan");
+});
+
+test("a build none of whose lists is its own code's holds none of that code", async () => {
+  const shaped = [dynamic(keyedList(6, [dynamic({ part: "conditional", id: 7, value: "row.on", then: [], otherwise: [] })]))];
+  // A list whose row changes its shape, and the large list's in no block,
+  // which the device never renders.
+  for (const [chunks, live] of [[shaped, LARGE_PLAN.live], [[dynamic(keyedList(6, LARGE_ROW))], []]]) {
+    const runtime = await deviceRuntimeOf(chunks, { ...LARGE_PLAN, live }, LARGE_HANDLERS);
+    for (const word of OWN_WORDS) assert.ok(!runtime.includes(word), `no ${word}`);
+  }
+});
+
+test("a runtime that keeps no list by a page's own code holds none of the lines it has for one", async () => {
+  // Folded away by their flag, they would still move esbuild's names: a
+  // page with no list of its own is sent the bytes it was before.
+  const source = await readFile(RUNTIME_SOURCE, "utf8");
+  const folded = withOwnRows(source, { rows: null });
+  // Its lines, by what they use that only that code declares, and the flags
+  // it is folded by; a hook in an expression folds away as the flag goes.
+  const used = ["// own rows:", "// :own rows", "ownKept(", "OWN_ROWS?.", "OWN_WALKS?.", "PW_OWN", "PW_UNOWNED"];
+  for (const word of used) assert.ok(!folded.includes(word), `no ${word}`);
+  // A server's page keeps none: its rows are the server's.
+  const dir = await mkdtemp(path.join(tmpdir(), "pw-assets-"));
+  try {
+    await copyFile(RUNTIME_SOURCE, path.join(dir, "pw-runtime.mjs"));
+    await optimizeAssets(dir);
+    const server = (await readFile(path.join(dir, "pw-runtime.mjs"))).toString();
+    for (const word of OWN_WORDS) assert.ok(!server.includes(word), `a server's runtime has no ${word}`);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("a build none of whose lists is its own code's is packed from the runtime as it was before there was any", async () => {
+  // Packed from the runtime as written and from it with its own lines cut
+  // already, as before there were any: each runtime the build writes, a
+  // server's and a device's, and its page alone, byte for byte.
+  const source = await readFile(RUNTIME_SOURCE, "utf8");
+  const general = withOwnRows(source, { rows: null });
+  assert.notEqual(general, source);
+  // And with the lines of a row its own anchor cut too (ADR-0438), as
+  // before there were any: none of this build's rows is.
+  const comments = general.replace(ELEMENT_LINES, "");
+  assert.notEqual(comments, general);
+  const shaped = [dynamic(keyedList(6, [dynamic({ part: "conditional", id: 7, value: "row.on", then: [], otherwise: [] })]))];
+  const packed = [];
+  for (const runtime of [source, general, comments]) {
+    const dir = await mkdtemp(path.join(tmpdir(), "pw-assets-"));
+    try {
+      await writeFile(path.join(dir, "pw-runtime.mjs"), runtime);
+      await aBuild(dir, {
+        ...LARGE_HANDLERS,
+        "pages/p.json": JSON.stringify(LARGE_PLAN),
+        "templates.json": JSON.stringify([{ path: "p", chunks: [...shaped, event("h")] }]),
+      });
+      await optimizeAssets(dir);
+      packed.push(await Promise.all(["pw-runtime.mjs", "pw-runtime-device.mjs", "build/alone/p.mjs"].map((f) => readFile(path.join(dir, f), "utf8"))));
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  }
+  assert.deepEqual(packed[0], packed[1]);
+  assert.deepEqual(packed[0], packed[2]);
+});
+
+test("a list the packaging does not write is said, by its page and part", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "pw-assets-"));
+  const said = [];
+  const write = process.stderr.write;
+  try {
+    await copyFile(new URL("./public/pw-runtime.mjs", import.meta.url), path.join(dir, "pw-runtime.mjs"));
+    const arm = { case: "Some", binding: "x", body: [dynamic(keyedList(51, [dynamic({ part: "text", id: 52, value: "x", context: "text" })]))] };
+    await aBuild(dir, {
+      "pages/p.json": JSON.stringify({ prerender: true, signals: [{ name: "rows" }, { name: "o" }], live: [{ part: 50, kind: "match" }] }),
+      "templates.json": JSON.stringify([{ path: "p", chunks: [dynamic({ part: "match", id: 50, value: "o", arms: [arm] })] }]),
+    });
+    process.stderr.write = (text) => (said.push(String(text)), true);
+    await optimizeAssets(dir);
+  } finally {
+    process.stderr.write = write;
+    await rm(dir, { recursive: true, force: true });
+  }
+  assert.deepEqual(said, [
+    // Its row is a text, no element (ADR-0438).
+    "pw packaging: list 51 of p keeps its rows' comments: it holds text beside its element\n",
+    "pw packaging: list 51 of p is kept by the general code: it is inside a block that binds x\n",
+  ]);
+});
+
+// --- a planned row that is one element is its own anchor (ADR-0438) ---------
+
+const st = (value) => ({ chunk: "static", value });
+
+test("a planned row is its own anchor where it is one element a parser keeps whole, and is refused by name where not", () => {
+  const text = dynamic({ part: "text", id: 1, value: "row.name", context: "text" });
+  const attribute = dynamic({ part: "attribute", id: 2, owner: 0, name: "class", value: "row.c", context: "attribute" });
+  const one = [
+    LARGE_ROW,
+    [st("<li>"), text, st("</li>")],
+    [st('<li data-pw="0" '), attribute, st("><span>"), text, st("</span> <b>x</b></li>")],
+    [st("<div><p>"), text, st("</p><div>"), text, st("</div><li>x</li></div>")],
+    [st("<td>"), text, st("</td>")],
+    [st('<img data-pw="0" '), attribute, st(">")],
+    [st("<p><span>"), text, st("</span><br></p>")],
+    [st("<a><b>"), text, st("</b></a>")],
+    [st("<tr><td><b>x</b></td><th></th></tr>")],
+    [st("<Li>x</LI>")],
+  ];
+  for (const body of one) assert.equal(rowElement(body), null, JSON.stringify(body));
+  const refused = [
+    [[st(" <li>"), text, st("</li> ")], "it holds text beside its element"],
+    [[text], "it holds text beside its element"],
+    [[st("<li>"), text, st("</li>"), text], "it holds text beside its element"],
+    [[st("<li>a</li><li>b</li>")], "it is more than one element"],
+    [[st("<li><!-- c --></li>")], "it holds a comment"],
+    [[st("<li><?x?></li>")], "it holds a comment"],
+    [[st("<li>x")], "its `<li>` is not ended"],
+    [[st("<li></span></li>")], "its `</span>` ends no element it opened"],
+    [[st("<li></ li>")], "it holds a `</` that ends no element"],
+    [[st("<li")], "its markup is not read to the end of a tag"],
+    [[st("")], "it is no element"],
+    [[st("<li><span><li>x</li></span></li>")], "a `<li>` inside its `<li>` would end it"],
+    [[st("<dd><dt>x</dt></dd>")], "a `<dt>` inside its `<dd>` would end it"],
+    [[st("<p><span><div>x</div></span></p>")], "a `<div>` inside its `<p>` would end it"],
+    [[st("<p><table></table></p>")], "a `<table>` inside its `<p>` would end it"],
+    [[st("<p><b><li>x</li></b></p>")], "a `<li>` inside its `<p>` would end it"],
+    [[st("<p><dd>x</dd></p>")], "a `<dd>` inside its `<p>` would end it"],
+    [[st("<p><h4>x</h4></p>")], "a `<h4>` inside its `<p>` would end it"],
+    [[st("<th><table></table></th>")], "a `<table>` inside its `<th>` would end it"],
+    [[st("<a><span><a>x</a></span></a>")], "a `<a>` inside its `<a>` would end it"],
+    [[st("<button><b><button>x</button></b></button>")], "a `<button>` inside its `<button>` would end it"],
+    [[st("<h2><h3>x</h3></h2>")], "a `<h3>` inside its `<h2>` would end it"],
+    [[st("<tr><td><table></table></td></tr>")], "a `<table>` inside its `<tr>` would end it"],
+    [[st("<tr><td><tr></tr></td></tr>")], "a `<tr>` inside its `<tr>` would end it"],
+    [[st("<td><span><td></td></span></td>")], "a `<td>` inside its `<td>` would end it"],
+    [[st("<tr>"), text, st("<td></td></tr>")], "its `<tr>` holds text, which a parser moves out of it"],
+    [[st("<tr><div></div></tr>")], "its `<tr>` holds a `<div>`, which a parser moves out of it"],
+    [[st("<li><textarea>x</textarea></li>")], "it holds a `<textarea>`, which a parser does not keep as written"],
+    [[st("<li><svg></svg></li>")], "it holds a `<svg>`, which a parser does not keep as written"],
+    [[st("<li><body></body></li>")], "it holds a `<body>`, which a parser does not keep as written"],
+    [[st("<template>x</template>")], "it holds a `<template>`, which a parser does not keep as written"],
+    [[st("<option>x</option>")], "its element is a `<option>`, which is not one a row is its own anchor as"],
+    [[st("<my-row>x</my-row>")], "its element is a `<my-row>`, which is not one a row is its own anchor as"],
+  ];
+  for (const [body, why] of refused) assert.equal(rowElement(body), why, JSON.stringify(body));
+});
+
+/** A build of one page that talks to no server; what it writes of its
+ * template IR, its device runtime and its server's, and what it says of a
+ * row's anchors. */
+async function anchoredBuild(chunks, plan) {
+  const dir = await mkdtemp(path.join(tmpdir(), "pw-assets-"));
+  const said = [];
+  const write = process.stderr.write;
+  try {
+    await copyFile(RUNTIME_SOURCE, path.join(dir, "pw-runtime.mjs"));
+    await aBuild(dir, { ...LARGE_HANDLERS, "pages/p.json": JSON.stringify(plan), "templates.json": JSON.stringify([{ path: "p", chunks }]) });
+    process.stderr.write = (text) => (said.push(String(text)), true);
+    await optimizeAssets(dir);
+    process.stderr.write = write;
+    const read = (file) => readFile(path.join(dir, file), "utf8");
+    return {
+      templates: JSON.parse(await read("build/templates.json")),
+      device: await read("pw-runtime-device.mjs"),
+      server: await read("pw-runtime.mjs"),
+      said: said.filter((s) => s.includes("comments")),
+    };
+  } finally {
+    process.stderr.write = write;
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
+/** What only a row its own anchor holds, by words each leaves in a build. */
+const ELEMENT_WORDS = ["data-pw-row", "pw key"];
+
+test("the packaging says a planned row of one element is its own anchor in its build's IR, and each other is said", async () => {
+  const text = (id) => dynamic({ part: "text", id, value: "row.name", context: "text" });
+  const chunks = [
+    dynamic(keyedList(6, LARGE_ROW)),
+    // A row written with a space either side, as a list in a `<ul>` is.
+    dynamic(keyedList(12, [st(" <li>"), text(13), st("</li> ")])),
+    // One a parser ends from inside.
+    dynamic(keyedList(14, [st("<p><div>"), text(15), st("</div></p>")])),
+    // One no plan makes: no word of it.
+    dynamic(keyedList(16, [st("<li>"), dynamic({ part: "conditional", id: 17, value: "row.on", then: [], otherwise: [] }), st("</li>")])),
+    // One no block keeps, which the device never renders: none either.
+    dynamic(keyedList(18, [st("<li>"), text(19), st("</li>")])),
+  ];
+  const live = [6, 12, 14, 16].map((part) => ({ part, kind: "each" }));
+  const built = await anchoredBuild(chunks, { ...LARGE_PLAN, live });
+  const anchors = Object.fromEntries(built.templates[0].chunks.map((c) => [c.value.id, c.value.row_anchor]));
+  assert.deepEqual(anchors, { 6: "element", 12: undefined, 14: undefined, 16: undefined, 18: undefined });
+  assert.deepEqual(built.said, [
+    "pw packaging: list 12 of p keeps its rows' comments: it holds text beside its element\n",
+    "pw packaging: list 14 of p keeps its rows' comments: a `<div>` inside its `<p>` would end it\n",
+  ]);
+  // The device's runtime holds what reads and writes a row its own anchor; a
+  // server's, none of it.
+  for (const word of ELEMENT_WORDS) {
+    assert.ok(built.device.includes(word), `the device's runtime has ${word}`);
+    assert.ok(!built.server.includes(word), `a server's runtime has no ${word}`);
+  }
+});
+
+test("a build whose presses are not heard at its documents says no row is its own anchor, and holds none of the lines for one", async () => {
+  // A view on a page the device runs: what is inside a row is addressed.
+  const view = dynamic({ part: "instance", id: 30, path: "v", args: [], elements: 0, deepest: 0 });
+  const viewed = await anchoredBuild([dynamic(keyedList(6, LARGE_ROW)), view], LARGE_PLAN);
+  assert.equal(viewed.templates[0].chunks[0].value.row_anchor, undefined);
+  assert.deepEqual(viewed.said, []);
+  // A page none of whose planned rows is one element.
+  const spaced = await anchoredBuild([dynamic(keyedList(6, [st(" <li>x</li>")]))], LARGE_PLAN);
+  assert.equal(spaced.templates[0].chunks[0].value.row_anchor, undefined);
+  for (const built of [viewed, spaced]) {
+    for (const word of ELEMENT_WORDS) assert.ok(!built.device.includes(word), `no ${word}`);
+  }
+  // A page its server renders for each reader: none either.
+  const served = await anchoredBuild([dynamic(keyedList(6, LARGE_ROW))], { ...LARGE_PLAN, prerender: false });
+  assert.equal(served.templates[0].chunks[0].value.row_anchor, undefined);
+});
+
+test("a page its server renders, in a build whose other page says its row its own anchor, says none", async () => {
+  // Its rows are the server's, whose runtime reads no row its own anchor.
+  const dir = await mkdtemp(path.join(tmpdir(), "pw-assets-"));
+  const write = process.stderr.write;
+  try {
+    await copyFile(RUNTIME_SOURCE, path.join(dir, "pw-runtime.mjs"));
+    const item = [st("<li>"), dynamic({ part: "text", id: 9, value: "row.name", context: "text" }), st("</li>")];
+    await aBuild(dir, {
+      ...LARGE_HANDLERS,
+      "pages/p.json": JSON.stringify(LARGE_PLAN),
+      "pages/q.json": JSON.stringify({ ...LARGE_PLAN, prerender: false, live: [{ part: 8, kind: "each" }] }),
+      "templates.json": JSON.stringify([
+        { path: "p", chunks: [dynamic(keyedList(6, LARGE_ROW))] },
+        { path: "q", chunks: [dynamic(keyedList(8, item))] },
+      ]),
+    });
+    process.stderr.write = () => true;
+    await optimizeAssets(dir);
+    process.stderr.write = write;
+    const templates = JSON.parse(await readFile(path.join(dir, "build/templates.json"), "utf8"));
+    const said = (page) => templates.find((t) => t.path === page).chunks[0].value.row_anchor;
+    assert.equal(said("p"), "element");
+    assert.equal(said("q"), undefined);
+  } finally {
+    process.stderr.write = write;
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("the runtime marks each line only a row its own anchor needs", async () => {
+  const source = await readFile(RUNTIME_SOURCE, "utf8");
+  // The key's symbol and reading, the index, the renderer's writing and the
+  // three places it writes a keyed row, the plan, its rows, the holes found
+  // in a row it did not make, the rows shown (two), morphed and parsed, and
+  // the morph's items and keeping. Cut, each place is as it was before there
+  // were any: a build none of whose rows is one is sent the bytes it was.
+  assert.equal(source.match(ELEMENT_LINES).length, 15);
+  const cut = source.replace(ELEMENT_LINES, "");
+  for (const word of [...ELEMENT_WORDS, "row_anchor", "ROW_KEY", "rowKeyOf", "rowOwn", "plan.root", "// element rows", "// :element rows"]) {
+    assert.ok(!cut.includes(word), `no ${word} left where the lines are cut`);
   }
 });
 

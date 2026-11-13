@@ -77,8 +77,8 @@ MUTANTS = [
     (
         "the literals a handler's list of its module read are written",
         JS_PURE,
-        "        self.line(&format!(\"return {};\", val(*result)));\n        self.unread_dropped();\n        Ok(())\n    }\n\n    /// An instance's shape",
-        "        self.line(&format!(\"return {};\", val(*result)));\n        Ok(())\n    }\n\n    /// An instance's shape",
+        "        self.line(&format!(\"return {};\", val(*result)));\n        self.unread_dropped();\n        self.unmade_unread()\n    }\n\n    /// An instance's shape",
+        "        self.line(&format!(\"return {};\", val(*result)));\n        self.unmade_unread()\n    }\n\n    /// An instance's shape",
     ),
     # The merge of a callee's lists into the handler's module has no control:
     # the inliner copies each callee's first call into the handler, list and

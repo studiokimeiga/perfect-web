@@ -109,6 +109,16 @@ MUTANTS = [
     ("a changed list in a row is not told", RUNTIME, "            if (!same(x, y) && listChanged(p, x, y, after, others)) out.push([p.id, { list: true }]);\n", ""),
     ("a list's change is told as the row's, set in place", RUNTIME, "      return found && found.some(([, change]) => change.list) ? null : found;\n", "      return found;\n"),
     ("two values of another type are one", RUNTIME, """  const scalar = (v) => (typeof v === "boolean" ? "b" : isInt(v) ? "i" : "t") + shown(v);\n""", """  const scalar = (v) => shown(v);\n"""),
+    # --- what a row kept read (found by the planned rows' agreement) -----------
+    ("a NaN the page holds is not what a row read of it", RUNTIME, "  const unmoved = (now, was) => now === was || (now !== now && was !== was);\n", "  const unmoved = (now, was) => now === was;\n"),
+    # --- a planned row, as a device build makes it (ADR-0427) -------------------
+    ("a planned row's text hole is not its part's text", RUNTIME, """      else if (q.part === "text") holes[h] = raws[h] = needText(env, q.value);\n""", """      else if (q.part === "text") holes[h] = raws[h] = needText(env, q.value).trim();\n"""),
+    ("a planned row's scope does not hold its item", RUNTIME, "    const env = { ...e, reads, ...computing, names: { name: p.binding, value: item, up: e.names }, frames: [...e.frames, { scope: p.id, instance: token }] };\n", "    const env = { ...e, reads, ...computing, frames: [...e.frames, { scope: p.id, instance: token }] };\n"),
+    ("a planned row's absent boolean attribute is there", RUNTIME, """        holes[h] = present ? q.name : "";\n""", """        holes[h] = q.name;\n"""),
+    ("a planned row's attribute is set as it is compared", RUNTIME, "        raws[h] = [name, value];\n", """        raws[h] = [name, `${name}="${value}"`];\n"""),
+    ("a planned row's handlers capture nothing", RUNTIME, "    found = { parts, capturing: parts.some((q) => Array.isArray(q) && q.some((v) => v.captures?.length > 0)) };\n", "    found = { parts, capturing: false };\n"),
+    ("a planned row's text is written in the block's scope", RUNTIME, "      : (row) => (row.text ??= rowText(row.of, { ...row.env, computedValues: null }, row.others, row.key)),\n", "      : (row) => (row.text ??= rowText(row.of, { ...row.env, names: row.names, computedValues: null }, row.others, row.key)),\n"),
+    ("a kept row's texts keep their anchors", RUNTIME, "      out.bare = !PW_SERVER && DELEGATED_ROWS;\n", "      out.bare = false;\n"),
     # --- a list inside a row ---------------------------------------------------
     ("a new list's missing key is taken", RUNTIME, """        if (key === "") throw new Blocked("MissingLoopKey", p.key);\n        if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);\n        seen.add(key);\n      }\n""", """        if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);\n        seen.add(key);\n      }\n"""),
     ("a new list's repeated key is taken", RUNTIME, """        if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);\n        seen.add(key);\n      }\n""", """        seen.add(key);\n      }\n"""),
@@ -125,6 +135,16 @@ MUTANTS = [
     ("the server's false boolean attribute leaves its space", SERVER, """            } else if out.ends_with(' ') {\n""", """            } else if false {\n"""),
     ("the server takes a new list's repeated key", SERVER, """        if !seen.insert(raw.clone()) {\n""", """        if !seen.insert(raw.clone()) && false {\n"""),
     ("the server's duplicate key is rendered", SERVER, """                        if seen.insert(raw.clone(), raw.clone()).is_some() {\n""", """                        if false && seen.insert(raw.clone(), raw.clone()).is_some() {\n"""),
+    # --- a planned row that is one element is its own anchor (ADR-0438) --------
+    ("a block's row its own anchor is written between comments", RUNTIME, """      if (p.row_anchor === "element") {\n        rowOwn(""", """      if (false) {\n        rowOwn("""),
+    ("a row's text its own anchor is written between comments", RUNTIME, """      if (p.row_anchor === "element") return rowOwn(p, at, env, others, out);\n""", """      if (false) return rowOwn(p, at, env, others, out);\n"""),
+    ("an instance its own anchor is written between comments", RUNTIME, """        if (p.row_anchor === "element") return rowOwn(""", """        if (false) return rowOwn("""),
+    ("a row's key is written before its element's name", RUNTIME, """    out.html.push(cut[0], ` data-pw-row="${at}"`, cut[1]);\n""", """    out.html.push(` data-pw-row="${at}"`, cut[0], cut[1]);\n"""),    ("a tag's name ends at a space alone", RUNTIME, "/^<[A-Za-z][^\\t\\n\\f\\r />]*/", "/^<[A-Za-z][^ />]*/"),
+    ("a row that begins with no element is written", RUNTIME, """      if (!name) throw unrepresented("a row that is its own anchor begins with no element");\n""", ""),
+    ("the server writes a row its own anchor between comments", SERVER, """    if anchor == RowAnchor::Comments {\n""", """    if anchor != RowAnchor::Comments || true {\n"""),
+    ("the server writes a row's key before its element's name", SERVER, """    out.push_str(&first[..at]);\n    out.push_str(&format!(" data-pw-row=\\"{id}@{token}\\""));\n""", """    out.push_str(&format!(" data-pw-row=\\"{id}@{token}\\""));\n    out.push_str(&first[..at]);\n"""),
+    ("the server ends a tag's name at a space alone", SERVER, """.find(['\\t', '\\n', '\\u{c}', '\\r', ' ', '/', '>'])""", """.find([' ', '/', '>'])"""),
+    ("the server writes a row whose markup is no element's", SERVER, """        .filter(|name| name.starts_with(|c: char| c.is_ascii_alphabetic()));\n""", """        .filter(|_| true);\n"""),
 ]
 
 
