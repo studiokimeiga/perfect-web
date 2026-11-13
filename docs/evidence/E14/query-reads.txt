@@ -1,8 +1,8 @@
 ADR-0212 - a query reads a query or a resource, and a subscription a subscription
 
 produced by: just e14-query-reads
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: a3cab774e9569baddae69bd0d294487eaa3b697e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the rule (compiler/pw-core/tests/reads_name_their_kind.rs)
@@ -10,11 +10,11 @@ rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 test a_query_of_a_function_is_refused ... ok
 test a_query_of_a_subscription_and_a_subscription_of_a_query_are_refused ... ok
 test each_reads_its_own_kind ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
 
 == the corpus
 
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 87.40s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 97.89s
 
 == mutation controls (scripts/query_reads_mutations.py)
 

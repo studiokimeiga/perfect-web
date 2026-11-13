@@ -1,14 +1,14 @@
 ADR-0196 - only a word that begins a statement or an expression is reserved
 
 produced by: just e14-reserved-words
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: a3cab774e9569baddae69bd0d294487eaa3b697e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the parser (compiler/pw-syntax/src/grammar.rs)
 
 test grammar::tests::a_statement_keyword_cannot_name_a_value ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 97 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 100 filtered out; finished in 0.00s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.00s
@@ -18,8 +18,8 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 pw check: 57 file(s), no diagnostics
 pw check: 27 file(s), no diagnostics
-rejected: 97 files
-rejected: 97/97 charter §16 categories covered
+rejected: 106 files
+rejected: 106/106 charter §16 categories covered
 corpus-check: OK
 
 == mutation controls (scripts/reserved_words_mutations.py)

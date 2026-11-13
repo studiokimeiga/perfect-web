@@ -1,8 +1,8 @@
 ADR-0323 - a member read is computed wherever a page reads it
 
 produced by: just e14-member-reads
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: a3cab774e9569baddae69bd0d294487eaa3b697e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -15,17 +15,18 @@ test a_member_read_inside_a_view_that_contains_itself_is_refused ... ok
 test a_member_of_the_page_inside_a_row_is_refused_as_any_read_of_it_is ... ok
 test a_member_read_inside_a_speculated_block_is_computed_in_the_browser ... ok
 test a_member_read_outside_text_is_computed_by_a_host ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 29.02s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 17.42s
 
 == the host: a count inside a block, told where it is, and in a block a speculation renders
 
 test tests::a_member_read_inside_a_speculated_block_is_rendered_with_it ... ok
 test tests::a_member_read_inside_a_block_is_computed_and_told_where_it_is ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1046 filtered out; finished in 0.51s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1093 filtered out; finished in 0.31s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
 
 == the checkout link's subtotal before the server answers, in three engines (e2e/cart.spec.mjs)
 
-  6 passed (33.0s)
+  6 passed (21.9s)
 
 == mutation controls (scripts/member_reads_mutations.py)
 

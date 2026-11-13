@@ -1,13 +1,13 @@
 ADR-0049 - a string's escapes are the language's
 
 produced by: just e10-strings
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: a3cab774e9569baddae69bd0d294487eaa3b697e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the decoder (compiler/pw-syntax/src/strings.rs)
 
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 91 filtered out; finished in 0.00s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 94 filtered out; finished in 0.00s
 
 == the checker, Koka and Marko (compiler/pw-core/tests/string_escapes.rs)
 
@@ -15,7 +15,7 @@ test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 == compiled components through the host (pw-conformance/tests/strings.rs)
 
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.50s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.75s
 
 == the component and the JavaScript module, on the same arguments
 

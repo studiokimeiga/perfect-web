@@ -1,11 +1,11 @@
 ADR-0364 - a train is pre-verified locally
 
 produced by: just e14-preverify
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: a3cab774e9569baddae69bd0d294487eaa3b697e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 python: Python 3.12.3
 just: just 1.58.0
-git: git version 2.56.1
+git: git version 2.56.0
 
 == the tool (scripts/tests/test_preverify.py)
 
@@ -188,7 +188,7 @@ test_the_toolchain_is_copied_into_the_lanes_and_not_downloaded (scripts.tests.te
 test_when_no_lane_can_set_up_what_is_left_is_not_run (scripts.tests.test_preverify.Setup.test_when_no_lane_can_set_up_what_is_left_is_not_run) ... ok
 test_the_status_says_what_each_lane_runs_and_how_far_the_queue_is (scripts.tests.test_preverify.Status.test_the_status_says_what_each_lane_runs_and_how_far_the_queue_is) ... ok
 test_the_default_steps_are_a_shards (scripts.tests.test_preverify.Steps.test_the_default_steps_are_a_shards) ... ok
-Ran 179 tests in 55.256s
+Ran 179 tests in 54.608s
 OK
 
 == mutation controls (scripts/preverify_mutations.py)

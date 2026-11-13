@@ -1,8 +1,8 @@
 E9 gate item 2 — differential agreement with Koka
 
 produced by: just e9-parity
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: a3cab774e9569baddae69bd0d294487eaa3b697e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 koka: Koka 3.2.3, 01:25:33 Mar 18 2026 (ghc release version)
 
 Every accepted corpus file that lowers to the pure subset (ADR-0015),
@@ -10,7 +10,7 @@ compiled by the real Koka. Both compilers must accept it.
 
   agreed       1
   disagreed    0
-  skipped     43   not in the common subset
+  skipped     49   not in the common subset
 
 SKIPPED — counted as skipped, never as agreement. Silence is not parity:
   A-001-pure-calculation.pw  (types declared in another module; emit-koka is single-module)
@@ -56,6 +56,12 @@ SKIPPED — counted as skipped, never as agreement. Silence is not parity:
   A-052-a-reference-across-sources-that-may-name-no-row.pw  (no function body in the pure subset)
   A-053-a-tables-change-from-its-released-schema-stated.pw  (no function body in the pure subset)
   A-054-a-value-the-device-keeps.pw  (no function body in the pure subset)
+  A-055-an-owned-table-read-and-written-by-its-reader.pw  (no function body in the pure subset)
+  A-056-an-owned-table-keyed-by-its-owner.pw  (no function body in the pure subset)
+  A-057-a-reference-from-its-owners-own-field.pw  (no function body in the pure subset)
+  A-058-a-predicate-with-a-body-required-where-it-is-imported.pw  (no function body in the pure subset)
+  A-059-a-query-requiring-a-predicate-read-by-a-pages-binding.pw  (no function body in the pure subset)
+  A-060-a-public-table-read-by-anyone-and-written-by-its-owner.pw  (no function body in the pure subset)
 
 CONTROLS — a run that cannot fail, or cannot agree, measures nothing
   A. a well-typed module with no `main` is accepted by Koka:   pass

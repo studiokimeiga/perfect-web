@@ -1,8 +1,8 @@
 ADR-0178 - whether an item can be ordered is shown before the press, and a change to it reaches every page open
 
 produced by: just e14-availability
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: a3cab774e9569baddae69bd0d294487eaa3b697e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -13,9 +13,9 @@ test a_block_that_changed_renders_the_instance_again ... ok
 test a_match_that_shows_the_arm_it_showed_is_set_where_it_is ... ok
 test a_renamed_item_sets_its_text_and_every_attribute_that_reads_the_name ... ok
 test a_block_that_decides_as_it_did_is_set_where_it_is ... ok
-test nothing_changed_is_no_change ... ok
-test an_attribute_is_set_as_the_document_writes_it_and_a_boolean_one_comes_and_goes ... ok
 test an_unkeyed_list_inside_the_row_that_changed_renders_the_row_again ... ok
+test an_attribute_is_set_as_the_document_writes_it_and_a_boolean_one_comes_and_goes ... ok
+test nothing_changed_is_no_change ... ok
 test what_a_handler_captures_is_set_where_it_is ... ok
 test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
@@ -23,9 +23,9 @@ test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 test v1_a_listeners_wildcard_is_decided_and_its_parameters_are_checked ... ok
 test the_store_program_is_decided_not_merely_silent ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 40 filtered out; finished in 0.22s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 40 filtered out; finished in 0.32s
 test the_stores_handlers_compile_to_the_calls_their_bodies_make ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 21 filtered out; finished in 1.27s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 21 filtered out; finished in 1.79s
 
 == the development server (pw-dev-server)
 
@@ -38,16 +38,17 @@ test tests::a_stock_change_drops_the_menu_and_not_the_recommendations ... ok
 test tests::a_stock_change_told_renders_its_row_again_where_it_is ... ok
 test tests::an_item_sold_out_since_the_page_is_refused_by_name ... ok
 test tests::an_untold_stock_change_reaches_the_open_pages_when_the_menu_is_read_again ... ok
-test result: ok. 1039 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 335.31s
+test result: ok. 1086 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 463.73s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
 == the page, in three engines (e2e/availability.spec.mjs)
 
-  12 passed (22.3s)
+  12 passed (32.2s)
 
 == mutation controls (scripts/availability_mutations.py)
 
 baseline (core): 42 passed, 0 failed
-baseline (render): 125 passed, 0 failed
+baseline (render): 131 passed, 0 failed
 baseline (server): 5 passed, 0 failed
 baseline (browser): 4 passed, 0 failed
 every item is said to be available [server]: KILLED (3 of 5 tests fail)

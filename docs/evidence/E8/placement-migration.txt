@@ -7,15 +7,15 @@ meaningful is now the placement clause on its declaration, and an
 effect nothing declares gets no placement answer at all rather
 than the table's None, which was read as 'grants it'.
 
-test an_undeclared_effect_gets_no_placement_answer ... ok
 test blocked_is_distinguishable_from_unsatisfiable ... ok
+test an_undeclared_effect_gets_no_placement_answer ... ok
 test every_declared_placement_matches_what_the_deleted_table_said ... ok
 test the_gate_can_detect_the_thing_it_forbids ... ok
 test the_solver_answers_at_all ... ok
 test the_combinations_that_have_nowhere_to_run ... ok
 test no_source_file_maps_an_effect_family_to_a_world ... ok
 test the_placement_baseline ... ok
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.54s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.64s
 
 and the contracts the deletion could have moved,
 after re-running just e8-contracts:

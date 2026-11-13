@@ -1,8 +1,8 @@
 ADR-0039 - pure computation in the component backend
 
 produced by: just e10-pure
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: a3cab774e9569baddae69bd0d294487eaa3b697e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 koka: Koka 3.2.3, 01:25:33 Mar 18 2026 (ghc release version)
 
@@ -27,33 +27,33 @@ r.Q: `r.Q` did not lower: the backend does not lower `%` on a Float yet: its sem
 r.Q: `r.Q` did not lower: the backend does not lower a `return` inside a function value yet: the lambda a list operation runs is compiled into its loop; a `return` there would leave the function around it
 r.Q: `r.Q` did not lower: the backend does not lower an assignment inside a function value yet: a lambda a list operation runs does not change the bindings around it
 r.Q: the program does not check, so nothing is compiled: [PW0606] `r.Q` declares its result `Int` and this produces `Unit`
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.43s
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.77s
 
 == against Koka (compiler/pw-conformance/tests/koka_oracle.rs)
 
 oracle: 9 functions x 240 inputs: 1620 values identical to Koka's, 530 traps where a 64-bit result did not fit, 10 zero divisors (Koka: 0 and the dividend; Pleris: a trap)
 oracle: a Koka answer altered by one is not matched
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.10s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.47s
 
 == mutation controls (scripts/pure_mutations.py)
 
-baseline: 119 passed, 0 failed
-addition wraps: KILLED (1 of 119 tests fail)
-subtraction wraps: KILLED (1 of 119 tests fail)
-multiplication wraps: KILLED (2 of 119 tests fail)
-negation wraps: KILLED (1 of 119 tests fail)
-division truncates: KILLED (3 of 119 tests fail)
-the remainder takes the dividend's sign: KILLED (2 of 119 tests fail)
-`&` evaluates as `|`: KILLED (1 of 119 tests fail)
-`<` on strings is `<=`: KILLED (1 of 119 tests fail)
-a negative number is written with `+`: KILLED (1 of 119 tests fail)
-a literal is placed one byte off: KILLED (2 of 119 tests fail)
-the region starts on the literals: KILLED (2 of 119 tests fail)
-every record field is stored at offset 0: KILLED (1 of 119 tests fail)
-imports are read from the top of the body only: KILLED (1 of 119 tests fail)
-a program that does not parse is compiled: KILLED (1 of 119 tests fail)
-an operator after a name starts a policy: KILLED (12 of 119 tests fail)
-Koka negates with `-`: KILLED (1 of 119 tests fail)
+baseline: 122 passed, 0 failed
+addition wraps: KILLED (1 of 122 tests fail)
+subtraction wraps: KILLED (1 of 122 tests fail)
+multiplication wraps: KILLED (2 of 122 tests fail)
+negation wraps: KILLED (1 of 122 tests fail)
+division truncates: KILLED (3 of 122 tests fail)
+the remainder takes the dividend's sign: KILLED (2 of 122 tests fail)
+`&` evaluates as `|`: KILLED (1 of 122 tests fail)
+`<` on strings is `<=`: KILLED (1 of 122 tests fail)
+a negative number is written with `+`: KILLED (1 of 122 tests fail)
+a literal is placed one byte off: KILLED (2 of 122 tests fail)
+the region starts on the literals: KILLED (2 of 122 tests fail)
+every record field is stored at offset 0: KILLED (1 of 122 tests fail)
+imports are read from the top of the body only: KILLED (1 of 122 tests fail)
+a program that does not parse is compiled: KILLED (1 of 122 tests fail)
+an operator after a name starts a policy: KILLED (12 of 122 tests fail)
+Koka negates with `-`: KILLED (1 of 122 tests fail)
 16 of 16 mutants killed
 memory bound: no process was stopped
 

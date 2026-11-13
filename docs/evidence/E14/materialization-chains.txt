@@ -1,14 +1,14 @@
 ADR-0255 - a materialization may read another
 
 produced by: just e14-materialization-chains
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: a3cab774e9569baddae69bd0d294487eaa3b697e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the checker (compiler/pw-core/tests/materialization_chains.rs)
 
-test a_clause_naming_no_resource_is_refused ... ok
 test a_materialization_may_read_another ... ok
+test a_clause_naming_no_resource_is_refused ... ok
 test a_reader_declared_before_what_it_reads_reads_it_too ... ok
 test the_key_audit_counts_what_a_materialization_read_separates ... ok
 test a_materialization_that_reads_itself_is_refused ... ok
@@ -16,16 +16,16 @@ test a_shared_materialization_reads_no_private_one ... ok
 test what_a_materialization_reads_itself_passes_to_its_readers ... ok
 test what_it_gives_the_one_it_reads_is_checked ... ok
 test a_write_reaches_what_reads_a_materialization_it_changes ... ok
-test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.41s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.42s
 
 == the runtime's reads (runtime/pw-materialize/tests/reads.rs)
 
+test a_key_the_reader_does_not_supply_reaches_every_entry ... ok
 test an_event_reaches_what_reads_a_materialization_it_reaches ... ok
 test a_node_read_twice_is_followed_at_each_key ... ok
-test a_key_the_reader_does_not_supply_reaches_every_entry ... ok
-test a_reader_of_what_the_event_does_not_reach_is_untouched ... ok
-test reads_that_form_a_cycle_end ... ok
 test an_event_reaches_what_reads_its_listener ... ok
+test reads_that_form_a_cycle_end ... ok
+test a_reader_of_what_the_event_does_not_reach_is_untouched ... ok
 test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 
 == mutation controls (scripts/materialization_chains_mutations.py)

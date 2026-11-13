@@ -1,8 +1,8 @@
 ADR-0233 - a speculation on a value of a type that contains itself
 
 produced by: just e14-speculated-graphs
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: a3cab774e9569baddae69bd0d294487eaa3b697e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
@@ -10,7 +10,7 @@ node: v22.21.1
 
 test a_speculated_thread_is_read_from_its_nodes_and_replied_to ... ok
 test a_thread_sent_nested_or_not_a_tree_traps ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
 
 == the host (compiler/pw-conformance/tests/browser_graphs.rs)
 
@@ -20,12 +20,13 @@ test a_hosts_graphs_inside_another_value_are_each_its_own ... ok
 test what_is_not_a_graph_is_refused_by_the_host ... ok
 test a_browsers_graph_is_the_tree_its_nodes_make ... ok
 test a_chain_as_deep_as_its_data_crosses_from_a_browser ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.50s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.12s
 
 == the server (spikes/own-renderer/server/src/main.rs)
 
 test tests::a_value_that_contains_itself_is_written_as_its_nodes ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1047 filtered out; finished in 1.68s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1094 filtered out; finished in 2.38s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
 
 == mutation controls (scripts/speculated_graphs_mutations.py)
 

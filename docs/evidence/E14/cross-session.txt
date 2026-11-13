@@ -1,8 +1,8 @@
 ADR-0219 - what a commit drops reaches every session that reads it
 
 produced by: just e14-cross-session
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: a3cab774e9569baddae69bd0d294487eaa3b697e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the server (spikes/own-renderer/server/src/main.rs)
@@ -12,7 +12,8 @@ test tests::a_post_reaches_every_open_timeline ... ok
 test tests::a_post_over_http_reaches_another_reader_after_its_answer ... ok
 test tests::the_feed_is_served_by_the_host_its_data_the_deployments ... ok
 test tests::a_sessions_own_change_reaches_no_other_session ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 1043 filtered out; finished in 9.74s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 1090 filtered out; finished in 9.02s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
 
 == mutation controls (scripts/cross_session_mutations.py)
 
