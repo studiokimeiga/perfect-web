@@ -1,8 +1,8 @@
 ADR-0283 and ADR-0284 - a component's contract is what its code does; a value of any type is fixed by the call that meets it
 
 produced by: just e14-what-a-component-does
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: a3cab774e9569baddae69bd0d294487eaa3b697e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the compiler (what_a_component_does.rs, any_type.rs, component_contract.rs, evidence_is_current.rs)
@@ -13,13 +13,13 @@ test a_failure_is_a_result_of_any_success ... ok
 test a_mutable_binding_is_one_type ... ok
 test a_seed_its_context_does_not_type_is_built_at_the_folds_type ... ok
 test an_early_return_is_any_success ... ok
-test a_parameter_no_field_mentions_is_any_type ... ok
 test a_value_of_any_type_fixes_no_variable ... ok
 test a_folds_accumulator_is_what_its_function_builds ... ok
+test a_parameter_no_field_mentions_is_any_type ... ok
 test todo_is_any_value ... ok
 test none_is_an_option_of_anything ... ok
 test an_empty_list_is_a_list_of_anything ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.33s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.56s
 test a_capabilitys_argument_is_resolved_against_the_programs_types ... ok
 test a_component_with_no_effects_needs_no_capabilities_and_may_import_nothing ... ok
 test a_component_may_hold_authority_no_import_uses ... ok
@@ -29,47 +29,47 @@ test actual_imports_may_be_a_subset ... ok
 test a_new_sibling_adds_a_contract_and_perturbs_no_other ... ok
 test actual_imports_may_never_be_a_superset ... ok
 test a_page_does_not_inherit_its_handlers_authority ... ok
-test an_import_names_the_capability_that_authorises_it ... ok
 test an_operation_that_needs_no_authority_is_consistent_with_none ... ok
-test an_export_that_passes_a_handle_is_not_remotely_bindable ... ok
+test an_import_names_the_capability_that_authorises_it ... ok
 test an_operation_whose_authority_is_not_held_is_refused ... ok
-test allowed_placements_are_solved_rather_than_declared ... ok
 test an_operation_with_the_declared_name_and_a_different_abi_is_refused ... ok
+test allowed_placements_are_solved_rather_than_declared ... ok
+test an_export_that_passes_a_handle_is_not_remotely_bindable ... ok
 test every_undeclared_import_is_reported_not_only_the_first ... ok
 test an_unresolvable_argument_does_not_remove_authority ... ok
 test an_unrecognisable_import_is_undeclared_rather_than_ignored ... ok
 test an_operations_authority_must_be_held_by_its_caller ... ok
-test idempotent_by_is_an_export_property_and_part_of_the_abi ... ok
 test platform_operations_are_distinguished_from_application_ones ... ok
-test placement_is_not_a_capability ... ok
+test idempotent_by_is_an_export_property_and_part_of_the_abi ... ok
 test renaming_an_export_changes_that_contract ... ok
+test placement_is_not_a_capability ... ok
 test required_capabilities_come_from_the_effect_row ... ok
-test requires_anyone_is_no_precondition ... ok
 test requires_anyone_with_arguments_fails_closed ... ok
 test the_contract_round_trips_through_json ... ok
-test requires_is_an_export_precondition_and_part_of_the_abi ... ok
+test requires_anyone_is_no_precondition ... ok
 test two_declarations_sharing_a_name_do_not_share_authority ... ok
 test the_operation_distinguishes_two_imports_of_one_family ... ok
+test requires_is_an_export_precondition_and_part_of_the_abi ... ok
 test the_schema_ignores_formatting_and_notices_authority ... ok
-test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
 test the_check_would_notice_a_change ... ok
 test the_committed_contracts_are_what_the_compiler_derives_now ... ok
 test the_committed_kiokun_build_is_what_the_compiler_builds_now ... ok
 test the_committed_handlers_are_what_the_compiler_emits_now ... ok
+test a_component_the_build_adds_fails_the_check_until_it_is_committed_current ... ok
 test the_committed_components_are_what_the_compiler_builds_now ... ok
 test the_committed_wit_is_what_the_compiler_emits_now ... ok
-test a_component_the_build_adds_fails_the_check_until_it_is_committed_current ... ok
 test the_committed_page_plan_is_what_the_compiler_plans_now ... ok
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.28s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.83s
 test a_handlers_code_is_the_handlers ... ok
+test a_lambda_handed_to_a_list_operation_runs_where_it_is_written ... ok
 test a_handlers_work_is_still_deferred ... ok
 test a_function_passed_by_name_is_compiled_in_and_performed_where_named ... ok
-test a_lambda_handed_to_a_list_operation_runs_where_it_is_written ... ok
-test a_host_call_one_function_down_is_imported_and_built ... ok
 test a_local_that_shadows_a_function_is_the_locals ... ok
+test a_host_call_one_function_down_is_imported_and_built ... ok
 test a_recursion_is_walked_once ... ok
 test a_write_reaches_a_cached_query_that_reads_through_a_function_value ... ok
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.38s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.98s
 
 == mutation controls (scripts/what_a_component_does_mutations.py)
 

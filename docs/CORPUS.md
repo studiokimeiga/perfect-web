@@ -1291,3 +1291,28 @@ Generality at open:        67/67 invariants generality-tested
 The texts under `examples/history/` keep what they were. A command in one
 that says nothing of who may run it is now refused for that too, beside the
 invariant its history test asks about.
+
+## C33: a table says whose its rows are, and who may write them, 2026-11-12
+
+Opened because the specification changed: track `row-ownership`'s owned
+tables and predicates in Pleris land with L2, under charter §7.8 and §9.2,
+with the landing's two rules (a public table, and a table a reader's
+command writes saying who may write it). [ADR-0395](DECISIONS/ADR-0395-owned-tables.md)
+is the decision, with ADR-0407's amendments.
+
+```text
+Corpus version:            C33
+Accepted programs:         50
+Rejected programs:         106
+Charter categories:        49/49 accepted, 106/106 rejected
+Generality at open:        76/76 invariants generality-tested
+```
+
+| Fixture | Change | Kind |
+|---|---|---|
+| R-110 to R-113, A-055 | an owner that holds no principal's id (PW0370, the track's PW0367 renumbered at landing), an owned table read by a field no reader holds (PW0368), a private field another selects rows by (PW0369), a predicate whose body writes (PW6905), and their control | new categories (the track) |
+| R-114 to R-116, A-056 to A-058 | a reference across owners' rows (PW6924), a predicate with a body required where it is not seen (PW6925), a guarded query in a shared cache (PW6907), and their controls | new categories (the track's first review) |
+| R-117, A-059 | a guarded query called by another declaration (PW6926), and its control | new categories (the track's second review) |
+| R-118 | a table a reader's command writes that says nothing of who may write it, refused with PW6920 | new category (L2) |
+| A-060 | a public table read by anyone and written by its owner | new category (L2) |
+| A-050 | `Chores`, written by any reader's command, says `written by anyone`: R-118's control | specification changed, meaning kept |

@@ -1,0 +1,30 @@
+// @status: GENERAL
+// @invariant: predicate_body_reads_only
+//
+// Structurally different from the fixture: the write is in a helper the
+// predicate's body calls, not in the body itself.
+
+module Diaries
+
+import capability.{ UserId }
+import context.{ current_user }
+
+opaque type EntryId = String
+
+type Entry = Entry { writer: UserId, id: EntryId, text: String }
+
+table Diaries
+    row   Entry
+    key   writer, id
+    owned by writer
+
+fn forget(id: EntryId) -> () !{ session.read, database.write<Diaries> } {
+    Diaries.delete(current_user(), id)
+}
+
+predicate Forgot(id: EntryId)
+    says "Never."
+{
+    forget(id)
+    true
+}

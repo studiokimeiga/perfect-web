@@ -1,0 +1,31 @@
+// @corpus: rejected
+// @id: R-118
+// @category: a table a reader's command writes that says nothing of who may write it
+// @rule: PW6920
+// @invariant: who_may_write
+// @charter: §7.8, §9.2
+// @milestone: 14
+// @expect-error: `Errands` is written by a command any reader's request runs, and says nothing of who may write its rows
+//
+// L2 (ADR-0395, ruling 5; ADR-0407's amendment): a command a reader can
+// run is a request away, and its arguments are the request's, so
+// `drop_errand(id)` deletes whichever errand a request names, anyone's. A
+// table such a command writes says who may write its rows: `owned by` the
+// field holding each row's owner, or `written by anyone`, on purpose.
+
+module Errands
+
+opaque type ErrandId = String
+
+type Errand = Errand { id: ErrandId, title: String }
+
+table Errands
+    row Errand
+    key id
+
+command drop_errand(id: ErrandId) -> ()
+    requires    Anyone
+    transaction serializable
+{
+    Errands.delete(id)
+}

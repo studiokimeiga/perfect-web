@@ -1,0 +1,20 @@
+// @status: NEIGHBOUR
+// @invariant: owned_read_by_its_reader
+// @dimension: valid neighbour — the same index, led by its owner
+//
+// A rule that refused an index on an owned table rather than one led by
+// no reader would refuse this.
+
+module Diaries
+
+import capability.{ UserId }
+
+opaque type EntryId = String
+
+type Entry = Entry { writer: UserId, id: EntryId, day: Int, text: String }
+
+table Diaries
+    row   Entry
+    key   writer, id
+    index by_writer_day on writer, day
+    owned by writer

@@ -1,8 +1,8 @@
 ADR-0389, amended 2026-11-02 - two requests of one session whose admissions overlap are each answered, every request is admitted, and an admission takes no session lock
 
 produced by: just e14-session-overlap
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: a3cab774e9569baddae69bd0d294487eaa3b697e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -19,39 +19,39 @@ test identity::invocation_tests::debug_output_never_discloses_session_authority_
 test identity::tests::a_close_between_the_read_and_the_locks_is_seen ... ok
 test identity::tests::a_failed_read_another_admission_overtook_still_removes_the_copy ... ok
 test identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader ... ok
-test identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal ... ok
-test identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read ... ok
 test identity::tests::a_read_of_no_one_another_admission_overtook_still_removes_the_copy ... ok
+test identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read ... ok
 test identity::tests::a_refusal_is_taken_once ... ok
-test identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound ... ok
+test identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal ... ok
 test identity::tests::a_token_is_held_to_its_issuer_audience_expiry_and_nonce ... ok
+test identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound ... ok
 test identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again ... ok
 test identity::tests::an_origin_is_a_scheme_a_host_and_a_port ... ok
 test identity::tests::an_unsafe_request_from_another_origin_is_refused ... ok
-test identity::tests::an_unrelated_admission_does_not_suppress_an_authority_read_failure ... ok
-test identity::tests::an_unrelated_admission_does_not_suppress_a_revoked_session ... ok
 test identity::tests::ids_are_random_and_forms_are_decoded ... ok
-test identity::tests::s256_is_rfc_7636s_worked_example ... ok
-test identity::tests::the_guest_model_runs_only_in_development_on_this_machine ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_a_revoked_session ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_an_authority_read_failure ... ok
 test identity::tests::requires_starts_as_the_development_model ... ok
+test identity::tests::the_guest_model_runs_only_in_development_on_this_machine ... ok
+test identity::tests::s256_is_rfc_7636s_worked_example ... ok
 test identity::tests::two_overlapping_admissions_of_one_session_are_each_answered ... ok
 test tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it ... ok
 test tests::session_overlap::a_host_that_keeps_sessions_warms_and_its_warm_up_is_each_answered ... ok
-test tests::session_overlap::on_postgres_a_due_touch_is_skipped_under_a_commands_lock_and_made_once_free ... ok
 test tests::session_overlap::in_memory_a_request_admitted_while_another_is_under_way_is_answered ... ok
+test tests::session_overlap::on_postgres_a_due_touch_is_skipped_under_a_commands_lock_and_made_once_free ... ok
 test tests::session_overlap::on_postgres_a_host_that_keeps_sessions_warms_and_its_warm_up_is_each_answered ... ok
 test tests::session_overlap::on_postgres_a_session_signed_out_between_the_read_and_the_write_is_no_one ... ok
-test tests::session_overlap::on_postgres_an_admission_never_waits_for_a_command_holding_its_session ... ok
 test tests::session_overlap::on_postgres_admissions_under_a_commands_lock_delay_no_other_readers_page ... ok
+test tests::session_overlap::on_postgres_an_admission_never_waits_for_a_command_holding_its_session ... ok
 test tests::session_overlap::two_requests_of_one_session_whose_admissions_overlap_are_each_answered ... ok
 test tests::session_overlap::on_postgres_an_expired_session_is_no_one_under_a_commands_lock_and_deleted_once_free ... ok
 test tests::session_overlap::on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_answered ... ok
 test tests::session_overlap::on_postgres_an_admission_waits_on_a_locked_table_no_longer_than_the_lock_timeout ... ok
-test result: ok. 37 passed; 0 failed; 0 ignored; 0 measured; 1011 filtered out; finished in 10.10s
+test result: ok. 37 passed; 0 failed; 0 ignored; 0 measured; 1058 filtered out; finished in 15.44s
 
 == pages loading their runtime and modules while commands run, in three engines (e2e-hosts/second-host.spec.mjs)
 
-  3 passed (14.9s)
+  3 passed (25.3s)
 
 == mutation controls (scripts/session_overlap_mutations.py)
 
@@ -82,7 +82,7 @@ test tests::session_overlap::on_postgres_an_expired_session_is_no_one_under_a_co
 test tests::session_overlap::on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_answered ... ok
 test tests::session_overlap::two_requests_of_one_session_whose_admissions_overlap_are_each_answered ... ok
 
-test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 1024 filtered out; finished in 17.95s
+test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 1071 filtered out; finished in 26.02s
 
 
 
@@ -116,7 +116,7 @@ failures:
 
 ---- identity::tests::a_failed_read_another_admission_overtook_still_removes_the_copy stdout ----
 
-thread 'identity::tests::a_failed_read_another_admission_overtook_still_removes_the_copy' (145912) panicked at spikes/own-renderer/server/src/identity.rs:2533:9:
+thread 'identity::tests::a_failed_read_another_admission_overtook_still_removes_the_copy' (130208) panicked at spikes/own-renderer/server/src/identity.rs:2541:9:
 assertion `left == right` failed: each answered from its own read; the overtaken removal still removed the copy
   left: (Err(Superseded), Ok(Account([redacted])), Some(Principal { .. }))
  right: (Err(SourceUnavailable), Ok(Account([redacted])), None)
@@ -124,35 +124,35 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader stdout ----
 
-thread 'identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader' (145914) panicked at spikes/own-renderer/server/src/identity.rs:2472:9:
+thread 'identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader' (130210) panicked at spikes/own-renderer/server/src/identity.rs:2480:9:
 assertion `left == right` failed: each answered from its own read; the copy here is the later write's
   left: (Err(Superseded), Ok(Account([redacted])), Some(Principal { .. }))
  right: (Ok(Account([redacted])), Ok(Account([redacted])), Some(Principal { .. }))
 
 ---- identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal stdout ----
 
-thread 'identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal' (145916) panicked at spikes/own-renderer/server/src/identity.rs:2472:9:
+thread 'identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal' (130212) panicked at spikes/own-renderer/server/src/identity.rs:2480:9:
 assertion `left == right` failed: each answered from its own read; the copy here is the later write's
   left: (Err(Superseded), Ok(Anonymous), None)
  right: (Ok(Account([redacted])), Ok(Anonymous), None)
 
 ---- identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read stdout ----
 
-thread 'identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read' (145918) panicked at spikes/own-renderer/server/src/identity.rs:2472:9:
+thread 'identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read' (130214) panicked at spikes/own-renderer/server/src/identity.rs:2480:9:
 assertion `left == right` failed: each answered from its own read; the copy here is the later write's
   left: (Err(Superseded), Err(SourceUnavailable), None)
  right: (Ok(Account([redacted])), Err(SourceUnavailable), None)
 
 ---- identity::tests::a_read_of_no_one_another_admission_overtook_still_removes_the_copy stdout ----
 
-thread 'identity::tests::a_read_of_no_one_another_admission_overtook_still_removes_the_copy' (145920) panicked at spikes/own-renderer/server/src/identity.rs:2533:9:
+thread 'identity::tests::a_read_of_no_one_another_admission_overtook_still_removes_the_copy' (130216) panicked at spikes/own-renderer/server/src/identity.rs:2541:9:
 assertion `left == right` failed: each answered from its own read; the overtaken removal still removed the copy
   left: (Err(Superseded), Ok(Account([redacted])), Some(Principal { .. }))
  right: (Ok(Anonymous), Ok(Account([redacted])), None)
 
 ---- identity::tests::two_overlapping_admissions_of_one_session_are_each_answered stdout ----
 
-thread 'identity::tests::two_overlapping_admissions_of_one_session_are_each_answered' (145928) panicked at spikes/own-renderer/server/src/identity.rs:2404:13:
+thread 'identity::tests::two_overlapping_admissions_of_one_session_are_each_answered' (130224) panicked at spikes/own-renderer/server/src/identity.rs:2412:13:
 assertion `left == right` failed
   left: Err(Superseded)
  right: Ok(Account([redacted]))
@@ -163,7 +163,7 @@ pw dev server: session admission refused: session admission was superseded
 pw dev server: session admission refused: session admission was superseded
 pw dev server: session admission refused: session admission was superseded
 
-thread 'tests::session_overlap::a_host_that_keeps_sessions_warms_and_its_warm_up_is_each_answered' (145931) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:436:5:
+thread 'tests::session_overlap::a_host_that_keeps_sessions_warms_and_its_warm_up_is_each_answered' (130227) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:436:5:
 [
     "Get(\"/pw-runtime.mjs\"): HTTP/1.1 503 Service Unavailable",
     "Get(\"/pw-runtime-device.mjs\"): HTTP/1.1 503 Service Unavailable",
@@ -177,7 +177,7 @@ pw dev server: session admission refused: session admission was superseded
 pw dev server: session admission refused: session admission was superseded
 pw dev server: session admission refused: session admission was superseded
 
-thread 'tests::session_overlap::on_postgres_a_host_that_keeps_sessions_warms_and_its_warm_up_is_each_answered' (146002) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:483:5:
+thread 'tests::session_overlap::on_postgres_a_host_that_keeps_sessions_warms_and_its_warm_up_is_each_answered' (130319) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:483:5:
 [
     "Get(\"/pw-runtime.mjs\"): HTTP/1.1 503 Service Unavailable",
     "Get(\"/pw-runtime-device.mjs\"): HTTP/1.1 503 Service Unavailable",
@@ -191,10 +191,9 @@ pw dev server: session admission refused: session admission was superseded
 pw dev server: session admission refused: session admission was superseded
 pw dev server: session admission refused: session admission was superseded
 pw dev server: session admission refused: session admission was superseded
-pw dev server: session admission refused: session admission was superseded
 
-thread 'tests::session_overlap::on_postgres_admissions_under_a_commands_lock_delay_no_other_readers_page' (146078) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:773:5:
-assertion `left == right` failed: Bob's page took 16.480585ms; Ada's files: [("HTTP/1.1 503 Service Unavailable", 66.572954ms), ("HTTP/1.1 503 Service Unavailable", 61.61478ms), ("HTTP/1.1 503 Service Unavailable", 89.541252ms), ("HTTP/1.1 503 Service Unavailable", 88.406547ms), ("HTTP/1.1 200 OK", 14.441594ms), ("HTTP/1.1 200 OK", 10.00508ms), ("HTTP/1.1 503 Service Unavailable", 74.297784ms), ("HTTP/1.1 503 Service Unavailable", 88.384612ms)]
+thread 'tests::session_overlap::on_postgres_admissions_under_a_commands_lock_delay_no_other_readers_page' (130395) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:773:5:
+assertion `left == right` failed: Bob's page took 25.478764ms; Ada's files: [("HTTP/1.1 200 OK", 9.506429ms), ("HTTP/1.1 503 Service Unavailable", 115.35021ms), ("HTTP/1.1 503 Service Unavailable", 114.339801ms), ("HTTP/1.1 200 OK", 10.565208ms), ("HTTP/1.1 503 Service Unavailable", 142.159409ms), ("HTTP/1.1 503 Service Unavailable", 117.819153ms), ("HTTP/1.1 503 Service Unavailable", 144.638744ms), ("HTTP/1.1 200 OK", 18.370736ms)]
   left: ("HTTP/1.1 200 OK", true, false)
  right: ("HTTP/1.1 200 OK", true, true)
 
@@ -208,12 +207,12 @@ pw dev server: session admission refused: session admission was superseded
 pw dev server: session admission refused: session admission was superseded
 pw dev server: session admission refused: session admission was superseded
 
-thread 'tests::session_overlap::on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_answered' (146229) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:333:5:
+thread 'tests::session_overlap::on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_answered' (130543) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:333:5:
 [
     "Get(\"/\") beside Get(\"/\"): HTTP/1.1 503 Service Unavailable",
     "Get(\"/pw-handlers\") beside Get(\"/\"): HTTP/1.1 503 Service Unavailable",
-    "Get(\"/handler/060d9ca5e0da84eb.mjs\") beside Get(\"/\"): HTTP/1.1 503 Service Unavailable",
-    "Get(\"/pw-runtime.mjs\") beside Get(\"/\"): HTTP/1.1 503 Service Unavailable",
+    "Get(\"/\") beside Get(\"/handler/060d9ca5e0da84eb.mjs\"): HTTP/1.1 503 Service Unavailable",
+    "Get(\"/\") beside Get(\"/pw-runtime.mjs\"): HTTP/1.1 503 Service Unavailable",
     "Get(\"/\") beside Get(\"/pw-runtime.mjs?document=1\"): HTTP/1.1 503 Service Unavailable",
     "Get(\"/pw-runtime-device.mjs\") beside Get(\"/\"): HTTP/1.1 503 Service Unavailable",
     "Get(\"/\") beside Post(\"overlap\"): HTTP/1.1 503 Service Unavailable",
@@ -228,14 +227,14 @@ pw dev server: session admission refused: session admission was superseded
 pw dev server: session admission refused: session admission was superseded
 pw dev server: session admission refused: session admission was superseded
 
-thread 'tests::session_overlap::two_requests_of_one_session_whose_admissions_overlap_are_each_answered' (146280) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:263:5:
+thread 'tests::session_overlap::two_requests_of_one_session_whose_admissions_overlap_are_each_answered' (130594) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:263:5:
 [
     "Get(\"/\") beside Get(\"/\"): HTTP/1.1 503 Service Unavailable",
     "Get(\"/\") beside Get(\"/pw-handlers\"): HTTP/1.1 503 Service Unavailable",
-    "Get(\"/handler/060d9ca5e0da84eb.mjs\") beside Get(\"/\"): HTTP/1.1 503 Service Unavailable",
-    "Get(\"/pw-runtime.mjs\") beside Get(\"/\"): HTTP/1.1 503 Service Unavailable",
-    "Get(\"/pw-runtime.mjs?document=1\") beside Get(\"/\"): HTTP/1.1 503 Service Unavailable",
-    "Get(\"/pw-runtime-device.mjs\") beside Get(\"/\"): HTTP/1.1 503 Service Unavailable",
+    "Get(\"/\") beside Get(\"/handler/060d9ca5e0da84eb.mjs\"): HTTP/1.1 503 Service Unavailable",
+    "Get(\"/\") beside Get(\"/pw-runtime.mjs\"): HTTP/1.1 503 Service Unavailable",
+    "Get(\"/\") beside Get(\"/pw-runtime.mjs?document=1\"): HTTP/1.1 503 Service Unavailable",
+    "Get(\"/\") beside Get(\"/pw-runtime-device.mjs\"): HTTP/1.1 503 Service Unavailable",
 ]
 
 
@@ -252,7 +251,7 @@ failures:
     tests::session_overlap::on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_answered
     tests::session_overlap::two_requests_of_one_session_whose_admissions_overlap_are_each_answered
 
-test result: FAILED. 13 passed; 11 failed; 0 ignored; 0 measured; 1024 filtered out; finished in 17.52s
+test result: FAILED. 13 passed; 11 failed; 0 ignored; 0 measured; 1071 filtered out; finished in 25.29s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -288,7 +287,7 @@ failures:
 
 ---- identity::tests::a_close_between_the_read_and_the_locks_is_seen stdout ----
 
-thread 'identity::tests::a_close_between_the_read_and_the_locks_is_seen' (146408) panicked at spikes/own-renderer/server/src/identity.rs:2588:9:
+thread 'identity::tests::a_close_between_the_read_and_the_locks_is_seen' (130745) panicked at spikes/own-renderer/server/src/identity.rs:2596:9:
 assertion `left == right` failed: the admission held the gate, and the closed session's read was read again, never installed
   left: (Ok(Account([redacted])), None, 1, true)
  right: (Ok(Anonymous), None, 0, true)
@@ -296,14 +295,14 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound stdout ----
 
-thread 'identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound' (146420) panicked at spikes/own-renderer/server/src/identity.rs:2616:9:
+thread 'identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound' (130757) panicked at spikes/own-renderer/server/src/identity.rs:2624:9:
 assertion `left == right` failed
   left: Ok(Account([redacted]))
  right: Err(Superseded)
 
 ---- identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again stdout ----
 
-thread 'identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again' (146421) panicked at spikes/own-renderer/server/src/identity.rs:2423:9:
+thread 'identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again' (130758) panicked at spikes/own-renderer/server/src/identity.rs:2431:9:
 assertion `left == right` failed
   left: Ok(Account([redacted]))
  right: Ok(Anonymous)
@@ -314,7 +313,7 @@ failures:
     identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound
     identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again
 
-test result: FAILED. 21 passed; 3 failed; 0 ignored; 0 measured; 1024 filtered out; finished in 17.96s
+test result: FAILED. 21 passed; 3 failed; 0 ignored; 0 measured; 1071 filtered out; finished in 25.95s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -350,7 +349,7 @@ failures:
 
 ---- identity::tests::a_close_between_the_read_and_the_locks_is_seen stdout ----
 
-thread 'identity::tests::a_close_between_the_read_and_the_locks_is_seen' (146916) panicked at spikes/own-renderer/server/src/identity.rs:2588:9:
+thread 'identity::tests::a_close_between_the_read_and_the_locks_is_seen' (131316) panicked at spikes/own-renderer/server/src/identity.rs:2596:9:
 assertion `left == right` failed: the admission held the gate, and the closed session's read was read again, never installed
   left: (Err(Superseded), None, 1, true)
  right: (Ok(Anonymous), None, 0, true)
@@ -358,14 +357,14 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound stdout ----
 
-thread 'identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound' (146928) panicked at spikes/own-renderer/server/src/identity.rs:2617:9:
+thread 'identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound' (131328) panicked at spikes/own-renderer/server/src/identity.rs:2625:9:
 assertion `left == right` failed: exactly ADMISSION_READS reads
   left: 3
  right: 1
 
 ---- identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again stdout ----
 
-thread 'identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again' (146929) panicked at spikes/own-renderer/server/src/identity.rs:2423:9:
+thread 'identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again' (131329) panicked at spikes/own-renderer/server/src/identity.rs:2431:9:
 assertion `left == right` failed
   left: Err(Superseded)
  right: Ok(Anonymous)
@@ -376,7 +375,7 @@ failures:
     identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound
     identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again
 
-test result: FAILED. 21 passed; 3 failed; 0 ignored; 0 measured; 1024 filtered out; finished in 18.05s
+test result: FAILED. 21 passed; 3 failed; 0 ignored; 0 measured; 1071 filtered out; finished in 26.32s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -412,7 +411,7 @@ failures:
 
 ---- identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound stdout ----
 
-thread 'identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound' (147454) panicked at spikes/own-renderer/server/src/identity.rs:2616:9:
+thread 'identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound' (131921) panicked at spikes/own-renderer/server/src/identity.rs:2624:9:
 assertion `left == right` failed
   left: Err(SourceUnavailable)
  right: Err(Superseded)
@@ -422,7 +421,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound
 
-test result: FAILED. 23 passed; 1 failed; 0 ignored; 0 measured; 1024 filtered out; finished in 18.00s
+test result: FAILED. 23 passed; 1 failed; 0 ignored; 0 measured; 1071 filtered out; finished in 26.20s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -458,7 +457,7 @@ failures:
 
 ---- identity::tests::a_close_between_the_read_and_the_locks_is_seen stdout ----
 
-thread 'identity::tests::a_close_between_the_read_and_the_locks_is_seen' (147944) panicked at spikes/own-renderer/server/src/identity.rs:2587:9:
+thread 'identity::tests::a_close_between_the_read_and_the_locks_is_seen' (132544) panicked at spikes/own-renderer/server/src/identity.rs:2595:9:
 assertion `left == right` failed: the admission held the gate, and the closed session's read was read again, never installed
   left: (Ok(Account([redacted])), None, 1, true)
  right: (Ok(Anonymous), None, 0, true)
@@ -466,14 +465,14 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound stdout ----
 
-thread 'identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound' (147956) panicked at spikes/own-renderer/server/src/identity.rs:2615:9:
+thread 'identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound' (132556) panicked at spikes/own-renderer/server/src/identity.rs:2623:9:
 assertion `left == right` failed
   left: Ok(Account([redacted]))
  right: Err(Superseded)
 
 ---- identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again stdout ----
 
-thread 'identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again' (147957) panicked at spikes/own-renderer/server/src/identity.rs:2422:9:
+thread 'identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again' (132557) panicked at spikes/own-renderer/server/src/identity.rs:2430:9:
 assertion `left == right` failed
   left: Ok(Account([redacted]))
  right: Ok(Anonymous)
@@ -484,7 +483,7 @@ failures:
     identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound
     identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again
 
-test result: FAILED. 21 passed; 3 failed; 0 ignored; 0 measured; 1024 filtered out; finished in 18.11s
+test result: FAILED. 21 passed; 3 failed; 0 ignored; 0 measured; 1071 filtered out; finished in 26.14s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -520,7 +519,7 @@ failures:
 
 ---- identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader stdout ----
 
-thread 'identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader' (148467) panicked at spikes/own-renderer/server/src/identity.rs:2469:9:
+thread 'identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader' (133114) panicked at spikes/own-renderer/server/src/identity.rs:2477:9:
 assertion `left == right` failed: each answered from its own read; the copy here is the later write's
   left: (Ok(Account([redacted])), Ok(Account([redacted])), Some(Principal { .. }))
  right: (Ok(Account([redacted])), Ok(Account([redacted])), Some(Principal { .. }))
@@ -528,14 +527,14 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal stdout ----
 
-thread 'identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal' (148469) panicked at spikes/own-renderer/server/src/identity.rs:2469:9:
+thread 'identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal' (133116) panicked at spikes/own-renderer/server/src/identity.rs:2477:9:
 assertion `left == right` failed: each answered from its own read; the copy here is the later write's
   left: (Ok(Account([redacted])), Ok(Anonymous), Some(Principal { .. }))
  right: (Ok(Account([redacted])), Ok(Anonymous), None)
 
 ---- identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read stdout ----
 
-thread 'identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read' (148471) panicked at spikes/own-renderer/server/src/identity.rs:2469:9:
+thread 'identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read' (133118) panicked at spikes/own-renderer/server/src/identity.rs:2477:9:
 assertion `left == right` failed: each answered from its own read; the copy here is the later write's
   left: (Ok(Account([redacted])), Err(SourceUnavailable), Some(Principal { .. }))
  right: (Ok(Account([redacted])), Err(SourceUnavailable), None)
@@ -546,7 +545,7 @@ failures:
     identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal
     identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read
 
-test result: FAILED. 21 passed; 3 failed; 0 ignored; 0 measured; 1024 filtered out; finished in 18.06s
+test result: FAILED. 21 passed; 3 failed; 0 ignored; 0 measured; 1071 filtered out; finished in 26.11s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -582,7 +581,7 @@ failures:
 
 ---- identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader stdout ----
 
-thread 'identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader' (148970) panicked at spikes/own-renderer/server/src/identity.rs:2468:9:
+thread 'identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader' (133684) panicked at spikes/own-renderer/server/src/identity.rs:2476:9:
 assertion `left == right` failed: each answered from its own read; the copy here is the later write's
   left: (Ok(Account([redacted])), Ok(Account([redacted])), Some(Principal { .. }))
  right: (Ok(Account([redacted])), Ok(Account([redacted])), Some(Principal { .. }))
@@ -592,7 +591,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader
 
-test result: FAILED. 23 passed; 1 failed; 0 ignored; 0 measured; 1024 filtered out; finished in 18.04s
+test result: FAILED. 23 passed; 1 failed; 0 ignored; 0 measured; 1071 filtered out; finished in 26.13s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -628,7 +627,7 @@ failures:
 
 ---- identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal stdout ----
 
-thread 'identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal' (149500) panicked at spikes/own-renderer/server/src/identity.rs:2468:9:
+thread 'identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal' (134248) panicked at spikes/own-renderer/server/src/identity.rs:2476:9:
 assertion `left == right` failed: each answered from its own read; the copy here is the later write's
   left: (Ok(Account([redacted])), Ok(Anonymous), Some(Principal { .. }))
  right: (Ok(Account([redacted])), Ok(Anonymous), None)
@@ -638,7 +637,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal
 
-test result: FAILED. 23 passed; 1 failed; 0 ignored; 0 measured; 1024 filtered out; finished in 17.97s
+test result: FAILED. 23 passed; 1 failed; 0 ignored; 0 measured; 1071 filtered out; finished in 26.03s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -674,7 +673,7 @@ failures:
 
 ---- identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read stdout ----
 
-thread 'identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read' (150002) panicked at spikes/own-renderer/server/src/identity.rs:2468:9:
+thread 'identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read' (134818) panicked at spikes/own-renderer/server/src/identity.rs:2476:9:
 assertion `left == right` failed: each answered from its own read; the copy here is the later write's
   left: (Ok(Account([redacted])), Err(SourceUnavailable), Some(Principal { .. }))
  right: (Ok(Account([redacted])), Err(SourceUnavailable), None)
@@ -684,7 +683,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read
 
-test result: FAILED. 23 passed; 1 failed; 0 ignored; 0 measured; 1024 filtered out; finished in 17.93s
+test result: FAILED. 23 passed; 1 failed; 0 ignored; 0 measured; 1071 filtered out; finished in 26.11s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -720,7 +719,7 @@ failures:
 
 ---- identity::tests::a_read_of_no_one_another_admission_overtook_still_removes_the_copy stdout ----
 
-thread 'identity::tests::a_read_of_no_one_another_admission_overtook_still_removes_the_copy' (150507) panicked at spikes/own-renderer/server/src/identity.rs:2532:9:
+thread 'identity::tests::a_read_of_no_one_another_admission_overtook_still_removes_the_copy' (135385) panicked at spikes/own-renderer/server/src/identity.rs:2540:9:
 assertion `left == right` failed: each answered from its own read; the overtaken removal still removed the copy
   left: (Ok(Anonymous), Ok(Account([redacted])), Some(Principal { .. }))
  right: (Ok(Anonymous), Ok(Account([redacted])), None)
@@ -730,7 +729,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     identity::tests::a_read_of_no_one_another_admission_overtook_still_removes_the_copy
 
-test result: FAILED. 23 passed; 1 failed; 0 ignored; 0 measured; 1024 filtered out; finished in 18.17s
+test result: FAILED. 23 passed; 1 failed; 0 ignored; 0 measured; 1071 filtered out; finished in 25.91s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -766,7 +765,7 @@ failures:
 
 ---- identity::tests::a_failed_read_another_admission_overtook_still_removes_the_copy stdout ----
 
-thread 'identity::tests::a_failed_read_another_admission_overtook_still_removes_the_copy' (151026) panicked at spikes/own-renderer/server/src/identity.rs:2532:9:
+thread 'identity::tests::a_failed_read_another_admission_overtook_still_removes_the_copy' (135953) panicked at spikes/own-renderer/server/src/identity.rs:2540:9:
 assertion `left == right` failed: each answered from its own read; the overtaken removal still removed the copy
   left: (Err(SourceUnavailable), Ok(Account([redacted])), Some(Principal { .. }))
  right: (Err(SourceUnavailable), Ok(Account([redacted])), None)
@@ -776,7 +775,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     identity::tests::a_failed_read_another_admission_overtook_still_removes_the_copy
 
-test result: FAILED. 23 passed; 1 failed; 0 ignored; 0 measured; 1024 filtered out; finished in 18.11s
+test result: FAILED. 23 passed; 1 failed; 0 ignored; 0 measured; 1071 filtered out; finished in 25.75s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -812,7 +811,7 @@ failures:
 
 ---- identity::tests::a_close_between_the_read_and_the_locks_is_seen stdout ----
 
-thread 'identity::tests::a_close_between_the_read_and_the_locks_is_seen' (151529) panicked at spikes/own-renderer/server/src/identity.rs:2588:9:
+thread 'identity::tests::a_close_between_the_read_and_the_locks_is_seen' (136519) panicked at spikes/own-renderer/server/src/identity.rs:2596:9:
 assertion `left == right` failed: the admission held the gate, and the closed session's read was read again, never installed
   left: (Ok(Account([redacted])), Some(Principal { .. }), 1, true)
  right: (Ok(Anonymous), None, 0, true)
@@ -822,7 +821,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     identity::tests::a_close_between_the_read_and_the_locks_is_seen
 
-test result: FAILED. 23 passed; 1 failed; 0 ignored; 0 measured; 1024 filtered out; finished in 18.12s
+test result: FAILED. 23 passed; 1 failed; 0 ignored; 0 measured; 1071 filtered out; finished in 26.05s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -858,7 +857,7 @@ failures:
 
 ---- tests::session_overlap::a_host_that_keeps_sessions_warms_and_its_warm_up_is_each_answered stdout ----
 
-thread 'tests::session_overlap::a_host_that_keeps_sessions_warms_and_its_warm_up_is_each_answered' (152072) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:430:5:
+thread 'tests::session_overlap::a_host_that_keeps_sessions_warms_and_its_warm_up_is_each_answered' (137110) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:430:5:
 assertion `left == right` failed: each admitted at once: (reads, alone)
   left: (4, 4)
  right: (5, 0)
@@ -871,7 +870,7 @@ pw dev server: session admission refused: session authority source is unavailabl
 pw dev server: session admission refused: session authority source is unavailable
 pw dev server: session admission refused: session authority source is unavailable
 
-thread 'tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it' (152135) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:879:9:
+thread 'tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it' (137169) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:879:9:
 Get("/pw-runtime.mjs"): HTTP/1.1 200 OK
 content-type: text/javascript; charset=utf-8
 content-length: 10
@@ -886,14 +885,14 @@ export {};
 
 ---- tests::session_overlap::on_postgres_a_host_that_keeps_sessions_warms_and_its_warm_up_is_each_answered stdout ----
 
-thread 'tests::session_overlap::on_postgres_a_host_that_keeps_sessions_warms_and_its_warm_up_is_each_answered' (152208) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:477:5:
+thread 'tests::session_overlap::on_postgres_a_host_that_keeps_sessions_warms_and_its_warm_up_is_each_answered' (137245) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:477:5:
 assertion `left == right` failed: each admitted at once: (reads, alone)
   left: (4, 4)
  right: (5, 0)
 
 ---- tests::session_overlap::on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_answered stdout ----
 
-thread 'tests::session_overlap::on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_answered' (152442) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:333:5:
+thread 'tests::session_overlap::on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_answered' (137501) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:333:5:
 [
     "Get(\"/\") and Get(\"/pw-runtime.mjs\") were not each admitted at once: (reads, alone) (1, 1)",
     "Get(\"/\") and Get(\"/pw-runtime.mjs?document=1\") were not each admitted at once: (reads, alone) (1, 1)",
@@ -901,7 +900,7 @@ thread 'tests::session_overlap::on_postgres_two_requests_of_one_session_whose_ad
 
 ---- tests::session_overlap::two_requests_of_one_session_whose_admissions_overlap_are_each_answered stdout ----
 
-thread 'tests::session_overlap::two_requests_of_one_session_whose_admissions_overlap_are_each_answered' (152578) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:263:5:
+thread 'tests::session_overlap::two_requests_of_one_session_whose_admissions_overlap_are_each_answered' (137642) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:263:5:
 [
     "the page and Get(\"/pw-runtime.mjs\") were not each admitted at once: (reads, alone) (1, 1)",
     "the page and Get(\"/pw-runtime.mjs?document=1\") were not each admitted at once: (reads, alone) (1, 1)",
@@ -915,7 +914,7 @@ failures:
     tests::session_overlap::on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_answered
     tests::session_overlap::two_requests_of_one_session_whose_admissions_overlap_are_each_answered
 
-test result: FAILED. 19 passed; 5 failed; 0 ignored; 0 measured; 1024 filtered out; finished in 77.93s
+test result: FAILED. 19 passed; 5 failed; 0 ignored; 0 measured; 1071 filtered out; finished in 85.80s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -951,7 +950,7 @@ failures:
 
 ---- tests::session_overlap::a_host_that_keeps_sessions_warms_and_its_warm_up_is_each_answered stdout ----
 
-thread 'tests::session_overlap::a_host_that_keeps_sessions_warms_and_its_warm_up_is_each_answered' (152812) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:414:5:
+thread 'tests::session_overlap::a_host_that_keeps_sessions_warms_and_its_warm_up_is_each_answered' (137922) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:414:5:
 a warming host that keeps sessions says it warms: HTTP/1.1 200 OK
 content-type: text/plain; charset=utf-8
 content-length: 825
@@ -993,7 +992,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::session_overlap::on_postgres_a_host_that_keeps_sessions_warms_and_its_warm_up_is_each_answered stdout ----
 
-thread 'tests::session_overlap::on_postgres_a_host_that_keeps_sessions_warms_and_its_warm_up_is_each_answered' (152894) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:454:5:
+thread 'tests::session_overlap::on_postgres_a_host_that_keeps_sessions_warms_and_its_warm_up_is_each_answered' (138006) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:454:5:
 a warming host that keeps sessions says it warms: HTTP/1.1 200 OK
 content-type: text/plain; charset=utf-8
 content-length: 825
@@ -1037,7 +1036,7 @@ failures:
     tests::session_overlap::a_host_that_keeps_sessions_warms_and_its_warm_up_is_each_answered
     tests::session_overlap::on_postgres_a_host_that_keeps_sessions_warms_and_its_warm_up_is_each_answered
 
-test result: FAILED. 22 passed; 2 failed; 0 ignored; 0 measured; 1024 filtered out; finished in 18.00s
+test result: FAILED. 22 passed; 2 failed; 0 ignored; 0 measured; 1071 filtered out; finished in 26.06s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1074,7 +1073,7 @@ failures:
 ---- tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it stdout ----
 pw dev server: session admission refused: session authority source is unavailable
 
-thread 'tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it' (153317) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:885:5:
+thread 'tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it' (138479) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:885:5:
 assertion `left == right` failed
   left: ["pw dev server: session admission refused: session authority source is unavailable"]
  right: ["pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable"]
@@ -1084,7 +1083,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it
 
-test result: FAILED. 23 passed; 1 failed; 0 ignored; 0 measured; 1024 filtered out; finished in 18.03s
+test result: FAILED. 23 passed; 1 failed; 0 ignored; 0 measured; 1071 filtered out; finished in 26.43s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1126,7 +1125,7 @@ pw dev server: session admission refused: session authority source is unavailabl
 pw dev server: session admission refused: session authority source is unavailable
 pw dev server: session admission refused: session authority source is unavailable
 
-thread 'tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it' (153822) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:885:5:
+thread 'tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it' (139053) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:885:5:
 assertion `left == right` failed
   left: ["pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable"]
  right: ["pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable"]
@@ -1136,7 +1135,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it
 
-test result: FAILED. 23 passed; 1 failed; 0 ignored; 0 measured; 1024 filtered out; finished in 17.96s
+test result: FAILED. 23 passed; 1 failed; 0 ignored; 0 measured; 1071 filtered out; finished in 26.14s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1172,32 +1171,31 @@ failures:
 
 ---- tests::session_overlap::on_postgres_a_due_touch_is_skipped_under_a_commands_lock_and_made_once_free stdout ----
 
-thread 'tests::session_overlap::on_postgres_a_due_touch_is_skipped_under_a_commands_lock_and_made_once_free' (154381) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:609:5:
-assertion `left == right` failed: answered without waiting (took 5.001640744s), its use unrecorded while the lock was held and recorded once it was free
+thread 'tests::session_overlap::on_postgres_a_due_touch_is_skipped_under_a_commands_lock_and_made_once_free' (139670) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:609:5:
+assertion `left == right` failed: answered without waiting (took 5.002208376s), its use unrecorded while the lock was held and recorded once it was free
   left: (Err(SourceUnavailable), false, (true, false), Ok(Account([redacted])), (true, true))
  right: (Ok(Account([redacted])), true, (true, false), Ok(Account([redacted])), (true, true))
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::session_overlap::on_postgres_admissions_under_a_commands_lock_delay_no_other_readers_page stdout ----
 pw dev server: session admission refused: session authority source is unavailable
-pw dev server: session admission refused: session authority source is unavailable
 
-thread 'tests::session_overlap::on_postgres_admissions_under_a_commands_lock_delay_no_other_readers_page' (154503) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:773:5:
-assertion `left == right` failed: Bob's page took 4.930956142s; Ada's files: [("HTTP/1.1 200 OK", 5.062712524s), ("HTTP/1.1 503 Service Unavailable", 5.004744941s), ("HTTP/1.1 503 Service Unavailable", 5.054576178s), ("HTTP/1.1 200 OK", 5.062564989s), ("HTTP/1.1 200 OK", 5.067414538s), ("HTTP/1.1 200 OK", 5.065537999s), ("HTTP/1.1 200 OK", 5.063588782s), ("HTTP/1.1 200 OK", 5.062747783s)]
+thread 'tests::session_overlap::on_postgres_admissions_under_a_commands_lock_delay_no_other_readers_page' (139793) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:773:5:
+assertion `left == right` failed: Bob's page took 4.9016279s; Ada's files: [("HTTP/1.1 503 Service Unavailable", 5.00555053s), ("HTTP/1.1 200 OK", 5.097510192s), ("HTTP/1.1 200 OK", 5.094464439s), ("HTTP/1.1 200 OK", 5.099343767s), ("HTTP/1.1 200 OK", 5.101979142s), ("HTTP/1.1 200 OK", 5.095758325s), ("HTTP/1.1 200 OK", 5.092244383s), ("HTTP/1.1 200 OK", 5.097338161s)]
   left: ("HTTP/1.1 200 OK", false, false)
  right: ("HTTP/1.1 200 OK", true, true)
 
 ---- tests::session_overlap::on_postgres_an_admission_never_waits_for_a_command_holding_its_session stdout ----
 
-thread 'tests::session_overlap::on_postgres_an_admission_never_waits_for_a_command_holding_its_session' (154578) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:578:5:
-assertion `left == right` failed: answered as the reader, by one statement, within 2s: took 5.00152888s
+thread 'tests::session_overlap::on_postgres_an_admission_never_waits_for_a_command_holding_its_session' (139869) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:578:5:
+assertion `left == right` failed: answered as the reader, by one statement, within 2s: took 5.001995013s
   left: (Err(SourceUnavailable), 4, false)
  right: (Ok(Account([redacted])), 1, true)
 
 ---- tests::session_overlap::on_postgres_an_expired_session_is_no_one_under_a_commands_lock_and_deleted_once_free stdout ----
 
-thread 'tests::session_overlap::on_postgres_an_expired_session_is_no_one_under_a_commands_lock_and_deleted_once_free' (154657) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:652:5:
-assertion `left == right` failed: no one without waiting (took 5.001371696s), its row kept while the lock was held and deleted once it was free
+thread 'tests::session_overlap::on_postgres_an_expired_session_is_no_one_under_a_commands_lock_and_deleted_once_free' (139972) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:652:5:
+assertion `left == right` failed: no one without waiting (took 5.001875094s), its row kept while the lock was held and deleted once it was free
   left: (Err(SourceUnavailable), false, (true, true), Ok(Anonymous), (false, false))
  right: (Ok(Anonymous), true, (true, true), Ok(Anonymous), (false, false))
 
@@ -1208,7 +1206,7 @@ failures:
     tests::session_overlap::on_postgres_an_admission_never_waits_for_a_command_holding_its_session
     tests::session_overlap::on_postgres_an_expired_session_is_no_one_under_a_commands_lock_and_deleted_once_free
 
-test result: FAILED. 20 passed; 4 failed; 0 ignored; 0 measured; 1024 filtered out; finished in 38.18s
+test result: FAILED. 20 passed; 4 failed; 0 ignored; 0 measured; 1071 filtered out; finished in 45.77s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1244,8 +1242,8 @@ failures:
 
 ---- tests::session_overlap::on_postgres_an_admission_never_waits_for_a_command_holding_its_session stdout ----
 
-thread 'tests::session_overlap::on_postgres_an_admission_never_waits_for_a_command_holding_its_session' (155126) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:578:5:
-assertion `left == right` failed: answered as the reader, by one statement, within 2s: took 643.012µs
+thread 'tests::session_overlap::on_postgres_an_admission_never_waits_for_a_command_holding_its_session' (140485) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:578:5:
+assertion `left == right` failed: answered as the reader, by one statement, within 2s: took 1.397661ms
   left: (Ok(Account([redacted])), 4, true)
  right: (Ok(Account([redacted])), 1, true)
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
@@ -1254,7 +1252,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::session_overlap::on_postgres_an_admission_never_waits_for_a_command_holding_its_session
 
-test result: FAILED. 23 passed; 1 failed; 0 ignored; 0 measured; 1024 filtered out; finished in 17.88s
+test result: FAILED. 23 passed; 1 failed; 0 ignored; 0 measured; 1071 filtered out; finished in 26.11s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1290,16 +1288,16 @@ failures:
 
 ---- tests::session_overlap::on_postgres_a_due_touch_is_skipped_under_a_commands_lock_and_made_once_free stdout ----
 
-thread 'tests::session_overlap::on_postgres_a_due_touch_is_skipped_under_a_commands_lock_and_made_once_free' (155501) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:609:5:
-assertion `left == right` failed: answered without waiting (took 5.001831421s), its use unrecorded while the lock was held and recorded once it was free
+thread 'tests::session_overlap::on_postgres_a_due_touch_is_skipped_under_a_commands_lock_and_made_once_free' (140893) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:609:5:
+assertion `left == right` failed: answered without waiting (took 5.002367573s), its use unrecorded while the lock was held and recorded once it was free
   left: (Err(SourceUnavailable), false, (true, false), Ok(Account([redacted])), (true, true))
  right: (Ok(Account([redacted])), true, (true, false), Ok(Account([redacted])), (true, true))
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::session_overlap::on_postgres_an_expired_session_is_no_one_under_a_commands_lock_and_deleted_once_free stdout ----
 
-thread 'tests::session_overlap::on_postgres_an_expired_session_is_no_one_under_a_commands_lock_and_deleted_once_free' (155730) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:652:5:
-assertion `left == right` failed: no one without waiting (took 5.001877485s), its row kept while the lock was held and deleted once it was free
+thread 'tests::session_overlap::on_postgres_an_expired_session_is_no_one_under_a_commands_lock_and_deleted_once_free' (141146) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:652:5:
+assertion `left == right` failed: no one without waiting (took 5.002511432s), its row kept while the lock was held and deleted once it was free
   left: (Err(SourceUnavailable), false, (true, true), Ok(Anonymous), (false, false))
  right: (Ok(Anonymous), true, (true, true), Ok(Anonymous), (false, false))
 
@@ -1308,7 +1306,7 @@ failures:
     tests::session_overlap::on_postgres_a_due_touch_is_skipped_under_a_commands_lock_and_made_once_free
     tests::session_overlap::on_postgres_an_expired_session_is_no_one_under_a_commands_lock_and_deleted_once_free
 
-test result: FAILED. 22 passed; 2 failed; 0 ignored; 0 measured; 1024 filtered out; finished in 28.05s
+test result: FAILED. 22 passed; 2 failed; 0 ignored; 0 measured; 1071 filtered out; finished in 35.85s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1344,16 +1342,16 @@ failures:
 
 ---- tests::session_overlap::on_postgres_a_due_touch_is_skipped_under_a_commands_lock_and_made_once_free stdout ----
 
-thread 'tests::session_overlap::on_postgres_a_due_touch_is_skipped_under_a_commands_lock_and_made_once_free' (156052) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:609:5:
-assertion `left == right` failed: answered without waiting (took 743.054µs), its use unrecorded while the lock was held and recorded once it was free
+thread 'tests::session_overlap::on_postgres_a_due_touch_is_skipped_under_a_commands_lock_and_made_once_free' (141488) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:609:5:
+assertion `left == right` failed: answered without waiting (took 1.671485ms), its use unrecorded while the lock was held and recorded once it was free
   left: (Err(SourceUnavailable), true, (true, false), Ok(Account([redacted])), (true, true))
  right: (Ok(Account([redacted])), true, (true, false), Ok(Account([redacted])), (true, true))
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::session_overlap::on_postgres_an_expired_session_is_no_one_under_a_commands_lock_and_deleted_once_free stdout ----
 
-thread 'tests::session_overlap::on_postgres_an_expired_session_is_no_one_under_a_commands_lock_and_deleted_once_free' (156256) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:652:5:
-assertion `left == right` failed: no one without waiting (took 713.695µs), its row kept while the lock was held and deleted once it was free
+thread 'tests::session_overlap::on_postgres_an_expired_session_is_no_one_under_a_commands_lock_and_deleted_once_free' (141736) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:652:5:
+assertion `left == right` failed: no one without waiting (took 1.621365ms), its row kept while the lock was held and deleted once it was free
   left: (Err(SourceUnavailable), true, (true, true), Ok(Anonymous), (false, false))
  right: (Ok(Anonymous), true, (true, true), Ok(Anonymous), (false, false))
 
@@ -1362,7 +1360,7 @@ failures:
     tests::session_overlap::on_postgres_a_due_touch_is_skipped_under_a_commands_lock_and_made_once_free
     tests::session_overlap::on_postgres_an_expired_session_is_no_one_under_a_commands_lock_and_deleted_once_free
 
-test result: FAILED. 22 passed; 2 failed; 0 ignored; 0 measured; 1024 filtered out; finished in 17.93s
+test result: FAILED. 22 passed; 2 failed; 0 ignored; 0 measured; 1071 filtered out; finished in 26.08s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1398,8 +1396,8 @@ failures:
 
 ---- tests::session_overlap::on_postgres_an_expired_session_is_no_one_under_a_commands_lock_and_deleted_once_free stdout ----
 
-thread 'tests::session_overlap::on_postgres_an_expired_session_is_no_one_under_a_commands_lock_and_deleted_once_free' (156775) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:652:5:
-assertion `left == right` failed: no one without waiting (took 692.635µs), its row kept while the lock was held and deleted once it was free
+thread 'tests::session_overlap::on_postgres_an_expired_session_is_no_one_under_a_commands_lock_and_deleted_once_free' (142305) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:652:5:
+assertion `left == right` failed: no one without waiting (took 1.522236ms), its row kept while the lock was held and deleted once it was free
   left: (Ok(Account([redacted])), true, (true, true), Ok(Anonymous), (false, false))
  right: (Ok(Anonymous), true, (true, true), Ok(Anonymous), (false, false))
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
@@ -1408,7 +1406,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::session_overlap::on_postgres_an_expired_session_is_no_one_under_a_commands_lock_and_deleted_once_free
 
-test result: FAILED. 23 passed; 1 failed; 0 ignored; 0 measured; 1024 filtered out; finished in 17.99s
+test result: FAILED. 23 passed; 1 failed; 0 ignored; 0 measured; 1071 filtered out; finished in 26.04s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1444,16 +1442,16 @@ failures:
 
 ---- tests::session_overlap::on_postgres_a_due_touch_is_skipped_under_a_commands_lock_and_made_once_free stdout ----
 
-thread 'tests::session_overlap::on_postgres_a_due_touch_is_skipped_under_a_commands_lock_and_made_once_free' (157069) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:609:5:
-assertion `left == right` failed: answered without waiting (took 1.385212ms), its use unrecorded while the lock was held and recorded once it was free
+thread 'tests::session_overlap::on_postgres_a_due_touch_is_skipped_under_a_commands_lock_and_made_once_free' (142664) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:609:5:
+assertion `left == right` failed: answered without waiting (took 2.733933ms), its use unrecorded while the lock was held and recorded once it was free
   left: (Ok(Account([redacted])), true, (true, true), Ok(Account([redacted])), (true, true))
  right: (Ok(Account([redacted])), true, (true, false), Ok(Account([redacted])), (true, true))
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::session_overlap::on_postgres_an_expired_session_is_no_one_under_a_commands_lock_and_deleted_once_free stdout ----
 
-thread 'tests::session_overlap::on_postgres_an_expired_session_is_no_one_under_a_commands_lock_and_deleted_once_free' (157276) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:652:5:
-assertion `left == right` failed: no one without waiting (took 1.618031ms), its row kept while the lock was held and deleted once it was free
+thread 'tests::session_overlap::on_postgres_an_expired_session_is_no_one_under_a_commands_lock_and_deleted_once_free' (142891) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:652:5:
+assertion `left == right` failed: no one without waiting (took 2.575678ms), its row kept while the lock was held and deleted once it was free
   left: (Ok(Anonymous), true, (false, false), Ok(Anonymous), (false, false))
  right: (Ok(Anonymous), true, (true, true), Ok(Anonymous), (false, false))
 
@@ -1462,7 +1460,7 @@ failures:
     tests::session_overlap::on_postgres_a_due_touch_is_skipped_under_a_commands_lock_and_made_once_free
     tests::session_overlap::on_postgres_an_expired_session_is_no_one_under_a_commands_lock_and_deleted_once_free
 
-test result: FAILED. 22 passed; 2 failed; 0 ignored; 0 measured; 1024 filtered out; finished in 18.01s
+test result: FAILED. 22 passed; 2 failed; 0 ignored; 0 measured; 1071 filtered out; finished in 26.12s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1498,15 +1496,15 @@ failures:
 
 ---- tests::session_overlap::on_postgres_a_due_touch_is_skipped_under_a_commands_lock_and_made_once_free stdout ----
 
-thread 'tests::session_overlap::on_postgres_a_due_touch_is_skipped_under_a_commands_lock_and_made_once_free' (157570) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:609:5:
-assertion `left == right` failed: answered without waiting (took 330.554µs), its use unrecorded while the lock was held and recorded once it was free
+thread 'tests::session_overlap::on_postgres_a_due_touch_is_skipped_under_a_commands_lock_and_made_once_free' (143229) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:609:5:
+assertion `left == right` failed: answered without waiting (took 737.384µs), its use unrecorded while the lock was held and recorded once it was free
   left: (Ok(Account([redacted])), true, (true, false), Ok(Account([redacted])), (true, false))
  right: (Ok(Account([redacted])), true, (true, false), Ok(Account([redacted])), (true, true))
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::session_overlap::on_postgres_a_session_signed_out_between_the_read_and_the_write_is_no_one stdout ----
 
-thread 'tests::session_overlap::on_postgres_a_session_signed_out_between_the_read_and_the_write_is_no_one' (157649) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:689:5:
+thread 'tests::session_overlap::on_postgres_a_session_signed_out_between_the_read_and_the_write_is_no_one' (143287) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:689:5:
 assertion `left == right` failed: the write, under the lock, found the session signed out since the read
   left: (Ok(Account([redacted])), 1, (false, false))
  right: (Ok(Anonymous), 1, (false, false))
@@ -1516,7 +1514,7 @@ failures:
     tests::session_overlap::on_postgres_a_due_touch_is_skipped_under_a_commands_lock_and_made_once_free
     tests::session_overlap::on_postgres_a_session_signed_out_between_the_read_and_the_write_is_no_one
 
-test result: FAILED. 22 passed; 2 failed; 0 ignored; 0 measured; 1024 filtered out; finished in 17.97s
+test result: FAILED. 22 passed; 2 failed; 0 ignored; 0 measured; 1071 filtered out; finished in 26.04s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1552,8 +1550,8 @@ failures:
 
 ---- tests::session_overlap::on_postgres_an_expired_session_is_no_one_under_a_commands_lock_and_deleted_once_free stdout ----
 
-thread 'tests::session_overlap::on_postgres_an_expired_session_is_no_one_under_a_commands_lock_and_deleted_once_free' (158301) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:652:5:
-assertion `left == right` failed: no one without waiting (took 321.573µs), its row kept while the lock was held and deleted once it was free
+thread 'tests::session_overlap::on_postgres_an_expired_session_is_no_one_under_a_commands_lock_and_deleted_once_free' (144025) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:652:5:
+assertion `left == right` failed: no one without waiting (took 710.032µs), its row kept while the lock was held and deleted once it was free
   left: (Ok(Anonymous), true, (true, true), Ok(Anonymous), (true, true))
  right: (Ok(Anonymous), true, (true, true), Ok(Anonymous), (false, false))
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
@@ -1562,7 +1560,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::session_overlap::on_postgres_an_expired_session_is_no_one_under_a_commands_lock_and_deleted_once_free
 
-test result: FAILED. 23 passed; 1 failed; 0 ignored; 0 measured; 1024 filtered out; finished in 17.89s
+test result: FAILED. 23 passed; 1 failed; 0 ignored; 0 measured; 1071 filtered out; finished in 26.19s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1598,7 +1596,7 @@ failures:
 
 ---- tests::session_overlap::on_postgres_a_session_signed_out_between_the_read_and_the_write_is_no_one stdout ----
 
-thread 'tests::session_overlap::on_postgres_a_session_signed_out_between_the_read_and_the_write_is_no_one' (158656) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:689:5:
+thread 'tests::session_overlap::on_postgres_a_session_signed_out_between_the_read_and_the_write_is_no_one' (144428) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:689:5:
 assertion `left == right` failed: the write, under the lock, found the session signed out since the read
   left: (Ok(Account([redacted])), 1, (false, false))
  right: (Ok(Anonymous), 1, (false, false))
@@ -1608,7 +1606,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::session_overlap::on_postgres_a_session_signed_out_between_the_read_and_the_write_is_no_one
 
-test result: FAILED. 23 passed; 1 failed; 0 ignored; 0 measured; 1024 filtered out; finished in 18.04s
+test result: FAILED. 23 passed; 1 failed; 0 ignored; 0 measured; 1071 filtered out; finished in 26.43s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1652,7 +1650,7 @@ failures:
 
 ---- tests::session_overlap::on_postgres_an_admission_waits_on_a_locked_table_no_longer_than_the_lock_timeout stdout ----
 
-thread 'tests::session_overlap::on_postgres_an_admission_waits_on_a_locked_table_no_longer_than_the_lock_timeout' (159265) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:809:5:
+thread 'tests::session_overlap::on_postgres_an_admission_waits_on_a_locked_table_no_longer_than_the_lock_timeout' (145101) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:809:5:
 refused at the lock timeout while the table was locked, within 8 s: Err(Timeout)
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -1660,7 +1658,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::session_overlap::on_postgres_an_admission_waits_on_a_locked_table_no_longer_than_the_lock_timeout
 
-test result: FAILED. 23 passed; 1 failed; 0 ignored; 0 measured; 1024 filtered out; finished in 21.05s
+test result: FAILED. 23 passed; 1 failed; 0 ignored; 0 measured; 1071 filtered out; finished in 29.15s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 

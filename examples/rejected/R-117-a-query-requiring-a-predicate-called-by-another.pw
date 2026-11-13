@@ -1,0 +1,32 @@
+// @corpus: rejected
+// @id: R-117
+// @category: a query requiring a predicate called by another declaration
+// @rule: PW6926
+// @invariant: required_query_bound_by_a_page
+// @charter: §7.8, §9.2
+// @milestone: 14
+// @expect-error: `Peek` calls `Kept`, which requires WroteLetter(id): its body would run inside `Peek` unasked
+//
+// Track `row-ownership` (the second review's finding 2): a query's body
+// called from another declaration is compiled into it, and `Peek`'s
+// contract requires nothing, so A-058's `Kept` would answer a letter to a
+// reader `WroteLetter` refuses. The host asks a query's predicate where a
+// page binds it (A-059).
+
+module LetterPeeks
+
+import capability.{ User, UserId }
+import Letters.{ Letter, LetterId }
+import LetterKeeping.{ Kept }
+
+user query Peek(reader: User<UserId>, id: LetterId) -> Option<Letter>
+    freshness     0.seconds
+    consistency   read_your_writes
+    cache         private
+    key           reader, id
+    concurrency   one_per_key
+    on_key_change cancel
+    timeout       2.seconds
+{
+    Kept(reader, id)
+}

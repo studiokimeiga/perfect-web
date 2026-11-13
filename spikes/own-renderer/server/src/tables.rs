@@ -188,7 +188,7 @@ impl TablesLayer {
 /// **A capability as the node's grants hold it** (`DataLayer::grants`, whose
 /// words are `&'static str`): each kept once a process, however many servers
 /// a process builds, so no server leaks more than its tables' names.
-fn interned(capability: String) -> &'static str {
+pub(crate) fn interned(capability: String) -> &'static str {
     static INTERNED: std::sync::OnceLock<Mutex<std::collections::BTreeSet<&'static str>>> =
         std::sync::OnceLock::new();
     let mut kept = INTERNED
@@ -321,6 +321,20 @@ impl Staged for TablesStaging<'_> {
                 .map_err(|e| format!("`{}`'s tables: {e:?}", contract.component_id)),
             Turn::Failed(why) => Err(why.clone()),
             _ => Err("a command's tables are linked before it commits".into()),
+        }
+    }
+
+    fn table_predicate_reads(
+        &self,
+        contract: &ComponentContract,
+        granted: &Granted,
+    ) -> Result<Ops, String> {
+        match &self.turn {
+            Turn::Open(command) => command
+                .predicate_host_fns(contract, granted)
+                .map_err(|e| format!("`{}`'s predicate tables: {e:?}", contract.component_id)),
+            Turn::Failed(why) => Err(why.clone()),
+            _ => Err("a command's predicate reads before it commits".into()),
         }
     }
 

@@ -1,0 +1,35 @@
+// @status: NEIGHBOUR
+// @invariant: required_query_bound_by_a_page
+// @dimension: valid neighbour — the same query, bound by a page
+//
+// A rule that refused every read of a query that requires a predicate,
+// rather than one made outside a page's binding, would refuse this: the
+// host reads `Specials` for the page's reader, and asks `Regular` first.
+
+module Lounge
+
+predicate Regular()
+    says "Regulars only."
+
+public query Specials() -> String
+    consistency snapshot
+    cache       private
+    requires    Regular
+{
+    "TODAY"
+}
+
+session page LoungeMenu() {
+    route     "/lounge"
+    placement origin
+    cache     private
+
+    let specials = query Specials()
+
+    view {
+        <title>Lounge</title>
+        <main>
+            <p id="specials">{specials}</p>
+        </main>
+    }
+}

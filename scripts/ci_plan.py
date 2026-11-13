@@ -182,6 +182,8 @@ NEEDS_DATABASE = {
     "e14-session-overlap",
     # Track `d3-postgres` (ADR-0338's D3): declared tables on PostgreSQL.
     "e14-d3-postgres",
+    # Track `durable-tables`: declared tables served durably from PostgreSQL.
+    "e14-durable-tables",
     # Track `data-path`: its feed-on-PostgreSQL test holds that no row,
     # record or page keeps the session's cookie; with no database named it
     # would pass by saying so (the integrator, 2026-11-02).

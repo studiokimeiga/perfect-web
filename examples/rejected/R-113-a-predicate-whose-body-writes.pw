@@ -1,0 +1,33 @@
+// @corpus: rejected
+// @id: R-113
+// @category: a predicate whose body writes
+// @rule: PW6905
+// @invariant: predicate_body_reads_only
+// @charter: §7.8, §9.2
+// @milestone: 14
+// @expect-error: `predicate Sweeps`'s body does more than read: `database.write<Posts>`
+//
+// Track `row-ownership` (ADR-0384's H2): a predicate the program gives a
+// body is asked by the host before the command it guards. Asking it must
+// change nothing: a body that deletes would act before authorization.
+
+module Posts
+
+import capability.{ UserId }
+import context.{ current_user }
+
+opaque type PostId = String
+
+type Post = Post { author: UserId, id: PostId, text: String }
+
+table Posts
+    row   Post
+    key   author, id
+    owned by author
+
+predicate Sweeps(id: PostId)
+    says "Never."
+{
+    Posts.delete(current_user(), id)
+    true
+}

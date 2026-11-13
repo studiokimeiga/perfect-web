@@ -566,6 +566,17 @@ const PLATFORM_RELATIONS: &[&str] = &[
     "pw_interactions",
     "pw_interactions_pkey",
     "pw_interactions_at",
+    // Version 0002 (track `durable-tables`): the runs, the sessions and the
+    // sign-ins.
+    "pw_runs",
+    "pw_runs_pkey",
+    "pw_runs_id_seq",
+    "pw_runs_key_key",
+    "pw_runs_due",
+    "pw_sessions",
+    "pw_sessions_pkey",
+    "pw_sign_ins",
+    "pw_sign_ins_pkey",
 ];
 
 /// **Every name the declaration's tables and objects take, each taken

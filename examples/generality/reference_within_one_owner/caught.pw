@@ -1,0 +1,23 @@
+// @status: GENERAL
+// @invariant: reference_within_one_owner
+//
+// Structurally different from R-114: the reference leaves an owned table
+// for one no one owns (A-051's `Members`), out of one owner's rows the
+// other way. Deleting a member would be refused while a bookmark they may
+// not read names them, which tells whoever deletes the member it exists.
+
+module Bookmarks
+
+import capability.{ UserId }
+import Members.{ MemberId }
+import Members
+
+opaque type BookmarkId = String
+
+type Bookmark = Bookmark { holder: UserId, id: BookmarkId, member: MemberId }
+
+table Bookmarks
+    row    Bookmark
+    key    holder, id
+    owned  by holder
+    refers member to Members

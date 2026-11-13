@@ -1,0 +1,36 @@
+// @corpus: accepted
+// @id: A-055
+// @category: an owned table read and written by its reader, and a predicate that reads
+// @charter: §7.8, §9.2
+// @milestone: 14
+//
+// The control of R-110 to R-113 (track `row-ownership`, ADR-0384's H1 and
+// H2): a table owned by a principal's id, read by its owner's index and its
+// sharer's, its private field kept out of every read another makes, and a
+// predicate whose body only reads the reader's own letter.
+
+module Letters
+
+import capability.{ UserId }
+import context.{ current_user }
+
+opaque type LetterId = String
+
+type Letter = Letter { author: UserId, id: LetterId, reader: UserId, mood: String, text: String }
+
+table Letters
+    row     Letter
+    key     author, id
+    index   by_reader on reader
+    owned   by author
+    shares  with reader
+    private mood
+
+predicate WroteLetter(id: LetterId)
+    says "You can only change a letter you wrote."
+{
+    match Letters.get(current_user(), id) {
+        Some(_) => true,
+        None => false,
+    }
+}

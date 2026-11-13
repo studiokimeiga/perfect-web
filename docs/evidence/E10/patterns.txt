@@ -1,21 +1,21 @@
 ADR-0060 - nested and literal patterns
 
 produced by: just e10-patterns
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: a3cab774e9569baddae69bd0d294487eaa3b697e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
 == the checker (compiler/pw-core/tests/patterns.rs)
 
 test a_name_alone_binds_the_whole_value ... ok
-test a_literal_of_another_type_is_refused ... ok
 test a_bool_is_matched_by_true_and_false ... ok
+test a_literal_of_another_type_is_refused ... ok
 test a_case_nested_in_an_option_is_analysed ... ok
 test a_name_nested_in_a_pattern_is_typed_in_its_arm ... ok
 test an_option_nested_in_a_declared_case_is_analysed ... ok
 test no_list_of_literals_is_every_int ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 
 == through the E8 host, against a model (compiler/pw-conformance/tests/patterns.rs)
 
@@ -27,9 +27,9 @@ test a_bool_is_matched_by_its_two_values ... ok
 test a_pattern_nested_in_an_option_takes_its_payload_apart ... ok
 test an_int_is_matched_by_its_literals_negative_ones_too ... ok
 test a_string_is_matched_by_its_literals_and_bound_otherwise ... ok
-test an_or_pattern_that_binds_is_refused_by_name ... ok
 test a_result_of_an_option_of_a_case_three_deep ... ok
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.94s
+test an_or_pattern_that_binds_is_refused_by_name ... ok
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.69s
 
 == the component and the JavaScript module
 
@@ -37,7 +37,7 @@ javascript: 3 queries over cases written alone, 600 calls, component and module 
 javascript: 5 queries over trees, 1000 calls, component and module agree (155 trapped in both)
 javascript: 5 queries over values held in place, 1000 calls, component and module agree (132 trapped in both)
 javascript: 103 queries, 20600 calls, component and module agree (1424 trapped in both)
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 138.38s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 111.65s
 
 == mutation controls (scripts/pattern_mutations.py)
 

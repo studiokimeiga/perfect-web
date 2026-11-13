@@ -1,8 +1,8 @@
 ADR-0264 - a session's handle never reaches the browser
 
 produced by: just e14-session-to-browser
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: a3cab774e9569baddae69bd0d294487eaa3b697e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the checker (compiler/pw-core/tests/session_to_browser.rs)
@@ -10,7 +10,7 @@ rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 test a_views_prop_holding_a_sessions_handle_is_refused_where_it_is_given ... ok
 test nothing_markup_prints_holds_a_sessions_handle ... ok
 test no_answer_holds_a_sessions_handle ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.38s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.77s
 
 == mutation controls (scripts/session_mutations.py)
 

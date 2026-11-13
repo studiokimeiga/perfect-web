@@ -1,0 +1,18 @@
+// @status: GENERAL
+// @invariant: owner_names_a_principal
+//
+// Structurally different from the fixture: a table that shares with no
+// one, owned by a field holding a name, not a principal's id.
+
+module Diaries
+
+import capability.{ UserId }
+
+opaque type EntryId = String
+
+type Entry = Entry { writer: String, id: EntryId, text: String }
+
+table Diaries
+    row   Entry
+    key   writer, id
+    owned by writer

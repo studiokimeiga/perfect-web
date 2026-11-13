@@ -472,7 +472,13 @@ impl Lowerer<'_> {
                 name_span,
                 kind,
                 params: self.params(node),
-                ret: self.return_type(node),
+                // A predicate the program gives a body answers whether it
+                // holds (ADR-0115 as amended by ADR-0384's H2): a `Bool`,
+                // which its body is checked against.
+                ret: self.return_type(node).or_else(|| {
+                    (kind == DeclKind::Predicate && node.children().any(|c| c.kind() == K::Body))
+                        .then(|| crate::hir::DeclaredType::new("Bool", Vec::new()))
+                }),
                 variants: self.variants(node),
                 fields: self.record_fields(node),
                 policies: self.policies(node),

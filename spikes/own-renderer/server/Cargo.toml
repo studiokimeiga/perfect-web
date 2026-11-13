@@ -32,6 +32,10 @@ pw-host = { path = "../../../runtime/pw-host", features = ["engine"] }
 # through it: a debt ADR-0018 names (the adapter reading the host's mirror,
 # `pw_host::tables`, takes it away), recorded in the track's ADR.
 pw-table-memory = { path = "../../../runtime/pw-table-memory" }
+# Track `durable-tables` (ADR-0393's adapter joined to D2's routing): a
+# program's declared tables on PostgreSQL, where the deployment names a
+# database for them (`PW_TABLES_DATABASE_URL`); in memory otherwise.
+pw-table-postgres = { path = "../../../runtime/pw-table-postgres" }
 pw-materialize = { path = "../../../runtime/pw-materialize" }
 pw-protocol = { path = "../../../runtime/pw-protocol" }
 pw-render = { path = "../../../runtime/pw-render" }

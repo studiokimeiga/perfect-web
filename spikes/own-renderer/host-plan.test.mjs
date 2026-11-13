@@ -117,7 +117,7 @@ test("all host and provider listeners are disjoint across adjacent and multiple 
 
 test("TCP bound includes the final slot and largest concrete listener", () => {
   const max = Math.max(...listenersForSlots(REGISTRY, 1).map(({ port }) => port - 1));
-  assert.equal(max, 218);
+  assert.equal(max, 221);
   assert.equal(Math.max(...listenersForSlots(REGISTRY, 65535 - max - REGISTRY.stride, 2).map(({ port }) => port)), 65535);
   assert.throws(() => listenersForSlots(REGISTRY, 65536 - max - REGISTRY.stride, 2), /TCP port/);
   for (const base of [0, -1, 1.5, NaN, Infinity, "13201", 65536]) assert.throws(() => listenersForSlots(REGISTRY, base), /PORT/);
@@ -308,8 +308,8 @@ test("specs of an optional build that cannot be served are left out, each said w
     const optional = (root) => Object.fromEntries(unservedSpecs(root).map(({ file, warning }) => [file, warning]));
     const feed = ["computed-modules.spec.mjs", "feed.spec.mjs", "identity.spec.mjs", "messages.spec.mjs", "notifications.spec.mjs", "upload-metadata.spec.mjs", "uploads.spec.mjs"];
     const unbuilt = optional(root);
-    assert.deepEqual(Object.keys(unbuilt).sort(), [...feed, "guestbook.spec.mjs", "keyed.spec.mjs", "kiokun-site.spec.mjs", "device-runtime.spec.mjs", "todomvc.spec.mjs", "rows.spec.mjs"].sort());
-    const lacking = { "guestbook.spec.mjs": ["dist-guestbook", "guestbook.sh"], "keyed.spec.mjs": ["dist-keyed", "keyed-store.sh"], "kiokun-site.spec.mjs": ["dist-kiokun", "kiokun-site.sh"], "device-runtime.spec.mjs": ["dist-todomvc", "todomvc.sh"], "todomvc.spec.mjs": ["dist-todomvc", "todomvc.sh"] };
+    assert.deepEqual(Object.keys(unbuilt).sort(), [...feed, "owned-rows.spec.mjs", "guestbook.spec.mjs", "keyed.spec.mjs", "kiokun-site.spec.mjs", "device-runtime.spec.mjs", "todomvc.spec.mjs", "rows.spec.mjs"].sort());
+    const lacking = { "owned-rows.spec.mjs": ["dist-owned", "owned.sh"], "guestbook.spec.mjs": ["dist-guestbook", "guestbook.sh"], "keyed.spec.mjs": ["dist-keyed", "keyed-store.sh"], "kiokun-site.spec.mjs": ["dist-kiokun", "kiokun-site.sh"], "device-runtime.spec.mjs": ["dist-todomvc", "todomvc.sh"], "todomvc.spec.mjs": ["dist-todomvc", "todomvc.sh"] };
     for (const file of feed) lacking[file] = ["dist-feed", "feed.sh"];
     for (const [file, [dist, prerequisite]] of Object.entries(lacking)) {
       assert.equal(unbuilt[file], `e2e/${file} is not run: ${dist} is not built: run ${prerequisite}`);
@@ -367,6 +367,7 @@ test("selected descriptors preserve memory identity blobs provider ports target 
       CARGO_TARGET_DIR: join(root, "private-target"), PW_REUSE: "1", PW_PERFORMANCE: undefined,
       KIOKUN_DATA: join(root, "deployment-data"), KIOKUN_APP: join(root, "deployment-app"),
       PW_FEED_DATABASE_URL: "postgresql://deployment/feed", PW_STORE_DATABASE_URL: "postgresql://deployment/store",
+      PW_TABLES_DATABASE_URL: "postgresql://deployment/tables", PW_TABLES_SCHEMA: "deployment_tables",
     }, () => serversForSelection(selected(...tests), { root, port: 13201 }));
     assert.equal(hosts.length, 8);
     // Every host keeps its data in memory (ADR-0257), whatever the caller's
@@ -374,6 +375,8 @@ test("selected descriptors preserve memory identity blobs provider ports target 
     for (const host of hosts) {
       assert.equal(host.env.PW_FEED_DATABASE_URL, "");
       assert.equal(host.env.PW_STORE_DATABASE_URL, "");
+      assert.equal(host.env.PW_TABLES_DATABASE_URL, "");
+      assert.ok(Object.hasOwn(host.env, "PW_TABLES_SCHEMA") && host.env.PW_TABLES_SCHEMA === undefined);
       for (const key of ["KIOKUN_DATA", "KIOKUN_APP"]) assert.ok(Object.hasOwn(host.env, key) && host.env[key] === undefined, key);
       assert.equal(host.reuseExistingServer, true);
       assert.equal(host.env.PORT, String(host.port));

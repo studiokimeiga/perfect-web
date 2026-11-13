@@ -27,6 +27,7 @@ use crate::values::{Param, refs};
 #[derive(Debug, Default)]
 pub(crate) struct Counters {
     pub statements: AtomicU64,
+    pub operation_statements: AtomicU64,
     pub prepared: AtomicU64,
 }
 
@@ -37,8 +38,14 @@ pub(crate) struct Conn {
 }
 
 impl Conn {
-    fn connect(url: &str) -> Result<Conn, Error> {
-        let client = Client::connect(url, NoTls).map_err(crate::database)?;
+    /// A connection to `url`, `setup` run on it once where the pool has one
+    /// (a session setting every statement on it holds, not one a request
+    /// runs, so not counted).
+    fn connect(url: &str, setup: Option<&str>) -> Result<Conn, Error> {
+        let mut client = Client::connect(url, NoTls).map_err(crate::database)?;
+        if let Some(setup) = setup {
+            client.batch_execute(setup).map_err(crate::database)?;
+        }
         Ok(Conn {
             client,
             prepared: HashMap::new(),
@@ -63,6 +70,9 @@ impl Conn {
             }
         };
         counters.statements.fetch_add(1, Ordering::Relaxed);
+        counters
+            .operation_statements
+            .fetch_add(1, Ordering::Relaxed);
         self.client.query(&statement, &refs(params))
     }
 
@@ -70,6 +80,19 @@ impl Conn {
     /// statement.
     pub(crate) fn batch(&mut self, counters: &Counters, sql: &str) -> Result<(), postgres::Error> {
         counters.statements.fetch_add(1, Ordering::Relaxed);
+        if !matches!(
+            sql,
+            "BEGIN"
+                | "BEGIN ISOLATION LEVEL SERIALIZABLE"
+                | "BEGIN ISOLATION LEVEL READ COMMITTED"
+                | crate::READ_SNAPSHOT
+                | "COMMIT"
+                | "ROLLBACK"
+        ) {
+            counters
+                .operation_statements
+                .fetch_add(1, Ordering::Relaxed);
+        }
         self.client.batch_execute(sql)
     }
 
@@ -94,17 +117,32 @@ pub(crate) struct Pool {
     bound: usize,
     wait: Duration,
     what: &'static str,
+    /// Run once on each connection it opens ([`Pool::with_setup`]).
+    setup: Option<&'static str>,
     places: Mutex<Places>,
     freed: Condvar,
 }
 
 impl Pool {
     pub(crate) fn new(url: &str, bound: usize, wait: Duration, what: &'static str) -> Arc<Pool> {
+        Pool::with_setup(url, bound, wait, what, None)
+    }
+
+    /// [`Pool::new`], `setup` run once on each connection it opens (the
+    /// sessions' lock timeout, track `durable-tables`).
+    pub(crate) fn with_setup(
+        url: &str,
+        bound: usize,
+        wait: Duration,
+        what: &'static str,
+        setup: Option<&'static str>,
+    ) -> Arc<Pool> {
         Arc::new(Pool {
             url: url.to_string(),
             bound,
             wait,
             what,
+            setup,
             places: Mutex::new(Places {
                 idle: Vec::new(),
                 taken: 0,
@@ -199,7 +237,7 @@ impl Lease {
             };
             self.conn = Some(match idle {
                 Some(c) => c,
-                None => Conn::connect(&self.pool.url)?,
+                None => Conn::connect(&self.pool.url, self.pool.setup)?,
             });
         }
         self.conn.as_mut().ok_or(Error::StoragePoisoned)

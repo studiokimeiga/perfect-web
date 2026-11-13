@@ -724,6 +724,7 @@ type Seen = Seen { id: String, who: Option<UserId>, name: String }
 table Seens
     row Seen
     key id
+    written by anyone
 ";
 
 const SEEN_DATA: &str = "module SeenData

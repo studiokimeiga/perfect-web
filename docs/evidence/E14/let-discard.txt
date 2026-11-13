@@ -1,15 +1,15 @@
 ADR-0250 - let _ discards a value, and an acquisition is held or refused
 
 produced by: just e14-let-discard
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: a3cab774e9569baddae69bd0d294487eaa3b697e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the parser (compiler/pw-syntax/src/grammar.rs)
 
 test grammar::tests::a_let_may_discard_its_value ... ok
 test grammar::tests::a_discard_is_neither_mutable_nor_a_use ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 96 filtered out; finished in 0.00s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 99 filtered out; finished in 0.00s
 
 == the checker (compiler/pw-core/tests/let_discard.rs)
 
@@ -25,7 +25,7 @@ test a_resources_acquire_clause_holds_its_value ... ok
 test a_resource_kept_in_a_value_or_returned_by_a_function_value_is_refused ... ok
 test a_declaration_gives_its_caller_what_it_declares ... ok
 test an_affine_resource_discarded_is_refused_as_never_consumed ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.02s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.62s
 
 == the Koka translation, and a handler (koka_backend.rs, handlers.rs)
 
@@ -37,7 +37,7 @@ test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 20 filtered out; fin
 
 == the generality witnesses (examples/generality/affine_not_consumed_once)
 
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 177.82s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 209.25s
 
 == mutation controls (scripts/let_discard_mutations.py)
 

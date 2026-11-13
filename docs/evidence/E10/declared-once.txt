@@ -1,17 +1,17 @@
 ADR-0098 - a name is written once where it is declared
 
 produced by: just e10-declared-once
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: a3cab774e9569baddae69bd0d294487eaa3b697e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == declared once (compiler/pw-core/tests/declared_once.rs)
 
 test a_field_and_a_case_are_declared_once ... ok
-test a_parameter_is_taken_once ... ok
 test a_policy_is_written_once ... ok
-test an_attribute_is_given_once ... ok
+test a_parameter_is_taken_once ... ok
 test a_pattern_binds_a_name_once ... ok
+test an_attribute_is_given_once ... ok
 test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 
 == mutation controls (scripts/declared_once_mutations.py)

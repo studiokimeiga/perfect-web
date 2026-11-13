@@ -58,6 +58,7 @@ mod tests {
         );
         let done = Column::new("done", Stored::Bool);
         Write {
+            handle: None,
             import: format!("pw:tables/todos#{}", primitive.name()),
             table: "Todos".into(),
             primitive,

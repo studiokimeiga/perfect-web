@@ -188,6 +188,7 @@ mod tests {
     fn read() -> Read {
         let row = columns();
         Read {
+            handle: None,
             import: "pw:tables/likes#get".into(),
             table: "Likes".into(),
             primitive: Primitive::Get,
@@ -311,6 +312,7 @@ mod tests {
 
     fn write(primitive: Primitive, unique: bool) -> Write {
         Write {
+            handle: None,
             import: format!("pw:tables/likes#{}", primitive.name()),
             table: "Likes".into(),
             primitive,

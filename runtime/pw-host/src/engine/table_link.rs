@@ -48,6 +48,12 @@ pub fn check_import(access: &Access, func: &ComponentFunc) -> Result<(), String>
             access.import()
         )
     };
+    // An owned table's function takes its reader's handle (track
+    // `row-ownership`), as `table_owners` types it.
+    if access.handle().is_some() {
+        return super::table_owners::check_import(access, &params, &results)
+            .map_err(|why| refused("owned table's function", why));
+    }
     match access {
         Access::Read(read) => {
             read_import(read, &params, &results).map_err(|why| refused("read", why))
@@ -90,7 +96,7 @@ fn read_import(read: &Read, params: &[Type], results: &[Type]) -> Result<(), Str
     }
 }
 
-fn write_import(write: &Write, params: &[Type], results: &[Type]) -> Result<(), String> {
+pub(super) fn write_import(write: &Write, params: &[Type], results: &[Type]) -> Result<(), String> {
     // What it answers: where it can be refused, the row that refuses it, a
     // row of its table's; nothing otherwise.
     if write.refusable() {
@@ -127,7 +133,7 @@ fn write_import(write: &Write, params: &[Type], results: &[Type]) -> Result<(), 
 
 /// The fields a read or a delete is given, each by its stored type, in
 /// order.
-fn fields(words: &str, by: &[Column], params: &[Type]) -> Result<(), String> {
+pub(super) fn fields(words: &str, by: &[Column], params: &[Type]) -> Result<(), String> {
     if params.len() != by.len() {
         return Err(format!(
             "it takes ({}), not the {words}'s {} field(s)",
@@ -144,7 +150,7 @@ fn fields(words: &str, by: &[Column], params: &[Type]) -> Result<(), String> {
 
 /// What a set form's list holds: its one field's value, or a record of its
 /// fields.
-fn selector(words: &str, by: &[Column], ty: &Type) -> Result<(), String> {
+pub(super) fn selector(words: &str, by: &[Column], ty: &Type) -> Result<(), String> {
     match by {
         [column] => stored(&column.stored, ty)
             .map_err(|why| format!("its {words}'s `{}`: {why}", column.name)),
@@ -154,7 +160,7 @@ fn selector(words: &str, by: &[Column], ty: &Type) -> Result<(), String> {
 
 /// A record of these fields, in this order, by their WIT names, each of its
 /// stored type.
-fn record(columns: &[Column], ty: &Type) -> Result<(), String> {
+pub(super) fn record(columns: &[Column], ty: &Type) -> Result<(), String> {
     let Type::Record(record) = ty else {
         return Err(format!("{} where a record is declared", named(ty)));
     };
@@ -272,7 +278,7 @@ fn named(ty: &Type) -> &'static str {
     }
 }
 
-fn listed(types: &[Type]) -> String {
+pub(super) fn listed(types: &[Type]) -> String {
     types.iter().map(named).collect::<Vec<_>>().join(", ")
 }
 
@@ -691,6 +697,7 @@ mod tests {
             }
         }
         Read {
+            handle: None,
             import: format!("pw:tables/items#{}", primitive.name()),
             table: "Items".into(),
             primitive,
@@ -934,6 +941,7 @@ mod tests {
             _ => Vec::new(),
         };
         Access::Write(Write {
+            handle: None,
             import: format!("pw:tables/items#{}", primitive.name()),
             table: "Items".into(),
             primitive,

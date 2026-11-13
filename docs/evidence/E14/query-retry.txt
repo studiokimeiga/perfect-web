@@ -1,8 +1,8 @@
 ADR-0215 - a query's retry reaches its runtime as declared, and fixed is no strategy
 
 produced by: just e14-query-retry
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: a3cab774e9569baddae69bd0d294487eaa3b697e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the plan, the cache and the server
@@ -29,26 +29,26 @@ test a_program_that_does_not_check_compiles_no_handlers ... ok
 test a_handler_calls_its_commands_by_the_contracts_own_ids ... ok
 test the_stores_handlers_compile_to_the_calls_their_bodies_make ... ok
 test a_module_and_its_event_part_name_one_handler ... ok
-test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.44s
+test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.76s
 test a_key_separates_a_partition_by_naming_it ... ok
 test a_key_names_a_parameter_or_a_partition ... ok
 test a_session_query_in_a_shared_cache_is_refused_however_it_is_spelled ... ok
 test a_session_read_is_never_stale_however_it_is_written ... ok
+test a_retried_command_is_idempotent_whatever_it_retries_on ... ok
 test a_duration_is_a_count_and_a_unit ... ok
 test a_type_a_policy_names_is_visible ... ok
-test a_retried_command_is_idempotent_whatever_it_retries_on ... ok
 test a_word_is_one_its_domain_lists ... ok
 test only_transport_only_is_transport_only ... ok
 test a_world_is_one_a_platform_has ... ok
 test an_operator_is_given_its_arguments ... ok
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.23s
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.94s
 test a_querys_jitter_reaches_its_plan ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.35s
 test a_delay_varies_only_with_jitter ... ok
 test a_command_can_invalidate_the_resource_it_changed ... ok
 test a_dropped_subscription_releases_even_on_an_early_return ... ok
-test a_fresh_cached_value_is_served_without_a_request ... ok
 test a_failed_key_does_not_stay_in_flight_forever ... ok
+test a_fresh_cached_value_is_served_without_a_request ... ok
 test duplicate_commands_with_one_interaction_id_mutate_once ... ok
 test private_state_never_appears_in_public_cache_output ... ok
 test retries_are_bounded_and_backoff_grows ... ok
@@ -57,7 +57,8 @@ test navigating_away_cancels_work_nobody_is_waiting_for ... ok
 test a_recomputation_storm_does_not_exceed_one_request_per_key ... ok
 test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 test tests::a_querys_retry_reaches_its_cache_as_declared ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1047 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1094 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
 
 == mutation controls (scripts/query_retry_mutations.py)
 
