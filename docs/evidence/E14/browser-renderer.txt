@@ -1,53 +1,58 @@
 the browser renders with a page of JavaScript, held to the server's renderer
 
 produced by: just e14-browser-renderer
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: c7bf000458618f0ee59507b2b8f00c5606b0707a
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
 
 == the two renderers, asked the same (renderer-agreement.test.mjs)
 
-✔ the two renderers agree over generated templates of every part and context (11727.967641ms)
-✔ a block kept in pieces is the text the renderer writes, the second time too (1514.175466ms)
-✔ a row is written again when what it reads changes, and not otherwise (2.306691ms)
-✔ a row is written again when what a block around it bound changes (1.892034ms)
-✔ a row that read NaN of the page is the row kept, and its computed value is not computed again (3.777749ms)
-✔ the two renderers agree over the compiler's own templates (5869.749657ms)
-✔ a planned row agrees with the server over generated templates (3653.936999ms)
-ℹ held: {"rows":4231,"planned":3565,"holes":5626,"refused":4146}
-✔ a planned row agrees with the server over the compiler's own templates (107.836112ms)
-ℹ held: {"rows":120,"planned":96,"holes":288,"refused":69}
-✔ a list's own code keeps and makes its rows as the general code does, over generated templates (1872.250767ms)
-ℹ held: {"written":3302,"refusedLists":2478,"rows":8235,"own":3429,"kept":2232,"refused":7891,"why":{"it is inside a block":2063,"its attribute href interpolates in":415}}
-✔ a list's own code computes what its rows compute as the general code does (745.10208ms)
-ℹ held: {"written":1368,"refusedLists":132,"rows":2622,"own":2612,"kept":1136,"refused":814,"why":{"what its row computes for":132}}
-ℹ held with no function: {"written":546,"refusedLists":54,"rows":181,"own":166,"kept":80,"refused":817,"why":{"what its row computes for":54}}
-✔ a list's own code keeps and makes its rows as the general code does, over the compiler's own templates (56.782662ms)
-ℹ held: {"written":79,"refusedLists":16,"rows":230,"own":185,"kept":110,"refused":134,"why":{"it is inside a block":16}}
-✔ each escaping agrees on every code point (3546.707302ms)
-✔ an address agrees on every code point inside and around a scheme (1216.244712ms)
-✔ keys sort as the server's do, by code point (10.511451ms)
-✔ a view inside itself stops where the server's does (1720.03731ms)
-✔ a graph that is no tree is refused where it is read (10.169303ms)
-✔ what has been an exploit agrees in every context (90.654433ms)
-✔ a path reads a record's fields and nothing else's (12.0864ms)
-✔ each element's handlers write one attribute of their own (8.80198ms)
-✔ an instance reads its parameters and none of the page's values (14.114972ms)
-✔ what changed in a row agrees on a block, a case and a list inside it (9.658322ms)
-✔ a list inside a row is refused, not walked, when its keys repeat or are missing (7.750013ms)
-✔ an item of a list inside a row is refused as rendering it would be (27.055987ms)
-✔ a change in a row is what the server says it is (7.03197ms)
-✔ the renderer is small (41.565083ms)
-ℹ tests 25
+✔ the two renderers agree over generated templates of every part and context (7944.343071ms)
+✔ a block kept in pieces is the text the renderer writes, the second time too (1214.538803ms)
+✔ a row is written again when what it reads changes, and not otherwise (1.672021ms)
+✔ a row is written again when what a block around it bound changes (1.575223ms)
+✔ a row that read NaN of the page is the row kept, and its computed value is not computed again (2.990403ms)
+✔ the two renderers agree over the compiler's own templates (4110.382765ms)
+✔ a planned row agrees with the server over generated templates (3696.1254ms)
+ℹ held: {"rows":7991,"planned":7325,"anchored":1821,"holes":22799,"refused":5302}
+✔ a row its own anchor writes its key where the server does, however its element's name ends (4.632577ms)
+✔ a list the packaging says is its rows' own anchor has a row of one element, and each other its comments (82.361849ms)
+✔ a planned row agrees with the server over the compiler's own templates (79.832011ms)
+ℹ held: {"rows":174,"planned":150,"anchored":54,"holes":414,"refused":76}
+✔ a list's own code keeps and makes its rows as the general code does, over generated templates (1947.348545ms)
+ℹ held: {"written":5302,"refusedLists":2478,"rows":11929,"own":7123,"kept":3726,"refused":9118,"why":{"it is inside a block":2063,"its attribute href interpolates in":415},"found":5953,"moved":51,"few":33,"gone":94,"remade":250,"keptFound":1525,"last":2885}
+✔ a list's own code computes what its rows compute as the general code does (554.778689ms)
+ℹ held: {"written":1368,"refusedLists":132,"rows":2622,"own":2612,"kept":1136,"refused":814,"why":{"what its row computes for":132},"found":2133,"moved":19,"few":14,"gone":47,"remade":67,"keptFound":680,"last":1035}
+ℹ held with no function: {"written":546,"refusedLists":54,"rows":181,"own":166,"kept":80,"refused":817,"why":{"what its row computes for":54},"found":349,"moved":1,"few":1,"gone":0,"remade":7,"keptFound":54,"last":166}
+✔ a list's own code keeps and makes its rows as the general code does, over the compiler's own templates (53.80416ms)
+ℹ held: {"written":102,"refusedLists":20,"rows":342,"own":297,"kept":164,"refused":146,"why":{"it is inside a block":20},"found":99,"moved":2,"few":2,"gone":1,"remade":3,"keptFound":49,"last":49}
+✔ a list's own code finds its rows where they were, and says what it found as their keys say (5912.616886ms)
+ℹ held: {"written":3317,"refusedLists":967,"rows":113711,"own":105027,"kept":69626,"refused":14373,"why":{"it is inside a block":823,"its attribute href interpolates in":144},"found":17586,"moved":1692,"few":1028,"gone":2002,"remade":1873,"keptFound":7519,"last":14473}
+✔ a list's own code finds its rows where they were as what they compute moves and does not (910.888393ms)
+ℹ held: {"written":1096,"refusedLists":104,"rows":9681,"own":9611,"kept":6310,"refused":2616,"why":{"what its row computes for":104},"found":6772,"moved":509,"few":477,"gone":718,"remade":334,"keptFound":3176,"last":5653}
+✔ each escaping agrees on every code point (2488.610573ms)
+✔ an address agrees on every code point inside and around a scheme (828.883677ms)
+✔ keys sort as the server's do, by code point (4.270707ms)
+✔ a view inside itself stops where the server's does (1003.673981ms)
+✔ a graph that is no tree is refused where it is read (4.687225ms)
+✔ what has been an exploit agrees in every context (63.060082ms)
+✔ a path reads a record's fields and nothing else's (5.05042ms)
+✔ each element's handlers write one attribute of their own (3.50109ms)
+✔ an instance reads its parameters and none of the page's values (7.02872ms)
+✔ what changed in a row agrees on a block, a case and a list inside it (4.603771ms)
+✔ a list inside a row is refused, not walked, when its keys repeat or are missing (3.939295ms)
+✔ an item of a list inside a row is refused as rendering it would be (12.065346ms)
+✔ a change in a row is what the server says it is (3.13037ms)
+✔ the renderer is small (44.981031ms)
+ℹ tests 29
 ℹ suites 0
-ℹ pass 25
+ℹ pass 29
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 32407.832631
+ℹ duration_ms 31076.699389
 
 == the server's renderer on the address that panicked it (escape.rs)
 
@@ -68,6 +73,7 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; fini
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 32 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 15 filtered out; finished in 0.00s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
@@ -75,104 +81,114 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; fini
 == what a page renders through it, in three engines
 
 EVIDENCE static-route-script-bytes=0 wasm-bytes=0
-EVIDENCE interactive-script-bytes=248043 brotli=64039
+EVIDENCE interactive-script-bytes=262839 brotli=67331
 EVIDENCE interactive-wasm-bytes=0 brotli=0
-EVIDENCE  script 248043 gzip=76502 brotli=64039 http://127.0.0.1:3148/pw-runtime.mjs
+EVIDENCE  script 262839 gzip=80439 brotli=67331 http://127.0.0.1:3148/pw-runtime.mjs
   6 skipped
-  120 passed (2.0m)
+  120 passed (1.2m)
 
 == mutation controls (scripts/browser_renderer_mutations.py)
 
-baseline: 25 passed, 0 failed
-text does not escape <: KILLED (6 of 25 tests fail)
-text does not escape &: KILLED (6 of 25 tests fail)
-an attribute does not escape a double quote: KILLED (9 of 25 tests fail)
-an attribute does not escape a single quote: KILLED (7 of 25 tests fail)
-an attribute does not escape a backtick: KILLED (7 of 25 tests fail)
-a form control's first newline is not doubled: KILLED (3 of 25 tests fail)
-a form control's first carriage return is not doubled: KILLED (2 of 25 tests fail)
-what an address drops is what JavaScript calls space: KILLED (3 of 25 tests fail)
-an address keeps its control characters: KILLED (4 of 25 tests fail)
-a data: address is let through: KILLED (3 of 25 tests fail)
-a vbscript: address is let through: KILLED (2 of 25 tests fail)
-an address's references are not read: KILLED (4 of 25 tests fail)
-an address's case is kept: KILLED (3 of 25 tests fail)
-a reference's window is a byte longer: KILLED (1 of 25 tests fail)
-a reference past a code point is read: KILLED (1 of 25 tests fail)
-a reference to what a parser drops is kept: KILLED (1 of 25 tests fail)
-a reference's plus sign is refused: KILLED (3 of 25 tests fail)
-a colon's name is not read: KILLED (2 of 25 tests fail)
-a component keeps a character it should encode: KILLED (4 of 25 tests fail)
-a component's bytes are in lower case: KILLED (5 of 25 tests fail)
-a style's expression( is kept: KILLED (3 of 25 tests fail)
-a style's quoted url( is kept: KILLED (3 of 25 tests fail)
-true is written otherwise: KILLED (3 of 25 tests fail)
-a list has a text form: KILLED (5 of 25 tests fail)
-zero holds: KILLED (2 of 25 tests fail)
-an empty list holds: KILLED (2 of 25 tests fail)
-a case is a condition: KILLED (2 of 25 tests fail)
-a field set whole is not read: KILLED (4 of 25 tests fail)
-a field of a case is read: KILLED (1 of 25 tests fail)
-a key reads through what is no record: KILLED (1 of 25 tests fail)
-a node may be held twice: KILLED (3 of 25 tests fail)
-a node no other holds is kept: KILLED (1 of 25 tests fail)
-a $node outside a graph is a record: KILLED (1 of 25 tests fail)
-a text part writes no anchors: KILLED (11 of 25 tests fail)
-each handler writes its own attribute: KILLED (4 of 25 tests fail)
-an element's handlers run together with another's: KILLED (2 of 25 tests fail)
-an absent boolean attribute leaves its space: KILLED (3 of 25 tests fail)
-a false boolean attribute is written: KILLED (6 of 25 tests fail)
-a streamed region with no answer is refused: KILLED (3 of 25 tests fail)
-a region with no answer shows its placeholder: KILLED (2 of 25 tests fail)
-raw HTML is written: KILLED (2 of 25 tests fail)
-a blocked part writes nothing: KILLED (2 of 25 tests fail)
-a loop's missing key is rendered: KILLED (6 of 25 tests fail)
-a loop's duplicate key is rendered: KILLED (6 of 25 tests fail)
-a loop's key is not noted: KILLED (3 of 25 tests fail)
-a row is kept whatever a block around it bound: KILLED (1 of 25 tests fail)
-a loop that is no list renders nothing: KILLED (4 of 25 tests fail)
-a nested instance may pass what a browser nests: KILLED (1 of 25 tests fail)
-an instance counts no elements around it: KILLED (2 of 25 tests fail)
-an instance reads the page's values: KILLED (1 of 25 tests fail)
-a case with no payload binds nothing: KILLED (2 of 25 tests fail)
-a case's fields need not be as many: KILLED (1 of 25 tests fail)
-an integer past 2^53 is captured: KILLED (2 of 25 tests fail)
-what a host set on a row is captured: KILLED (2 of 25 tests fail)
-a case is captured: KILLED (2 of 25 tests fail)
-keys sort as JavaScript's strings do: KILLED (3 of 25 tests fail)
-captures are not escaped: KILLED (8 of 25 tests fail)
-one name from two places is not refused: KILLED (2 of 25 tests fail)
-a rename is not followed: KILLED (3 of 25 tests fail)
-one path through another's value is taken: KILLED (2 of 25 tests fail)
-a changed text is not told: KILLED (4 of 25 tests fail)
-a changed attribute is not told: KILLED (3 of 25 tests fail)
-what a handler captures is not told: KILLED (2 of 25 tests fail)
-a block that shows another branch is set in place: KILLED (4 of 25 tests fail)
-a match that shows another arm is set in place: KILLED (1 of 25 tests fail)
-a changed list in a row is not told: KILLED (5 of 25 tests fail)
-a list's change is told as the row's, set in place: KILLED (4 of 25 tests fail)
-two values of another type are one: KILLED (1 of 25 tests fail)
-a NaN the page holds is not what a row read of it: KILLED (2 of 25 tests fail)
-a planned row's text hole is not its part's text: KILLED (5 of 25 tests fail)
-a planned row's scope does not hold its item: KILLED (6 of 25 tests fail)
-a planned row's absent boolean attribute is there: KILLED (4 of 25 tests fail)
-a planned row's attribute is set as it is compared: KILLED (5 of 25 tests fail)
-a planned row's handlers capture nothing: KILLED (5 of 25 tests fail)
-a planned row's text is written in the block's scope: KILLED (5 of 25 tests fail)
-a kept row's texts keep their anchors: KILLED (3 of 25 tests fail)
-a new list's missing key is taken: KILLED (1 of 25 tests fail)
-a new list's repeated key is taken: KILLED (2 of 25 tests fail)
-an item gone from a list is no change: KILLED (2 of 25 tests fail)
-an item new to a list is no change: KILLED (3 of 25 tests fail)
-an item new to a list is not rendered: KILLED (1 of 25 tests fail)
-an item moved in a list is no change: KILLED (2 of 25 tests fail)
-an item of a list that changed is no change: KILLED (2 of 25 tests fail)
-an item of a list rendered again is not rendered: KILLED (1 of 25 tests fail)
-the server's text does not escape >: KILLED (6 of 25 tests fail)
-the server's attribute does not escape a backtick: KILLED (7 of 25 tests fail)
-the server lets a data: address through: KILLED (3 of 25 tests fail)
-the server's false boolean attribute leaves its space: KILLED (3 of 25 tests fail)
-the server takes a new list's repeated key: KILLED (2 of 25 tests fail)
-the server's duplicate key is rendered: KILLED (2 of 25 tests fail)
-90 of 90 mutants killed
+baseline: 29 passed, 0 failed
+text does not escape <: KILLED (6 of 29 tests fail)
+text does not escape &: KILLED (6 of 29 tests fail)
+an attribute does not escape a double quote: KILLED (9 of 29 tests fail)
+an attribute does not escape a single quote: KILLED (7 of 29 tests fail)
+an attribute does not escape a backtick: KILLED (7 of 29 tests fail)
+a form control's first newline is not doubled: KILLED (3 of 29 tests fail)
+a form control's first carriage return is not doubled: KILLED (2 of 29 tests fail)
+what an address drops is what JavaScript calls space: KILLED (3 of 29 tests fail)
+an address keeps its control characters: KILLED (4 of 29 tests fail)
+a data: address is let through: KILLED (3 of 29 tests fail)
+a vbscript: address is let through: KILLED (2 of 29 tests fail)
+an address's references are not read: KILLED (4 of 29 tests fail)
+an address's case is kept: KILLED (3 of 29 tests fail)
+a reference's window is a byte longer: KILLED (1 of 29 tests fail)
+a reference past a code point is read: KILLED (1 of 29 tests fail)
+a reference to what a parser drops is kept: KILLED (1 of 29 tests fail)
+a reference's plus sign is refused: KILLED (3 of 29 tests fail)
+a colon's name is not read: KILLED (2 of 29 tests fail)
+a component keeps a character it should encode: KILLED (4 of 29 tests fail)
+a component's bytes are in lower case: KILLED (5 of 29 tests fail)
+a style's expression( is kept: KILLED (3 of 29 tests fail)
+a style's quoted url( is kept: KILLED (3 of 29 tests fail)
+true is written otherwise: KILLED (3 of 29 tests fail)
+a list has a text form: KILLED (5 of 29 tests fail)
+zero holds: KILLED (2 of 29 tests fail)
+an empty list holds: KILLED (2 of 29 tests fail)
+a case is a condition: KILLED (2 of 29 tests fail)
+a field set whole is not read: KILLED (6 of 29 tests fail)
+a field of a case is read: KILLED (1 of 29 tests fail)
+a key reads through what is no record: KILLED (1 of 29 tests fail)
+a node may be held twice: KILLED (3 of 29 tests fail)
+a node no other holds is kept: KILLED (1 of 29 tests fail)
+a $node outside a graph is a record: KILLED (1 of 29 tests fail)
+a text part writes no anchors: KILLED (11 of 29 tests fail)
+each handler writes its own attribute: KILLED (4 of 29 tests fail)
+an element's handlers run together with another's: KILLED (2 of 29 tests fail)
+an absent boolean attribute leaves its space: KILLED (4 of 29 tests fail)
+a false boolean attribute is written: KILLED (9 of 29 tests fail)
+a streamed region with no answer is refused: KILLED (3 of 29 tests fail)
+a region with no answer shows its placeholder: KILLED (2 of 29 tests fail)
+raw HTML is written: KILLED (2 of 29 tests fail)
+a blocked part writes nothing: KILLED (2 of 29 tests fail)
+a loop's missing key is rendered: KILLED (8 of 29 tests fail)
+a loop's duplicate key is rendered: KILLED (8 of 29 tests fail)
+a loop's key is not noted: KILLED (3 of 29 tests fail)
+a row is kept whatever a block around it bound: KILLED (1 of 29 tests fail)
+a loop that is no list renders nothing: KILLED (5 of 29 tests fail)
+a nested instance may pass what a browser nests: KILLED (1 of 29 tests fail)
+an instance counts no elements around it: KILLED (2 of 29 tests fail)
+an instance reads the page's values: KILLED (2 of 29 tests fail)
+a case with no payload binds nothing: KILLED (2 of 29 tests fail)
+a case's fields need not be as many: KILLED (2 of 29 tests fail)
+an integer past 2^53 is captured: KILLED (2 of 29 tests fail)
+what a host set on a row is captured: KILLED (2 of 29 tests fail)
+a case is captured: KILLED (3 of 29 tests fail)
+keys sort as JavaScript's strings do: KILLED (3 of 29 tests fail)
+captures are not escaped: KILLED (8 of 29 tests fail)
+one name from two places is not refused: KILLED (2 of 29 tests fail)
+a rename is not followed: KILLED (4 of 29 tests fail)
+one path through another's value is taken: KILLED (2 of 29 tests fail)
+a changed text is not told: KILLED (4 of 29 tests fail)
+a changed attribute is not told: KILLED (3 of 29 tests fail)
+what a handler captures is not told: KILLED (2 of 29 tests fail)
+a block that shows another branch is set in place: KILLED (4 of 29 tests fail)
+a match that shows another arm is set in place: KILLED (1 of 29 tests fail)
+a changed list in a row is not told: KILLED (5 of 29 tests fail)
+a list's change is told as the row's, set in place: KILLED (3 of 29 tests fail)
+two values of another type are one: KILLED (1 of 29 tests fail)
+a NaN the page holds is not what a row read of it: KILLED (2 of 29 tests fail)
+a planned row's text hole is not its part's text: KILLED (8 of 29 tests fail)
+a planned row's scope does not hold its item: KILLED (8 of 29 tests fail)
+a planned row's absent boolean attribute is there: KILLED (5 of 29 tests fail)
+a planned row's attribute is set as it is compared: KILLED (7 of 29 tests fail)
+a planned row's handlers capture nothing: KILLED (8 of 29 tests fail)
+a planned row's text is written in the block's scope: KILLED (7 of 29 tests fail)
+a kept row's texts keep their anchors: KILLED (3 of 29 tests fail)
+a new list's missing key is taken: KILLED (1 of 29 tests fail)
+a new list's repeated key is taken: KILLED (3 of 29 tests fail)
+an item gone from a list is no change: KILLED (1 of 29 tests fail)
+an item new to a list is no change: KILLED (2 of 29 tests fail)
+an item new to a list is not rendered: KILLED (1 of 29 tests fail)
+an item moved in a list is no change: KILLED (2 of 29 tests fail)
+an item of a list that changed is no change: KILLED (2 of 29 tests fail)
+an item of a list rendered again is not rendered: KILLED (1 of 29 tests fail)
+the server's text does not escape >: KILLED (6 of 29 tests fail)
+the server's attribute does not escape a backtick: KILLED (7 of 29 tests fail)
+the server lets a data: address through: KILLED (3 of 29 tests fail)
+the server's false boolean attribute leaves its space: KILLED (4 of 29 tests fail)
+the server takes a new list's repeated key: KILLED (3 of 29 tests fail)
+the server's duplicate key is rendered: KILLED (2 of 29 tests fail)
+a block's row its own anchor is written between comments: KILLED (3 of 29 tests fail)
+a row's text its own anchor is written between comments: KILLED (3 of 29 tests fail)
+an instance its own anchor is written between comments: KILLED (2 of 29 tests fail)
+a row's key is written before its element's name: KILLED (4 of 29 tests fail)
+a tag's name ends at a space alone: KILLED (1 of 29 tests fail)
+a row that begins with no element is written: KILLED (3 of 29 tests fail)
+the server writes a row its own anchor between comments: KILLED (4 of 29 tests fail)
+the server writes a row's key before its element's name: KILLED (4 of 29 tests fail)
+the server ends a tag's name at a space alone: KILLED (1 of 29 tests fail)
+the server writes a row whose markup is no element's: KILLED (2 of 29 tests fail)
+100 of 100 mutants killed
 memory bound: no process was stopped
