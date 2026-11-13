@@ -1666,8 +1666,14 @@ fn read(
                 .iter()
                 .position(|index| index.fields == function.by)
                 .ok_or_else(|| Error::Schema(format!("{import} reads by no index")))?;
+            // The state's index of that place, or a schema error: a state
+            // that is not this table's (a read of another table's rows, as
+            // data_path's mutant makes one) is refused, never a panic.
+            let held = data.indexes.get(index).ok_or_else(|| {
+                Error::Schema(format!("{}'s state holds no index {index}", table.name))
+            })?;
             for values in typed_selections(table, function, import, args)? {
-                for key in holding(&data.indexes[index], &values) {
+                for key in holding(held, &values) {
                     found.push(data.rows.get(key).ok_or_else(|| {
                         Error::Schema(format!("{}'s index names a missing row", table.name))
                     })?);
