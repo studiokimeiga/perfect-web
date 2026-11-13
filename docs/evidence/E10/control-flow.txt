@@ -1,8 +1,8 @@
 ADR-0051 - an early return, ?, and for loops compile
 
 produced by: just e10-control-flow
-commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 120e64874756e73da22b9f55f10ad0e567536627
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
@@ -15,41 +15,41 @@ test a_read_is_a_copy_a_later_assignment_does_not_change ... ok
 test a_loop_updates_a_mutable_binding ... ok
 test a_return_leaves_a_loop_and_the_body ... ok
 test a_return_leaves_the_body_early ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.91s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.83s
 
 == what may be assigned (compiler/pw-core/tests/assignments.rs)
 
 test a_let_mut_binding_is_assigned ... ok
-test a_module_level_let_mut_is_assigned_and_a_let_is_not ... ok
 test a_binding_without_mut_is_not ... ok
+test a_module_level_let_mut_is_assigned_and_a_let_is_not ... ok
 test a_parameter_and_a_loop_variable_are_not ... ok
-test an_assignment_keeps_the_bindings_type ... ok
 test the_innermost_binding_decides ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test an_assignment_keeps_the_bindings_type ... ok
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 
 == the component and the JavaScript module, on the same arguments
 
 javascript: 3 queries over cases written alone, 600 calls, component and module agree (57 trapped in both)
 javascript: 5 queries over trees, 1000 calls, component and module agree (155 trapped in both)
 javascript: 5 queries over values held in place, 1000 calls, component and module agree (132 trapped in both)
-javascript: 97 queries, 19400 calls, component and module agree (1446 trapped in both)
+javascript: 103 queries, 20600 calls, component and module agree (1424 trapped in both)
 
 == mutation controls (scripts/control_flow_mutations.py)
 
-baseline: 33 passed, 0 failed
-a `return` does not leave the component's function: KILLED (7 of 33 tests fail)
-a `return` leaves without its value: KILLED (7 of 33 tests fail)
-a module's `return` is dropped: KILLED (1 of 33 tests fail)
-`?` returns its failure without the failure's payload: KILLED (2 of 33 tests fail)
-a callee that returns early is inlined: KILLED (1 of 33 tests fail)
-a read of a variable is the variable itself: KILLED (1 of 33 tests fail)
-the component's read is not a copy: KILLED (1 of 33 tests fail)
-a `for` body runs once: KILLED (3 of 33 tests fail)
-a module's `for` runs over the first element only: KILLED (1 of 33 tests fail)
-a branch that returns keeps its placeholder's type: KILLED (1 of 33 tests fail)
-an assignment to a binding that is not `mut` is not refused: KILLED (4 of 33 tests fail)
-a module-level `let mut` is not assignable: KILLED (1 of 33 tests fail)
-an assignment's value is not related to the binding: KILLED (1 of 33 tests fail)
+baseline: 34 passed, 0 failed
+a `return` does not leave the component's function: KILLED (7 of 34 tests fail)
+a `return` leaves without its value: KILLED (7 of 34 tests fail)
+a module's `return` is dropped: KILLED (1 of 34 tests fail)
+`?` returns its failure without the failure's payload: KILLED (2 of 34 tests fail)
+a callee that returns early is inlined: KILLED (1 of 34 tests fail)
+a read of a variable is the variable itself: KILLED (1 of 34 tests fail)
+the component's read is not a copy: KILLED (1 of 34 tests fail)
+a `for` body runs once: KILLED (3 of 34 tests fail)
+a module's `for` runs over the first element only: KILLED (1 of 34 tests fail)
+a branch that returns keeps its placeholder's type: KILLED (1 of 34 tests fail)
+an assignment to a binding that is not `mut` is not refused: KILLED (4 of 34 tests fail)
+a module-level `let mut` is not assignable: KILLED (1 of 34 tests fail)
+an assignment's value is not related to the binding: KILLED (1 of 34 tests fail)
 13 of 13 mutants killed
 memory bound: no process was stopped
 

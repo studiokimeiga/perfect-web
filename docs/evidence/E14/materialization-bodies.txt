@@ -1,26 +1,26 @@
 ADR-0273 - a materialization is a value its body derives
 
 produced by: just e14-materialization-bodies
-commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 120e64874756e73da22b9f55f10ad0e567536627
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == derived, read and stated once (compiler/pw-core/tests/materialization_bodies.rs, calls_name_terms.rs)
 
 test a_call_names_no_effect ... ok
-test a_call_names_no_materialization ... ok
 test a_call_names_no_event ... ok
+test a_call_names_no_materialization ... ok
 test a_binding_that_shares_the_name_is_its_value ... ok
 test a_term_or_a_type_that_shares_the_name_is_what_a_call_names ... ok
 test a_call_names_no_view_and_no_page ... ok
 test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 test a_fragment_the_host_renders_is_no_value_to_read ... ok
 test a_materializations_body_is_held_to_its_type ... ok
+test one_that_derives_its_value_reads_another_and_a_cycle_of_reads_is_refused ... ok
 test a_page_reads_a_public_one_the_host_keeps ... ok
 test what_it_depends_on_is_stated_once_by_reading_it ... ok
-test one_that_derives_its_value_reads_another_and_a_cycle_of_reads_is_refused ... ok
 test a_body_begins_where_the_clauses_end_whatever_it_begins_with ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.63s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.84s
 
 == mutation controls (scripts/materialization_body_mutations.py)
 

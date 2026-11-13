@@ -1,8 +1,8 @@
 E8 — the artifact audit
 
 produced by: just e8-host
-commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 120e64874756e73da22b9f55f10ad0e567536627
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 
 Three checks on data (no engine), fifteen more in tests/admission.rs:
   placement and capability are separate and can disagree either way
@@ -96,7 +96,7 @@ test the_std_component_is_refused_for_authority_nobody_asked_for ... std guest i
 test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.75s
 test a_hand_written_rust_guest_through_the_host ... bench: compile the Rust no_std guest (5276 bytes): 0.0 ms
 test the_compiled_command_through_the_host ... bench: compile store.page.add_to_cart (7623 bytes): 0.0 ms
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 17.80s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 17.98s
 test a_case_the_path_does_not_name_holds_nothing_to_check ... ok
 test a_strings_length_is_held_at_both_ends_in_code_points ... ok
 test a_value_of_another_shape_than_the_contract_says_is_refused ... ok
@@ -115,7 +115,7 @@ test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 test a_price_is_written_as_en_us_writes_dollars ... ok
 test an_amount_owed_back_is_written_with_its_sign_first ... ok
 test every_amount_is_exact_the_least_and_the_greatest_included ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
 test a_component_using_exceptions_is_refused ... ok
 test a_component_using_gc_is_refused ... ok
 test a_component_using_none_of_them_loads ... ok
@@ -129,7 +129,7 @@ test a_field_under_neither_name_is_refused_by_both ... ok
 test a_field_written_as_the_program_names_it_is_read ... ok
 test a_list_s_rows_and_a_declared_error_are_read_through_their_types ... ok
 test an_answer_as_the_type_declares_it_is_passed_as_it_is ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
 test a_list_of_records_is_read_element_by_element_and_runs ... {"lines":{}}: argument 1 (`arg0`).lines: expected an array, got {}
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 test a_necessarily_remote_edge_that_owes_a_principal_is_not_a_finished_plan ... ok
@@ -157,9 +157,9 @@ test an_ungranted_operation_is_refused_by_the_engine ... ungranted write refused
 test arguments_for_an_export_the_component_does_not_have_are_refused ... ok
 test json_arguments_are_typed_by_the_export_they_are_for ... [Object {"available": Bool(true), "category": Object {"id": String("coffee"), "name": String("Coffee")}, "description": String("Short."), "id": String("cortado"), "name": String("Cortado"), "price": Number(375), "store_id": String("47")}]: `pw:app/store-page-add-to-cart-api@0.1.0#add-to-cart` takes 2 argument(s); 1 were sent
 test requires_cannot_be_bypassed_by_the_raw_call_api ... ok
-test sustained_calls_leave_memory_flat ... sustained: 19000 calls after 1000 warm-up -> resident 39448 KiB -> 39480 KiB (+32 KiB), 607.8 µs per call
+test sustained_calls_leave_memory_flat ... sustained: 19000 calls after 1000 warm-up -> resident 39784 KiB -> 39816 KiB (+32 KiB), 601.9 µs per call
 test the_artifact_imports_exactly_what_its_contract_allows ... compiled add_to_cart imports: ["pw:host/invalidations#store-page-cart", "pw:host/outbox#user-cart-changed", "pw:host/principal#read", "store:data/coverage#reaches", "store:data/menus#is-available", "store:data/user-carts#add"]
 test the_compiled_command_runs_through_the_host ... the host saw: [("pw:host/principal#read", []), ("pw:host/invalidations#store-page-cart", [String("session-7")]), ("pw:host/principal#read", []), ("pw:host/outbox#user-cart-changed", [String("session-7")]), ("store:data/menus#is-available", [String("cortado")]), ("pw:host/principal#read", []), ("store:data/coverage#reaches", [String("47"), String("session-7")]), ("pw:host/principal#read", []), ("store:data/user-carts#add", [String("session-7"), String("cortado"), S64(2)])]
 test the_instance_runs_within_its_fuel ... starved of fuel: wasm trap: all fuel consumed by WebAssembly
-test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.28s
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.16s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

@@ -1,8 +1,8 @@
 ADR-0235 - what a speculated value computes, the page's module computes
 
 produced by: just e14-speculated-values
-commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 120e64874756e73da22b9f55f10ad0e567536627
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
@@ -10,7 +10,7 @@ node: v22.21.1
 
 test a_subject_and_a_value_in_its_block_are_the_modules ... ok
 test a_value_no_region_renders_is_refused_by_name ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.30s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
 
 == mutation controls (scripts/speculated_values_mutations.py)
 

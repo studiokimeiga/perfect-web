@@ -1,8 +1,8 @@
 E10 gate item 2 - compiled semantics against a reference
 
 produced by: just e10-oracle
-commit: 8096c4e7e07b46b521e45b95078c6e472f569d57
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43141088178 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 120e64874756e73da22b9f55f10ad0e567536627
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the differential oracle (compiler/pw-conformance/tests/oracle.rs)
@@ -23,7 +23,7 @@ oracle: store.page.clear_cart: 300 generated cases, the component and the refere
 oracle: store.page.Cart: 300 generated cases, the component and the reference agree
 oracle: store.page.Menu: 300 generated cases, the component and the reference agree
 oracle: store.page.Store: 300 generated cases, the component and the reference agree
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 16.94s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 24.38s
 
 == matches, fields and variants, run (compiler/pw-conformance/tests/variants.rs)
 
@@ -35,7 +35,7 @@ test a_stub_is_followed_to_the_entry_it_names ... 地図 -> [Option(Some(Record(
 test a_stub_whose_target_is_missing_is_none ... ok
 test an_entry_is_returned_as_itself ... 人 -> [Option(Some(Record([("key", String("人")), ("redirect", Option(None)), ("gloss", String("person; people"))])))]
 test strings_survive_every_path_intact ... ok
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.73s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.07s
 
 NOT CLAIMED: the references are Rust statements of each declaration's
 meaning, written from the source. Koka is the oracle for effects (E9-K)
