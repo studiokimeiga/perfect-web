@@ -260,6 +260,9 @@ export function serversForSelection(selection, { root = ROOT, port = PORT } = {}
     const hostPort = portsForRole(role, port)[engine];
     const env = {
       PORT: String(hostPort), PW_FEED_DATABASE_URL: "", PW_STORE_DATABASE_URL: "",
+      // A program's declared tables too (track durable-tables): in memory,
+      // whatever the caller's environment names for them.
+      PW_TABLES_DATABASE_URL: "", PW_TABLES_SCHEMA: undefined,
       KIOKUN_DATA: undefined, KIOKUN_APP: undefined,
       PW_IDENTITY: undefined, PW_BLOB_DIR: undefined, PW_PAYMENTS: undefined, PW_PAYMENTS_PORT: undefined,
     };

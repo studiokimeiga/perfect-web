@@ -1,8 +1,8 @@
 ADR-0200 - () is the unit value, and no expression the compiler cannot read checks
 
 produced by: just e14-unit-value
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: a3cab774e9569baddae69bd0d294487eaa3b697e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the rule (compiler/pw-core/tests/unit_value.rs)
@@ -13,30 +13,30 @@ test an_expression_the_compiler_cannot_read_is_refused ... ok
 test a_file_that_does_not_parse_is_kept_out_of_the_program ... ok
 test unit_is_the_one_value_of_its_type ... ok
 test unit_is_built ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
 
 == every .pw file in the repository (compiler/pw-core/tests/every_expression_is_read.rs)
 
 test no_file_that_parses_holds_an_expression_the_compiler_cannot_read ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.64s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.24s
 
 == a block left open (pw-syntax's grammar, compiler/pw-core/tests/template_blocks.rs)
 
 test grammar::tests::a_block_left_open_ends_with_its_element ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 97 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 100 filtered out; finished in 0.00s
 test an_unclosed_block_is_refused ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 11 filtered out; finished in 0.11s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 11 filtered out; finished in 0.08s
 
 == mutation controls (scripts/unit_value_mutations.py)
 
-baseline: 117 passed, 0 failed
-`()` is an expression that did not parse: KILLED (3 of 117 tests fail)
-`()` is typed as an `Int`: KILLED (1 of 117 tests fail)
-the backend does not build `()`: KILLED (1 of 117 tests fail)
-a file's syntax errors are not reported: KILLED (2 of 117 tests fail)
-a file that does not parse enters the program: KILLED (1 of 117 tests fail)
-an expression the compiler cannot read checks: KILLED (2 of 117 tests fail)
-a block left open takes its element's close tag: KILLED (2 of 117 tests fail)
-a pattern the compiler cannot read checks: KILLED (1 of 117 tests fail)
+baseline: 120 passed, 0 failed
+`()` is an expression that did not parse: KILLED (3 of 120 tests fail)
+`()` is typed as an `Int`: KILLED (1 of 120 tests fail)
+the backend does not build `()`: KILLED (1 of 120 tests fail)
+a file's syntax errors are not reported: KILLED (2 of 120 tests fail)
+a file that does not parse enters the program: KILLED (1 of 120 tests fail)
+an expression the compiler cannot read checks: KILLED (2 of 120 tests fail)
+a block left open takes its element's close tag: KILLED (2 of 120 tests fail)
+a pattern the compiler cannot read checks: KILLED (1 of 120 tests fail)
 8 of 8 mutants killed
 memory bound: no process was stopped

@@ -13,6 +13,7 @@
 import { test } from "@playwright/test";
 import { expect } from "../assertion-expect.mjs";
 import { ROWS_PORTS, ROW_EVENTS_PORTS } from "../host-metadata.mjs";
+import { rowElement } from "../own-rows.mjs";
 
 test.use({
   baseURL: async ({}, use, testInfo) => {
@@ -591,6 +592,237 @@ test("a row a plan made is pressed with what its row holds, then and after it ch
   await expect.poll(() => page.evaluate(() => window.__pw.signals.tags[0].unseen)).toBe("third!");
   await page.locator("#tags .tag").nth(0).click();
   await expect.poll(() => picked(page)).toBe("third!");
+});
+
+// --- a planned row that is one element is its own anchor (ADR-0438) ---------
+
+/** The nodes of the element `id` holds, each by its kind: an element by its
+ * tag, a comment by its text. */
+const childShape = (page, id) =>
+  page.evaluate((id) => [...document.getElementById(id).childNodes].map((n) => (n.nodeType === 1 ? n.tagName : n.nodeType === 8 ? `<!--${n.data}-->` : "text")), id);
+
+/** The comments `id` holds, none of a row's: its list's two anchors. */
+const listAnchors = (shape) => shape.filter((s) => s.startsWith("<!--"));
+
+test("a thousand rows are a thousand elements, each its own anchor, between their list's two anchors", async ({ page }) => {
+  await open(page);
+  const only = (shape, rows) => {
+    expect(shape.length).toBe(rows + 2);
+    expect(listAnchors(shape)).toEqual(["<!--pw:s6-->", "<!--pw:e6-->"]);
+    expect(shape.filter((s) => s === "TR").length).toBe(rows);
+  };
+  await created(page);
+  only(await childShape(page, "tbody"), 1000);
+  // As each way a list changes leaves it: added to, moved, one taken out,
+  // changed in place, replaced, cleared.
+  await page.click("#add");
+  await counted(page, 2000);
+  await page.click("#swaprows");
+  await page.waitForFunction(() => document.getElementById("tbody").children[1].querySelector(".id").textContent === "999");
+  await page.locator("#tbody tr").nth(3).locator(".remove").click();
+  await counted(page, 1999);
+  await page.click("#update");
+  await expect(page.locator("#tbody tr").nth(0).locator(".select")).toContainText("!!!");
+  only(await childShape(page, "tbody"), 1999);
+  await page.click("#run");
+  await page.waitForFunction(() => document.getElementById("tbody").children.length === 1000 && document.getElementById("tbody").children[0].querySelector(".id").textContent === "2001");
+  only(await childShape(page, "tbody"), 1000);
+  await page.click("#clear");
+  await counted(page, 0);
+  only(await childShape(page, "tbody"), 0);
+  expect(page.errors).toEqual([]);
+});
+
+/** The names the fixture's table of cards shows, in order. */
+const cards = (page) => page.locator("#cards .cname").allTextContents();
+
+test("a document's rows that are their own anchors carry their keys on their elements", async ({ page }) => {
+  await open(page, "/events");
+  const shape = await childShape(page, "cards");
+  expect(shape.filter((s) => s === "TR").length).toBe(3);
+  expect(listAnchors(shape).length).toBe(2);
+  expect(listAnchors(shape).every((s) => /^<!--pw:[se]\d+-->$/.test(s))).toBe(true);
+  // Each its key, a host's token, its list's part before it.
+  const keys = await page.evaluate(() => [...document.getElementById("cards").children].map((tr) => tr.getAttribute("data-pw-row")));
+  expect(keys.every((k) => /^\d+@[A-Za-z0-9_-]{16}$/.test(k))).toBe(true);
+  expect(new Set(keys).size).toBe(3);
+  expect(await cards(page)).toEqual(["one", "two", "three"]);
+});
+
+/** The fixture's cards, their block's first render on the device done: the
+ * document's rows made again by the plan, once (ADR-0421, decision 4). */
+async function cardsRendered(page) {
+  await open(page, "/events");
+  await page.click("#rename-card");
+  await expect(page.locator("#cards .cname").nth(1)).toHaveText("renamed");
+}
+
+/** Each card's element marked with its name, on the element itself. */
+const markCards = (page) => page.evaluate(() => [...document.getElementById("cards").children].forEach((tr) => (tr.mark = tr.querySelector(".cname").textContent)));
+const cardMarks = (page) => page.evaluate(() => [...document.getElementById("cards").children].map((tr) => tr.mark ?? ""));
+
+test("rows that are their own anchors, morphed with the block around them, keep their elements by their keys", async ({ page }) => {
+  await cardsRendered(page);
+  await markCards(page);
+  // The cards moved, and the text around them changed since the block last
+  // rendered (the deck, set in place): the block is morphed whole, and each
+  // row is the element it was, by its key.
+  await page.click("#shuffle");
+  await expect(page.locator("#deck")).toHaveText("1");
+  expect(await cards(page)).toEqual(["three", "renamed", "one"]);
+  expect(await cardMarks(page)).toEqual(["three", "renamed", "one"]);
+  await page.click("#deal");
+  await expect(page.locator("#deck")).toHaveText("2");
+  await page.click("#shuffle");
+  await expect(page.locator("#deck")).toHaveText("3");
+  expect(await cards(page)).toEqual(["one", "renamed", "three"]);
+  expect(await cardMarks(page)).toEqual(["one", "renamed", "three"]);
+  expect(listAnchors(await childShape(page, "cards")).length).toBe(2);
+  expect(page.errors).toEqual([]);
+});
+
+test("rows a morph kept as their own anchors are set by their plan after: renaming one parses no row", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__parsed = [];
+    const set = Object.getOwnPropertyDescriptor(Element.prototype, "innerHTML").set;
+    Object.defineProperty(HTMLTemplateElement.prototype, "innerHTML", {
+      set(html) {
+        window.__parsed.push(html);
+        set.call(this, html);
+      },
+    });
+  });
+  await cardsRendered(page);
+  await page.click("#shuffle");
+  await expect(page.locator("#deck")).toHaveText("1");
+  await markCards(page);
+  await page.evaluate(() => (window.__parsed = []));
+  // Its rows now the document's as the morph left them: found by their keys
+  // on their elements, and each set by its holes.
+  await page.click("#rename-first-card");
+  await expect(page.locator("#cards .cname").nth(2)).toHaveText("renamed");
+  const parsed = await page.evaluate(() => window.__parsed.join(""));
+  expect(parsed.includes("<tr")).toBe(false);
+  expect(await cards(page)).toEqual(["three", "renamed", "renamed"]);
+  expect(await cardMarks(page)).toEqual(["three", "renamed", "one"]);
+  await expect(page.locator("#cards tr").nth(2)).toHaveClass("renamed");
+  // And pressed, its handler is given what its row holds now, and the row
+  // beside it what it holds.
+  await page.locator("#cards .cpick").nth(2).click();
+  await expect(page.locator("#picked")).toHaveText("renamed");
+  await page.locator("#cards .cpick").nth(0).click();
+  await expect(page.locator("#picked")).toHaveText("three");
+  expect(page.errors).toEqual([]);
+});
+
+test("rows that are their own anchors and whose plan a parser cannot make are parsed and morphed as text", async ({ page }) => {
+  // Each row writes a `<form>` in a `<form>`, whose start tag the parser
+  // drops, its hole with it: no plan holds that row, and its rows are
+  // written as text, each its one element all the same.
+  await open(page, "/events");
+  const names = () => page.locator("#dropped .dname").allTextContents();
+  const rows = async (n) => {
+    const shape = await childShape(page, "dropped");
+    expect(shape.length).toBe(n + 2);
+    expect(shape.filter((s) => s === "TR").length).toBe(n);
+  };
+  await rows(2);
+  // The list's first render on the device: the document's rows morphed.
+  await page.click("#add-dropped");
+  await expect(page.locator("#dropped .dname")).toHaveCount(3);
+  await rows(3);
+  // A row added after, parsed.
+  await page.click("#add-dropped");
+  await expect(page.locator("#dropped .dname")).toHaveCount(4);
+  await rows(4);
+  expect(await names()).toEqual(["one", "two", "more", "more"]);
+  // A row changed, morphed where it is.
+  await page.evaluate(() => [...document.getElementById("dropped").children].forEach((tr, i) => (tr.mark = String(i))));
+  await page.click("#rename-dropped");
+  await expect(page.locator("#dropped .dname").nth(1)).toHaveText("renamed");
+  expect(await names()).toEqual(["one", "renamed", "more", "more"]);
+  expect(await page.evaluate(() => [...document.getElementById("dropped").children].map((tr) => tr.mark))).toEqual(["0", "1", "2", "3"]);
+  await rows(4);
+  expect(page.errors).toEqual([]);
+});
+
+test("a block shown again indexes nothing inside its rows that are their own anchors", { tag: "@report" }, async ({ page }) => {
+  await open(page, "/events");
+  await page.click("#hide-cards");
+  await expect(page.locator("#cards")).toHaveCount(0);
+  const hidden = await page.evaluate(() => window.__pw.indexSize());
+  await page.click("#show-cards");
+  await expect(page.locator("#cards tr")).toHaveCount(3);
+  const shown = await page.evaluate(() => window.__pw.indexSize());
+  // The ranges of the block's text and of its list, and none of its rows'
+  // parts: a row its own anchor is passed over whole.
+  expect(shown - hidden).toBe(2);
+});
+
+/** Rows of every shape a row's own anchor is read for, as the compiler
+ * writes a row (ADR-0438): an element with its holes in its tag, its
+ * children and its end, of many kinds, a hole's value filled in. */
+function shapes(count) {
+  let s = 20261112;
+  const next = () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646;
+  const pick = (xs) => xs[Math.floor(next() * xs.length)];
+  const ROOTS = ["tr", "tr", "li", "div", "span", "p", "a", "button", "td", "th", "h2", "dd", "dt", "section", "ul", "label", "img", "input", "em"];
+  const INSIDE = ["span", "b", "div", "p", "a", "button", "li", "td", "th", "tr", "tbody", "table", "input", "img", "br", "h3", "ul", "dd", "dt", "em", "form", "label", "section", "caption", "col", "colgroup", "thead", "tfoot"];
+  const VOIDS = new Set(["img", "input", "br", "col"]);
+  const out = [];
+  for (let i = 0; i < count; i++) {
+    const body = [];
+    let html = "";
+    const st = (text) => {
+      body.push({ chunk: "static", value: text });
+      html += text;
+    };
+    const element = (tag, depth) => {
+      st(`<${tag} data-pw="${depth}"`);
+      if (next() < 0.4) {
+        st(" ");
+        body.push({ chunk: "dynamic", value: { part: "attribute", id: i, owner: 0, name: "class", value: "row.name", context: "attribute" } });
+        html += 'class="v"';
+      }
+      st(">");
+      if (VOIDS.has(tag)) return;
+      for (let k = Math.floor(next() * 3); k >= 0; k--) {
+        const roll = next();
+        if (roll < 0.3) {
+          body.push({ chunk: "dynamic", value: { part: "text", id: i, value: "row.name", context: "text" } });
+          html += "v";
+        } else if (roll < 0.4) st(pick(["x", " "]));
+        else if (depth < 2) element(tag === "tr" && next() < 0.8 ? pick(["td", "th"]) : pick(INSIDE), depth + 1);
+      }
+      st(`</${tag}>`);
+    };
+    element(pick(ROOTS), 0);
+    out.push({ body, html });
+  }
+  return out;
+}
+
+test("each row the packaging says is its own anchor is one element as this browser parses it", async ({ page }) => {
+  // The packaging's reading is the host's and the device's word for what a
+  // row is (`rowElement`); the browser's parse is what the document holds.
+  const all = shapes(3000);
+  const one = all.filter(({ body }) => rowElement(body) === null).map(({ html }) => html);
+  const not = all.filter(({ body }) => rowElement(body) !== null).map(({ html }) => html);
+  expect(one.length > 500 && not.length > 500).toBe(true);
+  await page.setContent("<!doctype html><title>rows</title>");
+  const parsedAs = (rows) =>
+    page.evaluate((rows) => rows.map((html) => {
+      const t = document.createElement("template");
+      t.innerHTML = html;
+      const c = t.content;
+      return c.childNodes.length === 1 && c.firstChild.nodeType === 1;
+    }), rows);
+  const ones = await parsedAs(one);
+  expect(one.filter((_, i) => !ones[i])).toEqual([]);
+  // And of the rows it says no to, the parser makes some more than one node:
+  // what it refuses is what a parser breaks, among others it keeps whole.
+  const nots = await parsedAs(not);
+  expect(nots.some((x) => !x)).toBe(true);
 });
 
 test("a row's boolean attribute follows its row, on a row a plan made and one it took over", async ({ page }) => {

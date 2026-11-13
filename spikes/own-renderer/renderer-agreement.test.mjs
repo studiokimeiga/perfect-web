@@ -19,7 +19,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 import { withOwnRows } from "./optimize-assets.mjs";
-import { OWN_ROWS, keptLists as keptOf, ownRows } from "./own-rows.mjs";
+import { ELEMENT_LINES, OWN_ROWS, keptLists as keptOf, ownRows, planned as plannable, rowElement } from "./own-rows.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, "../..");
@@ -106,13 +106,14 @@ function fromTheBrowser([name, request]) {
   }
 }
 
-/** Tokens numbered by when each is first seen: which are the same is what
- * the two renderers must agree on, and what a token is, they need not. */
+/** Tokens numbered by when each is first seen, a comment's and a row's own
+ * anchor's (`data-pw-row`, ADR-0438): which are the same is what the two
+ * renderers must agree on, and what a token is, they need not. */
 function numbered(html) {
   const seen = new Map();
-  return html.replace(/@([A-Za-z0-9_-]+)-->/g, (_, token) => {
+  return html.replace(/@([A-Za-z0-9_-]+?)(-->|")/g, (_, token, end) => {
     if (!seen.has(token)) seen.set(token, seen.size);
-    return `@${seen.get(token)}-->`;
+    return `@${seen.get(token)}${end}`;
   });
 }
 
@@ -406,6 +407,10 @@ function generatedRequests(cases) {
       ], otherwise: [] } });
     });
     const chunks = g.chunks(values, 3, others);
+    // Half the keyed lists said to be their rows' own anchors (ADR-0438),
+    // whatever their rows are: each renderer writes what the list says, and
+    // refuses a row that begins with no element.
+    for (const p of dynamicParts(chunks)) if (p.part === "each" && p.key != null && g.r.chance(0.5)) p.row_anchor = "element";
     for (const part of dynamicParts(chunks).slice(0, 24)) requests.push(...requestsAbout(g.r, part, values, others));
     const run = dynamicParts(chunks).filter((p) => p.part === "event");
     if (run.length) requests.push(["captures_value", { parts: run, values }]);
@@ -798,12 +803,22 @@ function holesAgree(row, at) {
 }
 
 /** Each request to render a part that holds a list a block keeps, and no
- * view, which no planned build has; each numbered apart. */
+ * view, which no planned build has; each numbered apart, and each list said
+ * to be its rows' own anchor where the packaging says it (`rowAnchors`,
+ * ADR-0438): a planned list whose row is one element. */
 function plannedRequests(requests) {
   return requests
     .filter(([name, r]) => name === "render_part" && keptLists(wrapped(r.part)).length > 0)
     .filter(([, r]) => !dynamicParts(wrapped(r.part)).some((q) => q.part === "instance"))
-    .map(([name, r]) => [name, { part: renumbered(r.part), values: r.values }]);
+    .map(([name, r]) => [name, { part: anchoredAsPacked(renumbered(r.part)), values: r.values }]);
+}
+
+/** `part`, each list in it its rows' own anchor where the packaging would
+ * say so, and no other. */
+function anchoredAsPacked(part) {
+  for (const p of dynamicParts(wrapped(part))) if (p.part === "each") delete p.row_anchor;
+  for (const list of keptLists(wrapped(part))) if (plannable(list) && rowElement(list.body) === null) list.row_anchor = "element";
+  return part;
 }
 
 /** Every request rendered by the device as the server renders it; how many
@@ -811,7 +826,7 @@ function plannedRequests(requests) {
 function plannedAgree(requests) {
   const server = fromTheServer(requests);
   const before = fromTheServer(requests.map(([name, r]) => [name, { ...r, part: uncaptured(r.part) }]));
-  const held = { rows: 0, planned: 0, holes: 0, refused: 0 };
+  const held = { rows: 0, planned: 0, anchored: 0, holes: 0, refused: 0 };
   /** Request `i`, its planned rows held to the server's. */
   const plannedAt = ([, request], i) => {
     const at = wire(request);
@@ -847,6 +862,9 @@ function plannedAgree(requests) {
         held.rows += 1;
         if (!row.holes) continue;
         held.planned += 1;
+        // Its own anchor, where the packaging says its list's row is one
+        // element (ADR-0438): its text held to the server's above, either way.
+        if (row.of.row_anchor === "element") held.anchored += 1;
         held.holes += holesAgree(row, at);
       }
     }
@@ -895,13 +913,118 @@ function plannedLists(cases) {
   return requests;
 }
 
+/** The elements a generated row is written of (ADR-0438): each a row may be
+ * its own anchor as, and what a parser ends, moves, drops or reads otherwise. */
+const ROOTS = ["tr", "tr", "tr", "li", "li", "div", "span", "p", "a", "button", "td", "h2", "dd", "section", "ul", "label", "img", "input", "option", "select", "b", "my-row"];
+const INSIDE = ["span", "b", "div", "p", "a", "button", "li", "td", "th", "tr", "table", "input", "img", "br", "h3", "ul", "dd", "textarea", "template", "svg", "select", "em"];
+const VOIDS = new Set(["img", "input", "br"]);
+
+/**
+ * **Planned lists whose rows are of every shape** a row's own anchor is read
+ * for (ADR-0438), written as the compiler writes a row: an element with its
+ * holes in its tag, its children and its end; mostly one element, of each
+ * kind a row may be, or one a parser ends from inside, moves something out
+ * of, or reads otherwise; some two elements, text or a space beside one, a
+ * comment, an element not ended. Every hole is one a plan sets.
+ */
+function rowShapes(cases) {
+  const requests = [];
+  for (let seed = 1; seed <= cases; seed++) {
+    const r = random(3_000_000 + seed);
+    let ids = 0;
+    let owners = 0;
+    const body = [];
+    const st = (s) => {
+      const last = body.at(-1);
+      if (last?.chunk === "static") last.value += s;
+      else body.push({ chunk: "static", value: s });
+    };
+    const hole = (value) => body.push({ chunk: "dynamic", value });
+    const text = () => hole({ part: "text", id: ids++, value: r.pick(["row.name", "row.id", "sel", "row.nope"]), context: "text" });
+    const element = (tag, depth) => {
+      const owner = owners++;
+      st(`<${tag} data-pw="${owner}"`);
+      for (let i = r.int(3); i > 0; i--) {
+        st(" ");
+        const roll = r.int(4);
+        if (roll === 0) hole({ part: "boolean_attribute", id: ids++, owner, name: "hidden", value: r.pick(["row.on", "row.id", "sel"]) });
+        else if (roll === 1) hole({ part: "interpolated_attribute", id: ids++, owner, name: "href", segments: [{ segment: "static", value: "/r/" }, { segment: "value", value: "row.id" }], context: r.pick(["url", "attribute"]) });
+        else hole({ part: "attribute", id: ids++, owner, name: r.pick(["class", "title", "href", "style"]), value: r.pick(["row.name", "row.id", "sel"]), context: r.pick(["attribute", "attribute", "url", "style"]) });
+      }
+      if (r.chance(0.3)) hole({ part: "event", id: ids++, owner, event: "press", handler: "h", name: "n", captures: r.chance(0.5) ? ["row.id"] : [] });
+      st(">");
+      if (VOIDS.has(tag)) return;
+      for (let i = r.int(3); i >= 0; i--) {
+        const roll = r.next();
+        if (roll < 0.35) text();
+        else if (roll < 0.45) st(r.pick(["x", " ", "a&amp;b"]));
+        else if (depth < 2) element(tag === "tr" && r.chance(0.85) ? r.pick(["td", "th"]) : r.pick(INSIDE), depth + 1);
+      }
+      // Most elements are ended; some are not.
+      if (depth > 0 || r.chance(0.97)) st(`</${tag}>`);
+    };
+    const shape = r.next();
+    if (shape < 0.05) st(r.pick([" ", "x", "<!--c-->"]));
+    else if (shape < 0.08) text();
+    element(r.pick(ROOTS), 0);
+    if (shape > 0.97) element(r.pick(ROOTS), 0);
+    else if (shape > 0.94) st(r.pick([" ", "y"]));
+    const items = [0, 1, 2].slice(0, r.int(4)).map((id) => ({ id, name: r.pick(NASTY), on: r.chance(0.5) }));
+    const values = { list: items, sel: r.pick([0, 1, "x", true]) };
+    let part = { part: "each", id: 900, collection: "list", binding: "row", key: "id", body };
+    if (r.chance(0.3)) {
+      part = { part: "conditional", id: 901, value: "flag", then: [{ chunk: "dynamic", value: part }], otherwise: [] };
+      values.flag = true;
+    }
+    requests.push(["render_part", { part, values }]);
+  }
+  return requests;
+}
+
 test("a planned row agrees with the server over generated templates", (t) => {
-  const held = plannedAgree(plannedRequests([...generatedRequests(1500), ...plannedLists(6000)]));
+  const held = plannedAgree(plannedRequests([...generatedRequests(1500), ...plannedLists(6000), ...rowShapes(4000)]));
   t.diagnostic(`held: ${JSON.stringify(held)}`);
   // Enough rows a plan made, and refusals among them, that this holds the
-  // planned rows to something.
+  // planned rows to something; and enough of them their own anchors, and
+  // between comments, that it holds both (ADR-0438).
   assert.ok(held.planned > 3_000 && held.holes > 5_000, JSON.stringify(held));
   assert.ok(held.refused > 1_000 && held.rows > held.planned, JSON.stringify(held));
+  assert.ok(held.anchored > 1_500 && held.planned - held.anchored > 3_000, JSON.stringify(held));
+});
+
+test("a row its own anchor writes its key where the server does, however its element's name ends", () => {
+  // After the element's name, as HTML's tokenizer ends it: a space of any of
+  // its kinds, a `/`, a `>`, or the markup before a hole; and refused alike
+  // where the row begins with no element (ADR-0438).
+  const hidden = { chunk: "dynamic", value: { part: "boolean_attribute", id: 4, owner: 0, name: "hidden", value: "item.on" } };
+  const bodies = [
+    ...["<li>x</li>", '<tr\tclass="r"><td>x</td></tr>', '<tr\nclass="r"></tr>', '<tr\fclass="r"></tr>', '<tr\rclass="r"></tr>', "<img/>", "<my-row>x</my-row>", "<LI>x</LI>", "<li"]
+      .map((s) => [{ chunk: "static", value: s }]),
+    [{ chunk: "static", value: "<li" }, hidden, { chunk: "static", value: ">x</li>" }],
+    [{ chunk: "static", value: "<li " }, hidden, { chunk: "static", value: ">x</li>" }],
+  ];
+  const refused = [" <li>x</li>", "x", "<1>", "</li>", "<!-- -->"].map((s) => [{ chunk: "static", value: s }]);
+  const requests = [];
+  for (const body of [...bodies, ...refused, [hidden]]) {
+    const part = { part: "each", id: 3, collection: "items", binding: "item", key: "id", row_anchor: "element", body };
+    requests.push(["render_part", { part, values: { items: [{ id: 1, on: true }, { id: 2, on: false }] } }]);
+    requests.push(["render_instance", { part, item: { id: 7, on: true }, values: {} }]);
+  }
+  assert.equal(agree(requests).refused, (refused.length + 1) * 2);
+});
+
+test("a list the packaging says is its rows' own anchor has a row of one element, and each other its comments", () => {
+  // Each shape's word, as the packaging reads it (`rowElement`), held to what
+  // the two renderers write (above): of the generated rows, both kinds.
+  let one = 0;
+  let not = 0;
+  for (const [, { part }] of plannedRequests(rowShapes(4000))) {
+    for (const list of keptLists(wrapped(part))) {
+      if (list.row_anchor === "element") one += 1;
+      else not += 1;
+    }
+  }
+  assert.ok(one > 1_000 && not > 1_000, `${one} of one element, ${not} not`);
 });
 
 test("a planned row agrees with the server over the compiler's own templates", (t) => {
@@ -1086,7 +1209,7 @@ function computedLists(cases) {
 }
 
 test("a list's own code keeps and makes its rows as the general code does, over generated templates", (t) => {
-  const held = ownAgree(plannedRequests([...generatedRequests(1500), ...plannedLists(6000)]));
+  const held = ownAgree(plannedRequests([...generatedRequests(1500), ...plannedLists(6000), ...rowShapes(2000)]));
   t.diagnostic(`held: ${JSON.stringify(held)}`);
   // Enough lists written, rows made by them and kept, and refusals of both
   // kinds (of a render and of a list), that this holds the code to much.
@@ -1348,13 +1471,18 @@ test("a change in a row is what the server says it is", () => {
 test("the renderer is small", async () => {
   const { transform } = await import("esbuild");
   const { brotliCompressSync, constants } = await import("node:zlib");
-  const start = runtime.indexOf(BEGIN);
-  const end = runtime.indexOf(END);
-  const { code } = await transform(runtime.slice(start, end), { minify: true, format: "esm" });
-  const sent = brotliCompressSync(Buffer.from(code), { params: { [constants.BROTLI_PARAM_QUALITY]: 11 } }).length;
-  // With what a list keeps of its rows ("a press changes what it changes"),
-  // a planned row emitted into its holes (ADR-0420), and what a
-  // row computes and keeps (ADR-0424): 6,283 bytes when
-  // the last two came, from under 6 KB.
+  const sentOf = async (source) => {
+    const { code } = await transform(rendererOf(source), { minify: true, format: "esm" });
+    return brotliCompressSync(Buffer.from(code), { params: { [constants.BROTLI_PARAM_QUALITY]: 11 } }).length;
+  };
+  // As a build none of whose rows is its own anchor has it (ADR-0438), with
+  // what a list keeps of its rows ("a press changes what it changes"), a
+  // planned row emitted into its holes (ADR-0420), and what a row computes
+  // and keeps (ADR-0424): 6,283 bytes when the last two came, from under 6 KB.
+  const sent = await sentOf(runtime.replace(ELEMENT_LINES, ""));
   assert.ok(sent < 6.5 * 1024, `the renderer is ${sent} bytes as sent, and was 77 KB as WebAssembly`);
+  // And a row its own anchor, its key written after its element's name: 146
+  // bytes when it came.
+  const anchored = (await sentOf(runtime)) - sent;
+  assert.ok(anchored > 0 && anchored < 200, `a row its own anchor is ${anchored} bytes of the renderer`);
 });

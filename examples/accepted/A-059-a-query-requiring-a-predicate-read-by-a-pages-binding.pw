@@ -1,0 +1,34 @@
+// @corpus: accepted
+// @id: A-059
+// @category: a query requiring a predicate, read by a page's binding
+// @charter: §7.8, §9.2
+// @milestone: 14
+//
+// The control of R-117 (track `row-ownership`, the second review's finding
+// 2): A-058's `Kept`, which requires `WroteLetter`, read where a page binds
+// it. The host reads the binding as a request of its own, for the page's
+// reader, and asks `WroteLetter` before `Kept`'s body runs.
+
+module LetterPages
+
+import context.{ current_user }
+import Letters.{ LetterId }
+import LetterKeeping.{ Kept }
+
+session page KeptLetter(id: LetterId) {
+    route     "/kept/{id}"
+    placement origin
+    cache     private
+
+    let kept = query Kept(current_user(), id)
+
+    view {
+        <title>Kept</title>
+        <main>
+            {#match kept}
+                {:Some(letter)}<p id="kept">{letter.text}</p>
+                {:None}<p id="none">Nothing kept.</p>
+            {/match}
+        </main>
+    }
+}

@@ -1,0 +1,19 @@
+// @corpus: fixture
+// @id: OWNED-NoteData
+// @category: application data — the source that holds an owned table (ADR-0207, ADR-0384)
+// @charter: §9.2
+// @milestone: E14
+//
+// What the database holding the notes guarantees (ADR-0207), as the tables
+// fixture's `ListData` states its own.
+
+module NoteData
+
+import Notes
+
+source NoteData
+    holds        Notes
+    transactions serializable
+    reads        strong
+    changes      none
+    sets         one_call

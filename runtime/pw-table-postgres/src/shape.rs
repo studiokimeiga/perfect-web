@@ -227,8 +227,15 @@ pub(crate) const LONGEST_NAME: usize = 63;
 
 /// The tables the adapter keeps beside the program's, which no table of the
 /// program may be named.
-pub(crate) const PLATFORM_TABLES: &[&str] =
-    &["pw_platform", "pw_schema", "pw_outbox", "pw_interactions"];
+pub(crate) const PLATFORM_TABLES: &[&str] = &[
+    "pw_platform",
+    "pw_schema",
+    "pw_outbox",
+    "pw_interactions",
+    "pw_runs",
+    "pw_sessions",
+    "pw_sign_ins",
+];
 
 fn named(what: &str, name: &str) -> Result<(), Error> {
     if name.is_empty() || name.len() > LONGEST_NAME || name.contains('\0') {

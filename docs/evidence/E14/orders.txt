@@ -1,8 +1,8 @@
 ADR-0193 - an order is placed, and its page follows it
 
 produced by: just e14-orders
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: a3cab774e9569baddae69bd0d294487eaa3b697e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -12,23 +12,24 @@ playwright: Version 1.58.0
 test tests::an_empty_cart_places_no_order ... ok
 test tests::an_order_is_placed_from_the_cart_and_reaches_its_open_page ... ok
 test tests::the_store_moving_an_order_along_reaches_its_open_page ... ok
-test result: ok. 1039 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 457.72s
+test result: ok. 1086 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 465.46s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
 == the order's flow, in three engines (e2e/pages.spec.mjs, e2e/accessibility.spec.mjs)
 
   ✓   2 [chromium] › e2e/pages.spec.mjs:138:1 › an order is placed from the cart, and its page follows it as the store moves it along (2.0s)
   ✓   1 [chromium] › e2e/accessibility.spec.mjs:185:1 › the order's page keeps every rule, as the store moves it along (2.2s)
-  ✓   3 [chromium] › e2e/pages.spec.mjs:166:1 › an empty cart places no order, and says so (344ms)
+  ✓   3 [chromium] › e2e/pages.spec.mjs:166:1 › an empty cart places no order, and says so (390ms)
   ✓   4 [chromium] › e2e/accessibility.spec.mjs:387:1 › every control is reached from the keyboard, in the order it is read, and shows its focus (1.4s)
   ✓   5 [firefox] › e2e/accessibility.spec.mjs:185:1 › the order's page keeps every rule, as the store moves it along (3.5s)
   ✓   6 [firefox] › e2e/pages.spec.mjs:138:1 › an order is placed from the cart, and its page follows it as the store moves it along (2.3s)
-  ✓   8 [firefox] › e2e/pages.spec.mjs:166:1 › an empty cart places no order, and says so (513ms)
-  ✓   7 [firefox] › e2e/accessibility.spec.mjs:387:1 › every control is reached from the keyboard, in the order it is read, and shows its focus (1.7s)
-  ✓  10 [webkit] › e2e/pages.spec.mjs:138:1 › an order is placed from the cart, and its page follows it as the store moves it along (1.5s)
-  ✓  11 [webkit] › e2e/pages.spec.mjs:166:1 › an empty cart places no order, and says so (695ms)
-  ✓   9 [webkit] › e2e/accessibility.spec.mjs:185:1 › the order's page keeps every rule, as the store moves it along (2.9s)
+  ✓   8 [firefox] › e2e/pages.spec.mjs:166:1 › an empty cart places no order, and says so (483ms)
+  ✓   7 [firefox] › e2e/accessibility.spec.mjs:387:1 › every control is reached from the keyboard, in the order it is read, and shows its focus (1.6s)
+  ✓  10 [webkit] › e2e/pages.spec.mjs:138:1 › an order is placed from the cart, and its page follows it as the store moves it along (1.7s)
+  ✓   9 [webkit] › e2e/accessibility.spec.mjs:185:1 › the order's page keeps every rule, as the store moves it along (2.8s)
+  ✓  11 [webkit] › e2e/pages.spec.mjs:166:1 › an empty cart places no order, and says so (808ms)
   ✓  12 [webkit] › e2e/accessibility.spec.mjs:387:1 › every control is reached from the keyboard, in the order it is read, and shows its focus (1.8s)
-  12 passed (40.1s)
+  12 passed (39.6s)
 
 == mutation controls (scripts/orders_mutations.py)
 

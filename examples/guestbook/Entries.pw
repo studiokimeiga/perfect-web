@@ -21,10 +21,14 @@ fn text_of(words: Words) -> String !{} {
 
 type Entry = Entry { book: String, number: Int, author: UserId, name: String, text: Words }
 
-table Entries
+public table Entries
     row     Entry
-    key     book, number
+    key     author, book, number
+    order   number
+    index   by_book on book
+    unique  by_number on book, number
     refers  book to Books
+    owned   by author
     bounded 1000
 
 fn most() -> Int !{} {

@@ -1303,6 +1303,7 @@ dependencies = [
  "pw-resource",
  "pw-syntax",
  "pw-table-memory",
+ "pw-table-postgres",
  "pw-time",
  "rusqlite",
  "serde",

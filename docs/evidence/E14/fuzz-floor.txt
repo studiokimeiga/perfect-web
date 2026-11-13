@@ -1,8 +1,8 @@
 Track fuzz-floor - the coverage-guided fuzzer measures, or it fails
 
 produced by: just e14-fuzz-floor
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: a3cab774e9569baddae69bd0d294487eaa3b697e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 python: Python 3.12.3
 host: Linux 7.0.0-1017-azure x86_64
@@ -12,8 +12,8 @@ host: Linux 7.0.0-1017-azure x86_64
 test tests::a_count_that_is_missing_or_no_number_is_an_error ... ok
 test tests::a_flag_without_its_value_is_an_error ... ok
 test tests::a_clean_run_ends_with_status_0 ... ok
-test tests::a_directory_without_the_tool_is_an_error_that_says_how_to_get_it ... ok
 test tests::a_profile_reads_as_the_functions_and_the_blocks_that_ran ... ok
+test tests::a_directory_without_the_tool_is_an_error_that_says_how_to_get_it ... ok
 test tests::a_run_is_two_thousand_executions_a_target_unless_asked ... ok
 test tests::a_finding_ends_the_run_with_status_1 ... ok
 test tests::a_panic_is_a_finding_and_its_input_is_kept ... ok
@@ -49,10 +49,10 @@ test tests::what_never_ran_adds_nothing ... ok
 test tests::regions_fail_when_the_tool_is_missing ... ok
 test tests::the_real_llvm_profdata_reads_a_real_profile ... ok
 test tests::the_tool_is_in_the_active_toolchains_own_directory ... ok
-test result: ok. 40 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.24s
+test result: ok. 40 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.29s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
-test a_target_that_does_not_exist_stops_it_and_lists_the_ones_that_do ... ok
 test an_argument_it_does_not_know_stops_it ... ok
+test a_target_that_does_not_exist_stops_it_and_lists_the_ones_that_do ... ok
 test without_llvm_profdata_it_stops_and_says_what_is_missing ... ok
 test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 
@@ -63,22 +63,22 @@ test_a_toolchain_with_the_component_is_said_to_have_it (scripts.tests.test_docto
 test_a_toolchain_without_it_is_said_to_miss_it_and_how_to_get_it (scripts.tests.test_doctor_llvm_tools.DoctorLlvmTools.test_a_toolchain_without_it_is_said_to_miss_it_and_how_to_get_it) ... ok
 test_the_component_by_its_old_name_is_the_component (scripts.tests.test_doctor_llvm_tools.DoctorLlvmTools.test_the_component_by_its_old_name_is_the_component) ... ok
 test_the_pinned_toolchain_lists_llvm_tools (scripts.tests.test_doctor_llvm_tools.ToolchainFile.test_the_pinned_toolchain_lists_llvm_tools) ... ok
-Ran 5 tests in 1.901s
+Ran 5 tests in 2.867s
 OK
 
 == 3. the fuzzer on this machine, 30 inputs a target: every target covers regions, the floor passes, the status is 0
 
-done [parser-to-hir] 30 execs, 1331 covered regions, 0 finding(s), 24.4 execs/s, 1s
-done [resolution-to-typing] 30 execs, 2406 covered regions, 0 finding(s), 24.7 execs/s, 1s
-done [labels-and-effects] 30 execs, 2686 covered regions, 0 finding(s), 23.8 execs/s, 1s
-done [exhaustiveness] 30 execs, 2203 covered regions, 0 finding(s), 25.1 execs/s, 1s
-done [manifest-decoding] 30 execs, 69 covered regions, 0 finding(s), 26.2 execs/s, 1s
-done [resume-compatibility] 30 execs, 81 covered regions, 0 finding(s), 20.0 execs/s, 1s
+done [parser-to-hir] 30 execs, 1333 covered regions, 0 finding(s), 18.5 execs/s, 1s
+done [resolution-to-typing] 30 execs, 2428 covered regions, 0 finding(s), 18.4 execs/s, 1s
+done [labels-and-effects] 30 execs, 2707 covered regions, 0 finding(s), 17.6 execs/s, 1s
+done [exhaustiveness] 30 execs, 2224 covered regions, 0 finding(s), 18.3 execs/s, 1s
+done [manifest-decoding] 30 execs, 69 covered regions, 0 finding(s), 19.3 execs/s, 1s
+done [resume-compatibility] 30 execs, 81 covered regions, 0 finding(s), 19.3 execs/s, 1s
   llvm-profdata: /home/runner/.rustup/toolchains/1.97.1-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/bin/llvm-profdata
-  parser-to-hir                     30 execs    1331 covered regions  0 finding(s)
-  resolution-to-typing              30 execs    2406 covered regions  0 finding(s)
-  labels-and-effects                30 execs    2686 covered regions  0 finding(s)
-  exhaustiveness                    30 execs    2203 covered regions  0 finding(s)
+  parser-to-hir                     30 execs    1333 covered regions  0 finding(s)
+  resolution-to-typing              30 execs    2428 covered regions  0 finding(s)
+  labels-and-effects                30 execs    2707 covered regions  0 finding(s)
+  exhaustiveness                    30 execs    2224 covered regions  0 finding(s)
   manifest-decoding                 30 execs      69 covered regions  0 finding(s)
   resume-compatibility              30 execs      81 covered regions  0 finding(s)
   6 targets, 180 executions, 0 findings

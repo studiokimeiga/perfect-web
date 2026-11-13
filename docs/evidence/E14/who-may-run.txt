@@ -1,8 +1,8 @@
 ADR-0406 - a command says who may run it
 
 produced by: just e14-who-may-run
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: a3cab774e9569baddae69bd0d294487eaa3b697e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == PW0367 and the contract (compiler/pw-core/tests/who_may_run.rs, component_contract.rs)
@@ -12,24 +12,24 @@ test a_component_with_no_effects_needs_no_capabilities_and_may_import_nothing ..
 test a_component_may_hold_authority_no_import_uses ... ok
 test a_contract_carries_the_six_semantic_fields_and_no_others ... ok
 test a_body_change_that_changes_neither_authority_nor_interface_keeps_the_schema ... ok
+test a_new_sibling_adds_a_contract_and_perturbs_no_other ... ok
+test actual_imports_may_never_be_a_superset ... ok
 test actual_imports_may_be_a_subset ... ok
 test a_page_does_not_inherit_its_handlers_authority ... ok
-test actual_imports_may_never_be_a_superset ... ok
-test a_new_sibling_adds_a_contract_and_perturbs_no_other ... ok
-test an_import_names_the_capability_that_authorises_it ... ok
 test an_operation_that_needs_no_authority_is_consistent_with_none ... ok
+test an_import_names_the_capability_that_authorises_it ... ok
 test allowed_placements_are_solved_rather_than_declared ... ok
-test an_export_that_passes_a_handle_is_not_remotely_bindable ... ok
 test an_operation_whose_authority_is_not_held_is_refused ... ok
 test an_operation_with_the_declared_name_and_a_different_abi_is_refused ... ok
+test an_export_that_passes_a_handle_is_not_remotely_bindable ... ok
 test every_undeclared_import_is_reported_not_only_the_first ... ok
-test an_unresolvable_argument_does_not_remove_authority ... ok
 test an_unrecognisable_import_is_undeclared_rather_than_ignored ... ok
+test an_unresolvable_argument_does_not_remove_authority ... ok
 test an_operations_authority_must_be_held_by_its_caller ... ok
 test platform_operations_are_distinguished_from_application_ones ... ok
 test idempotent_by_is_an_export_property_and_part_of_the_abi ... ok
-test renaming_an_export_changes_that_contract ... ok
 test placement_is_not_a_capability ... ok
+test renaming_an_export_changes_that_contract ... ok
 test required_capabilities_come_from_the_effect_row ... ok
 test requires_anyone_with_arguments_fails_closed ... ok
 test requires_anyone_is_no_precondition ... ok
@@ -40,13 +40,13 @@ test the_operation_distinguishes_two_imports_of_one_family ... ok
 test the_schema_ignores_formatting_and_notices_authority ... ok
 test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
 test a_command_the_platform_runs_says_invoked_by_instead ... ok
-test a_press_that_sends_it_is_named_beside_it ... ok
 test a_command_that_says_nothing_of_who_may_run_it_is_refused ... ok
+test a_press_that_sends_it_is_named_beside_it ... ok
 test anyone_is_the_platforms ... ok
 test anyone_stands_alone_and_takes_no_argument ... ok
 test a_control_anyone_may_press_needs_no_guard ... ok
 test requires_says_who_may ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.58s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.60s
 
 == mutation controls (scripts/who_may_run_mutations.py)
 

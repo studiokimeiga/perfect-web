@@ -9,7 +9,9 @@
 // an index on a field of its row and a bound, read and written only through
 // the functions its declaration gives this module. The control for R-100
 // (its key), R-101 (its index), R-102 (`all()` of a bounded table), R-103 (a
-// read it gives) and R-104 (no binding of the app's own).
+// read it gives) and R-104 (no binding of the app's own). Any reader's
+// command writes its chores, and it says so (`written by anyone`, ADR-0395;
+// the control for R-118's PW6920).
 
 module Chores
 
@@ -24,6 +26,7 @@ table Chores
     order   added
     index   by_done on done
     bounded 200
+    written by anyone
 
 source ChoreData
     holds        Chores

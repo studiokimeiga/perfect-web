@@ -1,0 +1,35 @@
+// @status: NEIGHBOUR
+// @invariant: who_may_write
+// @dimension: valid neighbour — the same schedule, its table written by anyone on purpose
+//
+// A rule that refused a table a scheduled command writes, rather than one
+// that says nothing of who may write it, would refuse this.
+
+module Reminders
+
+import domain.{ InteractionId }
+import clock.{ minutes }
+
+opaque type ReminderId = String
+
+type Reminder = Reminder { id: ReminderId, text: String }
+
+table Reminders
+    row     Reminder
+    key     id
+    written by anyone
+
+command remind(id: ReminderId, text: String) -> Result<Int, String>
+    invoked_by    Clock
+    idempotent_by InteractionId
+{
+    Reminders.put(Reminder { id: id, text: text })
+    Ok(1)
+}
+
+command remind_later(id: ReminderId, text: String) -> Result<Int, String>
+    requires Anyone
+{
+    schedule remind(id, text) after minutes(5)
+    Ok(1)
+}

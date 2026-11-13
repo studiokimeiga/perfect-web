@@ -875,7 +875,8 @@ MUTANTS += [
     ),
 ]
 
-SERVER = ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--", "uploads", "blob", "--format=pretty"]
+SERVER = ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server",
+          "--", "uploads", "blob", "--format=pretty"]
 SERVER_BUILD = ["cargo", "build", "--quiet", "--locked", "-p", "pw-dev-server"]
 FEED_BUILD = ["bash", "spikes/own-renderer/feed.sh"]
 SPEC = ["pnpm", "exec", "playwright", "test", "e2e/upload-metadata.spec.mjs", "--retries=0", "--reporter=line,json,./assertion-result-reporter.mjs"]

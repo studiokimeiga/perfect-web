@@ -1,8 +1,8 @@
 Track reviews - a store rated through a delivered order, once; its reviews without their reviewer
 
 produced by: just e14-reviews
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: a3cab774e9569baddae69bd0d294487eaa3b697e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 postgres: 18.6 (Debian 18.6-1.pgdg13+2)
 
@@ -18,29 +18,31 @@ test tests::reviews::each_store_of_an_order_is_rated_once ... ok
 test tests::reviews::a_stores_mean_is_said_from_ten_ratings ... ok
 test tests::reviews::only_the_orders_owner_rates_it ... ok
 test tests::reviews::reviews_show_without_their_reviewer ... ok
-test tests::reviews::the_checker_keeps_the_reader_out_of_a_stores_shared_ratings ... ok
 test tests::reviews::the_latest_order_alone_is_rated ... ok
+test tests::reviews::the_checker_keeps_the_reader_out_of_a_stores_shared_ratings ... ok
 test tests::reviews::the_layer_holds_its_rules_without_the_predicate ... ok
 test tests::reviews::the_ratings_of_a_list_of_stores_are_read_at_once ... ok
-test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 1034 filtered out; finished in 17.16s
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 1081 filtered out; finished in 29.40s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
 
 == the ratings served, the store on PostgreSQL (PW_STORE_TEST_LAYER=postgres)
 
-test tests::reviews::a_rating_is_told_to_the_pages_that_show_it ... ok
 test tests::reviews::a_rating_is_told_to_the_raters_open_pages ... ok
+test tests::reviews::a_rating_is_told_to_the_pages_that_show_it ... ok
 test tests::reviews::a_comment_is_at_most_five_hundred_characters ... ok
 test tests::reviews::a_delivered_orders_store_is_rated_once_and_shown ... ok
 test tests::reviews::a_store_not_of_the_order_is_not_rated ... ok
-test tests::reviews::each_store_of_an_order_is_rated_once ... ok
 test tests::reviews::an_order_not_yet_delivered_is_not_rated ... ok
+test tests::reviews::each_store_of_an_order_is_rated_once ... ok
 test tests::reviews::a_stores_mean_is_said_from_ten_ratings ... ok
-test tests::reviews::the_checker_keeps_the_reader_out_of_a_stores_shared_ratings ... ok
 test tests::reviews::only_the_orders_owner_rates_it ... ok
 test tests::reviews::reviews_show_without_their_reviewer ... ok
+test tests::reviews::the_checker_keeps_the_reader_out_of_a_stores_shared_ratings ... ok
 test tests::reviews::the_latest_order_alone_is_rated ... ok
 test tests::reviews::the_layer_holds_its_rules_without_the_predicate ... ok
 test tests::reviews::the_ratings_of_a_list_of_stores_are_read_at_once ... ok
-test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 1034 filtered out; finished in 18.01s
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 1081 filtered out; finished in 31.87s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
 
 == each operation, page and command counted, the ratings' among them (tests/bounded_statements.rs)
 
@@ -52,13 +54,14 @@ test tests::bounded_statements::scheduled_state_writes_store_ran_waits_for_a_com
 test tests::bounded_statements::scheduled_state_writes_store_retry_waits_for_a_command ... ok
 test tests::bounded_statements::a_commands_commit_is_counted_with_it ... ok
 test tests::bounded_statements::sweep_cleanup_and_payment_commit_share_the_same_write_guard ... ok
-test tests::bounded_statements::each_page_and_command_is_a_bounded_number_of_statements ... ok
 test tests::bounded_statements::placing_and_settling_where_payments_are_taken_is_bounded ... ok
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 1038 filtered out; finished in 14.22s
+test tests::bounded_statements::each_page_and_command_is_a_bounded_number_of_statements ... ok
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 1085 filtered out; finished in 22.67s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
 
 == the store rated in three engines (e2e/reviews.spec.mjs)
 
-  6 passed (31.6s)
+  6 passed (45.4s)
 
 == mutation controls (scripts/reviews_mutations.py)
 

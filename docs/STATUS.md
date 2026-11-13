@@ -2,6 +2,84 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**L2, row ownership, 2026-11-12:** on L1 (`e1133034`), the second train of
+the declared data layer's landing (`wip/l2-row-ownership`), landing with
+L1 and train-33 under one full verify (`wip/l1-train-33`). A table says
+whose its rows are (ADR-0395, with ADR-0407's amendments): `owned by
+<field>` keys its rows by their owner and takes the reader's handle, which
+only the platform makes, in that field's place in every read and write;
+`shares with` answers others a seen row without the `private` fields; a
+`public table` is read by anyone and written by its owner; a table a
+reader's command writes says `owned by` or `written by anyone` (PW6920);
+and a predicate may be written in Pleris, asked by the engine itself from
+the command's staging or the query's snapshot, on memory and PostgreSQL.
+The guestbook's entries are owned by their author, its `remove` structural.
+The merge (`a9a8d79e`, the track and the integration's slice; the second
+review's repairs already in its history) had 14 conflicts and 52 receipts
+(L1's side); what git did not show, each repaired with a test: PW0367
+twice in the registry (the track's is PW0370), PW69xx's owner renamed
+(master's `DataPath` kept), thirteen commands without `requires`, and the
+`owned` browser role's ports taken by master's rows roles. PR #91's races
+and its platform test are rewritten for A, and the integration's clock-run
+witness ported. Measured here, each recipe whole with its mutation script (PostgreSQL
+18.6): `e14-row-ownership` 94 of 94 mutants killed (L2's 23 among them;
+the owned rows in three engines), `e14-durable-tables` 53 of 53 (the
+guestbook and the owned rows on PostgreSQL in three engines, the clock
+witness's mutant among them), `e14-d3-postgres` 62 of 62, `e14-data-path`
+60 of 60 (after the memory adapter's index read was made total: the
+script's mutant of another table's state had panicked inside it),
+`e14-tables` 44 of 44, `e14-refusal` 23 of 23, `e14-refusal-2` 7 of 7,
+`e14-check-is-build` 51 of 51, `e14-who-may-run` 10 of 10, `e14-guide` 75
+of 75, the corpus 106 of 106; the workspace's 4,143 tests pass. The full
+verify with L1 and train-33 is the record.
+
+**L1, durable tables, 2026-11-12:** on trains 27 and 28 (master at
+`d570bdb5`), the first train of the declared data layer's landing
+(`wip/l1-durable-tables`), landing with trains 31 to 33 under one full
+verify (`wip/l1-train-33`). A
+program's declared tables are served durably from PostgreSQL where the
+deployment names a database for them (ADR-0397, `PW_TABLES_DATABASE_URL`):
+`TablesPg`, a `DataLayer` over D3's adapter behind the same gate as memory;
+a command one transaction with its rows, its runs, its interaction's record
+and its outbox; one state a render; the reader's session the database's,
+each command fenced on it; the platform's records kept bounded by the
+host's sweeps. The guestbook outlives its host, killed and stopped, in
+three engines. The merge's five conflicts were a generated file, imports
+and receipts (the receipts master's, recorded again by the full verify);
+what git did not show, each repaired with a test: two test commands
+without `requires` (PW0367), the conformance suite counting a
+transaction's `BEGIN` against its first write and its first read in a
+render, and master's user-keyed runs (ADR-0334, amended) held by no test of
+the new layer. Measured here, each recipe whole with its mutation script
+(PostgreSQL 18.6, at `3b2caab3`): `e14-durable-tables` 50 of 50 mutants
+killed (the guestbook 18 of 18 on PostgreSQL in three engines, 15 of 15 in
+memory), `e14-d3-postgres` 56 of 56, `e14-data-path` 60 of 60,
+`e14-browser-host-map` 54 of 54, `e14-guide` 75 of 75; master's merge since
+reaches none of the five (`ci_plan.py`), and at it the workspace's 4,039
+tests pass. Its first full verify (43310750773) passed all but three
+strict mutation scripts, which ran every test binary of the server where
+they count one; each now names its binary (ADR-0397, Landing). The full
+verify with trains 31 to 33 is the record.
+
+**Train-33, 2026-11-12:** on train-32. A planned row that is one element is
+its own anchor (ADR-0438): where the packaging reads a planned list's row as
+one element a parser keeps whole, it says so in the build's template IR, and
+the host and the device write the row's key on its element (`data-pw-row`)
+where they wrote two comments; a row a plan makes is its element cloned
+alone, its key under the runtime's symbol. The large list's thousand rows are
+a thousand nodes, not three thousand. The first "create 1,000 rows", cold:
+8.80 ms of JavaScript, Svelte's 9.11 (train-32's 9.78). The builds visited in
+turn, eleven rounds a cell: every press of a visit quicker in sum past its
+spread (Firefox −21.0 ms cold and −6.0 warm, Chromium −6.0 cold and −4.4 warm
+in 21 rounds, Slow 4G −16.7 cold and −28.2 warm); Firefox's warm update
+(+4.0) and Chromium's warm clear (+2.6) and
+select (+0.5) slower to their frames with no more work of their own, none
+slower with each click at a point of the frame interval drawn for its round,
+recorded (ADR-0438). NEXT's check: the global limit 51.5 MB against 48.8,
+the cold append's first mark-compact still inside it. TodoMVC and a server's
+runtime are sent the bytes they were; the large list's page is 472 B heavier
+with Brotli.
+
 **Train-32, 2026-11-12:** on train-31. A planned list's rows are kept and made
 by its page's own code (ADR-0437, ADR-0434's first step): the packaging writes
 each such list's key, hold and making, and a walk to its holes that the
@@ -226,6 +304,18 @@ race), #72 with the closed-table cache repair (ADR-0394), the performance stack
 
 The paragraphs below are dated history: #72 and the cache repair are merged.
 
+**Local row browsers and PostgreSQL, 2026-11-03:** code/test source
+`6b31f4ba` passed the whole row 71/71, data-path 60/60, D3 PostgreSQL 60/60,
+durable 51/51 and refusal 23/23 + 7/7 campaigns, and local CI (server
+951 passed, 9 ignored). The same six owned-row browser checks
+pass on memory and PostgreSQL in Chromium, Firefox and WebKit. Command
+predicates use their existing fenced PostgreSQL transaction; fresh query predicates
+and bodies share one snapshot. Independent final review is clear. Only hashed
+generated receipts were dirty CI inputs. Both original worktrees are preserved.
+These are local implementation results, not hosted landing evidence. See the
+[execution record](diagnostics/row-browser-postgres-2026-11-03.md); the older continuation sections below are history.
+The protected feed/store migration, H3/H4 and hosted landing gates remain open.
+
 **Local continuation, 2026-11-02:** freshly fetched `origin/master` is
 `5d4d4d55a36f52ea556aa8f2af3e70b1150ffcf6`. D3 (PR #66), the added-table
 reference repair (#69), session overlap (#67), and the disk-fixture repair
@@ -235,9 +325,17 @@ and guestbook are still unmerged at `687dd922`; its exact-head hosted CI and
 verify workflows report success, but this continuation has not independently
 audited every recipe artifact. Row-ownership's existing dirty work is preserved.
 
-The current local slice is a reproduced closed-table cache bypass, with a
-failing-first commit `069ffc6f` and repair on `fix/tables-cached-refusals` in
-the existing data-path checkout. See the [execution record](diagnostics/tables-cached-refusals-2026-11-02.md).
+The completed cache slice is on `fix/tables-cached-refusals`. The current
+2026-11-03 continuation is `fix/row-data-integration` in the same checkout:
+recovery snapshot `b407ede4`, combined baseline `cb34e638`, and snapshot
+repair `a35da34a`. The original row worktree's branch, index and 20 edited
+files remain untouched. Code/test source `497c0a6c` passed the whole row
+campaign (68/68), data-path (60/60 and 15 browser checks), both refusal parts
+(23/23 and 7/7), and local CI (server 918 passed/9 ignored). Independent final
+review is clear. Only four hashed generated receipts were dirty CI inputs;
+these are local source results, not published-head landing gates. See the
+[integration record](diagnostics/row-data-integration-2026-11-03.md)
+and the [cache record](diagnostics/tables-cached-refusals-2026-11-02.md).
 This is local implementation evidence; no new landing or production claim.
 The paid E14 study remains deferred.
 
@@ -447,6 +545,11 @@ stored media and private-media authorization/revocation remain outside this
 metadata-minimization claim.
 
 ## last passing commit
+
+Latest local source: `6b31f4ba3468fdd50d0fb4ce357a86b0e571f9b6` passed the complete browser/PostgreSQL
+and row/data/refusal gates plus local CI recorded above. Its later evidence
+commit changes documentation and receipts only. This supersedes the older
+local passing-source note below; no published-head acceptance is asserted.
 
 Local continuation source `b496bdc34467269c2b436350ba1cfb2a52e268ed` has the
 data-path and local CI receipts recorded above, including the generated-input
@@ -736,6 +839,9 @@ Current continuation order (2026-11-02), superseding the dated queue below:
    branch before integration; retain the existing row work and its ownership.
 3. Validate durable declared tables and then protected feed/store migration
    with row authority and two-user witnesses. No paid model study is needed.
+   (2026-11-12: durable declared tables are L1, ADR-0397, verified locally
+   and awaiting their full verify; row authority is L2, next, per
+   [NEXT](NEXT.md).)
 
 The following three items retain their historical scope:
 

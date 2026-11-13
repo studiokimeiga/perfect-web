@@ -1,8 +1,8 @@
 Train-11 - every component the store's build emits is committed current
 
 produced by: just e14-committed-components
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: a3cab774e9569baddae69bd0d294487eaa3b697e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the committed evidence (compiler/pw-core/tests/evidence_is_current.rs)
@@ -11,11 +11,11 @@ test the_check_would_notice_a_change ... ok
 test the_committed_contracts_are_what_the_compiler_derives_now ... ok
 test the_committed_kiokun_build_is_what_the_compiler_builds_now ... ok
 test the_committed_handlers_are_what_the_compiler_emits_now ... ok
-test the_committed_components_are_what_the_compiler_builds_now ... ok
 test a_component_the_build_adds_fails_the_check_until_it_is_committed_current ... ok
 test the_committed_wit_is_what_the_compiler_emits_now ... ok
+test the_committed_components_are_what_the_compiler_builds_now ... ok
 test the_committed_page_plan_is_what_the_compiler_plans_now ... ok
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.11s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.55s
 
 == mutation controls (scripts/committed_components_mutations.py)
 

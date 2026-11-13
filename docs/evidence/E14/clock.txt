@@ -1,50 +1,50 @@
 ADR-0304 - what a page shows by the clock is told when the clock passes it
 
 produced by: just e14-clock
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: a3cab774e9569baddae69bd0d294487eaa3b697e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 tz database: 2026e
 
 == time zones, read from the host's own database (runtime/pw-time)
 
-test tests::a_rule_is_read_as_posix_and_rfc_8536_write_it ... ok
 test tests::names_never_leave_the_database ... ok
 test tests::weekdays_count_from_monday ... ok
+test tests::a_rule_is_read_as_posix_and_rfc_8536_write_it ... ok
 test tests::the_civil_calendar_round_trips ... ok
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
 test a_name_outside_the_database_is_refused_before_it_is_read ... ok
 test a_day_begins_at_its_midnight_or_where_a_transition_moves_it ... ok
 test an_instants_local_date_and_time_are_the_databases ... ok
-test an_instants_offset_is_the_databases ... ok
 test a_local_time_is_read_as_rfc_5545_reads_it ... ok
+test an_instants_offset_is_the_databases ... ok
 test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
 == where a clock compared may be kept (compiler/pw-core: effects, tests/clock_compared.rs)
 
 test effects::queue_tests::a_self_reader_refreshes_its_own_call_charge_after_row_growth ... ok
+test effects::queue_tests::readers_remain_registered_when_a_dependency_grows_again ... ok
 test effects::queue_tests::late_rows_refresh_declared_metadata_and_noninvoked_member_values ... ok
 test effects::tests::a_database_effect_names_its_domain ... ok
 test effects::tests::a_declared_family_covers_its_members_but_not_the_reverse ... ok
-test effects::tests::a_direct_call_contributes_its_effect ... ok
 test effects::tests::a_pure_body_infers_nothing ... ok
 test effects::tests::a_query_may_read_and_not_write ... ok
+test effects::tests::a_direct_call_contributes_its_effect ... ok
 test effects::tests::a_row_that_is_not_written_is_not_checked ... ok
 test effects::tests::a_view_may_not_reach_the_database_whatever_it_declares ... ok
-test effects::queue_tests::readers_remain_registered_when_a_dependency_grows_again ... ok
 test effects::tests::an_effect_hidden_behind_a_helper_still_propagates ... ok
 test effects::tests::an_effect_inside_a_callback_still_propagates ... ok
-test signatures::tests::a_pure_function_carries_no_effects_and_no_label ... ok
 test effects::tests::an_undeclared_effect_is_reported_with_its_chain ... ok
+test signatures::tests::a_pure_function_carries_no_effects_and_no_label ... ok
 test signatures::tests::one_declaration_answers_privacy_effects_and_placement ... ok
 test effects::queue_tests::many_growing_dependencies_enqueue_their_pending_reader_only_once ... ok
 test effects::queue_tests::single_effect_chains_visit_only_the_bodies_whose_rows_changed ... ok
-test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 181 filtered out; finished in 0.30s
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 181 filtered out; finished in 0.36s
 test a_public_materialization_may_not_compare_the_clock ... ok
 test a_query_that_compares_the_clock_may_be_kept_for_every_reader ... ok
 test a_page_built_once_may_not_compare_the_clock ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.38s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.45s
 
 == the host's clock, what a value holds until, and a page told then (spikes/own-renderer/server)
 
@@ -54,17 +54,20 @@ test clock::tests::a_document_is_due_once_at_its_earliest_instant ... ok
 test clock::tests::passed_answers_for_its_instant_and_notes_what_is_ahead ... ok
 test clock::tests::today_is_held_until_the_zones_next_day ... ok
 test clock::tests::a_zones_conversions_are_the_databases ... ok
+test tests::owned_clock::the_clock_reads_and_writes_the_scheduling_owners_rows_after_sign_out_in_memory ... ok
+test tests::owned_clock::the_clock_reads_and_writes_the_scheduling_owners_rows_after_sign_out_on_postgresql ... ok
 test tests::the_hosts_clock_moves_forward_as_a_test_says ... ok
-test tests::a_page_that_compares_no_clock_holds_nothing ... ok
 test tests::a_page_is_told_when_the_instant_it_compared_passes ... ok
+test tests::a_page_that_compares_no_clock_holds_nothing ... ok
 test tests::a_kept_value_past_its_instant_is_read_again ... ok
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 1038 filtered out; finished in 5.41s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 1083 filtered out; finished in 5.98s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
 
 == mutation controls (scripts/clock_mutations.py)
 
 baseline (zones): 9 passed, 0 failed
 baseline (core): 201 passed, 0 failed
-baseline (server): 10 passed, 0 failed
+baseline (server): 12 passed, 0 failed
 a skipped local time is read with the offset after the gap [zones]: KILLED (2 of 9 tests fail)
 a repeated local time is its last occurrence [zones]: KILLED (1 of 9 tests fail)
 past the last transition, no rule [zones]: KILLED (2 of 9 tests fail)
@@ -76,19 +79,19 @@ a file's footer is unread [zones]: KILLED (2 of 9 tests fail)
 a page built once may compare the clock [core]: KILLED (1 of 201 tests fail)
 a page built once, or a public materialization, may compare the clock [core]: KILLED (1 of 198 tests fail)
 a public materialization may compare the clock [core]: KILLED (1 of 198 tests fail)
-an instant ahead is not noted [server]: KILLED (3 of 10 tests fail)
-`passed` answers before its instant [server]: KILLED (1 of 10 tests fail)
-a zone's date is held by nothing [server]: KILLED (2 of 10 tests fail)
-a read within a read tells the outer nothing [server]: KILLED (1 of 10 tests fail)
-a later instant replaces an earlier [server]: KILLED (1 of 10 tests fail)
-an instant a later read replaced takes its document [server]: KILLED (1 of 10 tests fail)
-a fresh value's instant is not kept [server]: KILLED (2 of 10 tests fail)
-a kept value past its instant is served [server]: KILLED (2 of 10 tests fail)
-a kept value's instant is not noted for the read it is part of [server]: KILLED (1 of 10 tests fail)
-a document's reads set no timer [server]: KILLED (2 of 10 tests fail)
-a document due is not read again [server]: KILLED (1 of 10 tests fail)
-the host's clock is not the system's [server]: KILLED (1 of 10 tests fail)
-the host's clock moves back [server]: KILLED (1 of 10 tests fail)
-the development origin grants no clock [server]: KILLED (2 of 10 tests fail)
+an instant ahead is not noted [server]: KILLED (3 of 12 tests fail)
+`passed` answers before its instant [server]: KILLED (1 of 12 tests fail)
+a zone's date is held by nothing [server]: KILLED (2 of 12 tests fail)
+a read within a read tells the outer nothing [server]: KILLED (1 of 12 tests fail)
+a later instant replaces an earlier [server]: KILLED (1 of 12 tests fail)
+an instant a later read replaced takes its document [server]: KILLED (1 of 12 tests fail)
+a fresh value's instant is not kept [server]: KILLED (2 of 12 tests fail)
+a kept value past its instant is served [server]: KILLED (2 of 12 tests fail)
+a kept value's instant is not noted for the read it is part of [server]: KILLED (1 of 12 tests fail)
+a document's reads set no timer [server]: KILLED (2 of 12 tests fail)
+a document due is not read again [server]: KILLED (1 of 12 tests fail)
+the host's clock is not the system's [server]: KILLED (1 of 12 tests fail)
+the host's clock moves back [server]: KILLED (1 of 12 tests fail)
+the development origin grants no clock [server]: KILLED (2 of 12 tests fail)
 25 of 25 mutants killed
 memory bound: no process was stopped

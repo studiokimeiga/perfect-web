@@ -1,0 +1,26 @@
+// @corpus: rejected
+// @id: R-111
+// @category: an owned table read by a field no reader holds
+// @rule: PW0368
+// @invariant: owned_read_by_its_reader
+// @charter: §7.8, §9.2
+// @milestone: 14
+// @expect-error: `index by_topic on topic` leads with `topic`, and a read by it would answer every owner's rows
+//
+// Track `row-ownership` (ADR-0384's H1): each read of an owned table takes
+// its reader's handle in the place of the field it leads with. An index
+// by a topic would answer every author's posts on it: an IDOR by index.
+
+module Posts
+
+import capability.{ UserId }
+
+opaque type PostId = String
+
+type Post = Post { author: UserId, id: PostId, topic: String, text: String }
+
+table Posts
+    row   Post
+    key   author, id
+    index by_topic on topic
+    owned by author

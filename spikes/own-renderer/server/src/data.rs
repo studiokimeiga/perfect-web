@@ -139,6 +139,8 @@ pub(crate) trait DataLayer: Send + Sync {
     /// **The statements its reads and commands have run** (NEXT 4b): a
     /// layer that counts none (memory) says nothing.
     #[cfg(test)]
+    // Operation costs exclude database transaction boundaries; an adapter
+    // may expose its total including those separately (PgTables does).
     fn statements(&self) -> Option<u64> {
         None
     }
@@ -168,6 +170,14 @@ pub(crate) trait DataLayer: Send + Sync {
     /// a database's layer's, and none in memory.
     #[cfg(test)]
     fn renders_for_test(&self) -> Option<Arc<crate::feed_pg::Renders>> {
+        None
+    }
+
+    /// **Each call of a table function its commands linked, so far** (track
+    /// `durable-tables`'s tests: a guarded command calls none until its
+    /// predicates answer), on a layer that counts them.
+    #[cfg(test)]
+    fn table_calls_for_test(&self) -> Option<u64> {
         None
     }
 
@@ -242,6 +252,14 @@ pub(crate) trait DataLayer: Send + Sync {
         None
     }
 
+    /// **What the layer keeps, kept bounded** (track `durable-tables`): the
+    /// host's scheduler calls it on each of its passes, at `now_ms` on the
+    /// host's clock, with the lifetimes of its sessions; a layer whose
+    /// records outlive the host forgets those past their time there, a
+    /// bounded batch at a time. A layer in memory keeps nothing past the
+    /// host, and does nothing.
+    fn housekeeping(&self, _now_ms: i64, _sessions: &crate::identity::SessionLifetimes) {}
+
     /// **Every operation it supplies**, read from the functions it builds,
     /// not from a list kept beside them.
     fn operations(&self) -> BTreeSet<String> {
@@ -290,6 +308,16 @@ pub(crate) trait Staged {
     /// A layer that serves no tables links none.
     fn table_ops(&self, _contract: &ComponentContract, _granted: &Granted) -> Result<Ops, String> {
         Ok(Ops::new())
+    }
+
+    /// A compiled predicate's reads on this same staged state. Adapters
+    /// must opt in; a command's write callbacks are never reused as reads.
+    fn table_predicate_reads(
+        &self,
+        _contract: &ComponentContract,
+        _granted: &Granted,
+    ) -> Result<Ops, String> {
+        Err("this data adapter supplies no predicate reads in a command".into())
     }
 
     /// **What it staged, made part of the materializer's transaction**
@@ -356,6 +384,17 @@ pub(crate) trait Staged {
     /// after its job fence. This is never a fallible business publication seam.
     fn prepare_materialized(&mut self) -> Result<(), String> {
         Ok(())
+    }
+
+    /// **Whether the commit that failed is known to have kept nothing**
+    /// (track `durable-tables`): the database answered its rollback (a
+    /// serialization failure, a deadlock, a refusal), or the commit never
+    /// reached its `COMMIT`. The host answers such a command refused, at
+    /// once, with nothing to reconcile; any other failure of a commit may
+    /// have committed, and is reconciled from what the layer keeps. By
+    /// default, never known.
+    fn definitely_refused(&self) -> bool {
+        false
     }
 }
 

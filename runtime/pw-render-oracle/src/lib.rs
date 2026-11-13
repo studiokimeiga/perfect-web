@@ -264,6 +264,7 @@ mod tests {
             collection: "cart.lines".into(),
             binding: "line".into(),
             key: Some("id".into()),
+            row_anchor: Default::default(),
             body: vec![
                 st("<li data-pw=\"0\" "),
                 Chunk::Dynamic(Part::InterpolatedAttribute {

@@ -40,3 +40,14 @@ opaque type SessionId = String
 opaque type UserId = String
 
 opaque type OrganizationId = String
+
+// **The id of the user a handle is** (ADR-0384 H1). An owned table's row
+// names its owner by id, so a program writing its reader's row needs that id
+// as a value; until now it read it only through Rust. An id grants nothing
+// (ADR-0270): every read and write of an owned table takes the handle, which
+// only the platform makes (ADR-0263), and never an id in its place. What is
+// made from the handle is its user's, as every call's result carries its
+// argument's label (ADR-0129).
+fn id_of(user: User<UserId>) -> UserId !{} {
+    UserId(user.value)
+}

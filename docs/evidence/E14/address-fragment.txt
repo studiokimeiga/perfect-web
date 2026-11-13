@@ -1,8 +1,8 @@
 ADR-0367 - a page binds a signal to its address's fragment
 
 produced by: just e14-address-fragment
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: a3cab774e9569baddae69bd0d294487eaa3b697e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -17,15 +17,15 @@ test the_clause_names_a_signal_the_page_declares ... ok
 test the_signal_is_a_string_since_a_fragment_is_text ... ok
 test the_signal_starts_at_a_value_a_form_gives ... ok
 test the_forms_are_pairs_of_the_characters_a_fragment_holds ... ok
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.60s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.77s
 test codes::tests::a_retired_code_is_never_reused ... ok
 test codes::tests::a_tracks_block_holds_only_its_tracks_codes ... ok
-test codes::tests::an_old_number_is_no_registered_rule ... ok
-test codes::tests::every_alias_resolves_to_a_registered_code ... ok
 test codes::tests::an_invariant_reads_as_a_sentence_about_the_program ... ok
+test codes::tests::an_old_number_is_no_registered_rule ... ok
 test codes::tests::every_code_sits_in_its_owner_range ... ok
-test codes::tests::every_known_gap_names_an_owner_and_the_missing_analysis ... ok
 test codes::tests::every_code_is_unique ... ok
+test codes::tests::every_known_gap_names_an_owner_and_the_missing_analysis ... ok
+test codes::tests::every_alias_resolves_to_a_registered_code ... ok
 test codes::tests::every_retired_code_says_why_and_what_replaced_it ... ok
 test policy::tests::an_operator_belongs_to_one_domain ... ok
 test policy::tests::every_clause_head_takes_its_value_on_its_line ... ok
@@ -36,18 +36,19 @@ test policy::tests::the_table_describes_only_policies_the_language_has ... ok
 test codes::tests::every_corpus_rule_is_registered_or_an_owned_known_gap ... ok
 test codes::tests::every_code_a_checker_writes_is_registered ... ok
 test codes::tests::every_registered_code_is_one_a_checker_can_emit ... ok
-test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 180 filtered out; finished in 3.95s
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 180 filtered out; finished in 3.55s
 
 == the host (tests::address_fragment)
 
 test tests::address_fragment::the_host_renders_the_first_value_whatever_the_fragment ... ok
 test tests::address_fragment::the_document_of_a_page_that_reads_queries_names_its_binding ... ok
 test tests::address_fragment::the_document_of_a_page_of_signals_alone_names_its_binding ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 1045 filtered out; finished in 0.00s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 1092 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
 
 == the browser in three engines (e2e/fragment.spec.mjs)
 
-  36 passed (34.2s)
+  36 passed (21.7s)
 
 == mutation controls (scripts/address_fragment_mutations.py)
 

@@ -1,8 +1,8 @@
 ADR-0282 - what a value holds is one label
 
 produced by: just e14-held-labels
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: a3cab774e9569baddae69bd0d294487eaa3b697e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the compiler (held_where_it_runs.rs, reads_through_calls.rs, checking_source.rs)
@@ -12,37 +12,37 @@ test a_match_whose_scrutinee_type_is_unknown_is_not_reported ... ok
 test an_unmodelled_capability_family_never_manufactures_a_placement_error ... ok
 test a_nullary_constructor_is_not_read_as_a_binding ... ok
 test constructor_arity_is_respected ... ok
-test corpus_enforcement_is_reported_as_three_numbers_not_one ... ok
-test a_caught_file_conveys_every_fact_its_expect_error_lines_declare ... ok
 test every_body_level_rejection_matches_its_declared_rule ... ok
+test a_caught_file_conveys_every_fact_its_expect_error_lines_declare ... ok
+test corpus_enforcement_is_reported_as_three_numbers_not_one ... ok
 test a_fixtures_declared_symbol_matches_the_symbol_it_is_caught_by has been running for over 60 seconds
+test every_rejected_fixture_emits_only_its_own_defect ... ok
+test every_rejected_fixtures_rule_is_a_code_its_check_reports ... ok
 test a_fixtures_declared_symbol_matches_the_symbol_it_is_caught_by ... ok
 test no_accepted_corpus_file_reports_a_body_level_error ... ok
-test every_rejected_fixtures_rule_is_a_code_its_check_reports ... ok
-test every_rejected_fixture_emits_only_its_own_defect ... ok
 test every_diagnostic_carries_what_charter_16_3_requires has been running for over 60 seconds
 test no_diagnostic_restates_its_invariant_in_its_own_words ... ok
 test the_environment_spans_every_file_checked_together ... ok
 test semantic_coverage_of_the_rejected_corpus_does_not_regress ... ok
 test the_committed_enforcement_table_is_what_the_corpus_checks_now ... ok
 test the_unhandled_variant_case_is_caught_at_its_real_span ... ok
-test every_diagnostic_carries_what_charter_16_3_requires ... ok
 test the_structured_concurrency_rules_run_on_real_bodies ... ok
+test every_diagnostic_carries_what_charter_16_3_requires ... ok
 test the_privacy_and_placement_rules_catch_their_corpus_cases ... ok
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 192.06s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 128.60s
 test a_placement_refusal_says_what_rules_each_world_out ... ok
 test a_fragment_built_before_any_request_holds_no_session ... ok
 test the_contract_places_it_where_the_checker_does ... ok
 test a_secret_a_query_answers_is_kept_by_no_shared_fragment ... ok
 test a_page_reading_the_session_through_a_query_of_its_own_is_not_built ... ok
 test a_fragment_holding_a_secret_runs_only_at_the_origin ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.93s
-test a_session_its_keyword_alone_declares_is_read_through_a_relay ... ok
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.17s
 test a_contract_is_as_private_as_what_its_component_reads ... ok
+test a_session_its_keyword_alone_declares_is_read_through_a_relay ... ok
 test a_shared_cache_reads_through_a_helper ... ok
 test a_shared_page_reads_through_a_public_query ... ok
 test a_shared_fragment_is_as_private_as_what_its_dependency_reads ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.05s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.91s
 
 == mutation controls (scripts/held_labels_mutations.py)
 

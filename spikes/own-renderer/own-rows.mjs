@@ -40,6 +40,12 @@ export const OWN_WALKS = "const OWN_WALKS = null;";
  * list of its own would be sent other bytes than before. */
 export const OWN_LINES = /^[ \t]*\/\/ own rows:.*\n[\s\S]*?^[ \t]*\/\/ :own rows\n/gm;
 
+/** **The lines the runtime holds only for a row that is its own anchor**
+ * (ADR-0438), each run between `// element rows:` and `// :element rows`: a
+ * build none of whose lists' rows is so, and a server's runtime, hold none
+ * of them, for the reason `OWN_LINES` gives. */
+export const ELEMENT_LINES = /^[ \t]*\/\/ element rows:.*\n[\s\S]*?^[ \t]*\/\/ :element rows\n/gm;
+
 /** **What the runtime's general code is written as where a page's own code
  * keeps a list**, each its text in the runtime and what it becomes: a
  * planned row's scope made when something reads it (`scopeOf`, which the
@@ -346,6 +352,112 @@ const VOID = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input"
  * inside one is no node of its own, or the tree is not what is written. */
 const UNREAD = new Set(["script", "style", "textarea", "title", "xmp", "iframe", "noembed", "noframes", "noscript", "plaintext", "template", "svg", "math"]);
 
+/** **The tag at `at` of `html`**, as the build reads one: its name, in
+ * lower case, whether it ends an element, the names of its attributes, past
+ * what their quoted values hold, and where it ends; `null` where no tag
+ * starts there, `undefined` where one starts and is not read to its end. */
+function tagAt(html, at) {
+  const tag = /^<(\/?)([A-Za-z][^\s/>]*)/.exec(html.slice(at));
+  if (!tag) return null;
+  let end = at + tag[0].length;
+  const attributes = [];
+  for (;;) {
+    const attribute = /^\s*([^\s/>=]+)(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?/.exec(html.slice(end));
+    if (!attribute || attribute[0].length === 0) break;
+    attributes.push(attribute[1]);
+    end += attribute[0].length;
+  }
+  const close = /^\s*\/?>/.exec(html.slice(end));
+  if (!close) return undefined;
+  return { name: tag[2].toLowerCase(), ends: tag[1] === "/", attributes, to: end + close[0].length };
+}
+
+// --- a row that is its own anchor (ADR-0438) --------------------------------
+
+/** What HTML's parser does not keep as it is written, wherever it is: an
+ * element it reads otherwise (`UNREAD`), and one it merges, drops or names
+ * otherwise in a body. */
+const NOT_KEPT = new Set([...UNREAD, "html", "head", "body", "frameset", "frame", "image"]);
+
+const TABLE_PARTS = ["caption", "col", "colgroup", "table", "tbody", "td", "tfoot", "th", "thead", "tr"];
+const HEADINGS = ["h1", "h2", "h3", "h4", "h5", "h6"];
+/** What ends an open `<p>` where it starts inside it: HTML's "in body", each
+ * start tag that closes a `p` element in button scope. */
+const ENDS_A_P = [
+  "address", "article", "aside", "blockquote", "center", "dd", "details", "dialog", "dir", "div", "dl", "dt", "fieldset",
+  "figcaption", "figure", "footer", "form", "header", "hgroup", "hr", "li", "listing", "main", "menu", "nav", "ol", "p",
+  "plaintext", "pre", "search", "section", "summary", "table", "ul", "xmp", ...HEADINGS,
+];
+/** **The elements a row that is its own anchor may be**, each with the
+ * elements a parser ends it at, where one starts anywhere inside it (HTML's
+ * "in body", "in row" and "in cell"): the row would be two nodes, its key on
+ * the first. None ends the rest. A row of any other element keeps its
+ * comments. */
+const ENDED_BY = new Map([
+  ...["div", "span", "article", "section", "aside", "header", "footer", "nav", "main", "figure", "blockquote", "label",
+    "fieldset", "details", "ul", "ol", "dl", "img", "input", "em", "strong", "small", "code", "time", "mark"].map((n) => [n, []]),
+  ["li", ["li"]],
+  ["dd", ["dd", "dt"]],
+  ["dt", ["dd", "dt"]],
+  ["a", ["a"]],
+  ["button", ["button"]],
+  ["p", ENDS_A_P],
+  ["tr", TABLE_PARTS.filter((n) => n !== "td" && n !== "th")],
+  ["td", TABLE_PARTS],
+  ["th", TABLE_PARTS],
+  ...HEADINGS.map((n) => [n, HEADINGS]),
+].map(([n, ends]) => [n, new Set(ends)]));
+
+/**
+ * **Why a planned row cannot be its own anchor** (ADR-0438), or `null` where
+ * it can: its markup one element, as HTML's parser reads it wherever it is
+ * written. Read as written, element inside element, each hole where it is
+ * (a text's in its element, an attribute's in its tag): one element and
+ * nothing beside it, each element ended in turn, the first one of
+ * `ENDED_BY` and none inside it that would end it there, nothing a parser
+ * does not keep as written, and a table's row holding its cells alone (what
+ * else is in it a parser moves out). A row that cannot be keeps its comments,
+ * which hold whatever a parser makes of it.
+ */
+export function rowElement(body) {
+  const html = body.map((c) => (c.chunk === "static" ? c.value : c.value.part === "text" ? "x" : " x")).join("");
+  const stack = [];
+  let root = null;
+  for (let at = 0; at < html.length; ) {
+    if (html.startsWith("<!", at) || html.startsWith("<?", at)) return "it holds a comment";
+    const tag = tagAt(html, at);
+    if (tag === undefined) return "its markup is not read to the end of a tag";
+    if (tag === null) {
+      if (html.startsWith("</", at)) return "it holds a `</` that ends no element";
+      if (stack.length === 0) return "it holds text beside its element";
+      if (root === "tr" && stack.length === 1) return "its `<tr>` holds text, which a parser moves out of it";
+      at += 1;
+      continue;
+    }
+    at = tag.to;
+    const { name } = tag;
+    if (tag.ends) {
+      if (stack.at(-1) !== name) return `its \`</${name}>\` ends no element it opened`;
+      stack.pop();
+      continue;
+    }
+    if (NOT_KEPT.has(name)) return `it holds a \`<${name}>\`, which a parser does not keep as written`;
+    if (stack.length === 0) {
+      if (root !== null) return "it is more than one element";
+      if (!ENDED_BY.has(name)) return `its element is a \`<${name}>\`, which is not one a row is its own anchor as`;
+      root = name;
+    } else if (ENDED_BY.get(root).has(name)) {
+      return `a \`<${name}>\` inside its \`<${root}>\` would end it`;
+    } else if (root === "tr" && stack.length === 1 && name !== "td" && name !== "th") {
+      return `its \`<tr>\` holds a \`<${name}>\`, which a parser moves out of it`;
+    }
+    if (!VOID.has(name)) stack.push(name);
+  }
+  if (root === null) return "it is no element";
+  if (stack.length > 0) return `its \`<${stack.at(-1)}>\` is not ended`;
+  return null;
+}
+
 /** **Each hole's path in a row's markup**, as `planOf` marks the holes and
  * as the markup is written, element inside element: `null` where it cannot
  * be read so. The browser's parse is the truth (`planOf`), which the
@@ -388,23 +500,13 @@ export function rowPaths(body) {
       text = false;
       continue;
     }
-    const tag = /^<(\/?)([A-Za-z][^\s/>]*)/.exec(html.slice(at));
+    const tag = tagAt(html, at);
+    if (tag === undefined) return null;
     if (tag) {
-      const name = tag[2].toLowerCase();
-      // To its end, past what its quoted values hold.
-      let end = at + tag[0].length;
-      const attributes = [];
-      for (;;) {
-        const attribute = /^\s*([^\s/>=]+)(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?/.exec(html.slice(end));
-        if (!attribute || attribute[0].length === 0) break;
-        attributes.push(attribute[1]);
-        end += attribute[0].length;
-      }
-      const close = /^\s*\/?>/.exec(html.slice(end));
-      if (!close) return null;
-      at = end + close[0].length;
+      const { name } = tag;
+      at = tag.to;
       text = false;
-      if (tag[1]) {
+      if (tag.ends) {
         if (top === root || top.name !== name) return null;
         stack.pop();
         continue;
@@ -412,7 +514,7 @@ export function rowPaths(body) {
       if (UNREAD.has(name)) return null;
       const node = { name, children: [], parent: top };
       top.children.push(node);
-      for (const a of attributes) {
+      for (const a of tag.attributes) {
         const hole = /^data-pwh(\d+)$/.exec(a);
         if (hole && !mark(Number(hole[1]), node)) return null;
       }
@@ -435,7 +537,9 @@ export function rowPaths(body) {
 
 /** **A walk to each path** from a row's clone `c`, written out: each node
  * reached once, from its parent's first child or the nearest sibling before
- * it already reached. */
+ * it already reached. A row that is its own anchor is its element's clone,
+ * its paths from it (ADR-0438): one whose holes are all on its element takes
+ * no step. */
 export function walkSource(paths) {
   const known = new Map([["", "c"]]);
   const lines = [];
@@ -459,6 +563,7 @@ export function walkSource(paths) {
     return name;
   };
   const holes = paths.map(reach);
+  if (lines.length === 0) return `(c) => [${holes.join(", ")}]`;
   return `(c) => {\n        const ${lines.join(",\n          ")};\n        return [${holes.join(", ")}];\n      }`;
 }
 
@@ -494,7 +599,10 @@ export function ownRows(entries) {
     const paths = rowPaths(list.body);
     if (paths === null) continue;
     if (!walks.has(template)) walks.set(template, []);
-    walks.get(template).push(`    ${list.id}: {\n      paths: ${q(paths.map((p) => p.join(",")).join("|"))},\n      walk: ${walkSource(paths)},\n    }`);
+    // A row that is its own anchor is walked from its element (ADR-0438), as
+    // its plan's paths are.
+    const from = list.row_anchor === "element" ? paths.map((p) => p.slice(1)) : paths;
+    walks.get(template).push(`    ${list.id}: {\n      paths: ${q(from.map((p) => p.join(",")).join("|"))},\n      walk: ${walkSource(from)},\n    }`);
   }
   const table = (by) => `{\n${[...by].map(([template, items]) => `  ${q(template)}: {\n${items.join(",\n")},\n  }`).join(",\n")},\n}[parts.template]`;
   if (written.length > 0) uses.add("scopeOf").add("ownFunctions");

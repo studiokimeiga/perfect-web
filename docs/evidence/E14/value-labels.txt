@@ -1,8 +1,8 @@
 ADR-0129 - a value's label follows it through calls, bodies, branches and assignments
 
 produced by: just e14-value-labels
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: a3cab774e9569baddae69bd0d294487eaa3b697e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == regression tests (compiler/pw-core/tests/labels_follow_values.rs)
@@ -13,7 +13,7 @@ test a_call_carries_what_its_callees_body_makes ... ok
 test an_assigned_binding_carries_what_it_is_assigned ... ok
 test a_branch_carries_its_condition ... ok
 test an_argument_comes_out_of_a_call_unless_it_is_a_key_the_call_uses ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.32s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.33s
 
 == mutation controls (scripts/value_labels_mutations.py)
 

@@ -146,6 +146,7 @@ fn an_each_region_renders_once_per_element_with_the_binding_in_scope() {
             collection: "items".into(),
             binding: "item".into(),
             key: Some("id".into()),
+            row_anchor: Default::default(),
             body: vec![
                 Chunk::Static("<li>".into()),
                 Chunk::Dynamic(Part::Text {
@@ -186,6 +187,7 @@ fn an_empty_collection_renders_the_surrounding_markup_and_no_items() {
             collection: "items".into(),
             binding: "item".into(),
             key: None,
+            row_anchor: Default::default(),
             body: vec![Chunk::Static("<li>x</li>".into())],
         }),
         Chunk::Static("</ul>".into()),
@@ -275,6 +277,7 @@ fn identical_ir_and_values_produce_identical_bytes() {
             collection: "items".into(),
             binding: "item".into(),
             key: Some("id".into()),
+            row_anchor: Default::default(),
             body: vec![Chunk::Dynamic(Part::Text {
                 id: PartId(0),
                 value: "item.name".into(),
@@ -580,6 +583,7 @@ fn a_range_part_is_delimited_by_its_own_anchors() {
             collection: "items".into(),
             binding: "item".into(),
             key: None,
+            row_anchor: Default::default(),
             body: vec![Chunk::Static("<li>x</li>".into())],
         }),
         Chunk::Static("</ul>".into()),
@@ -939,6 +943,7 @@ fn a_keyed_loop_refuses_two_items_with_one_key() {
         collection: "items".into(),
         binding: "item".into(),
         key: Some("id".into()),
+        row_anchor: Default::default(),
         body: vec![Chunk::Static("<li>x</li>".into())],
     })]);
     let env = Env::new().set(
@@ -966,6 +971,7 @@ fn a_keyed_loop_refuses_an_item_with_no_key_value() {
         collection: "items".into(),
         binding: "item".into(),
         key: Some("id".into()),
+        row_anchor: Default::default(),
         body: vec![Chunk::Static("<li>x</li>".into())],
     })]);
     let env = Env::new().set(
@@ -991,6 +997,7 @@ fn an_unkeyed_loop_emits_no_instance_boundaries() {
         collection: "items".into(),
         binding: "item".into(),
         key: None,
+        row_anchor: Default::default(),
         body: vec![Chunk::Static("<li>x</li>".into())],
     })]);
     let env = Env::new().set("items", Value::List(vec![Value::Int(1), Value::Int(2)]));
@@ -1010,6 +1017,7 @@ fn a_public_domain_and_a_session_domain_render_different_tokens() {
         collection: "items".into(),
         binding: "item".into(),
         key: Some("id".into()),
+        row_anchor: Default::default(),
         body: vec![Chunk::Static("<li>x</li>".into())],
     })]);
     let items = Value::List(vec![record(&[("id", Value::Text("line-1".into()))])]);

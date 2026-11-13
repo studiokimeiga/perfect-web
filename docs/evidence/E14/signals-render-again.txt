@@ -1,19 +1,19 @@
 ADR-0137 - what the browser renders again, it can
 
 produced by: just e14-signals-render-again
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: a3cab774e9569baddae69bd0d294487eaa3b697e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the plan's refusals (compiler/pw-core/tests/signals_render_again.rs)
 
 test a_list_at_the_top_is_its_own_block_read_again_for_what_its_rows_read ... ok
 test a_list_a_signal_holds_is_rendered_again_by_its_rows_at_the_top_and_inside_its_block ... ok
-test a_block_a_signal_decides_reads_the_signals_and_its_own_names ... ok
 test a_signal_read_in_a_block_a_query_decides_is_refused ... ok
+test a_block_a_signal_decides_reads_the_signals_and_its_own_names ... ok
 test what_a_handler_captures_in_a_signal_s_block_is_the_block_s ... ok
 test an_attribute_a_signal_decides_is_set_in_place_or_refused ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 35.48s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 24.97s
 
 == mutation controls (scripts/signals_render_again_mutations.py)
 

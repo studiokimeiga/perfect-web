@@ -1,19 +1,19 @@
 Check and build validate one executable program
 
 produced by: just e14-check-is-build
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: a3cab774e9569baddae69bd0d294487eaa3b697e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
    Compiling pw-core v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-core)
-    Finished `test` profile [unoptimized] target(s) in 17.73s
+    Finished `test` profile [unoptimized] target(s) in 15.40s
      Running tests/check_is_build.rs (target/debug/deps/check_is_build-f59a2ef86092d725)
 
 running 12 tests
 test an_unmappable_export_keeps_its_declaration_identity ... ok
 test an_unread_placeholder_remains_supported ... ok
-test a_bad_signal_initial_value_is_not_hidden_by_a_page_refusal ... ok
 test a_partial_inspection_plan_cannot_be_written ... ok
+test a_bad_signal_initial_value_is_not_hidden_by_a_page_refusal ... ok
 test editing_a_report_cannot_turn_a_refused_plan_into_a_validated_one ... ok
 test semantic_errors_short_circuit_support_diagnostics ... ok
 test cross_module_privacy_refusals_still_stop_complete_preparation ... ok
@@ -23,31 +23,31 @@ test semantic_library_checks_do_not_promise_executable_support ... ok
 test a_wit_failure_preserves_independent_page_refusals_and_its_own_file ... ok
 test prepared_privacy_stays_with_its_program_and_qualified_namesakes ... ok
 
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
 
    Compiling wasmtime v48.0.8
    Compiling pw-core v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-core)
    Compiling pw-host v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-host)
    Compiling pw-table-memory v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-table-memory)
    Compiling pw-cli v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-cli)
-    Finished `test` profile [unoptimized] target(s) in 20.75s
+    Finished `test` profile [unoptimized] target(s) in 16.71s
      Running tests/check_is_build.rs (target/debug/deps/check_is_build-734151484d2e52b0)
 
 running 8 tests
-test a_page_cannot_depend_on_an_unwritten_query ... ok
 test a_pure_computed_each_head_is_refused ... ok
+test a_page_cannot_depend_on_an_unwritten_query ... ok
 test a_part_cannot_compute_from_a_signal_and_a_query ... ok
 test a_part_may_compute_from_two_signals ... ok
 test a_signal_in_a_title_is_refused_during_check ... ok
-test wit_name_collisions_are_check_refusals ... ok
 test syntax_refusals_keep_clean_siblings_errors_and_skip_backends ... ok
+test wit_name_collisions_are_check_refusals ... ok
 test a_supported_neighbor_checks_and_builds ... ok
 
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
 
 
    Compiling pw-cli v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-cli)
-    Finished `test` profile [unoptimized] target(s) in 0.64s
+    Finished `test` profile [unoptimized] target(s) in 0.58s
      Running tests/check_build_corpus.rs (target/debug/deps/check_build_corpus-e1e085c4995a3155)
 
 running 3 tests
@@ -56,17 +56,17 @@ test accepted_corpus_has_exactly_its_known_backend_refusals ... ok
 reference program roots: 9 complete checks and builds
 test reference_program_roots_stay_executable ... ok
 test every_rejected_corpus_program_has_the_same_check_and_build_codes has been running for over 60 seconds
-check/build corpus parity: 97 rejected programs
+check/build corpus parity: 106 rejected programs
 test every_rejected_corpus_program_has_the_same_check_and_build_codes ... ok
 
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 75.82s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 60.89s
 
 
 Complete check program census; no artifacts
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-binary SHA256: 22c375fee153bf13a0ce539c3c5bf8b04f5a22fb99d8cd508df4b34b3f3dd129
-source diff SHA256: ef4fb4f8e3b4c2eacd562318f74e335fdf4832e518d1be266d865f88c8c6036e
-accepted: new-support-refusal; 93 files; codes=['PW6601']
+commit: a3cab774e9569baddae69bd0d294487eaa3b697e
+binary SHA256: 3580e71012b894e4291d7b5f3848faa18169763e9831400bf9d3cf14c068f6a4
+source diff SHA256: 2207cdb48b43d45c770a43869cbf7a757c3bf4344a0602fe88f3e7b100a83d1a
+accepted: new-support-refusal; 99 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -84,6 +84,7 @@ rows: clean; 24 files; codes=[]
 kiokun-site: clean; 25 files; codes=[]
 demo: clean; 66 files; codes=[]
 tables: semantic-or-syntax-refusal; 29 files; codes=['PW5106']
+owned: clean; 26 files; codes=[]
 rules (the program of rule_fixtures.rs): semantic-or-syntax-refusal; 81 files; codes=['PW0020', 'PW0021', 'PW0022', 'PW0023', 'PW0024', 'PW0025', 'PW0026', 'PW0408', 'PW0600', 'PW0609', 'PW5006', 'PW5010', 'PW5015', 'PW5016', 'PW5100', 'PW5101']
 counter: semantic-or-syntax-refusal; 50 files; codes=['PW5302']
 guestbook: clean; 53 files; codes=[]
@@ -189,7 +190,16 @@ examples/rejected/R-106-a-field-dropped-from-a-released-schema-with-no-migrate.p
 examples/rejected/R-107-a-field-renamed-from-a-released-schema-with-no-migrate.pw: clean; 50 files; codes=[]
 examples/rejected/R-108-a-value-the-device-keeps-sent-as-a-commands-argument.pw: semantic-or-syntax-refusal; 50 files; codes=['PW6801']
 examples/rejected/R-109-a-query-keyed-by-a-value-the-device-keeps.pw: semantic-or-syntax-refusal; 50 files; codes=['PW6802']
-examples/generality/affine_not_consumed_once/both-branches-release.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/rejected/R-110-a-table-owned-by-a-field-that-holds-no-principals-id.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0370']
+examples/rejected/R-111-an-owned-table-read-by-a-field-no-reader-holds.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0368']
+examples/rejected/R-112-a-private-field-another-reader-selects-rows-by.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0369']
+examples/rejected/R-113-a-predicate-whose-body-writes.pw: semantic-or-syntax-refusal; 50 files; codes=['PW6905']
+examples/rejected/R-114-a-reference-across-owners-rows.pw: semantic-or-syntax-refusal; 51 files; codes=['PW6924']
+examples/rejected/R-115-a-predicate-with-a-body-required-where-it-is-not-seen.pw: semantic-or-syntax-refusal; 51 files; codes=['PW6925']
+examples/rejected/R-116-a-query-requiring-a-predicate-in-a-shared-cache.pw: semantic-or-syntax-refusal; 51 files; codes=['PW6907']
+examples/rejected/R-117-a-query-requiring-a-predicate-called-by-another.pw: semantic-or-syntax-refusal; 52 files; codes=['PW6926']
+examples/rejected/R-118-a-table-a-readers-command-writes-that-says-nothing-of-who-may-write-it.pw: semantic-or-syntax-refusal; 50 files; codes=['PW6920']
+examples/generality/affine_not_consumed_once/both-branches-release.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -199,11 +209,11 @@ examples/generality/affine_not_consumed_once/both-branches-release.pw: new-suppo
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/affine_not_consumed_once/bound-to-underscore.pw: semantic-or-syntax-refusal; 94 files; codes=['PW2005']
-examples/generality/affine_not_consumed_once/caught-match.pw: semantic-or-syntax-refusal; 94 files; codes=['PW2005']
-examples/generality/affine_not_consumed_once/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW2005']
-examples/generality/affine_not_consumed_once/component-release-ends-nothing.pw: semantic-or-syntax-refusal; 94 files; codes=['PW2005']
-examples/generality/affine_not_consumed_once/derived-value-escapes.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/affine_not_consumed_once/bound-to-underscore.pw: semantic-or-syntax-refusal; 100 files; codes=['PW2005']
+examples/generality/affine_not_consumed_once/caught-match.pw: semantic-or-syntax-refusal; 100 files; codes=['PW2005']
+examples/generality/affine_not_consumed_once/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW2005']
+examples/generality/affine_not_consumed_once/component-release-ends-nothing.pw: semantic-or-syntax-refusal; 100 files; codes=['PW2005']
+examples/generality/affine_not_consumed_once/derived-value-escapes.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -213,8 +223,8 @@ examples/generality/affine_not_consumed_once/derived-value-escapes.pw: new-suppo
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/affine_not_consumed_once/dropped-by-a-statement.pw: semantic-or-syntax-refusal; 94 files; codes=['PW2005']
-examples/generality/affine_not_consumed_once/ended-where-made.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/affine_not_consumed_once/dropped-by-a-statement.pw: semantic-or-syntax-refusal; 100 files; codes=['PW2005']
+examples/generality/affine_not_consumed_once/ended-where-made.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -224,9 +234,9 @@ examples/generality/affine_not_consumed_once/ended-where-made.pw: new-support-re
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/affine_not_consumed_once/escapes.pw: semantic-or-syntax-refusal; 94 files; codes=['PW2005']
-examples/generality/affine_not_consumed_once/given-to-a-helper.pw: semantic-or-syntax-refusal; 94 files; codes=['PW2005']
-examples/generality/affine_not_consumed_once/held-behind-try-and-destroyed.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/affine_not_consumed_once/escapes.pw: semantic-or-syntax-refusal; 100 files; codes=['PW2005']
+examples/generality/affine_not_consumed_once/given-to-a-helper.pw: semantic-or-syntax-refusal; 100 files; codes=['PW2005']
+examples/generality/affine_not_consumed_once/held-behind-try-and-destroyed.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -236,9 +246,9 @@ examples/generality/affine_not_consumed_once/held-behind-try-and-destroyed.pw: n
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/affine_not_consumed_once/held-behind-try.pw: semantic-or-syntax-refusal; 94 files; codes=['PW2005']
-examples/generality/affine_not_consumed_once/live-across-try.pw: semantic-or-syntax-refusal; 94 files; codes=['PW2005']
-examples/generality/affine_not_consumed_once/moved-to-the-caller.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/affine_not_consumed_once/held-behind-try.pw: semantic-or-syntax-refusal; 100 files; codes=['PW2005']
+examples/generality/affine_not_consumed_once/live-across-try.pw: semantic-or-syntax-refusal; 100 files; codes=['PW2005']
+examples/generality/affine_not_consumed_once/moved-to-the-caller.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -248,9 +258,9 @@ examples/generality/affine_not_consumed_once/moved-to-the-caller.pw: new-support
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/affine_not_consumed_once/never-released.pw: semantic-or-syntax-refusal; 94 files; codes=['PW2005']
-examples/generality/affine_not_consumed_once/parameter-not-released.pw: semantic-or-syntax-refusal; 94 files; codes=['PW2005']
-examples/generality/affine_not_consumed_once/parameter-released.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/affine_not_consumed_once/never-released.pw: semantic-or-syntax-refusal; 100 files; codes=['PW2005']
+examples/generality/affine_not_consumed_once/parameter-not-released.pw: semantic-or-syntax-refusal; 100 files; codes=['PW2005']
+examples/generality/affine_not_consumed_once/parameter-released.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -260,8 +270,8 @@ examples/generality/affine_not_consumed_once/parameter-released.pw: new-support-
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/affine_not_consumed_once/release-ends-nothing.pw: semantic-or-syntax-refusal; 94 files; codes=['PW2005']
-examples/generality/affine_not_consumed_once/released-before-return.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/affine_not_consumed_once/release-ends-nothing.pw: semantic-or-syntax-refusal; 100 files; codes=['PW2005']
+examples/generality/affine_not_consumed_once/released-before-return.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -271,12 +281,12 @@ examples/generality/affine_not_consumed_once/released-before-return.pw: new-supp
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/affine_not_consumed_once/released-in-a-loop.pw: semantic-or-syntax-refusal; 94 files; codes=['PW2005']
-examples/generality/affine_not_consumed_once/released-twice.pw: semantic-or-syntax-refusal; 94 files; codes=['PW2005']
-examples/generality/affine_not_consumed_once/returned-by-a-function-value.pw: semantic-or-syntax-refusal; 94 files; codes=['PW2005']
-examples/generality/affine_not_consumed_once/unit-body-drops-its-value.pw: semantic-or-syntax-refusal; 94 files; codes=['PW2005']
-examples/generality/all_unbounded/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0364']
-examples/generality/all_unbounded/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/affine_not_consumed_once/released-in-a-loop.pw: semantic-or-syntax-refusal; 100 files; codes=['PW2005']
+examples/generality/affine_not_consumed_once/released-twice.pw: semantic-or-syntax-refusal; 100 files; codes=['PW2005']
+examples/generality/affine_not_consumed_once/returned-by-a-function-value.pw: semantic-or-syntax-refusal; 100 files; codes=['PW2005']
+examples/generality/affine_not_consumed_once/unit-body-drops-its-value.pw: semantic-or-syntax-refusal; 100 files; codes=['PW2005']
+examples/generality/all_unbounded/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0364']
+examples/generality/all_unbounded/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -286,8 +296,8 @@ examples/generality/all_unbounded/neighbour.pw: new-support-refusal; 94 files; c
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/aria_unknown/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5033']
-examples/generality/aria_unknown/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/aria_unknown/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5033']
+examples/generality/aria_unknown/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -297,9 +307,9 @@ examples/generality/aria_unknown/neighbour.pw: new-support-refusal; 94 files; co
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/cache_key_omits_partition/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5004']
-examples/generality/cache_key_omits_partition/key-variation.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5004']
-examples/generality/cache_key_omits_partition/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/cache_key_omits_partition/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5004']
+examples/generality/cache_key_omits_partition/key-variation.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5004']
+examples/generality/cache_key_omits_partition/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -309,8 +319,8 @@ examples/generality/cache_key_omits_partition/neighbour.pw: new-support-refusal;
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/canonical_address/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5051']
-examples/generality/canonical_address/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/canonical_address/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5051']
+examples/generality/canonical_address/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -320,8 +330,8 @@ examples/generality/canonical_address/neighbour.pw: new-support-refusal; 94 file
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/case_name_capitalized/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0625']
-examples/generality/case_name_capitalized/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/case_name_capitalized/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0625']
+examples/generality/case_name_capitalized/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -331,8 +341,8 @@ examples/generality/case_name_capitalized/neighbour.pw: new-support-refusal; 94 
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/control_without_label/blank-submit.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5014']
-examples/generality/control_without_label/buttons.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/control_without_label/blank-submit.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5014']
+examples/generality/control_without_label/buttons.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -342,10 +352,10 @@ examples/generality/control_without_label/buttons.pw: new-support-refusal; 94 fi
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/control_without_label/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5014']
-examples/generality/control_without_label/id-alone.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5014']
-examples/generality/control_without_label/label-for-another.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5014']
-examples/generality/control_without_label/labelledby-heading.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/control_without_label/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5014']
+examples/generality/control_without_label/id-alone.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5014']
+examples/generality/control_without_label/label-for-another.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5014']
+examples/generality/control_without_label/labelledby-heading.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -355,7 +365,7 @@ examples/generality/control_without_label/labelledby-heading.pw: new-support-ref
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/control_without_label/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/control_without_label/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -365,7 +375,7 @@ examples/generality/control_without_label/neighbour.pw: new-support-refusal; 94 
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/control_without_label/wrapped.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/control_without_label/wrapped.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -375,8 +385,8 @@ examples/generality/control_without_label/wrapped.pw: new-support-refusal; 94 fi
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/data_not_declared/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0362']
-examples/generality/data_not_declared/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/data_not_declared/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0362']
+examples/generality/data_not_declared/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -386,8 +396,8 @@ examples/generality/data_not_declared/neighbour.pw: new-support-refusal; 94 file
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/dead_internal_link/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5009']
-examples/generality/dead_internal_link/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/dead_internal_link/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5009']
+examples/generality/dead_internal_link/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -397,7 +407,7 @@ examples/generality/dead_internal_link/neighbour.pw: new-support-refusal; 94 fil
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/declared_placement_cannot_grant/browser-can-grant-device.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/declared_placement_cannot_grant/browser-can-grant-device.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -407,10 +417,10 @@ examples/generality/declared_placement_cannot_grant/browser-can-grant-device.pw:
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/declared_placement_cannot_grant/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5005']
-examples/generality/declared_placement_cannot_grant/direct.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5005']
-examples/generality/declared_placement_cannot_grant/helper-chain.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5005']
-examples/generality/declared_placement_cannot_grant/origin-can-grant-secret.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/declared_placement_cannot_grant/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5005']
+examples/generality/declared_placement_cannot_grant/direct.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5005']
+examples/generality/declared_placement_cannot_grant/helper-chain.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5005']
+examples/generality/declared_placement_cannot_grant/origin-can-grant-secret.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -421,8 +431,8 @@ examples/generality/declared_placement_cannot_grant/origin-can-grant-secret.pw: 
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
   [PW6601] `generality.place_origin_ok.Key`: did not lower: the backend does not lower a type parameter no use instantiates yet: a generic type's arguments are fixed by its fields or where it is used, and nothing here fixes one
-examples/generality/derived_not_pure/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0334']
-examples/generality/derived_not_pure/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/derived_not_pure/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0334']
+examples/generality/derived_not_pure/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -433,8 +443,8 @@ examples/generality/derived_not_pure/neighbour.pw: new-support-refusal; 94 files
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
   [PW6601] `generality.computed_value_pure.Clock~ui`'s values: part 0 reads `now`, which no query binds
-examples/generality/device_value_keys_a_query/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW6802']
-examples/generality/device_value_keys_a_query/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/device_value_keys_a_query/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW6802']
+examples/generality/device_value_keys_a_query/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -444,8 +454,8 @@ examples/generality/device_value_keys_a_query/neighbour.pw: new-support-refusal;
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/device_value_to_a_command/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW6801']
-examples/generality/device_value_to_a_command/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/device_value_to_a_command/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW6801']
+examples/generality/device_value_to_a_command/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -455,8 +465,8 @@ examples/generality/device_value_to_a_command/neighbour.pw: new-support-refusal;
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/duplicate_id/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5031']
-examples/generality/duplicate_id/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/duplicate_id/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5031']
+examples/generality/duplicate_id/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -466,8 +476,8 @@ examples/generality/duplicate_id/neighbour.pw: new-support-refusal; 94 files; co
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/false_independence/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0404']
-examples/generality/false_independence/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/false_independence/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0404']
+examples/generality/false_independence/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -478,11 +488,11 @@ examples/generality/false_independence/neighbour.pw: new-support-refusal; 94 fil
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
   [PW6601] a template part the renderer cannot render: generality.independence_own.Table~ui: `style:padding-inline`: `style:padding-inline` is a directive, and only `on:` directives are compiled
-examples/generality/forbidden_effect/build-page-clock.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0401']
-examples/generality/forbidden_effect/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0401']
-examples/generality/forbidden_effect/each-head-member.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0401']
-examples/generality/forbidden_effect/each-key-nested.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0401']
-examples/generality/forbidden_effect/each-pure-member.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/forbidden_effect/build-page-clock.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0401']
+examples/generality/forbidden_effect/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0401']
+examples/generality/forbidden_effect/each-head-member.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0401']
+examples/generality/forbidden_effect/each-key-nested.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0401']
+examples/generality/forbidden_effect/each-pure-member.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -492,9 +502,9 @@ examples/generality/forbidden_effect/each-pure-member.pw: new-support-refusal; 9
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/forbidden_effect/function-receiver.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0401']
-examples/generality/forbidden_effect/generic-result.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0401']
-examples/generality/forbidden_effect/handler-may-fetch.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/forbidden_effect/function-receiver.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0401']
+examples/generality/forbidden_effect/generic-result.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0401']
+examples/generality/forbidden_effect/handler-may-fetch.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -505,8 +515,8 @@ examples/generality/forbidden_effect/handler-may-fetch.pw: new-support-refusal; 
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
   [PW6601] a handler in `generality.forbid_handler_ok.ProductCard~ui`: `a `todo` body` does not encode: the declaration is a placeholder
-examples/generality/forbidden_effect/named-callback.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0401']
-examples/generality/forbidden_effect/page-may-read-clock.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/forbidden_effect/named-callback.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0401']
+examples/generality/forbidden_effect/page-may-read-clock.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -517,9 +527,9 @@ examples/generality/forbidden_effect/page-may-read-clock.pw: new-support-refusal
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
   [PW6601] `generality.forbid_clock_ok.Now~ui`'s values: part 0 reads `now`, which no query binds
-examples/generality/forbidden_effect/painter.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0401']
-examples/generality/form_control_value/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5036']
-examples/generality/form_control_value/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/forbidden_effect/painter.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0401']
+examples/generality/form_control_value/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5036']
+examples/generality/form_control_value/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -529,8 +539,8 @@ examples/generality/form_control_value/neighbour.pw: new-support-refusal; 94 fil
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/graph_edge_unresolved/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5100']
-examples/generality/graph_edge_unresolved/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/graph_edge_unresolved/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5100']
+examples/generality/graph_edge_unresolved/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -540,8 +550,8 @@ examples/generality/graph_edge_unresolved/neighbour.pw: new-support-refusal; 94 
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/handler_on_inert/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5013']
-examples/generality/handler_on_inert/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/handler_on_inert/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5013']
+examples/generality/handler_on_inert/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -552,8 +562,8 @@ examples/generality/handler_on_inert/neighbour.pw: new-support-refusal; 94 files
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
   [PW6601] a handler in `generality.inert_ok.AddButton~ui`: `a `todo` body` does not encode: the declaration is a placeholder
-examples/generality/handler_signature_mismatch/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0602']
-examples/generality/handler_signature_mismatch/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/handler_signature_mismatch/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0602']
+examples/generality/handler_signature_mismatch/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -564,8 +574,8 @@ examples/generality/handler_signature_mismatch/neighbour.pw: new-support-refusal
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
   [PW6601] a handler in `generality.handler_ok.Search~ui`: `a handler that calls no command and changes no signal` does not encode: a handler reaches the server through a command and changes the page through a signal, and this one does neither, so pressing it would change nothing
-examples/generality/image_without_alt/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5053']
-examples/generality/image_without_alt/image-button-alt.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/image_without_alt/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5053']
+examples/generality/image_without_alt/image-button-alt.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -575,8 +585,8 @@ examples/generality/image_without_alt/image-button-alt.pw: new-support-refusal; 
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/image_without_alt/image-button-empty-alt.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5053']
-examples/generality/image_without_alt/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/image_without_alt/image-button-empty-alt.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5053']
+examples/generality/image_without_alt/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -586,8 +596,8 @@ examples/generality/image_without_alt/neighbour.pw: new-support-refusal; 94 file
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/invalid_nesting/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5012']
-examples/generality/invalid_nesting/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/invalid_nesting/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5012']
+examples/generality/invalid_nesting/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -597,8 +607,8 @@ examples/generality/invalid_nesting/neighbour.pw: new-support-refusal; 94 files;
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/invoked_command_not_idempotent/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW6405']
-examples/generality/invoked_command_not_idempotent/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/invoked_command_not_idempotent/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW6405']
+examples/generality/invoked_command_not_idempotent/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -608,8 +618,8 @@ examples/generality/invoked_command_not_idempotent/neighbour.pw: new-support-ref
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/invoked_command_parameters/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW6402']
-examples/generality/invoked_command_parameters/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/invoked_command_parameters/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW6402']
+examples/generality/invoked_command_parameters/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -619,8 +629,8 @@ examples/generality/invoked_command_parameters/neighbour.pw: new-support-refusal
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/invoked_command_pressed/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW6404']
-examples/generality/invoked_command_pressed/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/invoked_command_pressed/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW6404']
+examples/generality/invoked_command_pressed/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -630,8 +640,8 @@ examples/generality/invoked_command_pressed/neighbour.pw: new-support-refusal; 9
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/invoked_command_requires/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW6401']
-examples/generality/invoked_command_requires/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/invoked_command_requires/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW6401']
+examples/generality/invoked_command_requires/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -641,8 +651,8 @@ examples/generality/invoked_command_requires/neighbour.pw: new-support-refusal; 
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/invoked_twice/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW6403']
-examples/generality/invoked_twice/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/invoked_twice/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW6403']
+examples/generality/invoked_twice/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -652,8 +662,8 @@ examples/generality/invoked_twice/neighbour.pw: new-support-refusal; 94 files; c
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/link_not_in_body/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5035']
-examples/generality/link_not_in_body/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/link_not_in_body/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5035']
+examples/generality/link_not_in_body/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -663,8 +673,8 @@ examples/generality/link_not_in_body/neighbour.pw: new-support-refusal; 94 files
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/load_from_another_origin/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5052']
-examples/generality/load_from_another_origin/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/load_from_another_origin/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5052']
+examples/generality/load_from_another_origin/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -674,8 +684,8 @@ examples/generality/load_from_another_origin/neighbour.pw: new-support-refusal; 
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/member_receiver_untyped/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0408']
-examples/generality/member_receiver_untyped/typed-neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/member_receiver_untyped/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0408']
+examples/generality/member_receiver_untyped/typed-neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -685,8 +695,8 @@ examples/generality/member_receiver_untyped/typed-neighbour.pw: new-support-refu
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/metadata_misplaced/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5034']
-examples/generality/metadata_misplaced/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/metadata_misplaced/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5034']
+examples/generality/metadata_misplaced/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -696,7 +706,7 @@ examples/generality/metadata_misplaced/neighbour.pw: new-support-refusal; 94 fil
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/migration_unstated/caught.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/migration_unstated/caught.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -706,7 +716,7 @@ examples/generality/migration_unstated/caught.pw: new-support-refusal; 94 files;
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/migration_unstated/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/migration_unstated/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -716,8 +726,8 @@ examples/generality/migration_unstated/neighbour.pw: new-support-refusal; 94 fil
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/no_feasible_placement/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5002']
-examples/generality/no_feasible_placement/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/no_feasible_placement/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5002']
+examples/generality/no_feasible_placement/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -727,8 +737,8 @@ examples/generality/no_feasible_placement/neighbour.pw: new-support-refusal; 94 
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/no_finite_value/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0624']
-examples/generality/no_finite_value/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/no_finite_value/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0624']
+examples/generality/no_finite_value/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -738,7 +748,7 @@ examples/generality/no_finite_value/neighbour.pw: new-support-refusal; 94 files;
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/non_exhaustive_match/all-arms.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/non_exhaustive_match/all-arms.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -748,10 +758,10 @@ examples/generality/non_exhaustive_match/all-arms.pw: new-support-refusal; 94 fi
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/non_exhaustive_match/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0305']
-examples/generality/non_exhaustive_match/missing-one.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0305']
-examples/generality/non_exhaustive_match/or-pattern.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0305']
-examples/generality/non_exhaustive_match/wildcard-is-enough.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/non_exhaustive_match/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0305']
+examples/generality/non_exhaustive_match/missing-one.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0305']
+examples/generality/non_exhaustive_match/or-pattern.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0305']
+examples/generality/non_exhaustive_match/wildcard-is-enough.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -761,8 +771,8 @@ examples/generality/non_exhaustive_match/wildcard-is-enough.pw: new-support-refu
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/observation_feedback_cycle/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0403']
-examples/generality/observation_feedback_cycle/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/observation_feedback_cycle/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0403']
+examples/generality/observation_feedback_cycle/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -772,7 +782,7 @@ examples/generality/observation_feedback_cycle/neighbour.pw: new-support-refusal
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/observation_feedback_cycle/property-choice.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/observation_feedback_cycle/property-choice.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -782,8 +792,8 @@ examples/generality/observation_feedback_cycle/property-choice.pw: new-support-r
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/operand_type/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0609']
-examples/generality/operand_type/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/operand_type/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0609']
+examples/generality/operand_type/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -793,8 +803,8 @@ examples/generality/operand_type/neighbour.pw: new-support-refusal; 94 files; co
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/optimistic_not_pure/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0330']
-examples/generality/optimistic_not_pure/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/optimistic_not_pure/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0330']
+examples/generality/optimistic_not_pure/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -804,10 +814,10 @@ examples/generality/optimistic_not_pure/neighbour.pw: new-support-refusal; 94 fi
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/option_used_as_value/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0600']
-examples/generality/option_used_as_value/nested.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0600']
-examples/generality/pattern_constructor/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0608']
-examples/generality/pattern_constructor/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/option_used_as_value/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0600']
+examples/generality/option_used_as_value/nested.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0600']
+examples/generality/owned_read_by_its_reader/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0368']
+examples/generality/owned_read_by_its_reader/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -817,8 +827,63 @@ examples/generality/pattern_constructor/neighbour.pw: new-support-refusal; 94 fi
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/private_in_resume_manifest/direct.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5007']
-examples/generality/private_in_resume_manifest/public-value.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/owner_names_a_principal/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0370']
+examples/generality/owner_names_a_principal/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
+  [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
+  [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
+  [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
+  [PW6601] `store.add_button.AddToCartButton~ui` depends on `cart.commands.add_to_cart`, whose body is a placeholder (`todo`)
+  [PW6601] a template part the renderer cannot render: store.responsive_menu.ResponsiveMenu~ui: `style:grid-template-columns`: `style:grid-template-columns` is a directive, and only `on:` directives are compiled
+  [PW6601] `store.overview.StoreOverview~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
+  [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
+  [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
+  [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
+examples/generality/pattern_constructor/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0608']
+examples/generality/pattern_constructor/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
+  [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
+  [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
+  [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
+  [PW6601] `store.add_button.AddToCartButton~ui` depends on `cart.commands.add_to_cart`, whose body is a placeholder (`todo`)
+  [PW6601] a template part the renderer cannot render: store.responsive_menu.ResponsiveMenu~ui: `style:grid-template-columns`: `style:grid-template-columns` is a directive, and only `on:` directives are compiled
+  [PW6601] `store.overview.StoreOverview~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
+  [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
+  [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
+  [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
+examples/generality/predicate_answered_by_its_body/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW6925']
+examples/generality/predicate_answered_by_its_body/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
+  [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
+  [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
+  [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
+  [PW6601] `store.add_button.AddToCartButton~ui` depends on `cart.commands.add_to_cart`, whose body is a placeholder (`todo`)
+  [PW6601] a template part the renderer cannot render: store.responsive_menu.ResponsiveMenu~ui: `style:grid-template-columns`: `style:grid-template-columns` is a directive, and only `on:` directives are compiled
+  [PW6601] `store.overview.StoreOverview~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
+  [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
+  [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
+  [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
+examples/generality/predicate_body_reads_only/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW6905']
+examples/generality/predicate_body_reads_only/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
+  [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
+  [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
+  [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
+  [PW6601] `store.add_button.AddToCartButton~ui` depends on `cart.commands.add_to_cart`, whose body is a placeholder (`todo`)
+  [PW6601] a template part the renderer cannot render: store.responsive_menu.ResponsiveMenu~ui: `style:grid-template-columns`: `style:grid-template-columns` is a directive, and only `on:` directives are compiled
+  [PW6601] `store.overview.StoreOverview~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
+  [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
+  [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
+  [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
+examples/generality/private_field_unseen/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0369']
+examples/generality/private_field_unseen/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
+  [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
+  [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
+  [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
+  [PW6601] `store.add_button.AddToCartButton~ui` depends on `cart.commands.add_to_cart`, whose body is a placeholder (`todo`)
+  [PW6601] a template part the renderer cannot render: store.responsive_menu.ResponsiveMenu~ui: `style:grid-template-columns`: `style:grid-template-columns` is a directive, and only `on:` directives are compiled
+  [PW6601] `store.overview.StoreOverview~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
+  [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
+  [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
+  [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
+examples/generality/private_in_resume_manifest/direct.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5007']
+examples/generality/private_in_resume_manifest/public-value.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -829,11 +894,11 @@ examples/generality/private_in_resume_manifest/public-value.pw: new-support-refu
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
   [PW6601] a handler in `generality.resume_public_ok.StoreCard~ui`: `a `todo` body` does not encode: the declaration is a placeholder
-examples/generality/private_in_resume_manifest/rebound.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5007']
-examples/generality/private_in_shared_cache/branch-join.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5001']
-examples/generality/private_in_shared_cache/direct.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5001']
-examples/generality/private_in_shared_cache/keyed-by-reader.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5001']
-examples/generality/private_in_shared_cache/private-cache-is-fine.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/private_in_resume_manifest/rebound.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5007']
+examples/generality/private_in_shared_cache/branch-join.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5001']
+examples/generality/private_in_shared_cache/direct.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5001']
+examples/generality/private_in_shared_cache/keyed-by-reader.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5001']
+examples/generality/private_in_shared_cache/private-cache-is-fine.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -843,7 +908,7 @@ examples/generality/private_in_shared_cache/private-cache-is-fine.pw: new-suppor
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/private_in_shared_cache/public-in-shared.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/private_in_shared_cache/public-in-shared.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -853,14 +918,14 @@ examples/generality/private_in_shared_cache/public-in-shared.pw: new-support-ref
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/private_in_shared_cache/rebound.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5001']
-examples/generality/private_in_shared_cache/relabelled.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5001', 'PW5106']
-examples/generality/private_in_shared_cache/via-helper.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5001']
-examples/generality/private_in_shared_materialization/branch.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5101']
-examples/generality/private_in_shared_materialization/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5101']
-examples/generality/private_in_shared_materialization/cross-module.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5101']
-examples/generality/private_in_shared_materialization/helper.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5101']
-examples/generality/private_in_shared_materialization/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/private_in_shared_cache/rebound.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5001']
+examples/generality/private_in_shared_cache/relabelled.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5001', 'PW5106']
+examples/generality/private_in_shared_cache/via-helper.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5001']
+examples/generality/private_in_shared_materialization/branch.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5101']
+examples/generality/private_in_shared_materialization/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5101']
+examples/generality/private_in_shared_materialization/cross-module.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5101']
+examples/generality/private_in_shared_materialization/helper.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5101']
+examples/generality/private_in_shared_materialization/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -870,8 +935,8 @@ examples/generality/private_in_shared_materialization/neighbour.pw: new-support-
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/private_in_shared_materialization/private-cache.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5101']
-examples/generality/private_in_shared_materialization/public-dependency.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/private_in_shared_materialization/private-cache.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5101']
+examples/generality/private_in_shared_materialization/public-dependency.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -881,11 +946,11 @@ examples/generality/private_in_shared_materialization/public-dependency.pw: new-
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/private_in_shared_materialization/user-scoped.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5101']
-examples/generality/read_per_element/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0405']
-examples/generality/read_per_element/cross-module.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0405']
-examples/generality/read_per_element/helper.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0405']
-examples/generality/read_per_element/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/private_in_shared_materialization/user-scoped.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5101']
+examples/generality/read_per_element/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0405']
+examples/generality/read_per_element/cross-module.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0405']
+examples/generality/read_per_element/helper.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0405']
+examples/generality/read_per_element/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -895,9 +960,9 @@ examples/generality/read_per_element/neighbour.pw: new-support-refusal; 94 files
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/reference_names_nothing/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5032']
-examples/generality/reference_names_nothing/labelledby-nothing.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5032']
-examples/generality/reference_names_nothing/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/reference_names_nothing/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5032']
+examples/generality/reference_names_nothing/labelledby-nothing.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5032']
+examples/generality/reference_names_nothing/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -907,7 +972,8 @@ examples/generality/reference_names_nothing/neighbour.pw: new-support-refusal; 9
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/refers_across_sources/caught.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/reference_within_one_owner/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW6924']
+examples/generality/reference_within_one_owner/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -917,7 +983,7 @@ examples/generality/refers_across_sources/caught.pw: new-support-refusal; 94 fil
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/refers_across_sources/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/refers_across_sources/caught.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -927,8 +993,40 @@ examples/generality/refers_across_sources/neighbour.pw: new-support-refusal; 94 
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/resume_artifact_contract_mismatch/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5017']
-examples/generality/resume_artifact_contract_mismatch/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/refers_across_sources/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
+  [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
+  [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
+  [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
+  [PW6601] `store.add_button.AddToCartButton~ui` depends on `cart.commands.add_to_cart`, whose body is a placeholder (`todo`)
+  [PW6601] a template part the renderer cannot render: store.responsive_menu.ResponsiveMenu~ui: `style:grid-template-columns`: `style:grid-template-columns` is a directive, and only `on:` directives are compiled
+  [PW6601] `store.overview.StoreOverview~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
+  [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
+  [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
+  [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
+examples/generality/required_query_bound_by_a_page/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW6926']
+examples/generality/required_query_bound_by_a_page/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
+  [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
+  [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
+  [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
+  [PW6601] `store.add_button.AddToCartButton~ui` depends on `cart.commands.add_to_cart`, whose body is a placeholder (`todo`)
+  [PW6601] a template part the renderer cannot render: store.responsive_menu.ResponsiveMenu~ui: `style:grid-template-columns`: `style:grid-template-columns` is a directive, and only `on:` directives are compiled
+  [PW6601] `store.overview.StoreOverview~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
+  [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
+  [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
+  [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
+examples/generality/required_query_unshared/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW6907']
+examples/generality/required_query_unshared/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
+  [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
+  [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
+  [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
+  [PW6601] `store.add_button.AddToCartButton~ui` depends on `cart.commands.add_to_cart`, whose body is a placeholder (`todo`)
+  [PW6601] a template part the renderer cannot render: store.responsive_menu.ResponsiveMenu~ui: `style:grid-template-columns`: `style:grid-template-columns` is a directive, and only `on:` directives are compiled
+  [PW6601] `store.overview.StoreOverview~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
+  [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
+  [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
+  [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
+examples/generality/resume_artifact_contract_mismatch/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5017']
+examples/generality/resume_artifact_contract_mismatch/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -939,8 +1037,8 @@ examples/generality/resume_artifact_contract_mismatch/neighbour.pw: new-support-
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
   [PW6601] a handler in `generality.artifact_agrees.Panel~ui`: `a `todo` body` does not encode: the declaration is a placeholder
-examples/generality/resume_capture_schema_unnameable/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5016']
-examples/generality/resume_capture_schema_unnameable/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/resume_capture_schema_unnameable/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5016']
+examples/generality/resume_capture_schema_unnameable/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -951,8 +1049,8 @@ examples/generality/resume_capture_schema_unnameable/neighbour.pw: new-support-r
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
   [PW6601] a handler in `generality.schema_nameable.Panel~ui`: `a `todo` body` does not encode: the declaration is a placeholder
-examples/generality/retry_not_idempotent/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0312']
-examples/generality/retry_not_idempotent/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/retry_not_idempotent/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0312']
+examples/generality/retry_not_idempotent/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -962,8 +1060,8 @@ examples/generality/retry_not_idempotent/neighbour.pw: new-support-refusal; 94 f
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/retry_unbounded/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0313']
-examples/generality/retry_unbounded/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/retry_unbounded/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0313']
+examples/generality/retry_unbounded/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -973,8 +1071,8 @@ examples/generality/retry_unbounded/neighbour.pw: new-support-refusal; 94 files;
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/schedule_names_no_clocked_command/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW6501']
-examples/generality/schedule_names_no_clocked_command/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/schedule_names_no_clocked_command/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW6501']
+examples/generality/schedule_names_no_clocked_command/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -984,8 +1082,8 @@ examples/generality/schedule_names_no_clocked_command/neighbour.pw: new-support-
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/schedule_time/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW6503']
-examples/generality/schedule_time/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/schedule_time/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW6503']
+examples/generality/schedule_time/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -995,8 +1093,8 @@ examples/generality/schedule_time/neighbour.pw: new-support-refusal; 94 files; c
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/scheduled_outside_a_command/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW6502']
-examples/generality/scheduled_outside_a_command/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/scheduled_outside_a_command/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW6502']
+examples/generality/scheduled_outside_a_command/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -1006,7 +1104,7 @@ examples/generality/scheduled_outside_a_command/neighbour.pw: new-support-refusa
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/scope_outlives_owner/component-scope.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/scope_outlives_owner/component-scope.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -1016,13 +1114,13 @@ examples/generality/scope_outlives_owner/component-scope.pw: new-support-refusal
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/scope_outlives_owner/direct.pw: semantic-or-syntax-refusal; 94 files; codes=['PW2004']
-examples/generality/scope_outlives_owner/nested.pw: semantic-or-syntax-refusal; 94 files; codes=['PW2004']
-examples/generality/scope_outlives_owner/session-in-component.pw: semantic-or-syntax-refusal; 94 files; codes=['PW2004']
-examples/generality/secret_to_browser/branch-join.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5003']
-examples/generality/secret_to_browser/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5003']
-examples/generality/secret_to_browser/each-computed-list.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5003']
-examples/generality/secret_to_browser/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/scope_outlives_owner/direct.pw: semantic-or-syntax-refusal; 100 files; codes=['PW2004']
+examples/generality/scope_outlives_owner/nested.pw: semantic-or-syntax-refusal; 100 files; codes=['PW2004']
+examples/generality/scope_outlives_owner/session-in-component.pw: semantic-or-syntax-refusal; 100 files; codes=['PW2004']
+examples/generality/secret_to_browser/branch-join.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5003']
+examples/generality/secret_to_browser/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5003']
+examples/generality/secret_to_browser/each-computed-list.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5003']
+examples/generality/secret_to_browser/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -1033,10 +1131,10 @@ examples/generality/secret_to_browser/neighbour.pw: new-support-refusal; 94 file
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
   [PW6601] `generality.secret_held.Charge`: did not lower: the backend does not lower a type parameter no use instantiates yet: a generic type's arguments are fixed by its fields or where it is used, and nothing here fixes one
-examples/generality/set_pair_shape/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0407']
-examples/generality/set_pair_shape/cross-module.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0407']
-examples/generality/set_pair_shape/misnamed-key.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0407']
-examples/generality/set_pair_shape/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/set_pair_shape/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0407']
+examples/generality/set_pair_shape/cross-module.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0407']
+examples/generality/set_pair_shape/misnamed-key.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0407']
+examples/generality/set_pair_shape/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -1046,8 +1144,8 @@ examples/generality/set_pair_shape/neighbour.pw: new-support-refusal; 94 files; 
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/signal_key_stale_work/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5309']
-examples/generality/signal_key_stale_work/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/signal_key_stale_work/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5309']
+examples/generality/signal_key_stale_work/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -1057,8 +1155,8 @@ examples/generality/signal_key_stale_work/neighbour.pw: new-support-refusal; 94 
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/table_malformed/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0361']
-examples/generality/table_malformed/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/table_malformed/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0361']
+examples/generality/table_malformed/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -1068,8 +1166,8 @@ examples/generality/table_malformed/neighbour.pw: new-support-refusal; 94 files;
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/task_detached/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW2002']
-examples/generality/task_detached/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/task_detached/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW2002']
+examples/generality/task_detached/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -1080,9 +1178,9 @@ examples/generality/task_detached/neighbour.pw: new-support-refusal; 94 files; c
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
   [PW6601] a handler in `generality.task_scoped.ProductCard~ui`: blocked upstream: `task.spawn` names no declaration this program contains
-examples/generality/task_detached/nested.pw: semantic-or-syntax-refusal; 94 files; codes=['PW2002']
-examples/generality/title_misplaced/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5030']
-examples/generality/title_misplaced/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/task_detached/nested.pw: semantic-or-syntax-refusal; 100 files; codes=['PW2002']
+examples/generality/title_misplaced/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5030']
+examples/generality/title_misplaced/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -1092,8 +1190,8 @@ examples/generality/title_misplaced/neighbour.pw: new-support-refusal; 94 files;
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/title_missing/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5029']
-examples/generality/title_missing/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/title_missing/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5029']
+examples/generality/title_missing/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -1103,9 +1201,9 @@ examples/generality/title_missing/neighbour.pw: new-support-refusal; 94 files; c
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/unchecked_external_cast/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0601']
-examples/generality/unchecked_external_cast/helper-return.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0601']
-examples/generality/unchecked_external_cast/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/unchecked_external_cast/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0601']
+examples/generality/unchecked_external_cast/helper-return.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0601']
+examples/generality/unchecked_external_cast/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -1115,8 +1213,8 @@ examples/generality/unchecked_external_cast/neighbour.pw: new-support-refusal; 9
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/undeclared_effect/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0400']
-examples/generality/undeclared_effect/complete-row.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/undeclared_effect/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0400']
+examples/generality/undeclared_effect/complete-row.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -1126,8 +1224,8 @@ examples/generality/undeclared_effect/complete-row.pw: new-support-refusal; 94 f
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/undeclared_effect/enclosing-generic.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0400']
-examples/generality/undeclared_effect/family-covers-member.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/undeclared_effect/enclosing-generic.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0400']
+examples/generality/undeclared_effect/family-covers-member.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -1137,8 +1235,8 @@ examples/generality/undeclared_effect/family-covers-member.pw: new-support-refus
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/undeclared_effect/generic-result.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0400']
-examples/generality/undeclared_effect/open-row.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/undeclared_effect/generic-result.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0400']
+examples/generality/undeclared_effect/open-row.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -1148,11 +1246,11 @@ examples/generality/undeclared_effect/open-row.pw: new-support-refusal; 94 files
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/undeclared_effect/partial-row.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0400']
-examples/generality/undeclared_effect/via-callback.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0400']
-examples/generality/unkeyed_list/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5011']
-examples/generality/unknown_member/rigid-parameter.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0610']
-examples/generality/unknown_member/whole-parameter.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/undeclared_effect/partial-row.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0400']
+examples/generality/undeclared_effect/via-callback.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0400']
+examples/generality/unkeyed_list/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5011']
+examples/generality/unknown_member/rigid-parameter.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0610']
+examples/generality/unknown_member/whole-parameter.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -1162,9 +1260,9 @@ examples/generality/unknown_member/whole-parameter.pw: new-support-refusal; 94 f
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/unsafe_audit_incomplete/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5010']
-examples/generality/unserializable_capture/direct.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5008']
-examples/generality/unserializable_capture/identifier-capture.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/unsafe_audit_incomplete/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5010']
+examples/generality/unserializable_capture/direct.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5008']
+examples/generality/unserializable_capture/identifier-capture.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -1175,16 +1273,16 @@ examples/generality/unserializable_capture/identifier-capture.pw: new-support-re
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
   [PW6601] a handler in `generality.resume_ok.Panel~ui`: `a `todo` body` does not encode: the declaration is a placeholder
-examples/generality/unserializable_capture/via-field.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5008']
-examples/generality/value_exceeds_sink_level/branch-join.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5006']
-examples/generality/value_exceeds_sink_level/cross-module.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5006']
-examples/generality/value_exceeds_sink_level/direct.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5006']
-examples/generality/value_exceeds_sink_level/helper-return.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5006']
-examples/generality/value_exceeds_sink_level/interpolation-hole.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5006']
-examples/generality/value_exceeds_sink_level/match-binding.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5006']
-examples/generality/value_exceeds_sink_level/rebound.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5006']
-examples/generality/value_exceeds_sink_level/record-field.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5006']
-examples/generality/value_exceeds_sink_level/valid-public-neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/unserializable_capture/via-field.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5008']
+examples/generality/value_exceeds_sink_level/branch-join.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5006']
+examples/generality/value_exceeds_sink_level/cross-module.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5006']
+examples/generality/value_exceeds_sink_level/direct.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5006']
+examples/generality/value_exceeds_sink_level/helper-return.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5006']
+examples/generality/value_exceeds_sink_level/interpolation-hole.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5006']
+examples/generality/value_exceeds_sink_level/match-binding.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5006']
+examples/generality/value_exceeds_sink_level/rebound.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5006']
+examples/generality/value_exceeds_sink_level/record-field.pw: semantic-or-syntax-refusal; 100 files; codes=['PW5006']
+examples/generality/value_exceeds_sink_level/valid-public-neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -1194,8 +1292,8 @@ examples/generality/value_exceeds_sink_level/valid-public-neighbour.pw: new-supp
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/who_may_run/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0367']
-examples/generality/who_may_run/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/who_may_run/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0367']
+examples/generality/who_may_run/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -1205,8 +1303,19 @@ examples/generality/who_may_run/neighbour.pw: new-support-refusal; 94 files; cod
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/wrong_frame_phase/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0402']
-examples/generality/wrong_frame_phase/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/who_may_write/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW6920']
+examples/generality/who_may_write/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
+  [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
+  [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
+  [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
+  [PW6601] `store.add_button.AddToCartButton~ui` depends on `cart.commands.add_to_cart`, whose body is a placeholder (`todo`)
+  [PW6601] a template part the renderer cannot render: store.responsive_menu.ResponsiveMenu~ui: `style:grid-template-columns`: `style:grid-template-columns` is a directive, and only `on:` directives are compiled
+  [PW6601] `store.overview.StoreOverview~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
+  [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
+  [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
+  [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
+examples/generality/wrong_frame_phase/caught.pw: semantic-or-syntax-refusal; 100 files; codes=['PW0402']
+examples/generality/wrong_frame_phase/neighbour.pw: new-support-refusal; 100 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -1347,12 +1456,12 @@ examples/history/C9/generality/dead_internal_link/caught.pw: semantic-or-syntax-
 examples/history/C9/generality/dead_internal_link/neighbour.pw: semantic-or-syntax-refusal; 50 files; codes=['PW5029']
 examples/history/C9/rules/routes/link-to-declared-route.pw: semantic-or-syntax-refusal; 50 files; codes=['PW5029']
 historical benchmark baseline: clean; 43 files; codes=[]
-program census: 467 program assemblies; 647 of 647 tracked source files covered; {'clean': 17, 'semantic-or-syntax-refusal': 361, 'new-support-refusal': 89}
+program census: 495 program assemblies; 684 of 684 tracked source files covered; {'clean': 18, 'semantic-or-syntax-refusal': 379, 'new-support-refusal': 98}
 
 ............cleanup also failed: OSError('cleanup')
 ...
 ----------------------------------------------------------------------
-Ran 15 tests in 0.356s
+Ran 15 tests in 0.375s
 
 OK
 
@@ -1412,66 +1521,65 @@ a part computed from two signals is refused again: KILLED (1 of 99 tests fail)
 
    Compiling pw-core v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-core)
    Compiling pw-cli v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-cli)
-    Finished `dev` profile [unoptimized] target(s) in 17.51s
-Thu Nov 12 23:29:34 UTC 2026
-1.57 1.58 1.66 1/262 94768
+    Finished `dev` profile [unoptimized] target(s) in 14.07s
+Fri Nov 13 04:02:01 UTC 2026
+1.60 1.54 1.58 1/257 67886
 program sources SHA256:
-ba12572060cda7184606186d82adb3e4137dc193d427031bb52bd70a1d88a4ed  -
-ce951028243efa0eaad527e1fe8f72aa010c98ac8bfc9e40be60773c8f399dac  target/debug/pw
+74512d4083827cce50684168e337010d707d06787c61a4cce2a5d79a65d96758  -
+e6f22fd0b4f63b963ebf22992760472224b3846ded18be1f07d948bc2a608ad8  target/debug/pw
 CLI sample 1
 pw check: 57 file(s), no diagnostics
-check CLI wall=3.45 user=3.43 sys=0.01 cpu=99%
+check CLI wall=2.51 user=2.49 sys=0.01 cpu=99%
 CLI sample 2
 pw check: 57 file(s), no diagnostics
-check CLI wall=3.52 user=3.50 sys=0.02 cpu=100%
+check CLI wall=2.53 user=2.51 sys=0.01 cpu=99%
 CLI sample 3
 pw check: 57 file(s), no diagnostics
-check CLI wall=3.53 user=3.51 sys=0.01 cpu=99%
-1.64 1.59 1.67 1/260 94778
+check CLI wall=2.52 user=2.49 sys=0.02 cpu=99%
+1.56 1.53 1.57 2/256 67896
    Compiling pw-core v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-core)
-    Finished `test` profile [unoptimized] target(s) in 17.47s
+    Finished `test` profile [unoptimized] target(s) in 14.22s
      Running tests/check_latency.rs (target/debug/deps/check_latency-746e556c8fe37fd3)
 
 running 11 tests
-test a_checker_made_slow_is_not_let_through_by_the_waiting ... ok
-test a_clock_that_reads_nothing_is_refused_by_the_control ... ok
 test a_loaded_machine_is_waited_on_while_it_may_quiet_down ... ok
+test a_clock_that_reads_nothing_is_refused_by_the_control ... ok
 test a_quiet_machine_is_asked_for_seven_checks_and_no_more ... ok
-test the_ceiling_bounds_the_fastest_check_not_the_median ... ok
-test the_ceiling_is_800_ms_a_thousand_lines_and_a_check_is_judged_by_it ... ok
+test a_checker_made_slow_is_not_let_through_by_the_waiting ... ok
 test producing_diagnostics_is_judged_at_the_fastest_of_both ... ok
+test the_ceiling_bounds_the_fastest_check_not_the_median ... ok
 test the_fastest_is_of_the_threads_cpu_time_not_of_the_wall_clock ... ok
+test the_ceiling_is_800_ms_a_thousand_lines_and_a_check_is_judged_by_it ... ok
 test the_waiting_ends_with_the_window_or_the_most_checks ... ok
-check-latency reject 1690.14 ms   (cpu 1689.89 ms; clean 3139.28 ms, cpu 3139.11 ms; the fastest of 7 and 7 checks, which the ratio bounds: cpu 1675.70 ms, clean cpu 3124.96 ms)
+check-latency reject 1209.98 ms   (cpu 1209.90 ms; clean 2291.41 ms, cpu 2291.30 ms; the fastest of 7 and 7 checks, which the ratio bounds: cpu 1198.09 ms, clean cpu 2274.37 ms)
 test a_rejected_program_is_not_measurably_slower_than_a_clean_one ... ok
-test the_whole_program_and_one_edit_are_both_measured has been running for over 60 seconds
-check-latency cold   3137.10 ms   (cpu 3136.90 ms; 6643 lines, cpu 472.21 ms a thousand lines; the fastest of 7 checks, which the ceiling bounds: cpu 3129.78 ms, 471.14 ms a thousand lines)
-check-latency edit   3145.03 ms   (cpu 3144.87 ms; 57 files, no query system: an edit costs a full check)
+check-latency cold   2291.51 ms   (cpu 2291.29 ms; 6654 lines, cpu 344.35 ms a thousand lines; the fastest of 7 checks, which the ceiling bounds: cpu 2273.41 ms, 341.66 ms a thousand lines)
+check-latency edit   2280.68 ms   (cpu 2280.52 ms; 57 files, no query system: an edit costs a full check)
 test the_whole_program_and_one_edit_are_both_measured ... ok
 
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 77.85s
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 56.54s
 
 	Command being timed: "cargo test --locked -p pw-core --test check_latency -- --nocapture"
-	User time (seconds): 104.62
-	System time (seconds): 1.88
-	Percent of CPU this job got: 111%
-	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:35.36
+	User time (seconds): 76.92
+	System time (seconds): 1.61
+	Percent of CPU this job got: 110%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:10.80
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 1362176
+	Maximum resident set size (kbytes): 1398364
 	Average resident set size (kbytes): 0
-	Major (requiring I/O) page faults: 166
-	Minor (reclaiming a frame) page faults: 585834
-	Voluntary context switches: 1393
-	Involuntary context switches: 2277
+	Major (requiring I/O) page faults: 157
+	Minor (reclaiming a frame) page faults: 586672
+	Voluntary context switches: 1278
+	Involuntary context switches: 1738
 	Swaps: 0
 	File system inputs: 0
-	File system outputs: 439840
+	File system outputs: 444640
 	Socket messages sent: 0
 	Socket messages received: 0
 	Signals delivered: 0
 	Page size (bytes): 4096
 	Exit status: 0
-1.22 1.48 1.62 1/262 94852
+1.42 1.53 1.57 1/258 67971

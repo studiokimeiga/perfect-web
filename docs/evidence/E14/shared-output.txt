@@ -1,8 +1,8 @@
 ADR-0184 - what a cache may keep holds nothing of a session's
 
 produced by: just e14-shared-output
-commit: 120e64874756e73da22b9f55f10ad0e567536627
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43302971067 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: a3cab774e9569baddae69bd0d294487eaa3b697e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -11,20 +11,21 @@ playwright: Version 1.58.0
 
 test tests::a_session_s_response_is_kept_by_no_cache_and_a_build_s_names_no_session ... ok
 test tests::what_a_shared_cache_keeps_holds_nothing_a_session_put_in_it ... ok
-test result: ok. 1039 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 628.94s
+test result: ok. 1086 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 605.01s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
 == the page, in three engines (e2e/shared-output.spec.mjs)
 
-  ✓  1 [chromium] › e2e/shared-output.spec.mjs:41:1 › a shared build asset revalidates without persisting or disclosing a session cookie (133ms)
+  ✓  1 [chromium] › e2e/shared-output.spec.mjs:41:1 › a shared build asset revalidates without persisting or disclosing a session cookie (124ms)
   ✓  2 [chromium] › e2e/shared-output.spec.mjs:15:1 › the store's page is kept by no cache, and a build's file names no session (1.3s)
-  ✓  4 [firefox] › e2e/shared-output.spec.mjs:15:1 › the store's page is kept by no cache, and a build's file names no session (481ms)
-  ✓  5 [firefox] › e2e/shared-output.spec.mjs:41:1 › a shared build asset revalidates without persisting or disclosing a session cookie (63ms)
+  ✓  4 [firefox] › e2e/shared-output.spec.mjs:15:1 › the store's page is kept by no cache, and a build's file names no session (480ms)
+  ✓  5 [firefox] › e2e/shared-output.spec.mjs:41:1 › a shared build asset revalidates without persisting or disclosing a session cookie (61ms)
   ✓  3 [chromium] › e2e/shared-output.spec.mjs:77:1 › back to the store, its cart is as it is now, not as it was left (3.7s)
-  ✓  7 [webkit] › e2e/shared-output.spec.mjs:15:1 › the store's page is kept by no cache, and a build's file names no session (521ms)
-  ✓  8 [webkit] › e2e/shared-output.spec.mjs:41:1 › a shared build asset revalidates without persisting or disclosing a session cookie (105ms)
+  ✓  7 [webkit] › e2e/shared-output.spec.mjs:15:1 › the store's page is kept by no cache, and a build's file names no session (514ms)
+  ✓  8 [webkit] › e2e/shared-output.spec.mjs:41:1 › a shared build asset revalidates without persisting or disclosing a session cookie (83ms)
   ✓  6 [firefox] › e2e/shared-output.spec.mjs:77:1 › back to the store, its cart is as it is now, not as it was left (4.1s)
-  ✓  9 [webkit] › e2e/shared-output.spec.mjs:77:1 › back to the store, its cart is as it is now, not as it was left (2.7s)
-  9 passed (18.6s)
+  ✓  9 [webkit] › e2e/shared-output.spec.mjs:77:1 › back to the store, its cart is as it is now, not as it was left (2.9s)
+  9 passed (18.5s)
 
 == mutation controls (scripts/shared_output_mutations.py)
 

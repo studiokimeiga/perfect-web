@@ -30,6 +30,7 @@ fn keyed(key: &str) -> Template {
                 collection: "items".into(),
                 binding: "item".into(),
                 key: Some(key.into()),
+                row_anchor: Default::default(),
                 body: vec![Chunk::Static("<li>x</li>".into())],
             }),
             Chunk::Static("</ul>".into()),
