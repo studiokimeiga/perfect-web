@@ -1262,3 +1262,63 @@ scheduled (38 of 38); at `dbbd8e65`, platform 0004's two controls
 durable-tables (57 of 57), store-accounts (37 of 37) and second-host at
 four test threads (50 of 50). The full verify at the branch's head is the
 record.
+
+## Landing (L4, 2026-11-16)
+
+L4 merges the integration branch's seventeen commits after `2e2ef45b` (to
+`ff57edc7`: 67 files of code and 1,370 receipts) onto L3 (`f375b92d`) in
+`7b8fb7cc`, branch `wip/l4-bounded`: the fifth prerequisite above, counts
+over declared selectors, ordered selector windows, counts after an order
+mark and fixed relation windows, through the compiler, the host and both
+adapters. Six files conflicted: `tables.rs` four times (L4's count, window
+and relation readers beside L2's `public` tables and the PW0370 numbering,
+which master kept; the table manifest's `public` and `windows` both kept),
+`head-only-allow.txt` (PW0370 again, and L4's own entry), the row-ownership
+script's test list (both sides', nineteen commands, none twice), and the
+docs (the integration branch's 454 lines added to the unnumbered decision
+moved here, before L3's landing). Nothing else needed a hand: at the merge
+the workspace's 4,274 tests pass on PostgreSQL 18.6 (26 ignored), and every
+mutation anchor matches once (6,104). The full verify 43809526375 at
+`7b8fb7cc` passed every job; its summary found two of 357 recipes failing,
+each repaired at the branch's head and run again there:
+`e14-row-ownership` (141 of 142, one kill INVALID: its failing test
+panicked at an `unwrap` of `table_ranges.rs`, which the strict validator
+does not read as an assertion; the test now fails only through assertions)
+and `e14-check-is-build` (the program census covered no assembly of
+`examples/relations/`, L4's relation fixture; it is one now). The other 355
+recipes' evidence (646 files, `bddbcf54`) is the merge's record.
+
+**Reviewed** (2026-11-16, a reviewer given the diff and this ADR's
+sections, not the account of the merge): no high or medium finding in
+authority, privacy, adapter parity or bounds. Each new read goes through
+the existing gate, owner check, answer check and shared-row projection;
+strings order byte by byte on both adapters (PostgreSQL's `bytea`); every
+limit applies inside the database. It found two low ones, each repaired
+with a test that failed before and a mutant:
+
+1. **An owned `public table`'s relation was refused by the host** through
+   an index its owner does not lead, where the compiler reads a public
+   table by any key or index (L2) and made the read: the build failed at
+   startup instead of answering. The host admits a public source's every
+   path (`window_target`), as it admits an unowned one's; a public table
+   keeps no private field (the compiler refuses one), so no match field is
+   revealed. `a_public_owned_membership_is_read_through_any_index_by_anyone`,
+   on both adapters.
+2. **PostgreSQL refused malformed direct range and relation requests in
+   other words than the memory adapter's**, which `shape.rs` promises word
+   for word: its range parsing had messages of its own, and a relation's
+   refusal named "relation window" where the memory adapter names the
+   import. It reads a range request as the memory adapter does
+   (`named_selections`, then each value held to its field's type and bound
+   in the canonical order, so that a request failing two ways is refused
+   for the same one) and names the import. The parity workload now reads
+   twelve malformed range requests after every command, and
+   `a_malformed_relation_request_is_refused_alike_on_both_adapters`
+   compares five. Compiled calls were never affected: the host checks
+   their arguments before either adapter sees them.
+
+**Left for the apps' port (L7)**, by design: the memory adapter's relation
+read scans the target for each selector it is given, which this decision
+allows, and no server-side cap bounds a window's or a relation's limit. The
+primitive is bounded by its argument; an app that passes a browser's limit
+through (`examples/relations/app.pw`'s `Following`) clamps it when ported.

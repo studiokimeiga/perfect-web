@@ -58,7 +58,13 @@ integration branch's 454 lines added to the unnumbered decision moved into
 ADR-0440, before L3's landing, and NEXT and STATUS kept, an entry each. What
 git did not show: nothing the tests found; at the merge the workspace's
 4,274 tests pass on PostgreSQL 18.6 (26 ignored), and every mutation anchor
-matches once (6,104). The full verify is the record.
+matches once (6,104). The full verify 43809526375 is the record of 355 of
+its 357 recipes; the other two failed and are repaired (a test that panicked
+at an `unwrap`, a census that missed the relation fixture). An independent
+review found no way past the new reads' authority and two low gaps,
+repaired, each with a test and a mutant: an owned `public table`'s relation
+the host refused, and PostgreSQL's words for malformed direct requests
+(ADR-0440, Landing (L4)).
 
 **L3, the platform's prerequisites, 2026-11-13:** on train-34 (which holds
 L1, L2 and train-33), the third train of the declared data layer's landing

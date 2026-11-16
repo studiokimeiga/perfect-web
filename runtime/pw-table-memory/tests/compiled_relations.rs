@@ -569,6 +569,54 @@ fn a_relation_predicate_sees_both_staged_tables_and_pins_membership_with_the_bod
     );
 }
 
+/// **An owned `public table`'s relation is read by anyone, through an index
+/// its owner does not lead** (the L4 review of 2026-11-16): the compiler
+/// reads a public table by any key or index (L2), and until the review the
+/// host refused the manifest it made ("has no declared source
+/// selector/match lookup"). Lane 7 holds two owners' picks.
+#[test]
+fn a_public_owned_membership_is_read_through_any_index_by_anyone() {
+    let program = relation_public_owned_program();
+    let tables = MemoryTables::new(program.tables.clone()).assert_ok("memory");
+    tables
+        .transaction(|tx| {
+            for row in relation_roots() {
+                tx.write("pw:tables/roots#insert", &[row])?;
+            }
+            for row in relation_public_owned_picks() {
+                tx.write("pw:tables/picks#insert", &[row])?;
+            }
+            Ok(())
+        })
+        .assert_ok("public owned picks");
+    assert_eq!(
+        query(
+            &program,
+            &tables,
+            "LaneLast",
+            &Caller::Nobody,
+            &[Val::S64(7), Val::S64(2)]
+        ),
+        Ok(vec![Val::List(vec![
+            relation_root_value(4),
+            relation_root_value(3)
+        ])])
+    );
+    assert_eq!(
+        query(
+            &program,
+            &tables,
+            "LaneLast",
+            &Caller::Nobody,
+            &[Val::S64(8), Val::S64(2)]
+        ),
+        Ok(vec![Val::List(vec![
+            relation_root_value(3),
+            relation_root_value(1)
+        ])])
+    );
+}
+
 #[test]
 fn public_relations_use_scalar_bool_group_keys_and_allow_anonymous_callers() {
     let program = relation_public_program();

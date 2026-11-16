@@ -265,6 +265,11 @@ MUTANTS = [
     ('relations actual secondary grant requirement is omitted', HOST_TABLES,
      '                        || granted.handle(&required).is_none()',
      '                        || false && granted.handle(&required).is_none()'),
+    # An owned `public table` is read by anyone, by any key or index (L2),
+    # its relations too (the L4 review of 2026-11-16).
+    ("a public table's relation is refused through an index its owner does not lead", HOST_RELATIONS,
+     "                    || source.public\n",
+     ""),
     ('relations protected targets are admitted', HOST_RELATIONS,
      'if target.owner.is_some() || !target.private.is_empty() || !target.shares.is_empty() {',
      'if false && (target.owner.is_some() || !target.private.is_empty() || !target.shares.is_empty()) {'),

@@ -18,8 +18,10 @@ counted by a typed order range, and read through a fixed public-target
 relation window, on memory and PostgreSQL, under the read's own grant and
 owner. What stays open, in order:
 
-1. **L4's record**: the full verify at its head, every recipe and the three
-   browser suites, then `evidence-fetch`; it lands after L3 (#110).
+1. **L4's record**: the full verify 43809526375 at `7b8fb7cc`, fetched
+   (`bddbcf54`, 355 of 357 recipes); its two failures and the review's two
+   findings repaired at the head, and what they reach verified again there
+   (`ci_plan.py --changed 7b8fb7cc HEAD`) before the PR merges.
 2. **L5, declared uploads** (ADR-0440's fourth prerequisite), in two parts.
    L5a, the integration branch's forty-two commits to `64f03ec9` and the
    claim ledger `018fad14`, merged on L4 (`wip/l5-uploads`), its record
@@ -38,7 +40,10 @@ owner. What stays open, in order:
    transitions and predicates in `.pw`, guest and account carts, payments
    and scheduling, uploads and private cross-host delivery preserved,
    verified on the PostgreSQL adapter and its persisted rows. No remote or
-   production conversion is authorized.
+   production conversion is authorized. A window's or a relation's limit is the
+   app's to clamp (no server-side cap bounds it: `examples/relations/app.pw`
+   passes a browser's limit through), and the memory adapter's relation read
+   scans its target for each selector, as ADR-0440 allows.
 
 ## After L3, the platform's prerequisites, 2026-11-13
 
