@@ -490,7 +490,8 @@ mod tests {
     }
 
     fn text(reply: &Reply) -> String {
-        String::from_utf8(reply.bytes("s-1", false)).expect("utf-8")
+        String::from_utf8(reply.bytes("s-1", false, crate::identity::Cookies::default()))
+            .expect("utf-8")
     }
 
     /// The code a redirect back to the client carries.

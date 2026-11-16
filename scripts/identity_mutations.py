@@ -5,7 +5,9 @@ Each mutant undoes one guarantee the track claims: a command from another
 origin refused (CSRF), the session rotated at sign-in and forgotten at
 sign-out, the sign-in bound to the browser that started it, the ID token's
 nonce, PKCE's verifier, `SignedIn` and `OwnsPost` evaluated, a refusal
-answered as its own case, cookies HttpOnly, session ids unguessable, a
+answered as its own case, cookies HttpOnly, a request's session its one
+session cookie and `__Host-` where cookies are `Secure`, session ids
+unguessable, a
 password kept only as its hash, the development identities refused outside
 development, and a post attributed to its signed-in author. The tests of
 each must then fail.
@@ -124,6 +126,88 @@ MUTANTS = [
         ACCOUNTS,
         "        let hash = hash_password(password)?;\n",
         "        let hash = password.to_string();\n",
+    ),
+    # A request's session is its one session cookie, `__Host-` where cookies
+    # are `Secure` (ADR-0258, amended 2026-11-16).
+    (
+        "a request's session is the first `pw-session=` in its headers (a `Referer` chooses it)",
+        SERVER,
+        "    match identity::session_in(headers, cookies) {\n",
+        "    match headers\n"
+        "        .split(\"pw-session=\")\n"
+        "        .nth(1)\n"
+        "        .and_then(|rest| rest.split([';', '\\r', '\\n']).next())\n"
+        "        .map(str::to_string)\n"
+        "    {\n",
+    ),
+    (
+        "a cookie is any whose name ends in its name (`xpw-session`)",
+        IDENTITY,
+        "            (k == name).then_some(v)\n",
+        "            k.ends_with(name).then_some(v)\n",
+    ),
+    (
+        "a cookie is the first of two of its name",
+        IDENTITY,
+        "    named.next().is_none().then(|| value.to_string())\n",
+        "    Some(value.to_string())\n",
+    ),
+    (
+        "an empty session cookie is a session",
+        IDENTITY,
+        "    cookie(headers, cookies.session).filter(|id| !id.is_empty())\n",
+        "    cookie(headers, cookies.session)\n",
+    ),
+    (
+        "a secure process's session cookie is not a `__Host-` cookie",
+        IDENTITY,
+        "                session: \"__Host-pw-session\",\n",
+        "                session: SESSION_COOKIE,\n",
+    ),
+    (
+        "a secure process's sign-in cookie is not a `__Host-` cookie",
+        IDENTITY,
+        "                sign_in: \"__Host-pw-sign-in\",\n",
+        "                sign_in: SIGN_IN_COOKIE,\n",
+    ),
+    (
+        "a secure process's sign-in cookie stays at `/sign-in`, which a `__Host-` cookie may not",
+        IDENTITY,
+        "                sign_in_path: \"/\",\n",
+        "                sign_in_path: \"/sign-in\",\n",
+    ),
+    # The session cookie's review (2026-11-16): a Unicode trim, a name in
+    # any case, and a server that names its cookies otherwise than its
+    # identity says, each the Secure round trip or the table holds.
+    (
+        "a cookie's name loses Unicode whitespace (`\\u{2000}__Host-pw-session`)",
+        IDENTITY,
+        "            let (k, v) = pair.trim_matches([' ', '\\t']).split_once('=')?;\n",
+        "            let (k, v) = pair.trim().split_once('=')?;\n",
+    ),
+    (
+        "a cookie's name is matched in any case (`__HOST-pw-session`)",
+        IDENTITY,
+        "            (k == name).then_some(v)\n",
+        "            k.eq_ignore_ascii_case(name).then_some(v)\n",
+    ),
+    (
+        "a server reads and issues its sessions by the plain names, whatever its identity's",
+        SERVER,
+        "    let cookies = server.identity.cookies();\n",
+        "    let cookies = identity::Cookies::of(false);\n",
+    ),
+    (
+        "a callback reads the sign-in's state by the plain name",
+        IDENTITY,
+        "        let bound = cookie(headers, self.cookies().sign_in).unwrap_or_default();\n",
+        "        let bound = cookie(headers, SIGN_IN_COOKIE).unwrap_or_default();\n",
+    ),
+    (
+        "a deployment's cookies are plain, whatever it is",
+        IDENTITY,
+        "        self.use_cookies(Cookies::of(deployment.secure_cookies()));\n",
+        "        self.use_cookies(Cookies::of(false));\n",
     ),
     (
         "a post is its session's guest's, not its signed-in author's",

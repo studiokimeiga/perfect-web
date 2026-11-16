@@ -55,22 +55,34 @@ lifecycle and owned Clock actions. What stays open, in order:
 1. **L3's record**: the full verify at its head, every recipe and the three
    browser suites, then `evidence-fetch`; it lands after train-34.
 2. **A guest's rows are keyed by a cookie the client can choose** (ADR-0440,
-   Landing, the review's second finding): `session_of` takes any
-   `pw-session`, which has no `__Host-` prefix, so a sibling origin that
-   sets the cookie fixes a victim's anonymous session and reads, takes or
-   seeds its guest rows. Before any deployment keeps guest-owned rows (L6,
-   L7): a session cookie no other origin can set (`__Host-`, Secure, no
-   Domain), a session id only the host issues, and the provider's issuer
-   kept beside its `sub` (guest ids and `sub` values share one owner
-   namespace today), each with a test that fails without it.
+   Landing, the review's second finding). Its first part is done (ADR-0258,
+   amended 2026-11-16): a request's session is its one `Cookie` header
+   cookie of the session's name, where the host had taken the first
+   `pw-session=` anywhere in its headers (a `Referer` naming a page whose
+   query wrote it chose the session); and where cookies are `Secure` the
+   session's and the sign-in's cookies are `__Host-` cookies at `Path=/`.
+   Still owed before any deployment keeps guest-owned rows (L6, L7), each
+   with a test that fails without it: a session id only the host issues,
+   any other refused, kept where every host sharing the database reads it
+   (ADR-0369) or signed by a key the deployment holds; and the provider's
+   issuer kept beside its `sub` (guest ids and `sub` values share one owner
+   namespace today).
 3. **A lifecycle that does not commit strands the guest's rows** (the
-   review's third): the proof is spent and nothing retries the merge; a
-   bounded retry of a serialization failure inside the proof's lifetime,
-   or the guest's rows kept reachable to a later merge, with a test that
-   races the account's own write against it.
-4. **The owned Clock witness stands twice**: `tests::protected_migration`'s
-   (L3's, `4f80e543`) and `tests::owned_clock` (L2's port of it): keep one,
-   each script's controls held to the one kept.
+   review's third). Its named case is done (ADR-0440, amended 2026-11-16):
+   a lifecycle the database could not serialize against the account's own
+   write (at any statement of it or its commit) runs again, at most four
+   times, while its proof holds, raced by a second host in the test.
+   Open: four conflicts in a row (sustained contention), after which the
+   guest's rows stay where they were, logged; a lifecycle that never ran
+   (a host gone between the account's opening and its lifecycle), which a
+   merge recorded beside the guest's rows would cover; and a browser
+   command's conflict run again by the platform (L1's item 5).
+4. **The owned Clock witness stands twice**: done (2026-11-16, with item 3's
+   change): `tests::owned_clock` (L2's) is kept, which `e14-durable-tables`
+   names, and `tests::protected_migration`'s copy (L3's, `4f80e543`) is gone
+   with its program; `durable_tables_mutations.py` runs both modules, and
+   `row_ownership_mutations.py` now runs `tests::owned_clock` too, so their
+   controls hold to the one kept.
 5. **L4, bounded reads** (ADR-0440's fifth prerequisite): merge `ff57edc7`,
    its CI records only (1,370 receipts).
 6. **L5, declared uploads** (its fourth): finish `018fad14`, then merge.
