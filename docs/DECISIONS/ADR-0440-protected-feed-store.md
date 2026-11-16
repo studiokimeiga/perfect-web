@@ -1695,3 +1695,104 @@ one statement each, so that neither agrees with their ids. Two new mutants
 take the rows as they lie and the oldest by their time; each is killed at the
 test's assertion. ADR-0397 points here, as its decisions 3 and 6 still
 described the outbox L1 forgot.
+
+## Landing (L5, 2026-11-17)
+
+L5 lands declared uploads as one train from `wip/l5b-claims`: L5a, the
+integration branch's forty-two commits to `64f03ec9` and the claim ledger
+`018fad14`, merged on L4 (`014439c5`); and L5b, the server's claim bridge on
+it, each independently reviewed and its findings repaired (above). Before
+its full verify, L5 merged master (#119, #120, #122 and #123, in `e13b81e4`)
+and the two pull requests landing just before it, #118 (`26935dd8`, a test's
+places on PostgreSQL) and #121 (`2d18777e`, a predicate asked once), so that
+one verify records what all three reach: #118's test harness alone reaches
+164 recipes. Only `ci_seconds.json` conflicted; it is merged by key, a recipe
+both sides measured keeping the longer.
+
+**L5a's full verify** (43860567064, at `014439c5`): 358 recipes, 3 failed,
+and its shard 20 stopped at the 345-minute limit. Repaired before L5's:
+
+1. **The stopped shard.** `e14-d3-postgres` took 16,275 s there (132 mutants
+   over 168 tests, 122 s a run; L4's 88 over 101 took 4,708 s) on a runner
+   that took the shard's other recipes 1.6 to 2.2 times as long as L4's
+   verify had: 79% of a job by itself, and the plan, from L4's 4,708 s, had
+   dealt five recipes beside it. d3's mutation controls run in two recipes
+   (ADR-0393, amended): `e14-d3-postgres`, every mutant but the uploads'
+   (96), and `e14-d3-postgres-2`, the uploads' (39), each with the baseline
+   of every test binary, as `e14-refusal`'s parts are (the integrator's
+   ruling 2 of 2026-10-17). L5's verify measured them at 11,989 s and 2,962 s.
+2. **Recipes dealt where no database is named.** `e14-generic-upload-claims`
+   (L5b's) is refused without one; `e14-generic-upload-http`'s script is
+   (its recipe named none, so it failed at its first line there); and
+   `e14-every-entry`'s and `e14-follows`' PostgreSQL witnesses said
+   "skipped" and passed in every run, their evidence saying "postgres:
+   none". A recipe that names a database's URL, or runs a script that reads
+   one, is dealt beside one (`test_a_recipe_that_reads_a_database_is_dealt_beside_one`,
+   a mutant). `e14-generic-upload-http` exports the URL its script reads and
+   is refused without one.
+3. **Two recipes' evidence no plan could call current**:
+   `e14-generic-upload-http`'s and `e14-generic-upload-leases`' named no
+   commit, and their verdicts were in words the count does not read. Each
+   now names its commit, and each mutant's verdict is a line the count reads,
+   with the legacy mutant each runs counted among its script's.
+4. **Two INVALID kills**: `e14-upload-metadata`'s was at
+   `uploads/generic_lease_tests.rs`, a source its script did not list, and
+   `e14-row-ownership`'s at five tests that unwrapped a binding the mutant
+   broke (`compiled_assets.rs`); the script lists the file, and each test
+   fails at an assertion.
+5. **Two of the three PostgreSQL rules L5a's review found no mutant for**
+   (its L4) each have a test and a mutant: `propose_asset` keeps a live
+   hash's descriptor, and `lock_lifetime` holds each command to the storage's
+   namespace marker. The third, `persist`'s `ON CONFLICT` guard, no command
+   reaches: a proposal of a generation id the table holds is refused before
+   it (its mutant is killed), the planner takes a stored generation's
+   descriptor wherever one exists, and every command holds the namespace's
+   advisory lock from before its first statement to its end (`turn`,
+   `lock_lifetime`), so no other command writes the table meanwhile, at
+   either isolation. Only a writer outside any command, at READ COMMITTED,
+   could: the guard is the table's own check against it, and stays.
+
+**The full verify** 43929087203 at `83ad1ab1`: 361 recipes, 5 failed; the
+other 356 recipes' evidence (673 files, `e0377273`) is the merge's record.
+Three are item 2's HTTP recipe and item 4's two, which the verify ran before
+their repairs. Two are new, and one failure is no recipe's:
+
+6. **`e14-render-merge`, 48 of 49**: "an idle connection is never taken
+   again" lived. The bound's test holds 24 renders of one session's cart
+   page at their reads, and the render merge answers one session's identical
+   reads together, so a few of them take a connection (six, run locally);
+   the mutant opens one more for each, which stayed under the eight the test
+   allows. Whether that test kills it depends on how many of its renders
+   reach the database: at L4 (43809526375) it did. A render now takes an
+   idle connection again, one after another, each reading
+   (`on_postgres_a_render_takes_an_idle_connection_again`: one connection
+   for 24 renders, where the mutant opens 25), run beside the bound's test in
+   the script's `bound` suite.
+7. **`e10-browser`, WebKit's cut-off test** (`e2e/connections.spec.mjs`,
+   NEXT's known item), in two of its three runs: after the server's forced
+   reconnect WebKit's network process failed ("WebKit encountered an
+   internal error"), the press's handler module, loaded at its first press,
+   failed to import, and the press was answered "This did not work". The
+   runtime it ran is byte for byte L4's, whose run passed it three times, and
+   master's nightly passed it at `4ac98c51`. It is run again with the
+   repairs' recipes, and stays NEXT's until master's nightlies pass it too.
+8. **L5's head failed `just lint`**: an unneeded `mut` in a PostgreSQL asset
+   test (item 5's, `83ad1ab1`), which the verify does not build and its
+   preflight, not run, would have refused. It passes.
+
+**The repairs** (`REPAIRS`) and what they reach, run again: REPAIR-VERIFY.
+
+**Reviewed** independently (2026-11-17, `3403758e`, `83ad1ab1` and the
+merge's resolution of `ci_seconds.json`): one high finding, the HTTP
+recipe's database (item 2 above), and one medium, a citation of this section
+before it was written. Its lows: the database rule now reads a recipe's
+scripts and only planned recipes; the split's reason and the guard's are as
+above. What both d3 recipes read (an empty part refused, a part's cost,
+comments) is repaired on `wip/l5-followups`, which records those recipes
+again.
+
+**Left to NEXT**, each low: one contract suite for assets over both
+adapters. L5a's other lows (refusals filed under PW5601's invariant, the bare
+`is_err()` refusals, and corpus cases for the upload and asset rules) are
+repaired on `wip/l5-followups`, its pull request after this one, with PW5604,
+PW5605, PW0371 and corpus C34.

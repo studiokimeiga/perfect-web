@@ -195,6 +195,10 @@ NEEDS_DATABASE = {
     # where no database was named; their evidence said "postgres: none".
     "e14-every-entry",
     "e14-follows",
+    # Its script reads PW_TABLES_DATABASE_URL and refuses without it; its
+    # recipe named none, so the second review of L5 found what the test
+    # below did not read (it reads a recipe's scripts too since).
+    "e14-generic-upload-http",
     # Track `durable-tables`: declared tables served durably from PostgreSQL.
     "e14-durable-tables",
     # Track `data-path`: its feed-on-PostgreSQL test holds that no row,

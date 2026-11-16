@@ -1897,7 +1897,7 @@ fn a_publication_of_a_live_hash_under_another_descriptor_is_refused() {
     let live = seed(&db);
     let mut other = candidate('c');
     other.reference.width = live.width + 1;
-    let mut c = db.begin().assert_ok("a second command");
+    let c = db.begin().assert_ok("a second command");
     let refused = c
         .propose_asset("PostImage", other, Arc::from(b"abc".as_slice()))
         .err()

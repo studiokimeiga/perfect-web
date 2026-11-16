@@ -2,8 +2,16 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
-**L5b, the server's claim bridge, 2026-11-16 (built, not landed):** on L5a
-(`wip/l5b-claims`). A compiled command claims, publishes and commits a
+**L5, declared uploads, 2026-11-17:** L5a and L5b land as one train from
+`wip/l5b-claims`, with master, #118 and #121 merged. Its full verify
+(43929087203 at `83ad1ab1`) ran 361 recipes, and 356 passed. Three of the
+five that failed were the recipes L5a's verify had failed, whose repairs the
+run predates. The other two were a render-merge mutant that one session's
+merged reads let live, and WebKit's cut-off test, the known intermittent
+failure. Each is repaired or run again at the head (ADR-0440, "Landing
+(L5)").
+
+**L5b, the server's claim bridge, 2026-11-16:** on L5a (`wip/l5b-claims`). A compiled command claims, publishes and commits a
 declared upload through the server, on memory and on PostgreSQL: its
 imports bound to an invocation's ledger on the command's own transaction,
 its answer sealed with the attempt's nonce, each outcome settling its claims
@@ -27,7 +35,7 @@ with L5a's medium findings repaired there:
 - an image read takes no lock;
 - a database copy is refused its original's blob root;
 - one failing collection no longer stops the rest.
-Its full verify is next, once master's open PRs land.
+Its full verify is above.
 
 **L5a, declared uploads to their claim ledger, 2026-11-16:** on L4
 (`7b8fb7cc`), the fifth train of the declared data layer's landing, its

@@ -33,11 +33,20 @@ MUTANTS = [
      '.filter(|(_, l)| !l.claimed && now.duration_since(l.made) >= self.lease_for)', '.filter(|(_, l)| now.duration_since(l.made) >= self.lease_for)'),
 ]
 
-def main():
+
+def legacy(name):
+    """A mutant of `uploads_mutations.py`'s, run here against these tests too."""
     spec=importlib.util.spec_from_file_location('legacy_uploads',ROOT/'scripts/uploads_mutations.py')
-    legacy=importlib.util.module_from_spec(spec);spec.loader.exec_module(legacy)
-    old=next(m for m in legacy.MUTANTS if m[0]=='a lease is shown to any session')
-    mutants=MUTANTS+[(old[0],old[2],old[3],old[4])]
+    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    old=next(m for m in module.MUTANTS if m[0]==name)
+    return (old[0],old[2],old[3],old[4])
+
+
+# The last runs the second command alone (`run`, below): the legacy mutant.
+MUTANTS = MUTANTS + [legacy('a lease is shown to any session')]
+
+def main():
+    mutants=MUTANTS
     filters=['uploads::generic_lease_tests::','uploads::tests::an_image_is_leased_to_its_session_and_shown_to_it_alone']
     commands=[['cargo','test','--quiet','--locked','-p','pw-dev-server','--bin','pw-dev-server',f,'--','--format=pretty','--test-threads=2'] for f in filters]
     sources=sorted((ROOT/'spikes/own-renderer/server/src').rglob('*.rs'))+sorted((ROOT/'runtime').rglob('*.rs'))
@@ -57,13 +66,18 @@ def main():
         return passed,failed
     passed,failed=run(0,range(2));assert failed==0
     print(f'baseline {passed} native assertions, complete inventories',flush=True)
+    survivors=0
     for n,(label,path,before,after) in enumerate(mutants,1):
         original=path.read_bytes();s=original.decode();assert s.count(before)==1,(label,s.count(before))
         try:
             path.write_text(s.replace(before,after))
-            passed,failed=run(n,[0] if n<len(mutants) else [1]);assert failed>0,f'survived: {label}'
-            print(f'KILLED {n}/{len(mutants)}: {label}; {passed} pass/{failed} fail',flush=True)
+            passed,failed=run(n,[0] if n<len(mutants) else [1])
         finally:path.write_bytes(original)
-    print(f'{len(mutants)}/{len(mutants)} killed; no invalid or stopped producer',flush=True)
-    return 0
+        if failed:
+            print(f'{label}: KILLED ({failed} of {passed+failed} tests fail)',flush=True)
+        else:
+            survivors+=1
+            print(f'{label}: SURVIVED',flush=True)
+    print(f'{len(mutants)-survivors} of {len(mutants)} mutants killed',flush=True)
+    return 1 if survivors else 0
 if __name__=='__main__':sys.exit(main())

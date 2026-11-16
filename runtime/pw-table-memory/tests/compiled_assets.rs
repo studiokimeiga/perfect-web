@@ -160,7 +160,7 @@ fn actual_compiled_resource_grants_and_callback_answers_are_checked_independentl
         .manifest
         .clone()
         .with_uploads(&program.uploads)
-        .unwrap();
+        .assert_ok("the compiler's uploads bind");
     let full = component.granted();
     for capability in [
         "resource.acquire<PostImage.Claim>",
@@ -300,7 +300,7 @@ fn compiled_attached_reads_validate_the_declared_record_without_resource_authori
         .manifest
         .clone()
         .with_uploads(&program.uploads)
-        .unwrap();
+        .assert_ok("the compiler's uploads bind");
     let expected = Val::List(vec![Val::Record(vec![
         (
             "src".into(),
@@ -460,7 +460,7 @@ fn authorization_only_upload_reuse_checks_root_binding_without_running_a_body() 
         .manifest
         .clone()
         .with_uploads(&program.uploads)
-        .unwrap();
+        .assert_ok("the compiler's uploads bind");
     for (manifest, allowed) in [(&bound, true), (&program.manifest, false)] {
         let state = UploadAdmissionOnly {
             manifest,
@@ -496,7 +496,7 @@ fn authorization_only_uses_the_actual_root_grant_and_contract_axes() {
         .manifest
         .clone()
         .with_uploads(&program.uploads)
-        .unwrap();
+        .assert_ok("the compiler's uploads bind");
     let calls = Arc::new(AtomicUsize::new(0));
     let state = UploadAdmissionOnly {
         manifest: &bound,
@@ -541,7 +541,7 @@ fn empty_session_inputs_and_empty_claim_answers_are_refused_before_the_next_call
         .manifest
         .clone()
         .with_uploads(&program.uploads)
-        .unwrap();
+        .assert_ok("the compiler's uploads bind");
     let calls = Arc::new(AtomicUsize::new(0));
     let attached = program.component("Attached");
     let hooks = upload_hooks(attached, &calls);

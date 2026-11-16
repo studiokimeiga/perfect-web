@@ -37,16 +37,41 @@ e14-uploads:
 
 # Generic authority + actual PG/local files + handler TCP composition. Requires
 # the actual throwaway PW_TABLES_DATABASE_URL; includes strict native controls.
+#
+# It reads its database's rows and serves their files (PostgreSQL's layer,
+# the local blob root, the host's HTTP): it needs a throwaway database,
+# PW_TABLES_DATABASE_URL (or PW_STORE_DATABASE_URL, which CI's database
+# shards name), and is refused without one. Until 2026-11-17 its recipe named
+# none, so the verify dealt it where there was none and it failed at its
+# script's first line (L5a's verify 43860567064).
 e14-generic-upload-http:
+    @url="${PW_TABLES_DATABASE_URL:-${PW_STORE_DATABASE_URL:-${PW_FEED_DATABASE_URL:-}}}"; \
+     if [ -z "$url" ]; then \
+       echo "e14-generic-upload-http: refused, it needs PW_TABLES_DATABASE_URL (or PW_STORE_DATABASE_URL), a throwaway PostgreSQL database"; \
+       exit 1; \
+     fi
     @mkdir -p docs/evidence/E14/generic-upload-http
-    @PW_GENERIC_UPLOAD_HTTP_EVIDENCE=docs/evidence/E14/generic-upload-http python3 scripts/generic_upload_http_mutations.py > docs/evidence/E14/generic-upload-http.txt
-    @cat docs/evidence/E14/generic-upload-http.txt
+    @url="${PW_TABLES_DATABASE_URL:-${PW_STORE_DATABASE_URL:-${PW_FEED_DATABASE_URL:-}}}"; \
+     export PW_TABLES_DATABASE_URL="$url"; \
+     { echo "generic-upload-http - a generic upload's image served from its database's rows and the blob root, each authority and file check held by a mutant"; echo; \
+       echo "produced by: just e14-generic-upload-http"; \
+       echo "commit: $(git rev-parse HEAD)$(git diff --quiet HEAD -- . ':(exclude)docs/evidence' || echo ' + uncommitted changes')"; \
+       echo "rust: $(rustc --version)"; \
+       echo "postgres: $(psql "$url" -Atc 'SHOW server_version' 2>/dev/null || echo 'unknown (psql is not on PATH)')"; echo; \
+       PW_GENERIC_UPLOAD_HTTP_EVIDENCE=docs/evidence/E14/generic-upload-http python3 scripts/generic_upload_http_mutations.py; \
+     } > docs/evidence/E14/generic-upload-http.txt 2>&1; \
+     status=$?; cat docs/evidence/E14/generic-upload-http.txt; exit $status
 
 # Generic per-declaration staging, captured-reader scope and lease lifetimes.
 e14-generic-upload-leases:
     @mkdir -p docs/evidence/E14/generic-upload-leases
-    @PW_GENERIC_UPLOAD_LEASE_EVIDENCE=docs/evidence/E14/generic-upload-leases python3 scripts/generic_upload_leases_mutations.py > docs/evidence/E14/generic-upload-leases.txt
-    @cat docs/evidence/E14/generic-upload-leases.txt
+    @{ echo "generic-upload-leases - a generic upload's staging, its leases per session and declaration, each held by a mutant"; echo; \
+       echo "produced by: just e14-generic-upload-leases"; \
+       echo "commit: $(git rev-parse HEAD)$(git diff --quiet HEAD -- . ':(exclude)docs/evidence' || echo ' + uncommitted changes')"; \
+       echo "rust: $(rustc --version)"; echo; \
+       PW_GENERIC_UPLOAD_LEASE_EVIDENCE=docs/evidence/E14/generic-upload-leases python3 scripts/generic_upload_leases_mutations.py; \
+     } > docs/evidence/E14/generic-upload-leases.txt 2>&1; \
+     status=$?; cat docs/evidence/E14/generic-upload-leases.txt; exit $status
 
 # The server's claim bridge (ADR-0440, L5b): a compiled command claims,
 # publishes and commits a declared upload through the server, on memory and

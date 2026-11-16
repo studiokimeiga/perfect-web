@@ -885,7 +885,7 @@ SPEC = ["pnpm", "exec", "playwright", "test", "e2e/upload-metadata.spec.mjs", "-
 BOUND = 900
 
 
-RUST_SOURCES = [STRIP, ICC, UPLOADS, ROOT / "spikes/own-renderer/server/src/uploads/png_state.rs", ROOT / "spikes/own-renderer/server/src/uploads/privacy_tests.rs", ROOT / "spikes/own-renderer/server/src/uploads/privacy_lifecycle_tests.rs", ROOT / "spikes/own-renderer/server/src/tests/uploads.rs", ROOT / "spikes/own-renderer/server/src/blob.rs"]
+RUST_SOURCES = [STRIP, ICC, UPLOADS, ROOT / "spikes/own-renderer/server/src/uploads/png_state.rs", ROOT / "spikes/own-renderer/server/src/uploads/privacy_tests.rs", ROOT / "spikes/own-renderer/server/src/uploads/privacy_lifecycle_tests.rs", ROOT / "spikes/own-renderer/server/src/uploads/generic_lease_tests.rs", ROOT / "spikes/own-renderer/server/src/tests/uploads.rs", ROOT / "spikes/own-renderer/server/src/blob.rs"]
 RUST_INVENTORY = None
 
 
