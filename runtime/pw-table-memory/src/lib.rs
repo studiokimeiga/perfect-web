@@ -63,6 +63,14 @@ enum Atom {
 }
 
 impl Atom {
+    fn value(&self) -> Value {
+        match self {
+            Self::Bool(value) => Value::from(*value),
+            Self::Int(value) => Value::from(*value),
+            Self::Str(value) => Value::from(value.clone()),
+        }
+    }
+
     fn parse(value: &Value) -> Result<Self, Error> {
         match value {
             Value::Bool(v) => Ok(Self::Bool(*v)),
@@ -90,6 +98,7 @@ struct Shape {
 
 struct TableShape {
     name: String,
+    order: Option<String>,
     fields: Vec<(String, Stored)>,
     key: Vec<String>,
     indexes: Vec<IndexShape>,
@@ -109,7 +118,15 @@ struct ReferenceShape {
     target: usize,
 }
 
+struct RelatedShape {
+    target: usize,
+    target_match: String,
+    /// None uses the source key's prefix; otherwise this declared index's prefix.
+    index: Option<usize>,
+}
+
 struct FunctionShape {
+    related: Option<RelatedShape>,
     primitive: Primitive,
     by: Vec<String>,
     sorted_by: Vec<String>,
@@ -584,10 +601,18 @@ impl MemoryTables {
 }
 
 /// **The published tables at one moment** ([`MemoryTables::snapshot`]): read
-/// by [`MemoryTables::read_host_fns_at`], and by nothing else.
+/// by its raw read or [`MemoryTables::read_host_fns_at`].
 pub struct Snapshot {
     inner: Arc<Inner>,
     tables: Arc<Vec<Arc<Data>>>,
+}
+
+impl Snapshot {
+    /// A raw adapter read of this snapshot's own immutable state. Browser
+    /// components still link only their admitted read_host_fns_at callbacks.
+    pub fn read(&self, import: &str, args: &[Value]) -> Result<Value, Error> {
+        self.inner.read_snapshot(&self.tables, import, args)
+    }
 }
 
 /// **One command's transaction** (ADR-0386): its reads see its own writes,
@@ -1383,7 +1408,40 @@ fn shape_of(manifest: &TablesJson) -> Result<Shape, Error> {
                         .indexes
                         .iter()
                         .any(|i| i.unique && i.fields == function.by));
+            let related = if function.primitive.related() {
+                let window = table
+                    .windows
+                    .iter()
+                    .find(|window| Some(&window.name) == function.relation.as_ref())
+                    .ok_or_else(|| Error::Schema("relation declaration is missing".into()))?;
+                let target = place(&window.target)
+                    .ok_or_else(|| Error::Schema("relation target is missing".into()))?;
+                let mut lookup = function.by.clone();
+                lookup.push(window.source_field.clone());
+                let index = if table.schema.key.starts_with(&lookup) {
+                    None
+                } else {
+                    Some(
+                        table
+                            .schema
+                            .indexes
+                            .iter()
+                            .position(|index| index.fields.starts_with(&lookup))
+                            .ok_or_else(|| {
+                                Error::Schema("relation source lookup is missing".into())
+                            })?,
+                    )
+                };
+                Some(RelatedShape {
+                    target,
+                    target_match: window.target_field.clone(),
+                    index,
+                })
+            } else {
+                None
+            };
             let shaped = FunctionShape {
+                related,
                 primitive: function.primitive,
                 by: function.by.clone(),
                 sorted_by: function.sorted_by.clone(),
@@ -1400,6 +1458,7 @@ fn shape_of(manifest: &TablesJson) -> Result<Shape, Error> {
             }
         }
         tables.push(TableShape {
+            order: table.schema.order.clone(),
             name: name.clone(),
             fields: table
                 .schema
@@ -1616,6 +1675,158 @@ fn typed_selector(
         .ok_or_else(|| Error::Input(format!("{import} was given no selector")))
 }
 
+/// Canonical identities include both equality selectors and each request's mark.
+fn typed_ranges(
+    table: &TableShape,
+    function: &FunctionShape,
+    args: &[Value],
+) -> Result<(Vec<String>, BTreeSet<Key>), Error> {
+    let order = table
+        .order
+        .as_ref()
+        .ok_or_else(|| Error::Schema("a range count requires declared order".into()))?;
+    let order_ty = &table
+        .fields
+        .iter()
+        .find(|(name, _)| name == order)
+        .ok_or_else(|| Error::Schema("range order is not a row field".into()))?
+        .1;
+    let mut fields = function.by.clone();
+    fields.push(pw_core::tables::after_field(
+        table.fields.iter().map(|(name, _)| name.as_str()),
+    ));
+    let keys = selections(&fields, args, function.primitive.many())?;
+    for key in &keys {
+        for (index, atom) in key.iter().enumerate() {
+            let ty = if index == function.by.len() {
+                order_ty
+            } else {
+                &table
+                    .fields
+                    .iter()
+                    .find(|(name, _)| name == &fields[index])
+                    .ok_or_else(|| Error::Schema("range selector is not a row field".into()))?
+                    .1
+            };
+            if !validates(&atom.value(), ty) {
+                return Err(Error::Input(format!(
+                    "range field {} fails its declared type or bound",
+                    fields[index]
+                )));
+            }
+        }
+    }
+    Ok((fields, keys))
+}
+
+/// Compare borrowed order values; no row payload (or String order) is cloned.
+fn strictly_after(value: &Value, mark: &Atom) -> Result<bool, Error> {
+    match (value, mark) {
+        (Value::Bool(value), Atom::Bool(mark)) => Ok(value > mark),
+        (Value::String(value), Atom::Str(mark)) => Ok(value > mark),
+        (Value::Number(value), Atom::Int(mark)) => value
+            .as_i64()
+            .map(|value| value > *mark)
+            .ok_or_else(|| Error::Schema("range order is not a stored Int".into())),
+        _ => Err(Error::Schema(
+            "range order and mark have different stored types".into(),
+        )),
+    }
+}
+
+/// One global target window for each canonical source selector. Membership is
+/// tested through its declared lookup, never materialized as all author ids.
+fn read_related(
+    shape: &Shape,
+    tables: &[impl AsRef<Data>],
+    source_at: usize,
+    function: &FunctionShape,
+    import: &str,
+    args: &[Value],
+) -> Result<Value, Error> {
+    let source = &shape.tables[source_at];
+    let Some((bound, selectors)) = args.split_last() else {
+        return Err(Error::Input(
+            "a relation window takes a trailing Int limit".into(),
+        ));
+    };
+    let bound = bound
+        .as_i64()
+        .ok_or_else(|| Error::Input("a relation limit must be an Int".into()))?;
+    let keys = typed_selections(source, function, import, selectors)?;
+    let relation = function
+        .related
+        .as_ref()
+        .ok_or_else(|| Error::Schema("relation shape is missing".into()))?;
+    let target = &shape.tables[relation.target];
+    let source_data = tables
+        .get(source_at)
+        .map(AsRef::as_ref)
+        .ok_or_else(|| Error::Schema("source state is missing".into()))?;
+    let target_data = tables
+        .get(relation.target)
+        .map(AsRef::as_ref)
+        .ok_or_else(|| Error::Schema("target state is missing".into()))?;
+    let mut groups = Vec::new();
+    for selected in keys {
+        let mut best = BTreeMap::new();
+        if bound > 0 {
+            for row in target_data.rows.values() {
+                let value = row
+                    .get(&relation.target_match)
+                    .ok_or_else(|| Error::Schema("target match value is missing".into()))?;
+                // Only scalar selector metadata is copied, not row payloads.
+                let mut lookup = selected.clone();
+                lookup.push(Atom::parse(value)?);
+                let member = match relation.index {
+                    None => source_data.prefixed(&lookup).next().is_some(),
+                    Some(index) => source_data.indexes[index]
+                        .range((lookup.clone(), Vec::new())..)
+                        .next()
+                        .is_some_and(|(held, _)| held.starts_with(&lookup)),
+                };
+                if !member {
+                    continue;
+                }
+                best.insert(place(row, &function.sorted_by, &target.key), row);
+                if best.len() as u64 > bound as u64 {
+                    if function.primitive.descending() {
+                        best.pop_first();
+                    } else {
+                        best.pop_last();
+                    }
+                }
+            }
+        }
+        let rows = if function.primitive.descending() {
+            best.into_values()
+                .rev()
+                .map(|row| Value::Object((**row).clone()))
+                .collect::<Vec<_>>()
+        } else {
+            best.into_values()
+                .map(|row| Value::Object((**row).clone()))
+                .collect::<Vec<_>>()
+        };
+        if !function.primitive.many() {
+            return Ok(Value::Array(rows));
+        }
+        let key = match selected.as_slice() {
+            [one] => one.value(),
+            _ => Value::Object(
+                function
+                    .by
+                    .iter()
+                    .cloned()
+                    .zip(selected.iter().map(Atom::value))
+                    .collect(),
+            ),
+        };
+        groups.push(serde_json::json!({"key":key,"rows":rows}));
+    }
+    Ok(Value::Array(groups))
+}
+
 fn read(
     shape: &Shape,
     tables: &[impl AsRef<Data>],
@@ -1631,6 +1842,174 @@ fn read(
         .get(at)
         .map(AsRef::as_ref)
         .ok_or_else(|| Error::Schema("missing table state".into()))?;
+    if function.primitive.related() {
+        return read_related(shape, tables, at, function, import, args);
+    }
+    if function.primitive.range() {
+        let (fields, keys) = typed_ranges(table, function, args)?;
+        let order = table
+            .order
+            .as_ref()
+            .ok_or_else(|| Error::Schema("range order is missing".into()))?;
+        let prefix =
+            function.by.len() <= table.key.len() && table.key[..function.by.len()] == function.by;
+        let index = if prefix {
+            None
+        } else {
+            Some(
+                table
+                    .indexes
+                    .iter()
+                    .position(|index| index.fields == function.by)
+                    .ok_or_else(|| Error::Schema("range counts by no declared selector".into()))?,
+            )
+        };
+        let mut counts = Vec::with_capacity(keys.len());
+        for key in keys {
+            let (mark, selected) = key
+                .split_last()
+                .ok_or_else(|| Error::Input("range mark is missing".into()))?;
+            let selected = selected.to_vec();
+            let candidates: Box<dyn Iterator<Item = Result<&Row, Error>> + '_> = match index {
+                None => Box::new(data.prefixed(&selected).map(|(_, row)| Ok(row))),
+                Some(index) => Box::new(holding(&data.indexes[index], &selected).map(|key| {
+                    data.rows
+                        .get(key)
+                        .ok_or_else(|| Error::Schema("range index names a missing row".into()))
+                })),
+            };
+            let mut count = 0i64;
+            for row in candidates {
+                let row = row?;
+                let value = row
+                    .get(order)
+                    .ok_or_else(|| Error::Schema("row lacks range order".into()))?;
+                if strictly_after(value, mark)? {
+                    count = count
+                        .checked_add(1)
+                        .ok_or_else(|| Error::Input("a count exceeds Int".into()))?;
+                }
+            }
+            if !function.primitive.many() {
+                return Ok(Value::from(count));
+            }
+            let key = Value::Object(
+                fields
+                    .iter()
+                    .cloned()
+                    .zip(key.iter().map(Atom::value))
+                    .collect(),
+            );
+            counts.push(serde_json::json!({"key":key,"count":count}));
+        }
+        return Ok(Value::Array(counts));
+    }
+    if function.primitive.window() {
+        let Some((bound, selectors)) = args.split_last() else {
+            return Err(Error::Input("a window takes a trailing Int limit".into()));
+        };
+        let bound = bound
+            .as_i64()
+            .ok_or_else(|| Error::Input("a window limit must be an Int".into()))?;
+        let keys = typed_selections(table, function, import, selectors)?;
+        // Validate the complete selector set before answering an empty window.
+        if bound <= 0 {
+            return Ok(Value::Array(Vec::new()));
+        }
+        let prefix =
+            function.by.len() <= table.key.len() && table.key[..function.by.len()] == function.by;
+        let index = if prefix {
+            None
+        } else {
+            Some(
+                table
+                    .indexes
+                    .iter()
+                    .position(|index| index.fields == function.by)
+                    .ok_or_else(|| {
+                        Error::Schema(format!("{import} windows by no declared selector"))
+                    })?,
+            )
+        };
+        let mut out = Vec::new();
+        for selected in keys {
+            // Scan only references; retain at most the requested number of
+            // ordering keys/row references and clone only the selected rows.
+            // Never reserve capacity from an untrusted maximum Int.
+            let candidates: Box<dyn Iterator<Item = Result<&Row, Error>> + '_> = match index {
+                None => Box::new(data.prefixed(&selected).map(|(_, row)| Ok(row))),
+                Some(index) => Box::new(holding(&data.indexes[index], &selected).map(|key| {
+                    data.rows.get(key).ok_or_else(|| {
+                        Error::Schema(format!("{}'s index names a missing row", table.name))
+                    })
+                })),
+            };
+            let mut best = BTreeMap::new();
+            for row in candidates {
+                let row = row?;
+                best.insert(place(row, &function.sorted_by, &table.key), row);
+                if best.len() as u64 > bound as u64 {
+                    if function.primitive.descending() {
+                        best.pop_first();
+                    } else {
+                        best.pop_last();
+                    }
+                }
+            }
+            if function.primitive.descending() {
+                out.extend(
+                    best.into_values()
+                        .rev()
+                        .map(|row| Value::Object((**row).clone())),
+                );
+            } else {
+                out.extend(best.into_values().map(|row| Value::Object((**row).clone())));
+            }
+        }
+        return Ok(Value::Array(out));
+    }
+    if function.primitive.counts() {
+        let keys = typed_selections(table, function, import, args)?;
+        let prefix =
+            function.by.len() <= table.key.len() && table.key[..function.by.len()] == function.by;
+        let index = if prefix {
+            None
+        } else {
+            Some(
+                table
+                    .indexes
+                    .iter()
+                    .position(|index| index.fields == function.by)
+                    .ok_or_else(|| {
+                        Error::Schema(format!("{import} counts by no declared selector"))
+                    })?,
+            )
+        };
+        let mut counts = Vec::with_capacity(keys.len());
+        for selected in keys {
+            let n = match index {
+                None => data.prefixed(&selected).count(),
+                Some(index) => holding(&data.indexes[index], &selected).count(),
+            };
+            let count = i64::try_from(n).map_err(|_| Error::Input("a count exceeds Int".into()))?;
+            if !function.primitive.many() {
+                return Ok(Value::from(count));
+            }
+            let key = match selected.as_slice() {
+                [one] => one.value(),
+                _ => Value::Object(
+                    function
+                        .by
+                        .iter()
+                        .cloned()
+                        .zip(selected.iter().map(Atom::value))
+                        .collect(),
+                ),
+            };
+            counts.push(serde_json::json!({"key":key, "count":count}));
+        }
+        return Ok(Value::Array(counts));
+    }
     let mut found: Vec<&Row> = Vec::new();
     match function.primitive {
         Primitive::All => {

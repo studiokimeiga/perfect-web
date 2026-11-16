@@ -1,0 +1,13 @@
+baseline: 81 passed, 0 failed
+windows materialize unrestricted rows then clip after SQL: KILLED (1 of 81 tests fail)
+windows set limit is global instead of per key: KILLED (3 of 81 tests fail)
+windows last reverses the order column but not key ties: KILLED (3 of 81 tests fail)
+windows zero shortcuts skip selector validation before SQL: KILLED (1 of 81 tests fail)
+counts count the absent left-join row as a match: KILLED (4 of 81 tests fail)
+counts omit missing selectors with an inner join: KILLED (4 of 81 tests fail)
+counts scalar query ignores its selector: KILLED (3 of 81 tests fail)
+counts row accounting is not observed: KILLED (3 of 81 tests fail)
+counts byte accounting is not observed: KILLED (3 of 81 tests fail)
+postgres operation accounting counts a transaction boundary as data: KILLED (3 of 81 tests fail)
+10 of 10 mutants killed
+memory bound: no process was stopped

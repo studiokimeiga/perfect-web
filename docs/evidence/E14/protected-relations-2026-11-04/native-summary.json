@@ -1,0 +1,62 @@
+{
+  "code": "d8c634c9e513810dc5db300e0a44478718edd355",
+  "test_only_reuse_successor": "9451277ab47943424fed6c35d5ab20f142903847",
+  "native": {
+    "core": {
+      "passed": 350,
+      "failed": 0,
+      "ignored": 0
+    },
+    "cli": {
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    "host": {
+      "passed": 118,
+      "failed": 0,
+      "ignored": 9
+    },
+    "memory": {
+      "passed": 132,
+      "failed": 0,
+      "ignored": 0
+    },
+    "pg": {
+      "passed": 95,
+      "failed": 0,
+      "ignored": 0
+    },
+    "server": {
+      "passed": 180,
+      "failed": 0,
+      "ignored": 0
+    }
+  },
+  "strict": {
+    "pg": {
+      "baseline": 95,
+      "killed": 11
+    },
+    "row": {
+      "baseline": 232,
+      "killed": 14
+    },
+    "data": {
+      "baseline": 85,
+      "killed": 7
+    },
+    "bounded": {
+      "baseline": 40,
+      "killed": 2
+    },
+    "host": {
+      "baseline": 171,
+      "killed": 2
+    }
+  },
+  "reuse_successor": {
+    "memory": 8,
+    "dual_grant_controls": 2
+  }
+}

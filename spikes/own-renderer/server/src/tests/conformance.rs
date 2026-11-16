@@ -15,7 +15,7 @@
 //!
 //! 1. **answers**: every read function of every table, for present keys,
 //!    a missing one, and set forms given duplicates, misses and nothing,
-//!    answers exactly the oracle's rows, in their order;
+//!    answers exactly the oracle's rows/counts, in their order;
 //! 2. **costs**: each read is at least one statement of the layer's
 //!    adapter and at most what its source's `sets` states (one for
 //!    `one_call`, one a key otherwise), at both sizes, counted below the
@@ -58,10 +58,12 @@ use serde_json::{Map, Value as Json};
 /// **A table as tables.json declares it**, read by the suite alone.
 #[derive(Debug, Clone)]
 pub(super) struct Table {
+    pub windows: Vec<Relation>,
     pub name: String,
     /// Each field: its Pleris name and how it is stored.
     pub fields: Vec<(String, Json)>,
     pub key: Vec<String>,
+    pub order: Option<String>,
     /// Each index: its fields, and whether it is unique.
     pub indexes: Vec<(Vec<String>, bool)>,
     /// Each reference: the field, and the table it refers to.
@@ -75,18 +77,56 @@ pub(super) struct Table {
 /// **A table's function as tables.json declares it.**
 #[derive(Debug, Clone)]
 pub(super) struct Function {
+    pub relation: Option<String>,
     pub import: String,
     pub primitive: String,
     pub by: Vec<String>,
     pub sorted_by: Vec<String>,
 }
 
+#[derive(Debug, Clone)]
+pub(super) struct Relation {
+    pub name: String,
+    pub target: String,
+    pub source_field: String,
+    pub target_field: String,
+}
+
 impl Function {
+    fn related(&self) -> bool {
+        self.primitive.starts_with("related-")
+    }
+
     fn writes(&self) -> bool {
         matches!(
             self.primitive.as_str(),
             "insert" | "put" | "delete" | "delete-prefix"
         )
+    }
+    fn range(&self) -> bool {
+        matches!(self.primitive.as_str(), "count-after" | "count-after-many")
+    }
+    fn window(&self) -> bool {
+        matches!(
+            self.primitive.as_str(),
+            "first"
+                | "first-many"
+                | "last"
+                | "last-many"
+                | "related-first"
+                | "related-first-many"
+                | "related-last"
+                | "related-last-many"
+        )
+    }
+    fn descending(&self) -> bool {
+        matches!(
+            self.primitive.as_str(),
+            "last" | "last-many" | "related-last" | "related-last-many"
+        )
+    }
+    fn counts(&self) -> bool {
+        matches!(self.primitive.as_str(), "count" | "count-many")
     }
     fn many(&self) -> bool {
         self.primitive.ends_with("-many")
@@ -139,6 +179,17 @@ pub(super) fn tables_of(build: &std::path::Path) -> Vec<Table> {
         .expect("its tables")
         .iter()
         .map(|t| Table {
+            windows: t["windows"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .map(|w| Relation {
+                    name: w["name"].as_str().expect("relation name").into(),
+                    target: w["target"].as_str().expect("relation target").into(),
+                    source_field: w["source_field"].as_str().expect("source match").into(),
+                    target_field: w["target_field"].as_str().expect("target match").into(),
+                })
+                .collect(),
             name: t["name"].as_str().expect("a name").to_string(),
             fields: t["fields"]
                 .as_array()
@@ -152,6 +203,7 @@ pub(super) fn tables_of(build: &std::path::Path) -> Vec<Table> {
                 })
                 .collect(),
             key: strings(&t["key"]),
+            order: t["order"].as_str().map(str::to_string),
             indexes: t["indexes"]
                 .as_array()
                 .into_iter()
@@ -176,6 +228,7 @@ pub(super) fn tables_of(build: &std::path::Path) -> Vec<Table> {
                 .expect("functions")
                 .iter()
                 .map(|f| Function {
+                    relation: f["relation"].as_str().map(str::to_string),
                     import: f["import"].as_str().expect("an import").to_string(),
                     primitive: f["primitive"].as_str().expect("a primitive").to_string(),
                     by: strings(&f["by"]),
@@ -427,6 +480,650 @@ fn oracle(
     found
 }
 
+/// Independently choose the mark field by emitted identity; no adapter helper.
+fn range_mark(table: &Table) -> String {
+    let mut mark = "after".to_string();
+    while table
+        .fields
+        .iter()
+        .any(|(field, _)| pw_host::tables::wit_name(field) == pw_host::tables::wit_name(&mark))
+    {
+        mark.push_str("_mark");
+    }
+    mark
+}
+
+fn range_key(table: &Table, function: &Function, request: &[Json]) -> Val {
+    let order = table.order.as_ref().expect("range has declared order");
+    let mut fields = function
+        .by
+        .iter()
+        .zip(request)
+        .map(|(field, value)| {
+            (
+                pw_host::tables::wit_name(field),
+                wit(table.stored(field), value),
+            )
+        })
+        .collect::<Vec<_>>();
+    fields.push((
+        pw_host::tables::wit_name(&range_mark(table)),
+        wit(table.stored(order), request.last().expect("mark")),
+    ));
+    Val::Record(fields)
+}
+
+fn range_arguments(table: &Table, function: &Function, requests: &[Vec<Json>]) -> Vec<Val> {
+    if function.many() {
+        vec![Val::List(
+            requests
+                .iter()
+                .map(|request| range_key(table, function, request))
+                .collect(),
+        )]
+    } else {
+        let mut args = function
+            .by
+            .iter()
+            .zip(&requests[0])
+            .map(|(field, value)| wit(table.stored(field), value))
+            .collect::<Vec<_>>();
+        args.push(wit(
+            table.stored(table.order.as_ref().expect("order")),
+            requests[0].last().expect("mark"),
+        ));
+        args
+    }
+}
+
+/// Counts directly from generated rows, equality fields and the declared order;
+/// no production selection/count codec or adapter supplies this answer.
+fn range_oracle(
+    table: &Table,
+    function: &Function,
+    rows: &[Map<String, Json>],
+    requests: &[Vec<Json>],
+) -> Vec<Val> {
+    let order = table.order.as_ref().expect("range has order");
+    let count = |request: &Vec<Json>| {
+        rows.iter()
+            .filter(|row| {
+                function
+                    .by
+                    .iter()
+                    .zip(request)
+                    .all(|(field, value)| row[field] == *value)
+                    && compare(&row[order], request.last().expect("mark")).is_gt()
+            })
+            .count() as i64
+    };
+    if !function.many() {
+        return vec![Val::S64(count(&requests[0]))];
+    }
+    let mut keys = requests.to_vec();
+    keys.sort_by(|a, b| {
+        a.iter()
+            .zip(b)
+            .map(|(a, b)| compare(a, b))
+            .find(|o| o.is_ne())
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    keys.dedup();
+    vec![Val::List(
+        keys.iter()
+            .map(|request| {
+                Val::Record(vec![
+                    ("key".into(), range_key(table, function, request)),
+                    ("count".into(), Val::S64(count(request))),
+                ])
+            })
+            .collect(),
+    )]
+}
+
+#[test]
+fn the_range_oracle_keeps_marks_ties_missing_zeros_and_canonical_pair_order() {
+    let integer = serde_json::json!({"int":{"at_least":null,"at_most":null}});
+    let table = Table {
+        windows: Vec::new(),
+        name: "Ranges".into(),
+        fields: vec![
+            ("group".into(), integer.clone()),
+            ("id".into(), integer.clone()),
+            ("stamp".into(), integer),
+        ],
+        key: vec!["group".into(), "id".into()],
+        order: Some("stamp".into()),
+        indexes: vec![],
+        references: vec![],
+        bounded: None,
+        source: "RangeData".into(),
+        functions: vec![],
+    };
+    let rows = [(1, 1, 1), (1, 2, 1), (1, 3, 3), (2, 4, 2)]
+        .into_iter()
+        .map(|(group, id, stamp)| {
+            [
+                ("group".into(), Json::from(group)),
+                ("id".into(), Json::from(id)),
+                ("stamp".into(), Json::from(stamp)),
+            ]
+            .into_iter()
+            .collect()
+        })
+        .collect::<Vec<_>>();
+    let mut function = Function {
+        relation: None,
+        import: String::new(),
+        primitive: "count-after".into(),
+        by: vec!["group".into()],
+        sorted_by: vec![],
+    };
+    assert_eq!(
+        range_oracle(
+            &table,
+            &function,
+            &rows,
+            &[vec![Json::from(1), Json::from(1)]]
+        ),
+        vec![Val::S64(1)]
+    );
+    function.primitive = "count-after-many".into();
+    let entry = |group, mark, count| {
+        Val::Record(vec![
+            (
+                "key".into(),
+                Val::Record(vec![
+                    ("group".into(), Val::S64(group)),
+                    ("after".into(), Val::S64(mark)),
+                ]),
+            ),
+            ("count".into(), Val::S64(count)),
+        ])
+    };
+    assert_eq!(
+        range_oracle(
+            &table,
+            &function,
+            &rows,
+            &[
+                vec![Json::from(1), Json::from(1)],
+                vec![Json::from(9), Json::from(0)],
+                vec![Json::from(1), Json::from(0)],
+                vec![Json::from(1), Json::from(1)]
+            ]
+        ),
+        vec![Val::List(vec![
+            entry(1, 0, 3),
+            entry(1, 1, 1),
+            entry(9, 0, 0)
+        ])]
+    );
+    assert_eq!(
+        range_oracle(&table, &function, &rows, &[]),
+        vec![Val::List(vec![])]
+    );
+}
+
+/// Independent semi-join over the suite's own source/target rows. No adapter,
+/// production selector/result codec, SQL or primitive implementation is called.
+fn relation_oracle(
+    tables: &[Table],
+    source: &Table,
+    function: &Function,
+    rows: &BTreeMap<String, Vec<Map<String, Json>>>,
+    selectors: &[Vec<Json>],
+    limit: i64,
+) -> Vec<Val> {
+    let relation = source
+        .windows
+        .iter()
+        .find(|w| Some(&w.name) == function.relation.as_ref())
+        .expect("declared relation");
+    let target = tables
+        .iter()
+        .find(|t| t.name == relation.target)
+        .expect("declared target");
+    let mut order = target.order.iter().cloned().collect::<Vec<_>>();
+    for field in &target.key {
+        if !order.contains(field) {
+            order.push(field.clone());
+        }
+    }
+    let mut keys = selectors.to_vec();
+    keys.sort_by(|a, b| {
+        a.iter()
+            .zip(b)
+            .map(|(a, b)| compare(a, b))
+            .find(|o| o.is_ne())
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    keys.dedup();
+    let mut groups = Vec::new();
+    for key in keys {
+        let mut found = rows[&target.name]
+            .iter()
+            .filter(|post| {
+                rows[&source.name].iter().any(|edge| {
+                    function
+                        .by
+                        .iter()
+                        .zip(&key)
+                        .all(|(field, value)| edge[field] == *value)
+                        && edge[&relation.source_field] == post[&relation.target_field]
+                })
+            })
+            .collect::<Vec<_>>();
+        found.sort_by(|a, b| {
+            order
+                .iter()
+                .map(|field| compare(&a[field], &b[field]))
+                .find(|o| o.is_ne())
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+        if function.descending() {
+            found.reverse();
+        }
+        found.truncate(usize::try_from(limit.max(0)).unwrap_or(usize::MAX));
+        let answer = Val::List(
+            found
+                .into_iter()
+                .map(|row| {
+                    Val::Record(
+                        target
+                            .fields
+                            .iter()
+                            .map(|(field, stored)| {
+                                (pw_host::tables::wit_name(field), wit(stored, &row[field]))
+                            })
+                            .collect(),
+                    )
+                })
+                .collect(),
+        );
+        if !function.many() {
+            return vec![answer];
+        }
+        groups.push(Val::Record(vec![
+            ("key".into(), selector(source, function, &key)),
+            ("rows".into(), answer),
+        ]));
+    }
+    vec![Val::List(groups)]
+}
+
+#[test]
+fn the_relation_oracle_uses_global_targets_and_keeps_overlapping_empty_groups() {
+    let int = serde_json::json!({"int":{}});
+    let source = Table {
+        name: "Edges".into(),
+        windows: vec![Relation {
+            name: "posts".into(),
+            target: "Posts".into(),
+            source_field: "author".into(),
+            target_field: "author".into(),
+        }],
+        fields: ["reader", "topic", "author", "edge"]
+            .into_iter()
+            .map(|f| (f.into(), int.clone()))
+            .collect(),
+        key: vec![
+            "reader".into(),
+            "topic".into(),
+            "author".into(),
+            "edge".into(),
+        ],
+        order: Some("edge".into()),
+        indexes: vec![],
+        references: vec![],
+        bounded: None,
+        source: "Data".into(),
+        functions: vec![],
+    };
+    let target = Table {
+        name: "Posts".into(),
+        windows: vec![],
+        fields: ["id", "author", "stamp"]
+            .into_iter()
+            .map(|f| (f.into(), int.clone()))
+            .collect(),
+        key: vec!["id".into()],
+        order: Some("stamp".into()),
+        indexes: vec![],
+        references: vec![],
+        bounded: None,
+        source: "Data".into(),
+        functions: vec![],
+    };
+    let source_row = |reader, topic, author, edge| {
+        [
+            ("reader".into(), Json::from(reader)),
+            ("topic".into(), Json::from(topic)),
+            ("author".into(), Json::from(author)),
+            ("edge".into(), Json::from(edge)),
+        ]
+        .into_iter()
+        .collect::<Map<_, _>>()
+    };
+    let post = |id, author, stamp| {
+        [
+            ("id".into(), Json::from(id)),
+            ("author".into(), Json::from(author)),
+            ("stamp".into(), Json::from(stamp)),
+        ]
+        .into_iter()
+        .collect::<Map<_, _>>()
+    };
+    let rows = BTreeMap::from([
+        (
+            "Edges".into(),
+            vec![
+                source_row(1, 10, 7, 1),
+                source_row(1, 10, 7, 2),
+                source_row(1, 10, 8, 3),
+                source_row(1, 20, 7, 4),
+                source_row(2, 10, 9, 5),
+            ],
+        ),
+        (
+            "Posts".into(),
+            vec![
+                post(1, 7, 1),
+                post(2, 8, 2),
+                post(3, 7, 3),
+                post(4, 8, 3),
+                post(5, 9, 99),
+            ],
+        ),
+    ]);
+    let mut function = Function {
+        relation: Some("posts".into()),
+        import: "test".into(),
+        primitive: "related-last-many".into(),
+        by: vec!["reader".into(), "topic".into()],
+        sorted_by: vec!["stamp".into(), "id".into()],
+    };
+    let tables = vec![source.clone(), target];
+    let selectors = [
+        vec![Json::from(1), Json::from(20)],
+        vec![Json::from(1), Json::from(999)],
+        vec![Json::from(1), Json::from(10)],
+        vec![Json::from(1), Json::from(10)],
+    ];
+    let encoded = |id| {
+        let row = rows["Posts"].iter().find(|row| row["id"] == id).unwrap();
+        Val::Record(
+            ["id", "author", "stamp"]
+                .into_iter()
+                .map(|field| (field.into(), Val::S64(row[field].as_i64().unwrap())))
+                .collect(),
+        )
+    };
+    let group = |topic, ids: &[i64]| {
+        Val::Record(vec![
+            (
+                "key".into(),
+                Val::Record(vec![
+                    ("reader".into(), Val::S64(1)),
+                    ("topic".into(), Val::S64(topic)),
+                ]),
+            ),
+            (
+                "rows".into(),
+                Val::List(ids.iter().map(|id| encoded(*id)).collect()),
+            ),
+        ])
+    };
+    assert_eq!(
+        relation_oracle(&tables, &source, &function, &rows, &selectors, 2),
+        vec![Val::List(vec![
+            group(10, &[4, 3]),
+            group(20, &[3, 1]),
+            group(999, &[])
+        ])]
+    );
+    assert_eq!(
+        relation_oracle(&tables, &source, &function, &rows, &selectors, 0),
+        vec![Val::List(vec![
+            group(10, &[]),
+            group(20, &[]),
+            group(999, &[])
+        ])]
+    );
+    assert_eq!(
+        relation_oracle(&tables, &source, &function, &rows, &[], 2),
+        vec![Val::List(vec![])]
+    );
+    function.primitive = "related-first".into();
+    assert_eq!(
+        relation_oracle(
+            &tables,
+            &source,
+            &function,
+            &rows,
+            &[vec![Json::from(1), Json::from(10)]],
+            2
+        ),
+        vec![Val::List(vec![encoded(1), encoded(2)])]
+    );
+    function.primitive = "related-last".into();
+    assert_eq!(
+        relation_oracle(
+            &tables,
+            &source,
+            &function,
+            &rows,
+            &[vec![Json::from(2), Json::from(10)]],
+            2
+        ),
+        vec![Val::List(vec![encoded(5)])]
+    );
+}
+
+/// Ordered windows from generated rows, independently of the adapter's
+/// implementation: canonical distinct groups, each with its own bound.
+fn window_oracle(
+    function: &Function,
+    rows: &[Map<String, Json>],
+    selectors: &[Vec<Json>],
+    limit: i64,
+) -> Vec<Map<String, Json>> {
+    let mut keys = selectors.to_vec();
+    keys.sort_by(|a, b| {
+        a.iter()
+            .zip(b)
+            .map(|(a, b)| compare(a, b))
+            .find(|o| o.is_ne())
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    keys.dedup();
+    let mut expected = Vec::new();
+    for key in keys {
+        let mut group = oracle(function, rows, std::slice::from_ref(&key));
+        if function.descending() {
+            group.reverse();
+        }
+        group.truncate(usize::try_from(limit.max(0)).unwrap_or(usize::MAX));
+        expected.extend(group);
+    }
+    expected
+}
+
+#[test]
+fn the_window_oracle_limits_each_distinct_group_and_reverses_order_ties() {
+    let made = |g, i, stamp| {
+        [
+            ("group".into(), Json::from(g)),
+            ("id".into(), Json::from(i)),
+            ("stamp".into(), Json::from(stamp)),
+        ]
+        .into_iter()
+        .collect::<Map<_, _>>()
+    };
+    let rows = vec![
+        made(1, 1, 1),
+        made(1, 2, 1),
+        made(1, 3, 9),
+        made(2, 1, 2),
+        made(2, 2, 3),
+    ];
+    let selectors = [
+        vec![Json::from(2)],
+        vec![Json::from(1)],
+        vec![Json::from(1)],
+        vec![Json::from(0)],
+    ];
+    let mut function = Function {
+        relation: None,
+        import: String::new(),
+        primitive: "first-many".into(),
+        by: vec!["group".into()],
+        sorted_by: vec!["group".into(), "stamp".into(), "id".into()],
+    };
+    assert_eq!(
+        window_oracle(&function, &rows, &selectors, 2),
+        vec![made(1, 1, 1), made(1, 2, 1), made(2, 1, 2), made(2, 2, 3)]
+    );
+    function.primitive = "last-many".into();
+    assert_eq!(
+        window_oracle(&function, &rows, &selectors, 2),
+        vec![made(1, 3, 9), made(1, 2, 1), made(2, 2, 3), made(2, 1, 2)]
+    );
+    assert_eq!(
+        window_oracle(&function, &rows, &selectors, i64::MAX).len(),
+        5
+    );
+    for limit in [0, -1] {
+        assert!(window_oracle(&function, &rows, &selectors, limit).is_empty());
+    }
+    function.primitive = "last".into();
+    assert_eq!(
+        window_oracle(&function, &rows, &[vec![Json::from(1)]], 2),
+        vec![made(1, 3, 9), made(1, 2, 1)]
+    );
+}
+
+/// Counts from the suite's independently generated stored rows: one Int,
+/// or every distinct requested selector, in scalar/tuple order, with zero
+/// where no generated row matches. No adapter or production codec is called.
+fn count_oracle(
+    table: &Table,
+    function: &Function,
+    rows: &[Map<String, Json>],
+    selectors: &[Vec<Json>],
+) -> Vec<Val> {
+    if !function.many() {
+        return vec![Val::S64(oracle(function, rows, selectors).len() as i64)];
+    }
+    let mut keys = selectors.to_vec();
+    keys.sort_by(|a, b| {
+        a.iter()
+            .zip(b)
+            .map(|(a, b)| compare(a, b))
+            .find(|o| o.is_ne())
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    keys.dedup();
+    vec![Val::List(
+        keys.iter()
+            .map(|key| {
+                let count = oracle(function, rows, std::slice::from_ref(key)).len() as i64;
+                Val::Record(vec![
+                    ("key".into(), selector(table, function, key)),
+                    ("count".into(), Val::S64(count)),
+                ])
+            })
+            .collect(),
+    )]
+}
+
+#[test]
+fn the_count_oracle_keeps_zero_distinct_keys_and_scalar_tuple_order() {
+    let integer = serde_json::json!({"int":{"at_least":null,"at_most":null}});
+    let table = Table {
+        windows: Vec::new(),
+        name: "Counts".into(),
+        fields: vec![("group".into(), integer.clone()), ("id".into(), integer)],
+        key: vec!["group".into(), "id".into()],
+        order: None,
+        indexes: vec![],
+        references: vec![],
+        bounded: None,
+        source: "CountData".into(),
+        functions: vec![],
+    };
+    let rows = [(1, 1), (1, 2), (2, 1)]
+        .into_iter()
+        .map(|(g, i)| {
+            [
+                ("group".into(), Json::from(g)),
+                ("id".into(), Json::from(i)),
+            ]
+            .into_iter()
+            .collect()
+        })
+        .collect::<Vec<_>>();
+    let mut function = Function {
+        relation: None,
+        import: String::new(),
+        primitive: "count".into(),
+        by: vec!["group".into()],
+        sorted_by: vec![],
+    };
+    assert_eq!(
+        count_oracle(&table, &function, &rows, &[vec![Json::from(1)]]),
+        vec![Val::S64(2)]
+    );
+    assert_eq!(
+        count_oracle(&table, &function, &rows, &[vec![Json::from(9)]]),
+        vec![Val::S64(0)]
+    );
+    function.primitive = "count-many".into();
+    let entry =
+        |key, count| Val::Record(vec![("key".into(), key), ("count".into(), Val::S64(count))]);
+    assert_eq!(
+        count_oracle(
+            &table,
+            &function,
+            &rows,
+            &[
+                vec![Json::from(2)],
+                vec![Json::from(0)],
+                vec![Json::from(1)],
+                vec![Json::from(1)]
+            ]
+        ),
+        vec![Val::List(vec![
+            entry(Val::S64(0), 0),
+            entry(Val::S64(1), 2),
+            entry(Val::S64(2), 1)
+        ])]
+    );
+    assert_eq!(
+        count_oracle(&table, &function, &rows, &[]),
+        vec![Val::List(vec![])]
+    );
+    function.by.push("id".into());
+    let key = |g, i| {
+        Val::Record(vec![
+            ("group".into(), Val::S64(g)),
+            ("id".into(), Val::S64(i)),
+        ])
+    };
+    assert_eq!(
+        count_oracle(
+            &table,
+            &function,
+            &rows,
+            &[
+                vec![Json::from(1), Json::from(9)],
+                vec![Json::from(1), Json::from(2)]
+            ]
+        ),
+        vec![Val::List(vec![entry(key(1, 2), 1), entry(key(1, 9), 0)])]
+    );
+}
+
 /// **The suite's own contracts**: a query reading every read function of
 /// every table, and a command reading and writing every function, each
 /// admitted on a node granting each table's read and write; so the gate
@@ -578,7 +1275,9 @@ pub(super) fn write_rows(
 
 /// The published row of `table` at `row`'s key, through the query's seam.
 fn published(s: &Server, table: &Table, row: &Map<String, Json>) -> Vec<Val> {
-    let [(reads, granted), _] = suite_contracts(std::slice::from_ref(table));
+    let mut only_get = table.clone();
+    only_get.functions.retain(|f| f.primitive == "get");
+    let [(reads, granted), _] = suite_contracts(std::slice::from_ref(&only_get));
     let ops = s
         .data
         .table_reads(&reads, &granted, None)
@@ -694,55 +1393,151 @@ fn answers_and_costs_read(
                     .map(|s| vec![s])
                     .collect()
             };
+            if function.range() {
+                let order = table.order.as_ref().expect("range order");
+                let marks = [
+                    all[0][order].clone(),
+                    all.last().expect("rows")[order].clone(),
+                    value(table.stored(order), 0),
+                    value(table.stored(order), 10_000 + n),
+                ];
+                let requests = present
+                    .iter()
+                    .chain(std::iter::once(&missing))
+                    .flat_map(|selector| {
+                        marks
+                            .iter()
+                            .map(|mark| {
+                                let mut request = selector.clone();
+                                request.push(mark.clone());
+                                request
+                            })
+                            .collect::<Vec<_>>()
+                    })
+                    .collect::<Vec<_>>();
+                let cases = if function.many() {
+                    let mut duplicated = requests.clone();
+                    duplicated.push(requests[0].clone());
+                    duplicated.reverse();
+                    vec![requests, duplicated, vec![]]
+                } else {
+                    requests.into_iter().map(|request| vec![request]).collect()
+                };
+                for requests in cases {
+                    let args = range_arguments(table, function, &requests);
+                    let before = statements(s);
+                    let answer = call(&ops, &function.import, &args);
+                    let made = statements(s) - before;
+                    let most = match sets.get(&table.source).map(String::as_str) {
+                        Some("one_call") => 1,
+                        _ => requests.len().max(1) as u64,
+                    };
+                    let least = u64::from(!(function.many() && requests.is_empty()));
+                    assert!(
+                        (least..=most).contains(&made),
+                        "{} range statements {made}, {way}, source bound {most}",
+                        function.import
+                    );
+                    assert_eq!(
+                        answer,
+                        range_oracle(table, function, all, &requests),
+                        "{} ranges {requests:?}, {way}, {n} rows",
+                        function.import
+                    );
+                    checked += 1;
+                }
+                continue;
+            }
             for selectors in cases {
-                let before = statements(s);
-                let answer = call(
-                    &ops,
-                    &function.import,
-                    &arguments(table, function, &selectors),
-                );
-                let made = statements(s) - before;
-                // Part 2: the adapter's statements, within the source's
-                // `sets`: one where it states `one_call`, one a key
-                // otherwise, and one for a read by one key or none; at least
-                // one, but for a set read of no key, which an adapter may
-                // answer without asking its database.
-                let keys = selectors.len().max(1) as u64;
-                let stated = match sets.get(&table.source).map(String::as_str) {
-                    Some("one_call") => 1,
-                    _ => keys,
+                let bounds = if function.window() {
+                    vec![Some(0), Some(-1), Some(1), Some(2), Some(i64::MAX)]
+                } else {
+                    vec![None]
                 };
-                let least = u64::from(!(function.many() && selectors.is_empty()));
-                assert!(
-                    (least..=stated).contains(&made),
-                    "{} with {} selector(s), {way}: {made} statement(s) of the adapter, and \
+                for limit in bounds {
+                    let mut args = arguments(table, function, &selectors);
+                    if let Some(limit) = limit {
+                        args.push(Val::S64(limit));
+                    }
+                    let before = statements(s);
+                    let answer = call(&ops, &function.import, &args);
+                    let made = statements(s) - before;
+                    // Part 2: the adapter's statements, within the source's
+                    // `sets`: one where it states `one_call`, one a key
+                    // otherwise, and one for a read by one key or none; at least
+                    // one, but for a set read of no key, which an adapter may
+                    // answer without asking its database.
+                    let keys = selectors.len().max(1) as u64;
+                    let stated = match sets.get(&table.source).map(String::as_str) {
+                        Some("one_call") => 1,
+                        _ => keys,
+                    };
+                    let least = u64::from(
+                        !(function.many() && selectors.is_empty())
+                            && !limit.is_some_and(|n| n <= 0),
+                    );
+                    assert!(
+                        (least..=stated).contains(&made),
+                        "{} with {} selector(s), {way}: {made} statement(s) of the adapter, and \
                      its source states at most {stated}",
-                    function.import,
-                    selectors.len()
-                );
-                // Part 1: the oracle's rows, in its order.
-                let expected = oracle(function, all, &selectors);
-                let got: Option<Vec<Map<String, Json>>> = match answer.as_slice() {
-                    [Val::Option(found)] if table.one(function) => {
-                        Some(found.iter().map(|r| row_of(table, r)).collect())
+                        function.import,
+                        selectors.len()
+                    );
+                    if function.related() {
+                        assert_eq!(
+                            answer,
+                            relation_oracle(
+                                tables,
+                                table,
+                                function,
+                                rows,
+                                &selectors,
+                                limit.unwrap_or(0)
+                            ),
+                            "{} given {selectors:?}, at {n} rows a table, {way}",
+                            function.import
+                        );
+                        checked += 1;
+                        continue;
                     }
-                    [Val::List(found)] if !table.one(function) => {
-                        Some(found.iter().map(|r| row_of(table, r)).collect())
+                    if function.counts() {
+                        assert_eq!(
+                            answer,
+                            count_oracle(table, function, all, &selectors),
+                            "{} given {selectors:?}, at {n} rows a table, {way}",
+                            function.import
+                        );
+                        checked += 1;
+                        continue;
                     }
-                    _ => None,
-                };
-                assert!(
-                    got.is_some(),
-                    "{} answered {answer:?}, {way}",
-                    function.import
-                );
-                let got = got.unwrap_or_default();
-                assert_eq!(
-                    got, expected,
-                    "{} given {selectors:?}, at {n} rows a table, {way}",
-                    function.import
-                );
-                checked += 1;
+                    // Part 1: the oracle's rows, in its order.
+                    let expected = if function.window() {
+                        window_oracle(function, all, &selectors, limit.unwrap_or(0))
+                    } else {
+                        oracle(function, all, &selectors)
+                    };
+                    let got: Option<Vec<Map<String, Json>>> = match answer.as_slice() {
+                        [Val::Option(found)] if table.one(function) => {
+                            Some(found.iter().map(|r| row_of(table, r)).collect())
+                        }
+                        [Val::List(found)] if !table.one(function) => {
+                            Some(found.iter().map(|r| row_of(table, r)).collect())
+                        }
+                        _ => None,
+                    };
+                    assert!(
+                        got.is_some(),
+                        "{} answered {answer:?}, {way}",
+                        function.import
+                    );
+                    let got = got.unwrap_or_default();
+                    assert_eq!(
+                        got, expected,
+                        "{} given {selectors:?}, at {n} rows a table, {way}",
+                        function.import
+                    );
+                    checked += 1;
+                }
             }
         }
     }
@@ -809,7 +1604,9 @@ fn write(ops: &data::Ops, import: &str, args: &[Val]) -> Result<(), String> {
 /// How many rows `table` holds, as a read every reader makes (its `all`,
 /// which a bounded table has).
 fn held(s: &Server, table: &Table) -> usize {
-    let [(reads, granted), _] = suite_contracts(std::slice::from_ref(table));
+    let mut only_all = table.clone();
+    only_all.functions.retain(|f| f.primitive == "all");
+    let [(reads, granted), _] = suite_contracts(std::slice::from_ref(&only_all));
     let ops = s
         .data
         .table_reads(&reads, &granted, None)
@@ -1387,4 +2184,124 @@ fn each_query_reads_its_tables_a_fixed_number_of_times_at_two_sizes() {
             }
         }
     }
+}
+
+pub(super) fn relations_build() -> (tempfile::TempDir, std::path::PathBuf) {
+    build_of(&["examples/relations"])
+}
+
+#[test]
+fn the_suite_holds_for_fixed_relation_windows_on_memory() {
+    let (_dir, out) = relations_build();
+    let checked = conformance(&out, &memory);
+    assert!(checked.reads > 0 && checked.writes > 0);
+    let tables = tables_of(&out);
+    for n in [3, 24] {
+        let rows = generated(&tables, n, 0);
+        for source in &tables {
+            for function in source.functions.iter().filter(|f| f.related() && !f.many()) {
+                let selector = function
+                    .by
+                    .iter()
+                    .map(|field| rows[&source.name][0][field].clone())
+                    .collect::<Vec<_>>();
+                let answer = relation_oracle(&tables, source, function, &rows, &[selector], 2);
+                assert!(
+                    matches!(answer.as_slice(),[Val::List(rows)] if !rows.is_empty()),
+                    "generated relation fixture has real positive matches at {n}: {answer:?}"
+                );
+            }
+        }
+    }
+}
+
+/// Exercise the real resource-cache fast path: public target rows do not
+/// make the owned selection public, even when the query arguments are forged.
+pub(super) fn warm_relation_cache(build: &std::path::Path, layer: Layer) {
+    let s = served_by(build, layer);
+    s.identity.signed_in_for_test("a", "alice", "Alice");
+    s.identity.signed_in_for_test("b", "bob", "Bob");
+    let tables = tables_of(build);
+    let rows = tables.iter().map(|table| {
+        let values = if table.windows.is_empty() {
+            vec![serde_json::json!({"id":1,"author":"bob","stamp":1,"text":"FOR_ALICE"}),
+                 serde_json::json!({"id":2,"author":"alice","stamp":2,"text":"FOR_BOB"})]
+        } else {
+            vec![serde_json::json!({"reader":"alice","topic":10,"author":"bob","edge":1,"to":"bob","secret":"ALICE_MEMBERSHIP"}),
+                 serde_json::json!({"reader":"bob","topic":10,"author":"alice","edge":2,"to":"alice","secret":"BOB_MEMBERSHIP"})]
+        };
+        (table.name.clone(), values.into_iter().map(|v| v.as_object().expect("row").clone()).collect())
+    }).collect();
+    written(&s, &tables, &rows);
+    let args = |reader: &str| vec![Val::String(reader.into()), Val::S64(10), Val::S64(1)];
+    let binding = serde_json::json!({
+        "resource":"relations.app.Following",
+        "policy":{"freshness_ms":30_000,"cache":"private","privacy":"user","key":[0,1,2]}
+    });
+    let alice = s
+        .fetch_answer("a", &binding, &args("alice"))
+        .asserted("Alice's selection");
+    let bob = s
+        .fetch_answer("b", &binding, &args("bob"))
+        .asserted("Bob's selection");
+    assert_ne!(alice, bob);
+    for (answer, yes, no) in [
+        (&alice, "FOR_ALICE", "FOR_BOB"),
+        (&bob, "FOR_BOB", "FOR_ALICE"),
+    ] {
+        let text = format!("{answer:?}");
+        assert!(
+            text.contains(yes) && !text.contains(no) && !text.contains("MEMBERSHIP"),
+            "{text}"
+        );
+    }
+    let table_calls = || {
+        s.calls
+            .lock()
+            .expect("calls")
+            .iter()
+            .filter(|(op, _)| pw_host::tables::is_table_import(op))
+            .map(|(op, n)| (op.clone(), *n))
+            .collect::<BTreeMap<_, _>>()
+    };
+    let calls = table_calls();
+    let ran = statements(&s);
+    for _ in 0..2 {
+        assert_eq!(
+            s.fetch_answer("a", &binding, &args("alice"))
+                .asserted("warm Alice"),
+            alice
+        );
+        assert_eq!(
+            s.fetch_answer("b", &binding, &args("bob"))
+                .asserted("warm Bob"),
+            bob
+        );
+    }
+    assert_eq!(
+        table_calls(),
+        calls,
+        "both readers actually use warm resource entries"
+    );
+    assert_eq!(statements(&s), ran, "no adapter read on either warm entry");
+    assert!(
+        s.fetch_answer("b", &binding, &args("alice")).is_err(),
+        "a cached reader handle must still belong to its caller"
+    );
+    assert_eq!(
+        table_calls(),
+        calls,
+        "forged cached reader never calls the adapter"
+    );
+    assert_eq!(
+        s.fetch_answer("a", &binding, &args("alice"))
+            .asserted("Alice remains warm"),
+        alice
+    );
+}
+
+#[test]
+fn warm_relation_selections_are_private_to_each_reader_on_memory() {
+    let (_dir, out) = relations_build();
+    warm_relation_cache(&out, &memory);
 }

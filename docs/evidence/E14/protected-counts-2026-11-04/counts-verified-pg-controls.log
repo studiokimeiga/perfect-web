@@ -1,0 +1,9 @@
+baseline: 77 passed, 0 failed
+counts count the absent left-join row as a match: KILLED (4 of 77 tests fail)
+counts omit missing selectors with an inner join: KILLED (4 of 77 tests fail)
+counts scalar query ignores its selector: KILLED (3 of 77 tests fail)
+counts row accounting is not observed: KILLED (2 of 77 tests fail)
+counts byte accounting is not observed: KILLED (2 of 77 tests fail)
+postgres operation accounting counts a transaction boundary as data: KILLED (2 of 77 tests fail)
+6 of 6 mutants killed
+memory bound: no process was stopped

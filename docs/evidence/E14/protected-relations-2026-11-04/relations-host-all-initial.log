@@ -1,0 +1,40 @@
+   Compiling pw-host v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-host)
+error[E0063]: missing field `target` in initializer of `tables::Read`
+   --> runtime/pw-host/src/engine/table_selectors.rs:237:9
+    |
+237 |         Read {
+    |         ^^^^ missing `target`
+
+error[E0063]: missing field `target` in initializer of `tables::Read`
+   --> runtime/pw-host/src/engine/table_results.rs:258:9
+    |
+258 |         Read {
+    |         ^^^^ missing `target`
+
+error[E0063]: missing field `target` in initializer of `tables::Read`
+  --> runtime/pw-host/src/engine/table_read_host.rs:69:9
+   |
+69 |         Read {
+   |         ^^^^ missing `target`
+
+error[E0063]: missing field `target` in initializer of `tables::Read`
+   --> runtime/pw-host/src/engine/table_link.rs:962:9
+    |
+962 |         Read {
+    |         ^^^^ missing `target`
+
+error[E0063]: missing field `target` in initializer of `tables::Read`
+   --> runtime/pw-host/src/engine/table_owners.rs:294:22
+    |
+294 |         Access::Read(Read {
+    |                      ^^^^ missing `target`
+
+error[E0063]: missing field `target` in initializer of `tables::Read`
+   --> runtime/pw-host/src/engine/table_owners.rs:455:32
+    |
+455 |         let own = Access::Read(Read {
+    |                                ^^^^ missing `target`
+
+For more information about this error, try `rustc --explain E0063`.
+error: could not compile `pw-host` (lib test) due to 6 previous errors
+warning: build failed, waiting for other jobs to finish...

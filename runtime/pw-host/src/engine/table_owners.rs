@@ -46,7 +46,9 @@ pub fn admit(access: &Access, caller: &Caller, args: Vec<Val>) -> Result<Vec<Val
     } = caller
     {
         let old_owner_access = match access {
-            Access::Read(read) => read.key.first() == Some(&handle.field),
+            Access::Read(read) => {
+                read.source_key.as_ref().unwrap_or(&read.key).first() == Some(&handle.field)
+            }
             Access::Write(write) => {
                 matches!(write.primitive, Primitive::Delete | Primitive::DeletePrefix)
             }
@@ -85,9 +87,29 @@ pub fn admit(access: &Access, caller: &Caller, args: Vec<Val>) -> Result<Vec<Val
     }
     match access {
         Access::Read(read) if read.many() => {
+            if read.primitive.range() {
+                let [_, Val::List(requests)] = args.as_slice() else {
+                    return Err(format!(
+                        "`{import}` takes its reader and selector-and-mark records"
+                    ));
+                };
+                let columns = read.count_columns()?;
+                let (first, following) = columns.split_first().ok_or("a range has no reader")?;
+                let keys = requests
+                    .iter()
+                    .map(|request| {
+                        let rest = table_link::exact_row(following, request)?;
+                        let mut fields = vec![(first.wit.clone(), Val::String(user.clone()))];
+                        fields.extend(rest.iter().cloned());
+                        Ok(Val::Record(fields))
+                    })
+                    .collect::<Result<Vec<_>, String>>()?;
+                return Ok(vec![Val::List(keys)]);
+            }
             // `(handle, list of what follows it)`: each of the list's keys
             // with the handle in its first field's place.
-            let [_, Val::List(rest)] = args.as_slice() else {
+            let (selectors, limit) = table_link::window_arguments(read, args.as_slice())?;
+            let [_, Val::List(rest)] = selectors else {
                 return Err(format!(
                     "`{import}` is given its reader's handle and one list of what follows it"
                 ));
@@ -101,7 +123,11 @@ pub fn admit(access: &Access, caller: &Caller, args: Vec<Val>) -> Result<Vec<Val
                 .map(|item| keyed(first, following, user, item))
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(|why| format!("`{import}`: {why}"))?;
-            Ok(vec![Val::List(keys)])
+            let mut normalized = vec![Val::List(keys)];
+            if let Some(limit) = limit {
+                normalized.push(Val::S64(limit));
+            }
+            Ok(normalized)
         }
         Access::Write(write) if matches!(write.primitive, Primitive::Insert | Primitive::Put) => {
             let [_, row] = args.as_slice() else {
@@ -152,6 +178,9 @@ pub fn seen(access: &Access, out: Vec<Val>) -> Result<Vec<Val>, String> {
     let Access::Read(read) = access else {
         return Ok(out);
     };
+    if read.primitive.counts() {
+        return Ok(out);
+    }
     let Some(seen) = read.handle.as_ref().and_then(|h| h.seen.as_ref()) else {
         return Ok(out);
     };
@@ -187,6 +216,7 @@ pub fn seen(access: &Access, out: Vec<Val>) -> Result<Vec<Val>, String> {
 pub fn check_import(access: &Access, params: &[Type], results: &[Type]) -> Result<(), String> {
     match access {
         Access::Read(read) => {
+            let params = table_link::range_params(read, params)?;
             let words = read.primitive.by_words();
             if read.many() {
                 let [Type::String, Type::List(rest)] = params else {
@@ -195,9 +225,19 @@ pub fn check_import(access: &Access, params: &[Type], results: &[Type]) -> Resul
                         table_link::listed(params)
                     ));
                 };
-                table_link::selector(words, &read.by[1..], &rest.ty())?;
+                if read.primitive.range() {
+                    table_link::record(&read.count_columns()?[1..], &rest.ty())?;
+                } else {
+                    table_link::selector(words, &read.by[1..], &rest.ty())?;
+                }
             } else {
                 table_link::fields(words, &read.by, params)?;
+            }
+            if read.primitive.counts() {
+                return table_link::count_results(read, results);
+            }
+            if read.primitive.related() {
+                return table_link::related_results(read, results);
             }
             let answered = read
                 .handle
@@ -254,6 +294,8 @@ mod tests {
             string("draft"),
         ];
         Access::Read(Read {
+            target: None,
+            source_key: None,
             import: "pw:tables/notes#by-to".into(),
             table: "Notes".into(),
             primitive: Primitive::Index,
@@ -415,6 +457,8 @@ mod tests {
             unreachable!()
         };
         let own = Access::Read(Read {
+            target: None,
+            source_key: None,
             import: "pw:tables/notes#get".into(),
             table: "Notes".into(),
             primitive: Primitive::Get,
@@ -483,6 +527,75 @@ mod tests {
             )
             .is_err(),
             "ordinary callers gain no transition privilege"
+        );
+    }
+    #[test]
+    fn a_sharers_count_result_is_not_projected_as_a_stored_row() {
+        let Access::Read(mut count) = by_to() else {
+            unreachable!()
+        };
+        count.primitive = Primitive::CountMany;
+        count.by.push(string("id"));
+        let counts = vec![Val::List(vec![Val::Record(vec![
+            (
+                "key".into(),
+                Val::Record(vec![
+                    ("to".into(), Val::String("bob".into())),
+                    ("id".into(), Val::String("n1".into())),
+                ]),
+            ),
+            ("count".into(), Val::S64(2)),
+        ])])];
+        assert_eq!(seen(&Access::Read(count), counts.clone()), Ok(counts));
+    }
+
+    #[test]
+    fn identity_relation_reads_use_membership_ownership_not_the_public_targets_key() {
+        let caller = Caller::IdentityTransition {
+            previous_guest: "guest".into(),
+            current: "account".into(),
+        };
+        let mut shared = by_to();
+        if let Access::Read(read) = &mut shared {
+            read.target = Some("Posts".into());
+            read.source_key = Some(read.key.clone());
+            // A legal public target key may have the same spelling as the
+            // source sharer field. It grants no old-guest sharer authority.
+            read.key = vec!["to".into()];
+            read.primitive = Primitive::RelatedLast;
+            read.handle.as_mut().unwrap().seen = None;
+        }
+        assert!(
+            admit(
+                &shared,
+                &caller,
+                vec![Val::String("guest".into()), Val::S64(1)]
+            )
+            .is_err(),
+            "old guest must not read foreign-owned memberships through a sharer"
+        );
+        assert!(
+            admit(
+                &shared,
+                &caller,
+                vec![Val::String("account".into()), Val::S64(1)]
+            )
+            .is_ok(),
+            "current account retains normal sharer access"
+        );
+        let mut owner = shared;
+        if let Access::Read(read) = &mut owner {
+            read.handle.as_mut().unwrap().field = "author".into();
+            read.by[0] = string("author");
+        }
+        assert!(
+            admit(
+                &owner,
+                &caller,
+                vec![Val::String("guest".into()), Val::S64(1)]
+            )
+            .is_ok(),
+            "old guest retains own membership reads even when target key differs"
         );
     }
 }
