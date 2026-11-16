@@ -55,9 +55,14 @@ lifecycle and owned Clock actions. What stays open, in order:
     when it first opens a layer on the database and gives it back as its
     thread ends, as many places as the database serves at twelve
     connections a test (`tests::pg_places`, the budget in ASSUMPTIONS). The
-    server's 1,120 tests pass at the machine's twelve threads on all three
-    databases, and `tests_beyond_the_databases_connections_wait_for_a_place`
-    fails without the places.
+    server's tests pass at 32 threads with the store on PostgreSQL and all
+    three databases set (1,122 tests), and
+    `tests_beyond_the_databases_connections_wait_for_a_place` fails without
+    the places. Its review's findings are repaired: a wait for a place ends
+    after ten minutes and says why, a database that cannot be asked is an
+    error, six connections are kept for what no place covers, and each
+    layer's hook is held by a test. Every test but the gate's peaks at ten
+    connections, one at a time.
 11. **L2's items 2 and 4**, below: one count of a transaction's
     boundaries, and what ADR-0395 leaves.
 
