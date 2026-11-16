@@ -41,9 +41,16 @@ owner. What stays open, in order:
    descriptor immutability and `lock_lifetime`'s marker check each a test
    and a mutant, in `e14-d3-postgres-2`; `persist`'s `ON CONFLICT` guard
    no command reaches, as ADR-0440's L5 landing says):
-   - upload refusals with codes of their own, not PW5601's invariant, and
-     corpus cases for each upload and asset rule;
-   - the bare `is_err()` refusals in the asset tests held to their reasons;
+   - upload refusals with codes of their own, not PW5601's invariant: done
+     on `wip/l5-followups` (2026-11-16), PW5604 (an upload's taken names)
+     and PW5605 (a claim without `idempotent_by`), each a test and a mutant;
+   - the bare `is_err()` refusals in the asset tests held to their reasons:
+     done there, all 85, each reason observed before it was written;
+   - corpus cases for each upload and asset rule, as the architect's ruling
+     of 2026-08-06 asks of an invariant: an `examples/rejected` fixture, its
+     generality pair (`caught.pw`, `neighbour.pw`) and its `docs/CORPUS.md`
+     entry, for PW5601 to PW5605 and the table assets' rules, which have
+     none;
    - one contract suite for assets over memory and PostgreSQL alike.
 
    Keep the
