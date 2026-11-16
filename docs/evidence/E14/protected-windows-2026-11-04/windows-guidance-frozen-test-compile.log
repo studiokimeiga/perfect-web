@@ -1,0 +1,95 @@
+# ADR-0276: the reference apps, the demo and the generality cases too;
+# `examples/history` keeps the sources as they were.
+cargo run --quiet -p pw-cli -- fmt --check examples/*.pw examples/lib/*.pw examples/accepted/*.pw examples/rejected/*.pw examples/rules/*/*.pw examples/kiokun/*.pw examples/kiokun-site/*.pw packages/*/*.pw examples/feed/*.pw examples/store/*.pw examples/demo/*.pw examples/generality/*/*.pw examples/tables/*.pw examples/owned/*.pw examples/todomvc/*.pw
+pw fmt: 506 file(s) already formatted
+cargo run --quiet -p corpus-check -- examples
+accepted: 49 files
+accepted: 48/48 charter §16 categories covered
+rejected: 103 files
+rejected: 103/103 charter §16 categories covered
+corpus-check: OK
+# The accepted corpus as the ONE program it is: the shared library plus
+# every accepted file. Feeding it the rejected files too would ask the
+# compiler to resolve 68 files as one program, which they are not — five
+# rejected fixtures reuse module names with each other (E2B).
+# Semantic language conformance and current executable support are distinct.
+# The complete CLI gate pins all four exposed backend gaps and no artifacts.
+cargo test --locked -p pw-core --test checking_source no_accepted_corpus_file_reports_a_body_level_error
+   Compiling pw-core v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-core)
+    Finished `test` profile [unoptimized] target(s) in 0.43s
+     Running tests/checking_source.rs (target/debug/deps/checking_source-9f178075f0e423b6)
+
+running 1 test
+test no_accepted_corpus_file_reports_a_body_level_error ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 19 filtered out; finished in 0.30s
+
+cargo test --locked -p pw-cli --test check_build_corpus accepted_corpus_has_exactly_its_known_backend_refusals
+   Compiling pw-cli v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-cli)
+    Finished `test` profile [unoptimized] target(s) in 0.57s
+     Running tests/check_build_corpus.rs (target/debug/deps/check_build_corpus-daedc2a15474059b)
+
+running 1 test
+test accepted_corpus_has_exactly_its_known_backend_refusals ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 1.47s
+
+# The demo, checked as the program it is. It was outside `ci` until E6,
+# and E6's first rule found two dangling edges in it — a milestone demo
+# nothing checks is a milestone demo that can quietly stop being true.
+cargo run --quiet -p pw-cli -- check packages/pw-std/*.pw packages/pw-platform-web/*.pw examples/domain.pw examples/lib/*.pw examples/store/*.pw
+pw check: 57 file(s), no diagnostics
+# The kiokun slice (E10): a second application, and the first to use the
+# platform package without the store's domain.
+cargo run --quiet -p pw-cli -- check packages/pw-std/*.pw packages/pw-platform-web/*.pw examples/kiokun/*.pw
+pw check: 27 file(s), no diagnostics
+# kiokun.com in Pleris (track `kiokun`), beside the slice's shard rule.
+cargo run --quiet -p pw-cli -- check packages/pw-std/*.pw packages/pw-platform-web/*.pw examples/kiokun/Shards.pw examples/kiokun/dictionary.pw examples/kiokun-site/*.pw
+[1m[33mwarning[0m[1m: [PW0405] `search_reading` reads `ReadingHit` once for each element of `unfit_kana(candidates, asked_entries)`[0m
+    [1m[94m--> [0mapp.pw:3133:105
+     [1m[94m|[0m
+[1m[94m3133[0m [1m[94m|[0m     let lookups = List.map(unfit_kana(candidates, asked_entries), r => ReadingFound { reading: r, rows: search_reading(r, 10) })
+     [1m[94m|[0m                            [1m[94m-------------------------------------[0m                                        [1m[33m^^^^^^^^^^^^^^^[0m[1m[94m-[0m[1m[33m^^^^^[0m
+     [1m[94m|[0m                            [1m[94m|[0m                                                                            [1m[33m|[0m              [1m[94m|[0m
+     [1m[94m|[0m                            [1m[94m|[0m                                                                            [1m[33m|[0m              [1m[94mits key `r` comes from `r`, the element `List.map` passes[0m
+     [1m[94m|[0m                            [1m[94mone read per reading[0m                                                         [1m[33m`search_reading` reads `ReadingHit` once for each element of `unfit_kana(candidates, asked_entries)`[0m
+     [1m[94m|[0m
+     [1m[94m= [0m[1mnote[0m: A read in a loop over data runs once for each element, so the page or command makes as many round trips as its list is long (N+1). A key that does not come from the element is one key, which the host's cache answers again; a key that does is a read per element. Read the list's keys together, in one set read before the loop, and find each element's in what it answers. A read per element this program is known to make, a warning until it reads them together: kiokun.com asks `search?reading=..&limit=` once for each reading; its layer has no set form of `search#reading`.
+     [1m[94m= [0m[1mhelp[0m: `search_reading` has no set read; its source can declare one
+[1m[33mwarning[0m[1m: [PW0405] `read_pitch` reads `PitchReading` once for each element of `l.data.japanese`[0m
+    [1m[94m--> [0mapp.pw:3168:73
+     [1m[94m|[0m
+[1m[94m3168[0m [1m[94m|[0m         Some(l) => List.map(l.data.japanese, w => WordPitch { readings: read_pitch(pitch_shard(speak_of(w)), speak_of(w)) }),
+     [1m[94m|[0m                             [1m[94m---------------[0m                             [1m[33m^^^^^^^^^^^[0m[1m[94m------------------------[0m[1m[33m^^^^^^^^^^^^^^[0m
+     [1m[94m|[0m                             [1m[94m|[0m                                           [1m[33m|[0m          [1m[94m|[0m
+     [1m[94m|[0m                             [1m[94m|[0m                                           [1m[33m|[0m          [1m[94mits key `pitch_shard(speak_of(w))` comes from `w`, the element `List.map` passes[0m
+     [1m[94m|[0m                             [1m[94mone read per shard[0m                          [1m[33m`read_pitch` reads `PitchReading` once for each element of `l.data.japanese`[0m
+     [1m[94m|[0m
+     [1m[94m= [0m[1mnote[0m: A read in a loop over data runs once for each element, so the page or command makes as many round trips as its list is long (N+1). A key that does not come from the element is one key, which the host's cache answers again; a key that does is a read per element. Read the list's keys together, in one set read before the loop, and find each element's in what it answers. A read per element this program is known to make, a warning until it reads them together: kiokun.com reads a word's pitch shard once for each word; its layer has no set form of `pitch#of`, whose key is two values.
+     [1m[94m= [0m[1mhelp[0m: `read_pitch` has no set read; its source can declare one
+[1m[33mwarning[0m[1m: [PW0405] `search_reading` reads `ReadingHit` once for each element of `List.filter(readings_of(l.data), r => String.trim(r) != "")`[0m
+    [1m[94m--> [0mapp.pw:3175:128
+     [1m[94m|[0m
+[1m[94m3175[0m [1m[94m|[0m [1m[94m...[0map(List.filter(readings_of(l.data), r => String.trim(r) != ""), r => ReadingFound { reading: r, rows: search_reading(String.trim(r), homophone_limit()) }),
+     [1m[94m|[0m       [1m[94m-----------------------------------------------------------[0m                                        [1m[33m^^^^^^^^^^^^^^^[0m[1m[94m--------------[0m[1m[33m^^^^^^^^^^^^^^^^^^^^[0m
+     [1m[94m|[0m       [1m[94m|[0m                                                                                                  [1m[33m|[0m              [1m[94m|[0m
+     [1m[94m|[0m       [1m[94m|[0m                                                                                                  [1m[33m|[0m              [1m[94mits key `String.trim(r)` comes from `r`, the element `List.map` passes[0m
+     [1m[94m|[0m       [1m[94mone read per reading[0m                                                                               [1m[33m`search_reading` reads `ReadingHit` once for each element of `List.filter(readings_of(l.data), r => String.trim(r) != "")`[0m
+     [1m[94m|[0m
+     [1m[94m= [0m[1mnote[0m: A read in a loop over data runs once for each element, so the page or command makes as many round trips as its list is long (N+1). A key that does not come from the element is one key, which the host's cache answers again; a key that does is a read per element. Read the list's keys together, in one set read before the loop, and find each element's in what it answers. A read per element this program is known to make, a warning until it reads them together: kiokun.com asks `search?reading=..&limit=` once for each reading; its layer has no set form of `search#reading`.
+     [1m[94m= [0m[1mhelp[0m: `search_reading` has no set read; its source can declare one
+[1m[33mwarning[0m[1m: [PW0405] `search_reading` reads `ReadingHit` once for each element of `unfit_kana(candidates, asked_entries)`[0m
+    [1m[94m--> [0mapp.pw:3945:105
+     [1m[94m|[0m
+[1m[94m3945[0m [1m[94m|[0m     let lookups = List.map(unfit_kana(candidates, asked_entries), r => ReadingFound { reading: r, rows: search_reading(r, 10) })
+     [1m[94m|[0m                            [1m[94m-------------------------------------[0m                                        [1m[33m^^^^^^^^^^^^^^^[0m[1m[94m-[0m[1m[33m^^^^^[0m
+     [1m[94m|[0m                            [1m[94m|[0m                                                                            [1m[33m|[0m              [1m[94m|[0m
+     [1m[94m|[0m                            [1m[94m|[0m                                                                            [1m[33m|[0m              [1m[94mits key `r` comes from `r`, the element `List.map` passes[0m
+     [1m[94m|[0m                            [1m[94mone read per reading[0m                                                         [1m[33m`search_reading` reads `ReadingHit` once for each element of `unfit_kana(candidates, asked_entries)`[0m
+     [1m[94m|[0m
+     [1m[94m= [0m[1mnote[0m: A read in a loop over data runs once for each element, so the page or command makes as many round trips as its list is long (N+1). A key that does not come from the element is one key, which the host's cache answers again; a key that does is a read per element. Read the list's keys together, in one set read before the loop, and find each element's in what it answers. A read per element this program is known to make, a warning until it reads them together: kiokun.com asks `search?reading=..&limit=` once for each reading; its layer has no set form of `search#reading`.
+     [1m[94m= [0m[1mhelp[0m: `search_reading` has no set read; its source can declare one
+pw check: 25 file(s), 0 error(s), 4 warning(s)
+# TodoMVC in Pleris (track `todomvc`).
+cargo run --quiet -p pw-cli -- check packages/pw-std/*.pw packages/pw-platform-web/*.pw examples/todomvc/*.pw
+pw check: 23 file(s), no diagnostics

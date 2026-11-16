@@ -1,0 +1,11 @@
+   Compiling pw-core v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-core)
+   Compiling pw-table-memory v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-memory)
+    Finished `test` profile [unoptimized] target(s) in 3.01s
+     Running tests/compiled_windows.rs (target/debug/deps/compiled_windows-3b2895a2e3e76547)
+
+running 2 tests
+test windows_return_bounded_ordered_rows_through_the_actual_owner_and_sharer_wit ... ok
+test a_window_predicate_sees_staged_rows_and_a_held_query_keeps_one_snapshot ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s
+

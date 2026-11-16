@@ -813,10 +813,12 @@ fn a_session_a_command_holds_is_left_for_the_next_sweep() {
     assert_eq!(tables.sweep_sessions(brief, 10), Ok(1), "then swept");
 }
 
-/// **The outbox's delivered rows are forgotten**: those named, and no
-/// other; those a host left behind, once older than a given age.
+/// **The outbox's rows are trimmed once older than an age**: none while
+/// young; then a batch of at most the limit at a time, oldest first, the
+/// highest id removed kept as the trim watermark. Since L3 a host retains
+/// what it delivers (ADR-0440), so age is the only way a row leaves.
 #[test]
-fn the_outboxs_delivered_rows_are_forgotten() {
+fn the_outboxs_rows_are_trimmed_once_older_than_an_age() {
     let Some(url) = database() else { return };
     let scratch = Scratch::new(&url, "outbox");
     let tables = open_things(&scratch);
@@ -841,24 +843,38 @@ fn the_outboxs_delivered_rows_are_forgotten() {
         ids.extend(committed.outbox.iter().map(|(id, _)| *id));
     }
     assert_eq!(ids.len(), 3);
-    assert_eq!(tables.forget_outbox(&ids[..2]), Ok(2));
+    // Young: kept.
+    assert_eq!(tables.trim_outbox(Duration::from_secs(60), 10), Ok(0));
+    assert_eq!(
+        scratch.texts("SELECT name FROM pw_outbox ORDER BY id"),
+        ["a", "b", "c"]
+    );
+    // Aged a row a statement, b the most and a the least: an UPDATE writes
+    // its row anew at the heap's end, so neither the order the rows lie in
+    // (b, c, a) nor their age (b, c, a) is their ids' order, and only the
+    // trim's `ORDER BY id` takes a and b first (the review of 2026-11-16).
+    for (name, minutes) in [("b", 4), ("c", 3), ("a", 2)] {
+        scratch
+            .sql(&format!(
+                "UPDATE pw_outbox SET created = created - interval '{minutes} minutes' \
+                 WHERE name = '{name}'"
+            ))
+            .assert_ok("aged");
+    }
+    // Old: at most the limit, the first ids first.
+    assert_eq!(tables.trim_outbox(Duration::from_secs(60), 2), Ok(2));
     assert_eq!(scratch.texts("SELECT name FROM pw_outbox"), ["c"]);
     assert_eq!(
         scratch.texts("SELECT through::text FROM pw_outbox_trimmed"),
         [ids[1].to_string()]
     );
-    assert_eq!(tables.forget_outbox(&[]), Ok(0));
-    // Left behind: kept while young, forgotten once older than the age.
-    assert_eq!(tables.trim_outbox(Duration::from_secs(60), 10), Ok(0));
-    scratch
-        .sql("UPDATE pw_outbox SET created = created - interval '2 minutes'")
-        .assert_ok("aged");
-    assert_eq!(tables.trim_outbox(Duration::from_secs(60), 10), Ok(1));
+    assert_eq!(tables.trim_outbox(Duration::from_secs(60), 2), Ok(1));
     assert_eq!(scratch.texts("SELECT count(*)::text FROM pw_outbox"), ["0"]);
     assert_eq!(
         scratch.texts("SELECT through::text FROM pw_outbox_trimmed"),
         [ids[2].to_string()]
     );
+    assert_eq!(tables.trim_outbox(Duration::from_secs(60), 2), Ok(0));
 }
 
 /// **A row any statement deletes from the outbox moves the trim watermark**

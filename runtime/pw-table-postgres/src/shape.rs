@@ -124,7 +124,15 @@ pub(crate) struct TableShape {
 }
 
 #[derive(Debug, Clone)]
+pub(crate) struct RelatedShape {
+    pub target: usize,
+    pub source_match: usize,
+    pub target_match: usize,
+}
+
+#[derive(Debug, Clone)]
 pub(crate) struct FunctionShape {
+    pub related: Option<RelatedShape>,
     pub table: usize,
     pub primitive: Primitive,
     /// Column places it reads or writes by.
@@ -440,7 +448,34 @@ pub(crate) fn shape_of(manifest: &TablesJson) -> Result<Shape, Error> {
                         .indexes
                         .iter()
                         .any(|i| i.unique && i.fields == function.by));
+            let related = if function.primitive.related() {
+                let window = table
+                    .windows
+                    .iter()
+                    .find(|window| Some(&window.name) == function.relation.as_ref())
+                    .ok_or_else(|| Error::Schema("relation declaration is missing".into()))?;
+                let target = place(&window.target)
+                    .ok_or_else(|| Error::Schema("relation target is missing".into()))?;
+                let target_match = manifest.tables[target]
+                    .schema
+                    .fields
+                    .iter()
+                    .position(|field| field.name == window.target_field)
+                    .ok_or_else(|| Error::Schema("target match field is missing".into()))?;
+                Some(RelatedShape {
+                    target,
+                    source_match: at_field(&window.source_field)?,
+                    target_match,
+                })
+            } else {
+                None
+            };
+            let result_table = related
+                .as_ref()
+                .map(|r| &manifest.tables[r.target])
+                .unwrap_or(table);
             let shaped = FunctionShape {
+                related,
                 table: at,
                 primitive: function.primitive,
                 by: function
@@ -451,7 +486,16 @@ pub(crate) fn shape_of(manifest: &TablesJson) -> Result<Shape, Error> {
                 sorted_by: function
                     .sorted_by
                     .iter()
-                    .map(|f| at_field(f))
+                    .map(|name| {
+                        result_table
+                            .schema
+                            .fields
+                            .iter()
+                            .position(|field| field.name == *name)
+                            .ok_or_else(|| {
+                                Error::Schema(format!("target sort field {name} is missing"))
+                            })
+                    })
                     .collect::<Result<_, _>>()?,
                 one,
             };
@@ -540,47 +584,58 @@ pub(crate) fn row_key(
         .collect()
 }
 
-fn selector(by: &[usize], args: &[Value]) -> Result<Key, Error> {
-    if args.len() != by.len() {
-        return Err(Error::Input(format!(
-            "expected {} selector values, got {}",
-            by.len(),
-            args.len()
-        )));
-    }
-    args.iter().map(Atom::parse).collect()
-}
-
 fn selections(
     table: &TableShape,
     by: &[usize],
     args: &[Value],
     many: bool,
 ) -> Result<BTreeSet<Key>, Error> {
+    let names = by
+        .iter()
+        .map(|&f| table.columns[f].name.as_str())
+        .collect::<Vec<_>>();
+    named_selections(&names, args, many)
+}
+
+/// **The memory adapter's `selections`, word for word**: one selector of
+/// `names`' values, or a set of them (each a scalar where there is one
+/// field, a record of exactly these fields where there are more), each value
+/// a scalar. A range request's fields are its selectors and its mark.
+fn named_selections(names: &[&str], args: &[Value], many: bool) -> Result<BTreeSet<Key>, Error> {
     if !many {
-        return Ok(BTreeSet::from([selector(by, args)?]));
+        if args.len() != names.len() {
+            return Err(Error::Input(format!(
+                "expected {} selector values, got {}",
+                names.len(),
+                args.len()
+            )));
+        }
+        return Ok(BTreeSet::from([args
+            .iter()
+            .map(Atom::parse)
+            .collect::<Result<Key, _>>()?]));
     }
     let [Value::Array(values)] = args else {
         return Err(Error::Input("a set selector needs one array".into()));
     };
     let mut out = BTreeSet::new();
     for value in values {
-        let key = if by.len() == 1 {
+        let key = if names.len() == 1 {
             vec![Atom::parse(value)?]
         } else {
             let obj = value
                 .as_object()
                 .ok_or_else(|| Error::Input("composite set selectors are records".into()))?;
-            if obj.len() != by.len() {
+            if obj.len() != names.len() {
                 return Err(Error::Input(
                     "composite set selector fields do not match".into(),
                 ));
             }
-            by.iter()
-                .map(|&f| {
-                    let name = &table.columns[f].name;
+            names
+                .iter()
+                .map(|name| {
                     Atom::parse(
-                        obj.get(name)
+                        obj.get(*name)
                             .ok_or_else(|| Error::Input(format!("set selector lacks {name}")))?,
                     )
                 })
@@ -661,4 +716,51 @@ fn same_value(left: &Value, right: &Value) -> bool {
         (Value::Object(left), Value::Object(right)) => same_fields(left, right),
         _ => left == right,
     }
+}
+
+/// Typed request columns: equality selectors, then a separately named order mark.
+pub(crate) fn range_columns(
+    table: &TableShape,
+    function: &FunctionShape,
+) -> Result<Vec<Column>, Error> {
+    let order = table
+        .order
+        .ok_or_else(|| Error::Schema("a range count requires declared order".into()))?;
+    let mut columns = function
+        .by
+        .iter()
+        .map(|&at| table.columns[at].clone())
+        .collect::<Vec<_>>();
+    let mut mark = table.columns[order].clone();
+    mark.name = pw_core::tables::after_field(table.columns.iter().map(|c| c.name.as_str()));
+    columns.push(mark);
+    Ok(columns)
+}
+
+/// The cutoff participates in dedup/order, never in the equality-selector inventory.
+///
+/// The memory adapter's `typed_ranges`, word for word (the L4 review of
+/// 2026-11-16): each request read as one selector of the equality fields and
+/// the mark ([`named_selections`]), then each value held to its field's type
+/// and bound, in the canonical order, so that a request failing two ways is
+/// refused for the same one on both.
+pub(crate) fn typed_ranges(
+    table: &TableShape,
+    function: &FunctionShape,
+    args: &[Value],
+) -> Result<(Vec<Column>, Vec<Key>), Error> {
+    let columns = range_columns(table, function)?;
+    let names = columns.iter().map(|c| c.name.as_str()).collect::<Vec<_>>();
+    let keys = named_selections(&names, args, function.primitive.many())?;
+    for key in &keys {
+        for (column, atom) in columns.iter().zip(key) {
+            if !validates(&atom.value(), &column.stored) {
+                return Err(Error::Input(format!(
+                    "range field {} fails its declared type or bound",
+                    column.name
+                )));
+            }
+        }
+    }
+    Ok((columns, keys.into_iter().collect()))
 }

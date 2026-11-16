@@ -695,6 +695,19 @@ impl PgTables {
             .load(Ordering::Relaxed)
     }
 
+    /// Rows returned by this adapter's prepared statements, including startup
+    /// catalog/schema reads. Dedicated Tail connections and simple-query results
+    /// are excluded. Take deltas to measure an application's operation.
+    pub fn returned_rows(&self) -> u64 {
+        self.inner.counters.returned_rows.load(Ordering::Relaxed)
+    }
+
+    /// Binary field payload bytes returned by those statements, before decoding;
+    /// excludes row/protocol framing and NULL markers. No row data is retained.
+    pub fn returned_bytes(&self) -> u64 {
+        self.inner.counters.returned_bytes.load(Ordering::Relaxed)
+    }
+
     /// Every statement this adapter has prepared, so far: once per
     /// connection and statement, never per call.
     pub fn prepared(&self) -> u64 {
@@ -1008,6 +1021,173 @@ impl Inner {
     }
 }
 
+/// One prepared global relation window, or one lateral statement for all keys.
+fn read_related(
+    inner: &Inner,
+    conn: &mut Conn,
+    source: &shape::TableShape,
+    function: &shape::FunctionShape,
+    import: &str,
+    sql: &str,
+    args: &[Value],
+) -> Result<Value, Error> {
+    let Some((bound, selectors)) = args.split_last() else {
+        return Err(Error::Input(
+            "a relation window takes a trailing Int limit".into(),
+        ));
+    };
+    let bound = bound
+        .as_i64()
+        .ok_or_else(|| Error::Input("a relation limit must be an Int".into()))?;
+    let keys = typed_selections(source, function, import, selectors)?
+        .into_iter()
+        .collect::<Vec<_>>();
+    let relation = function
+        .related
+        .as_ref()
+        .ok_or_else(|| Error::Schema("relation shape is missing".into()))?;
+    let target = &inner.shape.tables[relation.target];
+    if keys.is_empty() {
+        return Ok(Value::Array(Vec::new()));
+    }
+    let mut groups = vec![Vec::new(); keys.len()];
+    if bound > 0 {
+        let mut params = if function.primitive.many() {
+            function
+                .by
+                .iter()
+                .enumerate()
+                .map(|(at, &field)| {
+                    let atoms = keys.iter().map(|key| &key[at]).collect::<Vec<_>>();
+                    bind_array(&source.columns[field], &atoms)
+                })
+                .collect::<Result<Vec<Param>, Error>>()?
+        } else {
+            function
+                .by
+                .iter()
+                .zip(&keys[0])
+                .map(|(&field, atom)| bind_atom(&source.columns[field], atom))
+                .collect::<Result<Vec<Param>, Error>>()?
+        };
+        params.push(Box::new(bound));
+        let rows = conn
+            .query(&inner.counters, sql, &params)
+            .map_err(database)?;
+        let mut last = 0;
+        for row in rows {
+            let (slot, offset) = if function.primitive.many() {
+                let slot: i64 = row.try_get(0).map_err(database)?;
+                (
+                    usize::try_from(slot)
+                        .ok()
+                        .and_then(|s| s.checked_sub(1))
+                        .ok_or_else(|| Error::Database("relation slot is invalid".into()))?,
+                    1,
+                )
+            } else {
+                (0, 0)
+            };
+            if slot >= groups.len() || slot < last {
+                return Err(Error::Database(
+                    "relation slot is out of request order".into(),
+                ));
+            }
+            last = slot;
+            if groups[slot].len() as u64 >= bound as u64 {
+                return Err(Error::Database(
+                    "relation rows exceed their global limit".into(),
+                ));
+            }
+            groups[slot].push(Value::Object(decode(target, &row, offset)?));
+        }
+    }
+    if !function.primitive.many() {
+        return Ok(Value::Array(groups.remove(0)));
+    }
+    let mut out = Vec::with_capacity(keys.len());
+    for (key, rows) in keys.into_iter().zip(groups) {
+        let key = match key.as_slice() {
+            [one] => one.value(),
+            _ => Value::Object(
+                function
+                    .by
+                    .iter()
+                    .map(|&field| source.columns[field].name.clone())
+                    .zip(key.iter().map(shape::Atom::value))
+                    .collect(),
+            ),
+        };
+        out.push(serde_json::json!({"key":key,"rows":rows}));
+    }
+    Ok(Value::Array(out))
+}
+
+/// A scalar/set range is one aggregate query after the whole request validates.
+fn read_ranges(
+    inner: &Inner,
+    conn: &mut Conn,
+    table: &shape::TableShape,
+    function: &shape::FunctionShape,
+    sql: &str,
+    args: &[Value],
+) -> Result<Value, Error> {
+    let (columns, keys) = shape::typed_ranges(table, function, args)?;
+    if keys.is_empty() {
+        return Ok(Value::Array(Vec::new()));
+    }
+    let params = if function.primitive.many() {
+        columns
+            .iter()
+            .enumerate()
+            .map(|(at, column)| {
+                let atoms = keys.iter().map(|key| &key[at]).collect::<Vec<_>>();
+                bind_array(column, &atoms)
+            })
+            .collect::<Result<Vec<Param>, Error>>()?
+    } else {
+        columns
+            .iter()
+            .zip(&keys[0])
+            .map(|(column, atom)| bind_atom(column, atom))
+            .collect::<Result<Vec<Param>, Error>>()?
+    };
+    let rows = conn
+        .query(&inner.counters, sql, &params)
+        .map_err(database)?;
+    if rows.len() != keys.len() {
+        return Err(Error::Database(
+            "range count rows do not cover the requested pairs".into(),
+        ));
+    }
+    if !function.primitive.many() {
+        let count: i64 = rows[0].try_get(0).map_err(database)?;
+        if count < 0 {
+            return Err(Error::Database("range count is negative".into()));
+        }
+        return Ok(Value::from(count));
+    }
+    let mut counts = Vec::with_capacity(keys.len());
+    for (index, (key, row)) in keys.into_iter().zip(rows).enumerate() {
+        let slot: i64 = row.try_get(0).map_err(database)?;
+        let count: i64 = row.try_get(1).map_err(database)?;
+        if usize::try_from(slot).ok() != index.checked_add(1) || count < 0 {
+            return Err(Error::Database(
+                "range count slot or value is invalid".into(),
+            ));
+        }
+        let key = Value::Object(
+            columns
+                .iter()
+                .map(|c| c.name.clone())
+                .zip(key.iter().map(shape::Atom::value))
+                .collect(),
+        );
+        counts.push(serde_json::json!({"key":key,"count":count}));
+    }
+    Ok(Value::Array(counts))
+}
+
 /// **A read through a compiler-emitted import**, on `conn`, in whatever
 /// transaction it is in: one statement (none for a set read given no keys).
 fn read(inner: &Inner, conn: &mut Conn, import: &str, args: &[Value]) -> Result<Value, Error> {
@@ -1020,7 +1200,25 @@ fn read(inner: &Inner, conn: &mut Conn, import: &str, args: &[Value]) -> Result<
         .statements
         .get(import)
         .ok_or_else(|| Error::Input(format!("undeclared table operation {import}")))?;
-    let params: Vec<Param> = match function.primitive {
+    if function.primitive.related() {
+        return read_related(inner, conn, table, function, import, sql, args);
+    }
+    if function.primitive.range() {
+        return read_ranges(inner, conn, table, function, sql, args);
+    }
+    let (args, window_limit) = if function.primitive.window() {
+        let Some((bound, selectors)) = args.split_last() else {
+            return Err(Error::Input("a window takes a trailing Int limit".into()));
+        };
+        let limit = bound
+            .as_i64()
+            .ok_or_else(|| Error::Input("a window limit must be an Int".into()))?;
+        (selectors, Some(limit))
+    } else {
+        (args, None)
+    };
+    let mut count_keys = None;
+    let mut params: Vec<Param> = match function.primitive {
         Primitive::All => {
             if !args.is_empty() {
                 return Err(Error::Input("all() takes no selector".into()));
@@ -1030,12 +1228,17 @@ fn read(inner: &Inner, conn: &mut Conn, import: &str, args: &[Value]) -> Result<
             }
             Vec::new()
         }
-        Primitive::GetMany | Primitive::PrefixMany | Primitive::IndexMany => {
+        Primitive::GetMany
+        | Primitive::PrefixMany
+        | Primitive::IndexMany
+        | Primitive::CountMany
+        | Primitive::FirstMany
+        | Primitive::LastMany => {
             let keys = typed_selections(table, function, import, args)?;
             if keys.is_empty() {
                 return Ok(Value::Array(Vec::new()));
             }
-            function
+            let params = function
                 .by
                 .iter()
                 .enumerate()
@@ -1043,9 +1246,18 @@ fn read(inner: &Inner, conn: &mut Conn, import: &str, args: &[Value]) -> Result<
                     let atoms: Vec<&shape::Atom> = keys.iter().map(|k| &k[i]).collect();
                     bind_array(&table.columns[f], &atoms)
                 })
-                .collect::<Result<_, _>>()?
+                .collect::<Result<_, _>>()?;
+            if function.primitive == Primitive::CountMany {
+                count_keys = Some(keys);
+            }
+            params
         }
-        Primitive::Get | Primitive::Prefix | Primitive::Index => {
+        Primitive::Get
+        | Primitive::Prefix
+        | Primitive::Index
+        | Primitive::Count
+        | Primitive::First
+        | Primitive::Last => {
             let key = typed_selector(table, function, import, args)?;
             function
                 .by
@@ -1056,9 +1268,59 @@ fn read(inner: &Inner, conn: &mut Conn, import: &str, args: &[Value]) -> Result<
         }
         _ => return Err(Error::Input(format!("{import} is a write, not a read"))),
     };
+    if let Some(limit) = window_limit {
+        // Selector arity/types/bounds have all been checked above, even if
+        // this bound returns no rows. SQL never receives a negative LIMIT.
+        if limit <= 0 {
+            return Ok(Value::Array(Vec::new()));
+        }
+        params.push(Box::new(limit));
+    }
     let rows = conn
         .query(&inner.counters, sql, &params)
         .map_err(database)?;
+    if function.primitive == Primitive::Count {
+        if rows.len() != 1 {
+            return Err(Error::Database(
+                "a scalar count must return exactly one row".into(),
+            ));
+        }
+        let count: i64 = rows[0].try_get(0).map_err(database)?;
+        if count < 0 {
+            return Err(Error::Database("a count is negative".into()));
+        }
+        return Ok(Value::from(count));
+    }
+    if let Some(keys) = count_keys {
+        if rows.len() != keys.len() {
+            return Err(Error::Database(
+                "set counts must cover exactly the requested keys".into(),
+            ));
+        }
+        let mut counts = Vec::with_capacity(keys.len());
+        for (i, (key, row)) in keys.into_iter().zip(rows).enumerate() {
+            let slot: i64 = row.try_get(0).map_err(database)?;
+            let count: i64 = row.try_get(1).map_err(database)?;
+            if usize::try_from(slot).ok() != i.checked_add(1) || count < 0 {
+                return Err(Error::Database(
+                    "set count slots or counts are invalid".into(),
+                ));
+            }
+            let key = match key.as_slice() {
+                [one] => one.value(),
+                _ => Value::Object(
+                    function
+                        .by
+                        .iter()
+                        .map(|&f| table.columns[f].name.clone())
+                        .zip(key.iter().map(shape::Atom::value))
+                        .collect(),
+                ),
+            };
+            counts.push(serde_json::json!({"key": key, "count": count}));
+        }
+        return Ok(Value::Array(counts));
+    }
     if function.primitive == Primitive::All
         && let Some(bound) = table.bounded
         && rows.len() as u64 > bound

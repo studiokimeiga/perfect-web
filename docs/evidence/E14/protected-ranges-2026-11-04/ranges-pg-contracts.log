@@ -1,0 +1,32 @@
+   Compiling pw-table-postgres v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-postgres)
+    Finished `test` profile [unoptimized] target(s) in 1.55s
+     Running tests/parity.rs (target/debug/deps/parity-ac46d41bed8f65cc)
+
+running 4 tests
+test an_ended_commands_functions_act_on_nothing_on_either_adapter ... ok
+test the_compiled_app_answers_alike_on_memory_and_postgresql ... ok
+test the_compiled_writers_answer_alike_on_memory_and_postgresql ... ok
+test a_random_workload_answers_alike_on_memory_and_postgresql ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.91s
+
+     Running tests/primitives.rs (target/debug/deps/primitives-c4007f7cfc19e172)
+
+running 14 tests
+test a_delete_deletes_its_key_and_a_prefix_its_rows_alone ... ok
+test a_bounded_table_grows_no_further_than_its_bound ... ok
+test a_nested_float_is_answered_bit_for_bit ... ok
+test a_refinement_is_held_by_its_check_whoever_writes ... ok
+test a_row_another_writer_left_out_of_its_type_is_refused_not_answered ... ok
+test a_row_is_answered_exactly_as_it_was_written ... ok
+test a_statement_is_prepared_once_on_a_connection_never_per_call ... ok
+test a_write_is_refused_by_the_row_holding_its_key_then_a_unique_value ... ok
+test all_refuses_a_table_another_writer_grew_past_its_bound ... ok
+test a_write_whose_answer_cannot_be_read_fails_its_command ... ok
+test reads_come_in_tables_json_order_strings_by_their_bytes ... ok
+test the_compilers_functions_are_each_served ... ok
+test each_primitive_is_one_statement_at_two_sizes ... ok
+test what_a_function_is_given_is_held_before_the_database_sees_it ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.77s
+
