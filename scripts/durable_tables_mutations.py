@@ -229,8 +229,7 @@ MUTANTS = [
     ('a delivered outbox is deleted before another host can read it', LAYER,
      '        // Every host has a cursor. Local delivery leaves the retained log\n',
      (
-            '        let ids: Vec<i64> = committed.outbox.iter().map(|(id, _)| *id).collect();\n'
-            '        let _ = self.layer.tables.forget_outbox(&ids);\n'
+            '        let _ = self.layer.tables.trim_outbox(std::time::Duration::ZERO, usize::MAX);\n'
             '        // Every host has a cursor. Local delivery leaves the retained log\n'
         )),
     ("the outbox rows a host left behind are never trimmed", LAYER,

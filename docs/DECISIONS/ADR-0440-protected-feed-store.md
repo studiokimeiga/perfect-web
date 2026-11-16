@@ -402,3 +402,24 @@ way, but no lifecycle completes a run, so no test reaches it.
 after L3, item 4): `tests::owned_clock` is kept and
 `tests::protected_migration`'s copy of it, with its `clock.pw`, removed; the
 two were the same scenario under two programs' names.
+
+## Amended 2026-11-16: an outbox row leaves by age alone
+
+The integrator's, under the owner's delegation of 2026-10-02: NEXT after L3,
+item 9.
+
+**Found.** Since L3 a host retains what it delivers until the shared
+retention age, and `PgTables::forget_outbox`, L1's removal of a commit's own
+rows at once, was left with no caller but its own test; the durable tables'
+mutant "a delivered outbox is deleted before another host can read it"
+called it to put L1's deletion back.
+
+**Decided.** It goes, with its prepared statement: no caller needs a row
+gone before its age, and platform 0004's triggers move the watermark for
+any deletion, an operator's statement among them
+(`any_deletion_from_the_outbox_moves_the_trim_watermark`). Its test keeps
+the trimming it also held, now with the limit's batches, oldest first
+(`the_outboxs_rows_are_trimmed_once_older_than_an_age`). The mutant deletes
+through `trim_outbox` at age zero instead, every row at once, and is killed
+(8 of the script's 85 tests fail).
+
