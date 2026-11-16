@@ -49,7 +49,10 @@ fn shown(shown: &Shown) -> Val {
 fn reference(reference: &Reference) -> Val {
     Val::Record(vec![
         ("key".into(), Val::String(reference.key.clone())),
-        ("generation".into(), Val::String(reference.generation.clone())),
+        (
+            "generation".into(),
+            Val::String(reference.generation.clone()),
+        ),
         ("kind".into(), Val::Variant(reference.kind.clone(), None)),
         ("width".into(), Val::S64(i64::from(reference.width))),
         ("height".into(), Val::S64(i64::from(reference.height))),
@@ -93,10 +96,15 @@ pub(crate) fn command_ops(
             Arc::new(move |args: &[Val]| {
                 let handle = text(args, 0, "upload.publish")?;
                 let token = text(args, 1, "upload.publish")?;
-                let published = held(&inv)?.publish(&upload, &handle, &token, |d, desc, bytes| {
-                    (layer.publish)(d, desc, bytes)
-                })?;
-                Ok(vec![published.as_ref().map_or_else(not_found, |r| some(reference(r)))])
+                let published =
+                    held(&inv)?.publish(&upload, &handle, &token, |d, desc, bytes| {
+                        (layer.publish)(d, desc, bytes)
+                    })?;
+                Ok(vec![
+                    published
+                        .as_ref()
+                        .map_or_else(not_found, |r| some(reference(r))),
+                ])
             }),
         );
         let (inv, upload) = (Arc::clone(invocation), name.clone());
@@ -106,7 +114,11 @@ pub(crate) fn command_ops(
                 let handle = text(args, 0, "upload.discard")?;
                 let token = text(args, 1, "upload.discard")?;
                 let discarded = held(&inv)?.discard(&upload, &handle, &token)?;
-                Ok(vec![discarded.as_ref().map_or_else(not_found, |s| some(shown(s)))])
+                Ok(vec![
+                    discarded
+                        .as_ref()
+                        .map_or_else(not_found, |s| some(shown(s))),
+                ])
             }),
         );
         let (inv, upload) = (Arc::clone(invocation), name);
@@ -161,7 +173,9 @@ pub(crate) fn refusing_ops(manifest: &Manifest) -> BTreeMap<String, HostFn> {
             ops.insert(
                 key(declaration, operation),
                 Arc::new(move |_: &[Val]| {
-                    Err(format!("{what} is a reader's: a command no reader runs claims no upload"))
+                    Err(format!(
+                        "{what} is a reader's: a command no reader runs claims no upload"
+                    ))
                 }),
             );
         }

@@ -674,10 +674,23 @@ fn a_committed_generations_descriptor_is_its_publications_and_goes_with_its_last
         .assert_ok("a committed generation");
     assert_eq!(found.reference, published);
     assert_eq!(found.bytes, 17);
-    assert_eq!(db.asset_descriptor("Avatar", &key, "png").assert_ok("resolve"), None);
-    assert_eq!(db.asset_descriptor("PostImage", &key, "jpeg").assert_ok("resolve"), None);
+    assert_eq!(
+        db.asset_descriptor("Avatar", &key, "png")
+            .assert_ok("resolve"),
+        None
+    );
+    assert_eq!(
+        db.asset_descriptor("PostImage", &key, "jpeg")
+            .assert_ok("resolve"),
+        None
+    );
     let mut c = db.begin().assert_ok("a command");
-    c.write("pw:tables/assets#delete", &[json!(1)]).assert_ok("the last row goes");
+    c.write("pw:tables/assets#delete", &[json!(1)])
+        .assert_ok("the last row goes");
     c.commit().assert_ok("committed");
-    assert_eq!(db.asset_descriptor("PostImage", &key, "png").assert_ok("resolve"), None);
+    assert_eq!(
+        db.asset_descriptor("PostImage", &key, "png")
+            .assert_ok("resolve"),
+        None
+    );
 }

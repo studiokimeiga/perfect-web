@@ -65,6 +65,10 @@ pub(crate) struct Database {
     pub url: String,
     pub schema: Option<String>,
     pub seats: feed_pg::RenderSeats,
+    /// Where the deployment keeps its blobs (`uploads::blob_root`): a
+    /// program's declared uploads keep their generations beneath it, under
+    /// `.generic/`, apart from the hand-written feed's (ADR-0440, L5b).
+    pub blobs: std::path::PathBuf,
 }
 
 /// **`PW_TABLES_SCHEMA`, a test's setting**, as `PW_FEED_SCHEMA` is (the
@@ -152,8 +156,38 @@ impl TablesPg {
             host: host.clone(),
             ..pw_table_postgres::Options::default()
         };
-        let tables = PgTables::open_json(&database.url, database.schema.as_deref(), &text, options)
-            .map_err(|e| format!("PW_TABLES_DATABASE_URL: the program's tables: {e:?}"))?;
+        let uploads = tables::declared_uploads(build)?;
+        let tables = match &uploads {
+            // The program's declared uploads (ADR-0440, L5b): their
+            // generations in the deployment's blob storage, their namespace
+            // enrolled with the tables, or the one enrolled already held to.
+            Some(metadata) => {
+                let store = crate::blob::LocalBlobs::new(&database.blobs)
+                    .map_err(|e| format!("{}: {e}", database.blobs.display()))?;
+                let manifest =
+                    serde_json::from_str(&text).map_err(|e| format!("tables.json: {e}"))?;
+                let tables = PgTables::open_with_uploads(
+                    &database.url,
+                    database.schema.as_deref(),
+                    manifest,
+                    options,
+                    pw_table_postgres::Uploads {
+                        metadata: metadata.clone(),
+                        store: Arc::new(store),
+                        fresh_namespace: pw_host::assets::Namespace::from_bytes(
+                            identity::random_bytes::<16>(),
+                        ),
+                    },
+                )
+                .map_err(|e| format!("PW_TABLES_DATABASE_URL: the program's tables: {e:?}"))?;
+                tables
+                    .check_upload_storage()
+                    .map_err(|e| format!("the program's upload storage: {e:?}"))?;
+                tables
+            }
+            None => PgTables::open_json(&database.url, database.schema.as_deref(), &text, options)
+                .map_err(|e| format!("PW_TABLES_DATABASE_URL: the program's tables: {e:?}"))?,
+        };
         let tables = Arc::new(tables);
         let outbox = hosts::Outbox::for_tables(
             tables.schema(),
@@ -179,6 +213,7 @@ impl TablesPg {
                     tables::interned(format!("database.write<{table}>")),
                 ]
             })
+            .chain(tables::upload_grants(tables.host_tables()))
             .collect();
         Ok(TablesPg {
             kept: Arc::new(KeptSessions(Arc::clone(&tables))),
@@ -217,6 +252,26 @@ impl DataLayer for TablesPg {
         self.tables
             .read_asset(declaration, key, kind)
             .map_err(|e| format!("{e:?}"))
+    }
+
+    /// The interaction's record as the database keeps it, undecoded, read
+    /// under the reacquired namespace lock (ADR-0440, L5b): the caller holds
+    /// no command of this layer's, or it waits on its own lock.
+    fn upload_receipt(
+        &self,
+        key: &str,
+    ) -> Result<Option<crate::uploads::generic::Receipt>, String> {
+        self.tables
+            .inspect_asset_interaction(key)
+            .map(|found| {
+                found.map(|r| crate::uploads::generic::Receipt {
+                    key: r.key,
+                    sent: r.sent,
+                    answer: r.answer,
+                    at_ms: r.at_ms,
+                })
+            })
+            .map_err(|e| format!("the upload receipt could not be inspected: {e:?}"))
     }
 
     /// No operation by name: a program's table functions are linked through
@@ -266,6 +321,7 @@ impl DataLayer for TablesPg {
             authorization: Authorization::NotAttempted,
             refused: false,
             conflicted: false,
+            recorded: false,
         })
     }
 
@@ -359,6 +415,17 @@ impl DataLayer for TablesPg {
                 Err(e) => eprintln!("pw dev server: the tables' {what} were not swept: {e:?}"),
             }
         }
+        // The upload generations no committed row names any more, a bounded
+        // batch at a time (ADR-0440, L5b): a collection that failed after
+        // its commit is tried again here.
+        if self.tables.host_tables().uploads().is_some() {
+            match self.tables.collect_assets(SWEPT) {
+                Ok(n) => full |= n >= SWEPT,
+                Err(e) => eprintln!(
+                    "pw dev server: the tables' upload generations were not collected: {e:?}"
+                ),
+            }
+        }
         *next = now_ms.saturating_add(if full { 1_000 } else { 60_000 });
     }
 
@@ -445,6 +512,10 @@ pub(crate) struct PgStaging<'a> {
     /// And it failed as the database could not serialize it
     /// ([`Staged::conflicted`]).
     conflicted: bool,
+    /// Another attempt's record answered the interaction before this one's
+    /// `COMMIT` ([`Staged::claims_kept_nothing`]): this attempt kept nothing,
+    /// though the browser is answered from that record.
+    recorded: bool,
 }
 
 impl PgStaging<'_> {
@@ -792,7 +863,7 @@ impl Staged for PgStaging<'_> {
             Ok(prepared) => prepared,
             Err(e) => return self.refused_by(&e, format!("the tables refused the commit: {e:?}")),
         };
-        let committed = match prepared.publish_with(Records {
+        let published = prepared.publish_with(Records {
             interaction: interaction.map(|r| pw_table_postgres::Interaction {
                 key: r.key,
                 sent: r.sent,
@@ -801,7 +872,9 @@ impl Staged for PgStaging<'_> {
                 forget_before_ms: r.forget_before_ms,
             }),
             outbox: &outbox,
-        }) {
+        });
+        self.recorded = matches!(published, Err(pw_table_postgres::Error::Recorded(_)));
+        let committed = match published {
             Ok(committed) => committed,
             // A `COMMIT` sent and never answered may have committed, and the
             // interaction recorded by another commit is what answers this
@@ -839,6 +912,30 @@ impl Staged for PgStaging<'_> {
             Ok(Turn::Open(command)) => command.conflicted(),
             _ => self.conflicted,
         }
+    }
+
+    /// Refused, or answered by another attempt's record before this one's
+    /// `COMMIT`: either way, this attempt kept nothing of its claims.
+    fn claims_kept_nothing(&self) -> bool {
+        self.refused || self.recorded
+    }
+
+    /// The adapter's publisher and receipt marker on this command's own
+    /// transaction, begun here (after its authority was taken, as
+    /// `acquire` asks). None where the program declares no uploads.
+    fn upload_publisher(&mut self) -> Result<Option<data::UploadPublisher>, String> {
+        if self.layer.tables.host_tables().uploads().is_none() {
+            return Ok(None);
+        }
+        let command = self.command()?;
+        let publish = command.asset_publisher();
+        let marker = command.asset_receipt_marker();
+        Ok(Some(data::UploadPublisher {
+            publish: Arc::new(move |declaration, descriptor, bytes| {
+                publish(declaration, descriptor, bytes).map_err(|e| format!("{e:?}"))
+            }),
+            require_receipt: Arc::new(move || marker().map_err(|e| format!("{e:?}"))),
+        }))
     }
 }
 

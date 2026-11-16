@@ -1,5 +1,26 @@
 # Known limitations
 
+## Declared uploads and the claim bridge, 2026-11-16 (ADR-0440, L5b)
+
+- **An unknown outcome that in fact rolled back holds its session's lease.**
+  A command that claimed an upload and whose `COMMIT` was never answered is
+  settled only by its own attempt's receipt; a receipt absent after the
+  database's lifetime was taken again proves nothing (another host may have
+  pruned a committed one), so the claim stays held, for that session and
+  that declaration, until the host restarts, and a replacement upload is
+  refused meanwhile (409). It is logged. Proving the rollback is a
+  negative-proof protocol of its own, not built.
+- **Leases are host-local.** An upload is staged on the host that received
+  it, and the command that claims it must reach the same host: a deployment
+  of several hosts needs affinity for a session's uploads (L6's deploy).
+- **The namespace lock serializes uploads on PostgreSQL.** Every command and
+  every image read of a program that declares uploads takes the upload
+  namespace's advisory lock (five seconds at most): measured before L7
+  ports the feed.
+- **The feed keeps its own uploads.** Startup opens for generic upload
+  declarations only; the hand-written feed's are refused beside declared
+  tables, and its compatibility is L7's gate.
+
 ## Declared tables on PostgreSQL, 2026-11-02 (ADR-0393)
 
 `runtime/pw-table-postgres` serves any program's declared tables as the

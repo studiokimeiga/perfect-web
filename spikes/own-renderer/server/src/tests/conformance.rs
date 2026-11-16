@@ -1290,7 +1290,7 @@ pub(super) fn write_rows(
         }
     }
     drop(ops);
-    match s.commit_staged(&mut *staging, &[], &[], None, &[], None, None) {
+    match s.commit_staged(&mut *staging, &[], &[], None, &[], None, None, None) {
         Ok(CommitOutcome::Applied(_)) => Ok(()),
         Ok(_) => Err("the rows committed nothing".into()),
         Err(why) => Err(why),
@@ -1603,7 +1603,7 @@ fn refused_whole(
     let wrote = write(&ops);
     drop(ops);
     if wrote.is_ok() {
-        let commit = s.commit_staged(&mut *staging, &[], &[], None, &[], None, None);
+        let commit = s.commit_staged(&mut *staging, &[], &[], None, &[], None, None, None);
         assert!(
             commit.is_err(),
             "{what}: the adapter refuses the write or its commit"
@@ -1685,7 +1685,7 @@ fn staging_and_refusals(s: &Server, tables: &[Table]) -> BTreeMap<String, usize>
         );
         drop(ops);
         assert!(matches!(
-            s.commit_staged(&mut *staging, &[], &[], None, &[], None, None),
+            s.commit_staged(&mut *staging, &[], &[], None, &[], None, None, None),
             Ok(CommitOutcome::Applied(_))
         ));
         drop(staging);
@@ -1896,7 +1896,7 @@ fn writes_and_staged_references(s: &Server, tables: &[Table]) -> (usize, usize) 
                 &[wit_row(table, &referring)],
             );
             drop(ops);
-            let commit = s.commit_staged(&mut *staging, &[], &[], None, &[], None, None);
+            let commit = s.commit_staged(&mut *staging, &[], &[], None, &[], None, None, None);
             assert!(
                 matches!(commit, Ok(CommitOutcome::Applied(_))),
                 "{} referring to a {to} its command staged commits: {:?}",

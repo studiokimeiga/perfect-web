@@ -196,9 +196,12 @@ MUTANTS = [
     ("a handle's type written bare is not named", LAYER,
      "            if bare || platform {\n",
      "            if platform || (bare && false) {\n"),
-    ("a program of tables declaring an upload is served", LAYER,
-     "    if let Some(upload) = declared.first() {\n",
-     "    if let Some(upload) = declared.first().filter(|_| false) {\n"),
+    ("an upload no table keeps is served", LAYER,
+     "    if let Some(upload) = declared.iter().find(unkept) {\n",
+     "    if let Some(upload) = declared.iter().find(unkept).filter(|_| false) {\n"),
+    ("an upload's binding is not checked where it is served", LAYER,
+     "            .and_then(|manifest| manifest.with_uploads(&uploads_text))\n",
+     "            .map(|manifest| manifest)\n"),
     # 3. the engine: a guarded command answered first, then the gate
     ("a guarded tables command runs unanswered", HOST,
      "            // anything is instantiated or linked.\n"

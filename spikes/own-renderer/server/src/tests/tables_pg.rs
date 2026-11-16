@@ -53,6 +53,9 @@ pub(super) struct Schema {
     name: String,
     /// The `application_name` its hosts' connections carry.
     application: String,
+    /// Its hosts' blob storage, which every host on the schema shares, as a
+    /// deployment's hosts share theirs (ADR-0440, L5b).
+    blobs: tempfile::TempDir,
 }
 
 impl Schema {
@@ -68,6 +71,7 @@ impl Schema {
             url: url.to_string(),
             name,
             application,
+            blobs: tempfile::TempDir::new().expect("a blob directory"),
         }
     }
 
@@ -78,6 +82,7 @@ impl Schema {
             url: format!("{}{joiner}application_name={}", self.url, self.application),
             schema: Some(self.name.clone()),
             seats: crate::feed_pg::RenderSeats::default(),
+            blobs: self.blobs.path().to_path_buf(),
         }
     }
 

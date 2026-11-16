@@ -220,7 +220,10 @@ pub(crate) trait DataLayer: Send + Sync {
     /// lifetime, so that an attempt whose outcome is unknown is settled only
     /// by its own nonce. A layer that keeps no uploads beside its records has
     /// none to read.
-    fn upload_receipt(&self, _key: &str) -> Result<Option<crate::uploads::generic::Receipt>, String> {
+    fn upload_receipt(
+        &self,
+        _key: &str,
+    ) -> Result<Option<crate::uploads::generic::Receipt>, String> {
         Err("this data layer keeps no upload receipts".into())
     }
 
@@ -452,7 +455,11 @@ pub(crate) trait Staged {
 #[derive(Clone)]
 pub(crate) struct UploadPublisher {
     pub(crate) publish: Arc<
-        dyn Fn(&str, pw_host::assets::Descriptor, Arc<[u8]>) -> Result<pw_host::assets::Reference, String>
+        dyn Fn(
+                &str,
+                pw_host::assets::Descriptor,
+                Arc<[u8]>,
+            ) -> Result<pw_host::assets::Reference, String>
             + Send
             + Sync,
     >,

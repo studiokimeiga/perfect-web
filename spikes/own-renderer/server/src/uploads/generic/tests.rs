@@ -617,7 +617,11 @@ fn an_owners_inspection_holds_absence_for_good_and_a_failed_one_leaves_it_due() 
     assert_eq!(due.len(), 1);
     // Its own receipt: applied, no longer pending.
     let (mut landed, sealed) = pending(&leases, "landed");
-    assert!(landed.reconcile(Ok(Some(receipt(sealed)))).must("its own receipt"));
+    assert!(
+        landed
+            .reconcile(Ok(Some(receipt(sealed))))
+            .must("its own receipt")
+    );
     drop(landed);
     assert_eq!(leases.pending_attempts(10).must("pending").len(), 2);
     assert_eq!(leases.due_attempts(10).must("due").len(), 1);

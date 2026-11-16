@@ -34,10 +34,10 @@
 //! key, with the type sniffed from its bytes, `nosniff`, a sandbox, and kept
 //! forever by any cache, since what a key names never changes.
 
-#[allow(dead_code)] // Actual generic adapter bridge is connected in the following slice.
-pub(crate) mod generic;
 #[allow(dead_code)] // Bound by the server's command path in the steps that follow (L5b).
 pub(crate) mod bridge;
+#[allow(dead_code)] // Actual generic adapter bridge is connected in the following slice.
+pub(crate) mod generic;
 #[cfg(test)]
 mod generic_lease_tests;
 pub(crate) mod icc;
