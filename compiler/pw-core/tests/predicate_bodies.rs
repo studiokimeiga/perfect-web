@@ -258,6 +258,43 @@ fn pw6925_a_page_asks_no_predicate_with_a_body() {
 }
 
 #[test]
+fn pw6925_alone_tells_a_page_asking_a_predicate_whose_body_reads_a_table() {
+    // ADR-0395's "Not claimed": a page asking a predicate whose body reads a
+    // table was told PW0401 beside PW6925, one defect told twice. The page
+    // asks the deployment (ADR-0307), never the body, so the body's read is
+    // no effect of the page's, and PW6925 is what is wrong.
+    let writes = "import List\n\npredicate Writes\n    says \"Only one who wrote a note.\"\n{\n    List.length(Notes.of_author(current_user())) > 0\n}\n";
+    let page = "session page Home() {\n    route     \"/\"\n    placement origin\n    cache     private\n\n    view {\n        <title>Home</title>\n        <main>\n            {#if Writes}<p id=\"writes\">A writer</p>{/if}\n        </main>\n    }\n}\n";
+    let got = found(&[("probe.pw", &probe(&format!("{writes}\n{page}")))]);
+    assert!(
+        got.iter().any(|(c, m)| c == "PW6925"
+            && m.contains(
+                "`Home` asks `Writes` of its reader, and the program gives `Writes` a body"
+            )),
+        "{got:#?}"
+    );
+    assert!(
+        !got.iter().any(|(c, _)| c == "PW0401"),
+        "one defect, told once: {got:#?}"
+    );
+    // The neighbours: the body itself reads its table, which a predicate may
+    // (no diagnostic of its own), and a page that reads the table itself is
+    // told PW0401 still.
+    let alone = found(&[("probe.pw", &probe(writes))]);
+    assert!(alone.is_empty(), "{alone:#?}");
+    let reading = page.replace(
+        "{#if Writes}<p id=\"writes\">A writer</p>{/if}",
+        "<p id=\"writes\">{List.length(Notes.of_author(current_user()))}</p>",
+    );
+    let got = found(&[("probe.pw", &probe(&format!("import List\n\n{reading}")))]);
+    assert!(
+        got.iter()
+            .any(|(c, m)| c == "PW0401" && m.contains("database.read<Notes>")),
+        "{got:#?}"
+    );
+}
+
+#[test]
 fn pw6907_a_query_that_requires_a_predicate_is_never_cached_shared() {
     // The review's finding 7b (probe H): a public query cached shared,
     // answered to whoever asks next whether or not `Wrote` holds for them.

@@ -44,7 +44,11 @@ anywhere but an assertion is no kill):
    host, and an unanswered one answered refused;
 7. the landing on master (L1, ADR-0397): a run's key leaving out the user
    whose command scheduled it, as it did before ADR-0334's amendment of
-   2026-11-07, which master landed after this layer was written.
+   2026-11-07, which master landed after this layer was written;
+8. one count of a transaction's boundaries (ADR-0395, amended 2026-11-16):
+   the layer's count charging them to the operation that begins the
+   transaction, which the conformance suite, with no read of its own to
+   begin it first, sees as a write of two statements.
 
 The tests: the adapter's (`runtime/pw-table-postgres/tests/platform.rs`),
 the server's on PostgreSQL (`tests::tables_pg::`, the conformance suite over
@@ -335,6 +339,11 @@ MUTANTS = [
     ("a conflict another command noted is taken for the lifecycle's", DATA,
      "    CONFLICTED.with(|noted| noted.borrow_mut().take().as_deref() == Some(component))\n",
      "    CONFLICTED.with(|noted| noted.borrow_mut().take().is_some())\n"),
+    # 8. One count of a transaction's boundaries (ADR-0395, amended
+    # 2026-11-16): the layer counts its operations' statements alone.
+    ("the layer's count charges a transaction's boundaries", LAYER,
+     "        Some(self.tables.operation_statements())\n",
+     "        Some(self.tables.statements())\n"),
 ]
 
 # Each Cargo test binary apart: names can repeat between binaries, and the

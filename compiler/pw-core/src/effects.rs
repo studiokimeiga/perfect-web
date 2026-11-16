@@ -531,6 +531,16 @@ impl<'a> Inference<'a> {
             if path.is_empty() {
                 continue;
             }
+            // **A predicate named is asked, never called where the value
+            // goes**: a page's `{#if P}` asks the deployment's `P`
+            // (ADR-0307), and a requirement is answered by the engine; a
+            // body the program gives `P` reads for itself. Until 2026-11-16
+            // a page asking one whose body reads a table was charged that
+            // read (PW0401) beside PW6925, which says what is wrong: one
+            // defect told twice (ADR-0395's "Not claimed").
+            if self.names_a_predicate(unit, &path) {
+                continue;
+            }
             let effects: Vec<Effect> = match self.sigs.by_path(&path) {
                 Some(sig) => sig.effects.clone(),
                 None => {
@@ -989,6 +999,24 @@ impl<'a> Inference<'a> {
             }
         }
         self.resolved(unit, path)
+    }
+
+    /// Whether `path`, as `unit` resolves it, names a predicate: the
+    /// declaration the predicate namespace gives that name, and no other a
+    /// name of that spelling resolves to.
+    fn names_a_predicate(&self, unit: usize, path: &str) -> bool {
+        use crate::resolve::Namespace;
+        if unit == usize::MAX {
+            return false;
+        }
+        let predicate = match self
+            .workspace
+            .resolve_path_in(unit, Namespace::Predicate, path)
+        {
+            Resolution::Local(def) | Resolution::Imported { def, .. } => def,
+            _ => return false,
+        };
+        self.resolved(unit, path) == Some(predicate)
     }
 
     fn resolved(&self, unit: usize, path: &str) -> Option<DefId> {

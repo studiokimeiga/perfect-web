@@ -65,7 +65,11 @@ lifecycle and owned Clock actions. What stays open, in order:
     tests pass on any machine against a default database, with a test
     that fails without the bound.
 11. **L2's items 2 and 4**, below: one count of a transaction's
-    boundaries, and what ADR-0395 leaves.
+    boundaries, and what ADR-0395 leaves. The first is done (2026-11-16):
+    the PostgreSQL adapter's `operation_statements` is the one count, and
+    the conformance suite's `begun` went. Of ADR-0395's "Not claimed", a
+    page asking a predicate whose body reads a table is told PW6925 alone
+    now, not PW0401 beside it (ADR-0395, amended 2026-11-16).
 
 ## After train-34, 2026-11-13
 
@@ -162,10 +166,9 @@ What stays open, in order:
    L1's side of, with `e14-durable-tables`' and L1's own still unrecorded
    (L1's item 1 below). It lands with L1 and train-33 under one full
    verify (`wip/l1-train-33`), after trains 31 and 32 (#107).
-2. **One count of a transaction's boundaries**: L1's `begun` (the
-   conformance suite) and the integration's `operation_statements` (the
-   PostgreSQL layer's measured statements) both stand; keep one, with a
-   test of it that fails without it.
+2. **One count of a transaction's boundaries**: done (2026-11-16, ADR-0395
+   amended). The PostgreSQL layer's `operation_statements` stays, held by
+   the conformance suite on PostgreSQL, whose warm-up (`begun`) went.
 3. **L3 to L5** as after L1 (below): the platform's prerequisites (guest
    rows, `invoked_by Identity`, the outbox's tail), bounded reads, declared
    uploads, each numbered after `evidence-fetch`, past ADR-0439 (train-34's).

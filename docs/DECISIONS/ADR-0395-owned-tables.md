@@ -201,6 +201,60 @@ commit its receipt names:
   that held already; the grammar's `written by anyone` test failed without
   its grammar, its control passing both ways.
 
+## Amended 2026-11-16: a page asking a predicate with a body is told PW6925 alone
+
+The integrator's, under the owner's delegation of 2026-10-02: NEXT after L3,
+item 11, from "Not claimed" below.
+
+**Found.** A page whose `{#if P}` asks a predicate `P` whose body reads a
+table was told two things: PW6925 (a page asks no predicate with a body)
+and PW0401 (`Home` performs `database.read<Notes>`, which a page may not
+do). The effect pass (`effects.rs`, ADR-0078's values) took the name `P` for
+a value the page might call. It resolved `P` to the predicate and charged
+the page the effects of the predicate's body.
+
+**Decided.** A predicate named is asked, never called where the value goes:
+a page's `{#if P}` asks the deployment's `P` (ADR-0307), and a requirement
+is answered by the engine. A body the program gives `P` reads for itself,
+so its reads are no effect of the page's. The pass now skips a name only
+where it resolves to the declaration the predicate namespace gives it; a
+name that resolves to any other declaration is charged as before. PW6925
+tells what is wrong, once.
+
+**Held by**
+`pw6925_alone_tells_a_page_asking_a_predicate_whose_body_reads_a_table`
+(`compiler/pw-core/tests/predicate_bodies.rs`). It fails on master with
+PW0401 beside PW6925. Its neighbours: the predicate alone, whose body may
+read, is told nothing; a page that reads the table itself is told PW0401
+still. The mutant "a page asking a predicate is charged its body's reads"
+in `row_ownership_mutations.py` puts the old charge back.
+
+## Amended 2026-11-16: one count of a transaction's boundaries
+
+The integrator's, under the same delegation: NEXT after L3, item 11 (L2's
+item 2).
+
+**Found.** Two repairs of one count stood, one more than the count needs.
+L1 began a transaction in the conformance suite before it measured
+(`begun`). The integration made the PostgreSQL layer's measured statements
+its operation statements, leaving a transaction's boundaries out
+(`operation_statements`).
+
+**Decided.** The adapter's count stays and the suite's warm-up goes.
+- `operation_statements` is the adapter's own. It holds for every caller,
+  `compiled_owned`'s pins among them, and the d3 mutants "postgres
+  operation accounting counts a transaction boundary as data" and "...hides
+  a data statement" hold it.
+- The suite now measures each render's first read and each command's first
+  write as they are, each beginning its transaction.
+
+**Held by** the conformance suite on PostgreSQL, the guestbook's tables'
+and the lists app's (`the_suite_holds_for_the_guestbooks_tables_on_postgresql`
+and its neighbour). With the layer's count charging the boundaries, each
+first write measures two statements, against one. `durable_tables_mutations.py`'s
+"the layer's count charges a transaction's boundaries" puts that charge
+back, and both suites fail at that assertion.
+
 ## Context
 
 The commonest web bug class is a read or write of another user's object
@@ -399,11 +453,13 @@ predicate Wrote(id: NoteId)
 - **ADR-0384's PW6906 and PW6908**, two-owner rows, `shares when`,
   `written when` and `reveals` are H3's.
 - **A page asking a predicate whose body reads a table** is told PW0401
-  beside PW6925, one defect told twice.
+  beside PW6925, one defect told twice. Repaired 2026-11-16: it is told
+  PW6925 alone (the amendment above).
 - **Two counts of a transaction's boundaries**: L1's `begun` in the
   conformance suite and the PostgreSQL layer's `operation_statements` both
   stand (the landing, above); one of them should go, with a test of the
-  other's that fails without it.
+  other's that fails without it. Done 2026-11-16: `begun` went (the
+  amendment above).
 - **Browser evidence on GitHub**: `e14-row-ownership` runs the owned-row
   specs in three engines and `e14-durable-tables` the guestbook's on
   PostgreSQL; their record is the full verify, not yet run.
@@ -419,7 +475,8 @@ predicate Wrote(id: NoteId)
 - **A wall-clock deadline for every call**, a host track of its own.
 - **A page asking a program predicate**: the host asks the body for the
   document, and PW6925's page clause lifts.
-- **One count of a transaction's boundaries**.
+- **One count of a transaction's boundaries**: done 2026-11-16 (the
+  amendment above).
 
 ## History
 
