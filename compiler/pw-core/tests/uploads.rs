@@ -355,3 +355,61 @@ fn a_build_writes_each_upload_for_its_host() {
     );
     assert!(reported(&link).iter().any(|d| d.starts_with("PW5009")));
 }
+
+#[test]
+fn an_uploads_paths_are_apart_from_each_other_as_the_host_holds_them() {
+    // L5a's review (2026-11-16): the host refuses a build whose upload paths
+    // are one another, or under one another, its own two included; the
+    // compiler held only exact paths, so such a build compiled.
+    let serving =
+        |path: &str| PROGRAM.replace("serves     \"/images\"", &format!("serves     \"{path}\""));
+    let own = uploads(&serving("/uploads/post-image"));
+    assert!(
+        own.iter().any(|d| d.starts_with(
+            "PW5602 `PostImage` serves at `/uploads/post-image`, where it takes its forms"
+        )),
+        "{own:?}"
+    );
+    let under = uploads(&serving("/uploads/post-image/files"));
+    assert!(
+        under.iter().any(|d| d.starts_with(
+            "PW5602 `PostImage` serves at `/uploads/post-image/files`, under `/uploads/post-image`, where it takes its forms"
+        )),
+        "{under:?}"
+    );
+    let second = format!(
+        "{PROGRAM}\nupload Avatar\n    route      \"/uploads/avatar\"\n    serves     \
+         \"/images/avatar\"\n    max_bytes  1000\n    types      png\n    max_width  64\n    \
+         max_height 64\n"
+    );
+    let nested = uploads(&second);
+    assert!(
+        nested.iter().any(|d| d.starts_with(
+            "PW5602 `Avatar` serves at `/images/avatar`, under `/images`, where `PostImage` serves"
+        )),
+        "{nested:?}"
+    );
+    // The neighbour: each upload's paths apart from every other's.
+    let apart = second.replace("\"/images/avatar\"", "\"/avatars\"");
+    assert_eq!(uploads(&apart), Vec::<String>::new());
+}
+
+#[test]
+fn a_type_named_twice_is_told_at_its_upload_once() {
+    // L5a's review (2026-11-16): `types png, png` was told only as the
+    // generated `Kind`'s case declared twice (PW0028), at no line of the
+    // program's.
+    let twice = PROGRAM.replacen("types      png, jpeg, webp, gif", "types      png, png", 1);
+    assert_ne!(twice, PROGRAM, "the fixture names its types so");
+    let found = reported(&twice);
+    assert!(
+        found
+            .iter()
+            .any(|d| d.starts_with("PW5601 `types png, png` names `png` twice")),
+        "{found:?}"
+    );
+    assert!(
+        !found.iter().any(|d| d.starts_with("PW0028")),
+        "told once: {found:?}"
+    );
+}

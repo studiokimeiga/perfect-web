@@ -13,10 +13,19 @@
 - **Leases are host-local.** An upload is staged on the host that received
   it, and the command that claims it must reach the same host: a deployment
   of several hosts needs affinity for a session's uploads (L6's deploy).
-- **The namespace lock serializes uploads on PostgreSQL.** Every command and
-  every image read of a program that declares uploads takes the upload
-  namespace's advisory lock, and waits five seconds at most for it:
-  measured before L7 ports the feed.
+- **The namespace lock serializes upload commands on PostgreSQL.** Every
+  command of a program that declares uploads takes the upload namespace's
+  advisory lock, and waits five seconds at most for it: measured before L7
+  ports the feed. An image read takes no lock, and holds a pool connection
+  only for its one statement (L5a's review).
+- **A physical copy of a database is its original, to its blob storage.** A
+  namespace's storage names the database that recorded it: the cluster's
+  system identifier and the database's and schema's OIDs. A copy restored
+  from a dump is another database and is refused its original's blob root.
+  A physical copy (a base backup restored apart, a replica promoted and run
+  beside its primary) has the same identity, and is not told apart: give it
+  a blob root of its own. Reading the identity needs `pg_control_system()`,
+  which a provider that revokes it from the role must grant.
 - **A vanished client holds that lock for about a minute.** The lock is the
   command connection's session's, so a client gone without closing its
   socket (a partition, a NAT's timeout) holds it until the database notices

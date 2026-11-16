@@ -8,19 +8,26 @@ declared upload through the server, on memory and on PostgreSQL: its
 imports bound to an invocation's ledger on the command's own transaction,
 its answer sealed with the attempt's nonce, each outcome settling its claims
 once (an unknown one from its own raw receipt; absence holds it), and
-`servable` admitting an upload a table keeps. Twenty-five server tests
+`servable` admitting an upload a table keeps. Twenty-eight server tests
 hold it, among them the seven the decision owed (`Recorded`, an equal-clock
 retry by another host, a reconcile the namespace lock delayed, a rotated
 reader, a foreign declaration, a live generation's corrupt bytes, a keep
-that fails). Twenty-six mutants hold it too, each killed
+that fails). Thirty mutants hold it too, each killed
 (`docs/evidence/E14/generic-upload-claims.txt`).
 
 Independently reviewed: no high finding; its three medium and eleven low
 are repaired or recorded (ADR-0440, "The server's claim bridge"). Among the
 repairs, a commit its ledger refused before `COMMIT` is answered refused,
 and each connection sets the server's keepalives, so a vanished client lets
-go of the namespace lock within about a minute. Its full verify is next,
-after L5a lands.
+go of the namespace lock within about a minute.
+
+L5a's review found no high finding reachable in L5a, and every finding live
+once L5b opens the guard. So L5 lands as one train from `wip/l5b-claims`,
+with L5a's medium findings repaired there:
+- an image read takes no lock;
+- a database copy is refused its original's blob root;
+- one failing collection no longer stops the rest.
+Its full verify is next, once master's open PRs land.
 
 **L5a, declared uploads to their claim ledger, 2026-11-16:** on L4
 (`7b8fb7cc`), the fifth train of the declared data layer's landing, its

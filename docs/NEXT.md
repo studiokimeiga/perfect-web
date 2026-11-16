@@ -29,10 +29,23 @@ owner. What stays open, in order:
    compiled upload imports bound to an invocation's ledger, the attempt's
    nonce in the commit's record, its outcome applied or refused, an
    unknown one reconciled from the raw receipt, and the startup refusal
-   opened only with those gates. Built on `wip/l5b-claims`: twenty-five
-   server tests, the seven ADR-0440 owed among them, and twenty-six mutants;
-   independently reviewed, its findings repaired. Next: its full verify,
-   once L5a lands. Keep the
+   opened only with those gates. Built on `wip/l5b-claims`: twenty-eight
+   server tests, the seven ADR-0440 owed among them, and thirty mutants;
+   independently reviewed, its findings repaired. L5a was reviewed too,
+   and L5 lands as one train from that branch, L5a's findings repaired
+   there (ADR-0440, "L5a reviewed"). Next: master merged, its full verify,
+   the PR.
+
+   Left from the reviews, each low:
+   - mutants for three PostgreSQL rules, each needing a fixture of its
+     own: the descriptor's immutability in `propose_asset`, `persist`'s
+     `ON CONFLICT` guard, and `lock_lifetime`'s marker check;
+   - upload refusals with codes of their own, not PW5601's invariant, and
+     corpus cases for each upload and asset rule;
+   - the bare `is_err()` refusals in the asset tests held to their reasons;
+   - one contract suite for assets over memory and PostgreSQL alike.
+
+   Keep the
    mixed-layer and upload startup refusals until their replacements are
    real; the design must address cross-host last-reference races, database
    disconnects during physical cleanup, immutable storage generations,

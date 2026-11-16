@@ -289,6 +289,10 @@ struct Inner {
     told: Mutex<Option<Arc<dyn Fn() + Send + Sync>>>,
     /// Each table's version: this adapter's commits that wrote it.
     versions: Mutex<Vec<u64>>,
+    /// **Where the next collection pass takes up** (L5a's review,
+    /// 2026-11-16): after the last generation the previous one took, so a
+    /// job that keeps failing never keeps the ones after it from their turn.
+    collect_after: Mutex<String>,
     /// Each reference's foreign key, by its name: the referring table and
     /// the referred, which a refusal names.
     foreign: BTreeMap<String, (String, String)>,
@@ -362,6 +366,14 @@ impl PgTables {
         let text = serde_json::to_string(&manifest)
             .map_err(|error| Error::Schema(format!("tables.json: {error}")))?;
         let mut host = pw_host::tables::Manifest::from_json(&text).map_err(Error::Schema)?;
+        // A manifest that declares no upload binds none (L5a's review,
+        // 2026-11-16: an empty one enrolled a namespace for good, so every
+        // later open that bound no uploads was refused).
+        let declares_none = |uploads: &Uploads| {
+            pw_host::assets::Manifest::from_json(&uploads.metadata)
+                .is_ok_and(|m| m.declarations().next().is_none())
+        };
+        let uploads = uploads.filter(|uploads| !declares_none(uploads));
         let uploads = if let Some(uploads) = uploads {
             host = host
                 .with_uploads(&uploads.metadata)
@@ -485,6 +497,7 @@ impl PgTables {
                 turned: Condvar::new(),
                 told: Mutex::new(None),
                 versions: Mutex::new(versions),
+                collect_after: Mutex::new(String::new()),
                 foreign,
                 hold_references,
                 places,

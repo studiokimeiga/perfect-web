@@ -1240,7 +1240,7 @@ Their seams are test-only:
 - `Ticket::proof`;
 - memory's `FAIL_NEXT_KEEP`.
 
-Twenty-six mutants in `generic_upload_claims_mutations.py` (`just
+Thirty mutants in `generic_upload_claims_mutations.py` (`just
 e14-generic-upload-claims`) hold it, each killed, as
 `docs/evidence/E14/generic-upload-claims.txt` records. Eight came with the
 seven tests:
@@ -1252,9 +1252,9 @@ seven tests:
 - the periodic pass inspecting nothing;
 - PostgreSQL's keep failure not refusing its commit.
 
-Six came with the review below. d3's "a connection keeps the operating
-system's keepalives" and data-path's "an upload's binding is not checked
-where it is served" are each killed too.
+Six came with the review below, and four with L5a's after it. d3's "a
+connection keeps the operating system's keepalives" and data-path's "an
+upload's binding is not checked where it is served" are each killed too.
 
 The serving handler's check of a live generation's bytes and the storage's
 own are each the other's backstop, so neither alone is a mutant.
@@ -1315,6 +1315,57 @@ or recorded:
   `cfg(test)`); the forced record's comment and decision 1's foreign handle
   now say what the code does. The PostgreSQL keep test fails, not skips,
   when run as root, as its own doc says.
+
+**L5a reviewed** independently (2026-11-16, `6407ba55..014439c5`). No high
+finding is reachable in L5a, whose server refuses uploads beside tables;
+each becomes live with L5b. So **L5 lands as one train**, from
+`wip/l5b-claims`, with L5a's findings repaired there:
+- **A read held to the lifetime lock** (M1): each image request waited for
+  every command, holding a pool connection through its file and its hash.
+  A read now takes no lock and holds its connection for one statement; a
+  second look tells a collection that raced it.
+  `an_image_is_served_while_the_namespace_lock_is_held_on_postgresql` holds
+  it, and the mutant "an image read waits for the namespace's lock".
+- **A database copy sharing its original's blob root** (M2) would collect
+  what the original still serves. A namespace's storage now names its
+  database's identity and refuses another
+  (`a_database_copy_sharing_its_originals_blob_root_is_refused_on_postgresql`,
+  two mutants). A physical copy is not told apart (KNOWN_LIMITATIONS).
+- **Memory and PostgreSQL not alike** (M3): L5b gave memory its keep, its
+  collection and its verified read. A shared contract suite for assets is
+  NEXT's.
+- **An upload no table keeps** (L1): `servable` refuses it (L5b), before
+  any layer enrolls it.
+- **One failing collection stopped its pass** (L2), the same one first each
+  time: each job is now made on its own, in turn
+  (`a_collection_that_keeps_failing_keeps_no_other_from_its_turn_on_postgresql`,
+  a mutant).
+- **The namespace lock's five seconds governed the migration's DDL** (L3):
+  the default is restored after the lock. Repaired by reading: no test makes
+  the DDL wait.
+- **A delete touching more keys than 65,535 parameters hold** could never
+  commit (L8): the check is batched. Repaired by reading: a test would write
+  65,536 rows.
+- **Upload paths the host refuses compiled** (L6): PW5602 now holds the
+  host's rule (equal or nested paths, an upload's own two included). A type
+  named twice is PW5601 at the upload, not PW0028 at a generated
+  declaration. Two compiler tests hold these.
+- **An unknown outcome that rolled back pins its lease** (L5): recorded in
+  KNOWN_LIMITATIONS (L5b's).
+- **Left to NEXT, each low:**
+  - three PostgreSQL rules with no mutant (L4): the descriptor's
+    immutability in `propose_asset`, `persist`'s `ON CONFLICT` guard and
+    `lock_lifetime`'s marker check, each needing a fixture of its own;
+  - upload refusals filed under PW5601's invariant, and no corpus cases
+    (L7);
+  - bare `is_err()` refusals (L9).
+- **Nits:**
+  - `Declaration::source()` no longer panics on an unvalidated value;
+  - a manifest that declares no upload binds none, so it enrolls no
+    namespace;
+  - the descriptor marker stays byte for byte, and the code now says so;
+  - `PLATFORM_RELATIONS`' comment names 0005's prefix rule;
+  - the immutable cache header, which predates L5, stays.
 
 ## Landing (L3, 2026-11-13)
 

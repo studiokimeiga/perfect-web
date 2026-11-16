@@ -1330,3 +1330,142 @@ fn a_collection_that_failed_at_its_commit_is_made_by_housekeeping_on_postgresql(
         "collected by housekeeping"
     );
 }
+
+/// **An image is served while the upload namespace's lock is held**
+/// (ADR-0440, L5; L5a's review: a read held to the lifetime lock waited for
+/// every command, a pool connection held through its file and its hash, and
+/// failed after five seconds). Another session holds the namespace's lock, as
+/// a long command does, and the image a row names is served all the same, at
+/// once.
+#[test]
+fn an_image_is_served_while_the_namespace_lock_is_held_on_postgresql() {
+    let Some(url) = super::tables_pg::database() else {
+        return;
+    };
+    let (_dir, out) = built();
+    let schema = super::tables_pg::Schema::new(&url, "bridge_read_unlocked");
+    let s = super::tables_pg::serve(&out, &schema);
+    assert!(
+        attach(&s, "reader", &png()).contains(" 303 "),
+        "the upload staged"
+    );
+    assert!(keep(&s, "reader", 1, "keep-1").committed);
+    let (key, kind) = image_of(&s, 1).asserted_some("the row names its image");
+    let lock = namespace_lock(&schema);
+    let mut held = postgres::Client::connect(&schema.database().url, postgres::NoTls)
+        .asserted("a session of the test's");
+    held.query_one("SELECT pg_advisory_lock($1)", &[&lock])
+        .asserted("the namespace's lock held");
+    let started = std::time::Instant::now();
+    let (head, _) = get(&s, &format!("/images/{key}.{kind}"));
+    let waited = started.elapsed();
+    held.query_one("SELECT pg_advisory_unlock($1)", &[&lock])
+        .asserted("the lock given back");
+    assert!(head.starts_with("http/1.1 200"), "{head}");
+    assert!(
+        waited < std::time::Duration::from_secs(3),
+        "served at once, not after the lock: {waited:?}"
+    );
+}
+
+/// **A copy of a database that shares its original's blob root is refused**
+/// (ADR-0440, L5; L5a's review: a staging copy restored from production,
+/// both pointed at one `PW_BLOB_DIR`, would collect what production still
+/// serves). Schema A enrolls its namespace under its blob root. Schema B is
+/// made a copy of A, A's recorded namespace its own, and pointed at A's
+/// root. B is refused, naming whose the namespace is, while A is served on
+/// it still.
+#[test]
+fn a_database_copy_sharing_its_originals_blob_root_is_refused_on_postgresql() {
+    let Some(url) = super::tables_pg::database() else {
+        return;
+    };
+    let (_dir, out) = built();
+    let original = super::tables_pg::Schema::new(&url, "bridge_owner_original");
+    drop(super::tables_pg::serve(&out, &original));
+    let recorded = original.texts("SELECT namespace FROM pw_asset_namespace");
+    assert_eq!(recorded.len(), 1, "{recorded:?}");
+    let copy = super::tables_pg::Schema::new(&url, "bridge_owner_copy");
+    drop(super::tables_pg::serve(&out, &copy));
+    copy.sql(&format!(
+        "UPDATE pw_asset_namespace SET namespace = '{}'",
+        recorded[0]
+    ))
+    .asserted("the copy holds the original's namespace");
+    let mut shared = copy.database();
+    shared.blobs = original.database().blobs;
+    let refused = crate::tables_pg::TablesPg::for_build(&out, &shared);
+    let why = refused.err().unwrap_or_default();
+    assert!(why.contains("belongs to another database"), "{why}");
+    let again = crate::tables_pg::TablesPg::for_build(&out, &original.database());
+    assert!(
+        again.is_ok(),
+        "the original on its own root: {:?}",
+        again.err()
+    );
+}
+
+/// **A collection that keeps failing keeps no other from its turn**
+/// (ADR-0440, L5; L5a's review: a pass stopped at its first failing job, the
+/// same one first each time, so the rest were never collected). Two removed
+/// images, each one's collection failing at its commit. The first by its
+/// generation stays read-only; the other is writable again. The next
+/// housekeeping collects the other, and the stuck one stays, said.
+#[test]
+fn a_collection_that_keeps_failing_keeps_no_other_from_its_turn_on_postgresql() {
+    use std::os::unix::fs::PermissionsExt;
+    let Some(url) = super::tables_pg::database() else {
+        return;
+    };
+    let (_dir, out) = built();
+    let schema = super::tables_pg::Schema::new(&url, "bridge_collect_turn");
+    let s = super::tables_pg::serve(&out, &schema);
+    let blobs = schema.database().blobs;
+    let mut kept = Vec::new();
+    for (id, image) in [(1, png()), (2, other_png())] {
+        assert!(
+            attach(&s, "reader", &image).contains(" 303 "),
+            "image {id} staged"
+        );
+        assert!(keep(&s, "reader", id, &format!("keep-{id}")).committed);
+        let (key, _) = image_of(&s, id).asserted_some("the row names its image");
+        kept.push((id, key.clone(), generation_dir(&blobs, &key)));
+    }
+    for (_, _, dir) in &kept {
+        std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o555))
+            .asserted("a generation's directory made read-only");
+    }
+    for (id, _, _) in &kept {
+        let removed = s
+            .command_answer(
+                "photos.app.Remove",
+                "reader",
+                &[serde_json::json!(id)],
+                Some(&format!("remove-{id}")),
+            )
+            .asserted("Remove answered");
+        assert!(removed.committed, "{removed:?}");
+    }
+    // The stuck one is the first by its generation, which a pass took first.
+    kept.sort_by(|a, b| a.2.file_name().cmp(&b.2.file_name()));
+    let (stuck, freed) = (&kept[0], &kept[1]);
+    std::fs::set_permissions(&freed.2, std::fs::Permissions::from_mode(0o755))
+        .asserted("the other's directory writable again");
+    assert_eq!(
+        generation_files(&blobs, &freed.1).len(),
+        1,
+        "both still kept"
+    );
+    s.run_due();
+    std::fs::set_permissions(&stuck.2, std::fs::Permissions::from_mode(0o755))
+        .asserted("the stuck one's directory writable again");
+    assert!(
+        generation_files(&blobs, &freed.1).is_empty(),
+        "the other collected, past the stuck one"
+    );
+    assert_eq!(
+        generation_files(&blobs, &stuck.1).len(),
+        1,
+        "the stuck one stays"
+    );
+}

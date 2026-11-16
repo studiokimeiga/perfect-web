@@ -886,6 +886,12 @@ fn apply_in(
     )?;
     if let Some(namespace) = &enrollment.namespace {
         enrollment.lifetime = Some(crate::assets::acquire_namespace(conn, counters, namespace)?);
+        // The namespace's wait is five seconds, the migration's DDL is held
+        // to no such bound (L5a's review, 2026-11-16: the lock's `SET LOCAL`
+        // held every statement after it in this transaction to five seconds,
+        // so a render seat's read lock refused the host its start).
+        conn.batch(counters, "SET LOCAL lock_timeout TO DEFAULT")
+            .map_err(crate::database)?;
     }
     let ddl = match &recorded {
         None => {

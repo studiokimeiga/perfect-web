@@ -33,8 +33,12 @@ impl Declaration {
     pub fn name(&self) -> &str {
         &self.name
     }
+    /// Its source, as the validated manifest holds it. One deserialized
+    /// without validation that names none reads as the empty name, which no
+    /// table's source is, so it is refused wherever it is bound, never a
+    /// panic (L5a's review, 2026-11-16).
     pub fn source(&self) -> &str {
-        self.source.as_deref().expect("validated source")
+        self.source.as_deref().unwrap_or_default()
     }
     pub fn route(&self) -> &str {
         &self.route

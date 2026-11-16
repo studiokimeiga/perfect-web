@@ -73,6 +73,36 @@ impl PgTables {
         Ok(())
     }
 }
+/// **The database that records a namespace**, as its storage's owner marker
+/// names it (L5a's review, 2026-11-16): the cluster's system identifier, and
+/// the database's and the schema's OIDs. A dump restored elsewhere, or into
+/// another database or schema, is another owner. A physical copy (a replica
+/// promoted) is the same database, and shares its blob root by right.
+fn database_owner(conn: &mut Conn, counters: &Counters, schema: &str) -> Result<String, Error> {
+    let rows = conn
+        .query(
+            counters,
+            "SELECT (SELECT system_identifier FROM pg_control_system())::text, \
+             (SELECT oid FROM pg_database WHERE datname = current_database())::text, \
+             (SELECT oid FROM pg_namespace WHERE nspname = $1)::text",
+            &[Box::new(schema.to_string())],
+        )
+        .map_err(database)?;
+    let row = rows
+        .first()
+        .ok_or_else(|| Error::Schema("the database's identity was not answered".into()))?;
+    let part = |i: usize| -> Result<String, Error> {
+        row.try_get::<_, Option<String>>(i)
+            .map_err(database)?
+            .ok_or_else(|| Error::Schema("the database's identity is incomplete".into()))
+    };
+    Ok(format!(
+        "cluster {} database {} schema {}",
+        part(0)?,
+        part(1)?,
+        part(2)?
+    ))
+}
 fn storage_error(error: std::io::Error) -> Error {
     Error::Schema(format!("upload storage namespace: {error}"))
 }
@@ -150,11 +180,16 @@ pub(crate) fn enroll(
             )));
         }
     }
+    let owner = database_owner(conn, counters, &names.schema)?;
     let namespace = match namespace {
         Some(namespace) => {
             config
                 .store
                 .enroll(&namespace, false)
+                .map_err(storage_error)?;
+            config
+                .store
+                .own(&namespace, &owner, false)
                 .map_err(storage_error)?;
             namespace
         }
@@ -162,6 +197,12 @@ pub(crate) fn enroll(
             config
                 .store
                 .enroll(&config.candidate, true)
+                .map_err(storage_error)?;
+            // Its owner before its record: a namespace the database
+            // records is always one its storage says is this database's.
+            config
+                .store
+                .own(&config.candidate, &owner, true)
                 .map_err(storage_error)?;
             insert(
                 conn,

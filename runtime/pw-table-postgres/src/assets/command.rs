@@ -119,6 +119,20 @@ fn descriptor(row: &postgres::Row) -> Result<Descriptor, Error> {
     Ok(descriptor)
 }
 const COLUMNS: &str = "generation,key,kind,width,height,bytes";
+/// **A LIVE generation's bytes, read and held to its descriptor** outside
+/// any connection: missing, unreadable or another size is the storage's
+/// failure (`Refused`, a 503 where it is served).
+fn verified_bytes(binding: &crate::assets::Binding, d: &Descriptor) -> Result<Vec<u8>, Error> {
+    let bytes = binding
+        .store
+        .get_generation(&binding.namespace, d)
+        .map_err(|e| Error::Refused(format!("LIVE upload storage unavailable: {e}")))?
+        .ok_or_else(|| Error::Refused("LIVE upload storage is missing".into()))?;
+    if bytes.len() as u64 != d.bytes {
+        return Err(Error::Refused("LIVE upload byte count differs".into()));
+    }
+    Ok(bytes)
+}
 /// Trusted functions on the command's existing state/lease; no independent
 /// lifetime owner and no second pool connection or transaction.
 pub type AssetPublisher =
@@ -680,54 +694,66 @@ impl PgTables {
             .uploads()
             .and_then(|m| m.declaration(declaration))
             .ok_or_else(|| Error::Input("unknown upload declaration".into()))?;
-        let mut loan = NamespaceLoan {
-            lease: self.inner.pool.take()?,
-            released: false,
+        // **A read takes no lifetime lock** (L5a's review, 2026-11-16): the
+        // namespace lock orders commands and collection, and a read held to
+        // it, a pool connection held through its file and its hash, made a
+        // page of images wait in line, and a long command turn every image
+        // into a 503. A read now holds a connection for its statement alone.
+        // Bytes a collection takes between the statement and the read are
+        // told by a second look: no current generation (404), the same one
+        // (503), or another published since, read once.
+        let Some(found) = self.current_descriptor(declared, declaration, key, kind)? else {
+            return Ok(None);
         };
-        let lifetime = lock_lifetime(&self.inner, &mut loan.lease)?;
-        let answer = (|| {
-            let conn = loan.lease.conn()?;
-            let sql = format!(
-                "SELECT g.generation,g.key,g.kind,g.width,g.height,g.bytes FROM {} g JOIN {} r USING(generation) WHERE g.key=$1 AND g.kind=$2 AND g.state='live' AND r.declaration=$3 AND r.count>0 LIMIT 2",
-                self.inner.names.qualified("pw_asset_generations"),
-                self.inner.names.qualified("pw_asset_references")
-            );
-            let rows = conn
-                .query(
-                    &self.inner.counters,
-                    &sql,
-                    &[
-                        Box::new(key.to_string()),
-                        Box::new(kind.to_string()),
-                        Box::new(declaration.to_string()),
-                    ],
-                )
-                .map_err(database)?;
-            if rows.is_empty() {
-                return Ok(None);
-            }
-            if rows.len() != 1 {
-                return Err(Error::Drift("multiple current asset descriptors".into()));
-            }
-            let d = descriptor(&rows[0])?;
-            declared
-                .validate_reference(&d.reference)
-                .map_err(Error::Drift)?;
-            let bytes = binding
-                .store
-                .get_generation(&binding.namespace, &d)
-                .map_err(|e| Error::Refused(format!("LIVE upload storage unavailable: {e}")))?
-                .ok_or_else(|| Error::Refused("LIVE upload storage is missing".into()))?;
-            if bytes.len() as u64 != d.bytes {
-                return Err(Error::Refused("LIVE upload byte count differs".into()));
-            }
-            Ok(Some((d, bytes)))
-        })();
-        if let Some(key) = lifetime {
-            self.inner.unfence(&mut loan.lease, key);
+        let missing = match verified_bytes(binding, &found) {
+            Ok(bytes) => return Ok(Some((found, bytes))),
+            Err(missing) => missing,
+        };
+        match self.current_descriptor(declared, declaration, key, kind)? {
+            None => Ok(None),
+            Some(again) if again == found => Err(missing),
+            Some(again) => verified_bytes(binding, &again).map(|bytes| Some((again, bytes))),
         }
-        loan.released = true;
-        answer
+    }
+    /// **The current generation `declaration` serves by `key` and `kind`**:
+    /// the one LIVE generation a row of its names, on a connection held for
+    /// this statement alone.
+    fn current_descriptor(
+        &self,
+        declared: &pw_host::assets::Declaration,
+        declaration: &str,
+        key: &str,
+        kind: &str,
+    ) -> Result<Option<Descriptor>, Error> {
+        let mut lease = self.inner.pool.take()?;
+        let conn = lease.conn()?;
+        let sql = format!(
+            "SELECT g.generation,g.key,g.kind,g.width,g.height,g.bytes FROM {} g JOIN {} r USING(generation) WHERE g.key=$1 AND g.kind=$2 AND g.state='live' AND r.declaration=$3 AND r.count>0 LIMIT 2",
+            self.inner.names.qualified("pw_asset_generations"),
+            self.inner.names.qualified("pw_asset_references")
+        );
+        let rows = conn
+            .query(
+                &self.inner.counters,
+                &sql,
+                &[
+                    Box::new(key.to_string()),
+                    Box::new(kind.to_string()),
+                    Box::new(declaration.to_string()),
+                ],
+            )
+            .map_err(database)?;
+        if rows.is_empty() {
+            return Ok(None);
+        }
+        if rows.len() != 1 {
+            return Err(Error::Drift("multiple current asset descriptors".into()));
+        }
+        let d = descriptor(&rows[0])?;
+        declared
+            .validate_reference(&d.reference)
+            .map_err(Error::Drift)?;
+        Ok(Some(d))
     }
     /// Retry at most `limit` captured durable jobs, same namespace->host-turn
     /// order as commands. Each deletion rechecks latest committed no-ref state.
@@ -743,8 +769,17 @@ impl PgTables {
         let command = self.begin()?;
         let mut open = command.state.lock().map_err(|_| Error::StoragePoisoned)?;
         let conn = open.lease.as_mut().ok_or(Error::Ended)?.conn()?;
+        // In turn: the jobs after the last one the previous pass took, then
+        // the rest (L5a's review: by generation alone, a job that kept
+        // failing was first at every pass, and the rest waited behind it).
+        let after = self
+            .inner
+            .collect_after
+            .lock()
+            .map_err(|_| Error::StoragePoisoned)?
+            .clone();
         let sql = format!(
-            "SELECT g.generation,g.key,g.kind,g.width,g.height,g.bytes FROM {} g JOIN {} j USING(generation) WHERE g.state='tombstone' AND NOT EXISTS(SELECT 1 FROM {} r WHERE r.generation=g.generation) ORDER BY g.generation LIMIT $1",
+            "SELECT g.generation,g.key,g.kind,g.width,g.height,g.bytes FROM {} g JOIN {} j USING(generation) WHERE g.state='tombstone' AND NOT EXISTS(SELECT 1 FROM {} r WHERE r.generation=g.generation) ORDER BY g.generation <= $2, g.generation LIMIT $1",
             self.inner.names.qualified("pw_asset_generations"),
             self.inner.names.qualified("pw_asset_collections"),
             self.inner.names.qualified("pw_asset_references")
@@ -753,19 +788,41 @@ impl PgTables {
             .query(
                 &self.inner.counters,
                 &sql,
-                &[Box::new(i64::try_from(limit).unwrap_or(i64::MAX))],
+                &[
+                    Box::new(i64::try_from(limit).unwrap_or(i64::MAX)),
+                    Box::new(after),
+                ],
             )
             .map_err(database)?;
         let descriptors = rows.iter().map(descriptor).collect::<Result<Vec<_>, _>>()?;
-        let mut done = 0;
-        for d in descriptors {
-            if collect_one(&self.inner, conn, binding, &d)? {
-                done += 1;
+        // Each job on its own: one that fails is said, and the rest are
+        // still made (each statement is its own, on this connection).
+        let (mut done, mut failed): (usize, Vec<String>) = (0, Vec::new());
+        for d in &descriptors {
+            match collect_one(&self.inner, conn, binding, d) {
+                Ok(true) => done += 1,
+                Ok(false) => {}
+                Err(e) => failed.push(format!("{}: {e:?}", d.reference.generation)),
             }
+        }
+        if let Some(last) = descriptors.last() {
+            *self
+                .inner
+                .collect_after
+                .lock()
+                .map_err(|_| Error::StoragePoisoned)? = last.reference.generation.clone();
         }
         drop(open);
         drop(command);
-        Ok(done)
+        if failed.is_empty() {
+            Ok(done)
+        } else {
+            Err(Error::Refused(format!(
+                "{done} upload generations collected, {} not: {}",
+                failed.len(),
+                failed.join("; ")
+            )))
+        }
     }
 }
 
@@ -829,28 +886,6 @@ fn verify_rows(inner: &Inner, open: &mut Open) -> Result<(), Error> {
             references: Vec::new(),
             bounded: None,
         };
-        let mut params: Vec<crate::Param> = Vec::new();
-        let mut values = Vec::new();
-        for (key, _) in &touched {
-            if key.len() != table.key.len() {
-                return Err(Error::Schema("touched key shape differs".into()));
-            }
-            let mut tuple = Vec::new();
-            for (&field, atom) in table.key.iter().zip(key) {
-                if params.len() >= 65535 {
-                    return Err(Error::Input(
-                        "too many touched asset keys for one statement".into(),
-                    ));
-                }
-                params.push(bind_atom(&table.columns[field], atom)?);
-                tuple.push(format!(
-                    "${}::{}",
-                    params.len(),
-                    table.columns[field].kind.sql()
-                ));
-            }
-            values.push(format!("({})", tuple.join(",")));
-        }
         let aliases = (0..table.key.len())
             .map(|i| format!("k{i}"))
             .collect::<Vec<_>>();
@@ -871,34 +906,57 @@ fn verify_rows(inner: &Inner, open: &mut Open) -> Result<(), Error> {
                 }
             })
             .collect::<Vec<_>>();
-        let sql = format!(
-            "SELECT {} FROM {} t JOIN (VALUES {}) k({}) ON {}",
-            selected.join(","),
-            inner.names.qualified(&table.name),
-            values.join(","),
-            aliases.join(","),
-            conditions.join(" AND ")
-        );
-        let conn = inner.command_conn(open)?;
+        // As many keys a statement as its 65,535 parameters hold (L5a's
+        // review, 2026-11-16: one statement for all of them refused a delete
+        // touching more, so a large prefix delete could never commit).
+        let per = (65_535 / table.key.len().max(1)).max(1);
         let mut actual = BTreeMap::new();
-        for raw in conn
-            .query(&inner.counters, &sql, &params)
-            .map_err(database)?
-        {
-            let row = decode(&projection, &raw, 0)?;
-            let key = row_key(&row, &projection.columns, &projection.key)?;
-            let fields = table
-                .assets
-                .iter()
-                .map(|a| {
-                    row.get(&a.field)
-                        .cloned()
-                        .map(|v| (a.field.clone(), v))
-                        .ok_or_else(|| Error::Drift("actual row has no asset field".into()))
-                })
-                .collect::<Result<serde_json::Map<String, Value>, Error>>()?;
-            if actual.insert(key, fields).is_some() {
-                return Err(Error::Drift("duplicate stored asset key".into()));
+        for chunk in touched.chunks(per) {
+            let mut params: Vec<crate::Param> = Vec::new();
+            let mut values = Vec::new();
+            for (key, _) in chunk {
+                if key.len() != table.key.len() {
+                    return Err(Error::Schema("touched key shape differs".into()));
+                }
+                let mut tuple = Vec::new();
+                for (&field, atom) in table.key.iter().zip(key) {
+                    params.push(bind_atom(&table.columns[field], atom)?);
+                    tuple.push(format!(
+                        "${}::{}",
+                        params.len(),
+                        table.columns[field].kind.sql()
+                    ));
+                }
+                values.push(format!("({})", tuple.join(",")));
+            }
+            let sql = format!(
+                "SELECT {} FROM {} t JOIN (VALUES {}) k({}) ON {}",
+                selected.join(","),
+                inner.names.qualified(&table.name),
+                values.join(","),
+                aliases.join(","),
+                conditions.join(" AND ")
+            );
+            let conn = inner.command_conn(open)?;
+            for raw in conn
+                .query(&inner.counters, &sql, &params)
+                .map_err(database)?
+            {
+                let row = decode(&projection, &raw, 0)?;
+                let key = row_key(&row, &projection.columns, &projection.key)?;
+                let fields = table
+                    .assets
+                    .iter()
+                    .map(|a| {
+                        row.get(&a.field)
+                            .cloned()
+                            .map(|v| (a.field.clone(), v))
+                            .ok_or_else(|| Error::Drift("actual row has no asset field".into()))
+                    })
+                    .collect::<Result<serde_json::Map<String, Value>, Error>>()?;
+                if actual.insert(key, fields).is_some() {
+                    return Err(Error::Drift("duplicate stored asset key".into()));
+                }
             }
         }
         for (key, expected) in touched {

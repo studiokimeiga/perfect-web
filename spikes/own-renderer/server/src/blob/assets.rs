@@ -196,11 +196,40 @@ impl LocalBlobs {
             .join("generations")
             .join(&descriptor.reference.generation);
         let marker = serde_json::to_vec(descriptor).map_err(invalid)?;
+        // Byte for byte: a field a descriptor gains later is a storage
+        // format change, migrated, never a marker read leniently.
         exact_marker(&dir.join(".descriptor"), &marker)?;
         Ok(dir)
     }
 }
 impl Storage for LocalBlobs {
+    fn own(&self, namespace: &Namespace, owner: &str, fresh: bool) -> io::Result<()> {
+        let dir = self.checked_namespace(namespace)?;
+        let path = dir.join(".owner");
+        let marker = format!("pw-upload-owner-v1\n{owner}\n").into_bytes();
+        if fresh {
+            write_new(&path, &marker)?;
+            return sync_dir(&dir);
+        }
+        match std::fs::read(&path) {
+            Ok(found) if found == marker => Ok(()),
+            Ok(found) => Err(io::Error::other(format!(
+                "upload namespace {} belongs to another database ({}): a copy of a database \
+                 is given a blob root of its own",
+                namespace.hex(),
+                String::from_utf8_lossy(&found)
+                    .lines()
+                    .nth(1)
+                    .unwrap_or("unnamed")
+            ))),
+            Err(e) if e.kind() == io::ErrorKind::NotFound => Err(io::Error::other(format!(
+                "upload namespace {} names no owning database: it was enrolled before owners \
+                 were recorded; give this database a blob root of its own",
+                namespace.hex()
+            ))),
+            Err(e) => Err(e),
+        }
+    }
     fn enroll(&self, namespace: &Namespace, fresh: bool) -> io::Result<()> {
         if !fresh {
             self.checked_namespace(namespace)?;
@@ -229,6 +258,8 @@ impl Storage for LocalBlobs {
         // Never remove this directory/marker as part of captured payload GC.
         std::fs::create_dir(&dir)?;
         let marker = serde_json::to_vec(descriptor).map_err(invalid)?;
+        // Byte for byte: a field a descriptor gains later is a storage
+        // format change, migrated, never a marker read leniently.
         write_new(&dir.join(".descriptor"), &marker)?;
         write_new(&dir.join(&descriptor.reference.key), bytes)?;
         sync_dir(&dir)?;

@@ -77,6 +77,8 @@ LAYER_MEMORY = SERVER / "tables.rs"
 STAGING = SERVER / "uploads.rs"
 PG_ASSETS = ROOT / "runtime/pw-table-postgres/src/assets/command.rs"
 PG_LIB = ROOT / "runtime/pw-table-postgres/src/lib.rs"
+PG_ENROLL = ROOT / "runtime/pw-table-postgres/src/assets.rs"
+BLOBS = SERVER / "blob/assets.rs"
 
 MUTANTS = [
     # 1. the commit carries the attempt
@@ -159,10 +161,24 @@ MUTANTS = [
     ("a commit collects no generation it left unnamed on PostgreSQL", PG_LIB,
      "        let _ = assets::collect_committed(&inner, open);\n",
      "        let _ = &open;\n"),
+    # L5a's review: a namespace is its database's.
+    ("a namespace's owner is not held to on an enrolled blob root", BLOBS,
+     "            Ok(found) if found == marker => Ok(()),\n",
+     "            Ok(_) => Ok(()),\n"),
+    ("an enrolled namespace's owner is never asked on PostgreSQL", PG_ENROLL,
+     "                .own(&namespace, &owner, false)\n",
+     "                .own(&namespace, &owner, false)\n                .or(Ok::<(), std::io::Error>(()))\n"),
+    ("a failing collection stops its pass on PostgreSQL", PG_ASSETS,
+     "                Err(e) => failed.push(format!(\"{}: {e:?}\", d.reference.generation)),\n",
+     "                Err(e) => return Err(e),\n"),
     ("housekeeping collects no generation a commit failed to on PostgreSQL", LAYER_PG,
      "            match self.tables.collect_assets(SWEPT) {\n",
      "            match Ok::<usize, String>(0) {\n"),
     # 6. the PostgreSQL adapter
+    # L5a's review: a read takes no lifetime lock.
+    ("an image read waits for the namespace's lock on PostgreSQL", PG_ASSETS,
+     "        let Some(found) = self.current_descriptor(declared, declaration, key, kind)? else {\n",
+     "        let mut held = self.inner.pool.take()?;\n        let _lifetime = lock_lifetime(&self.inner, &mut held)?;\n        let Some(found) = self.current_descriptor(declared, declaration, key, kind)? else {\n"),
     ("a keep that fails does not refuse its commit on PostgreSQL", PG_ASSETS,
      '                .map_err(|e| Error::Refused(format!("upload keep: {e}")))?;\n',
      "                .ok();\n"),

@@ -96,9 +96,11 @@ fn read(decl: &crate::hir::Decl) -> Option<UploadClauses> {
         .map(|t| t.trim().to_string())
         .collect();
     let bytes = count("max_bytes")?;
+    let distinct: std::collections::BTreeSet<&String> = types.iter().collect();
     let ok = literal_path(route)
         && literal_path(serves)
         && bytes <= MOST_BYTES
+        && distinct.len() == types.len()
         && types
             .iter()
             .all(|t| crate::policy::UPLOAD_TYPES.contains(&t.as_str()));
@@ -183,6 +185,7 @@ pub fn check(hirs: &[&Hir], unit: usize) -> Vec<Diagnostic> {
     let hir = hirs[unit];
     malformed(hir, &mut out);
     taken(hirs, unit, &mut out);
+    overlapping(hirs, unit, &mut out);
     // Every upload's route, its other clauses aside: a form posting to one
     // whose limits are malformed is PW5601's to report, not this one's.
     let routes: Vec<String> = hirs
@@ -257,6 +260,28 @@ fn malformed(hir: &Hir, out: &mut Vec<Diagnostic>) {
                 format!("write `max_bytes` at most `{MOST_BYTES}`"),
             ));
         }
+        // A type named twice (L5a's review, 2026-11-16: it was told only as
+        // the generated `Kind`'s case declared twice, PW0028, at no line of
+        // the program's); the upload is not generated, so it is told here
+        // alone.
+        if let Some(p) = decl.policy("types") {
+            let mut seen = std::collections::BTreeSet::new();
+            if let Some(twice) = p.value.split(',').map(str::trim).find(|t| !seen.insert(*t)) {
+                out.push(diagnostic(
+                    codes::UPLOAD_MALFORMED,
+                    "upload_type_twice",
+                    format!("`types {}` names `{twice}` twice", p.value.trim()),
+                    p.span.clone(),
+                    vec![Related::new(
+                        at.clone(),
+                        format!("the upload `{}`", decl.name),
+                    )],
+                    "An upload's types are the kinds a reader's file may be, each named once: \
+                     the host holds a file to the one its bytes are.",
+                    format!("write `{twice}` once"),
+                ));
+            }
+        }
         for head in ["max_width", "max_height"] {
             if let Some(p) = decl.policy(head)
                 && crate::policy::count(&p.value).is_some_and(|n| n > u32::MAX as u64)
@@ -271,6 +296,69 @@ fn malformed(hir: &Hir, out: &mut Vec<Diagnostic>) {
                      an upload may be.",
                     format!("write `{head}` at most `{}`", u32::MAX),
                 ));
+            }
+        }
+    }
+}
+
+/// **The host's rule for an upload's two paths** (`pw_host::assets`'s
+/// manifest, L5a's review of 2026-11-16): no upload's route or serving path is
+/// another's, or under another's, its own two included, or the host refuses
+/// the build at its start. What the exact paths below already tell (one
+/// route, or one serving path, of two uploads) is not told twice.
+fn overlapping(hirs: &[&Hir], unit: usize, out: &mut Vec<Diagnostic>) {
+    // Each path held so far: the path, its upload, and whether it is a route.
+    let mut held: Vec<(String, String, bool)> = Vec::new();
+    let does = |route: bool| if route { "takes its forms" } else { "serves" };
+    for (u, hir) in hirs.iter().enumerate() {
+        for (id, decl) in hir.all_decls() {
+            if decl.kind != DeclKind::Upload {
+                continue;
+            }
+            let Some(c) = read(decl) else {
+                continue;
+            };
+            for (path, route) in [(c.route.clone(), true), (c.serves.clone(), false)] {
+                let over = held.iter().find(|(old, other, old_route)| {
+                    let equal = *old == path;
+                    let nested = path.starts_with(&format!("{old}/"))
+                        || old.starts_with(&format!("{path}/"));
+                    // One route of two uploads, or one serving path: the
+                    // exact paths' check (`taken`) tells those.
+                    let told = equal && *other != decl.name && *old_route == route;
+                    (equal || nested) && !told
+                });
+                if let (Some((old, other, old_route)), true) = (over, u == unit) {
+                    let who = if *other == decl.name {
+                        "it".to_string()
+                    } else {
+                        format!("`{other}`")
+                    };
+                    let at = format!("`{}` {} at `{path}`", decl.name, does(route));
+                    let message = if *old == path {
+                        format!("{at}, where {who} {}", does(*old_route))
+                    } else if path.starts_with(&format!("{old}/")) {
+                        format!("{at}, under `{old}`, where {who} {}", does(*old_route))
+                    } else {
+                        format!(
+                            "{at}, and `{old}`, under it, is where {who} {}",
+                            does(*old_route)
+                        )
+                    };
+                    out.push(diagnostic(
+                        codes::UPLOAD_ROUTE_TAKEN,
+                        "upload_paths_overlap",
+                        message,
+                        hir.decl_span(id),
+                        Vec::new(),
+                        "A host answers an upload by the path asked: a form posted to its \
+                         route, a file under what it serves. Where one path is another, or \
+                         under it, the host cannot tell which is asked, and refuses the build.",
+                        "give each upload a route and a serving path apart from every other's"
+                            .to_string(),
+                    ));
+                }
+                held.push((path, decl.name.clone(), route));
             }
         }
     }
