@@ -87,6 +87,40 @@ fn fault_thread(action: impl FnOnce() + Send + 'static) -> std::thread::JoinHand
         .unwrap()
 }
 
+/// What a probe poisons: the working state, as command `id`'s, or the
+/// published state.
+enum Hold {
+    Working(u64),
+    Published,
+}
+
+/// **Poison what `hold` names**, and say whether it was: a probe takes it
+/// and panics with [`FAULT`] while it holds it. A probe that cannot take it
+/// returns without a panic, so the test's own assertion says so: any other
+/// panic of a probe's is a second panic site in a failing test, which
+/// `scripts/cargo_assertion_results.py` takes for no kill. The nightly of
+/// 2026-11-15 found one: under `d2_writes_mutations.py`'s "a command begins
+/// while another is open", a contender could replace the open command after
+/// the test had looked and before its probe's `unwrap`, and the whole run
+/// was INVALID, a timing in which the mutant was not counted killed.
+fn poisoned(db: &Arc<MemoryTables>, hold: Hold) -> bool {
+    let broken = Arc::clone(db);
+    fault_thread(move || match hold {
+        Hold::Working(id) => {
+            if let Ok(_held) = broken.inner.working_of(id) {
+                std::panic::panic_any(FAULT);
+            }
+        }
+        Hold::Published => {
+            if let Ok(_held) = broken.inner.published.lock() {
+                std::panic::panic_any(FAULT);
+            }
+        }
+    })
+    .join()
+    .is_err()
+}
+
 #[test]
 fn a_wait_observer_may_read_and_replace_itself_without_lock_reentry() {
     let db = database();
@@ -182,14 +216,9 @@ fn internal_working_poison_wakes_every_existing_waiter() {
         "contenders did not replace the active command"
     );
     drop(owner);
-    let broken = Arc::clone(&db);
     assert!(
-        fault_thread(move || {
-            let _locked = broken.inner.working_of(id).unwrap();
-            std::panic::panic_any(FAULT);
-        })
-        .join()
-        .is_err()
+        poisoned(&db, Hold::Working(id)),
+        "contenders did not replace the active command before it was poisoned"
     );
     assert!(db.inner.working.is_poisoned());
     for _ in 0..2 {
@@ -215,15 +244,7 @@ fn a_poisoned_working_lock_cannot_report_a_successful_commit() {
     let mut command = db.begin().unwrap();
     command.write(INSERT, &[json!({"id":1})]).unwrap();
     let id = command.id;
-    let broken = Arc::clone(&db);
-    assert!(
-        fault_thread(move || {
-            let _locked = broken.inner.working_of(id).unwrap();
-            std::panic::panic_any(FAULT);
-        })
-        .join()
-        .is_err()
-    );
+    assert!(poisoned(&db, Hold::Working(id)), "the command was open");
     assert!(db.inner.working.is_poisoned());
     assert_eq!(command.commit(), Err(Error::StoragePoisoned));
     assert_eq!(db.read(GET, &[json!(1)]), Err(Error::StoragePoisoned));
@@ -234,14 +255,9 @@ fn a_poisoned_published_lock_cannot_report_a_successful_commit() {
     let db = database();
     let mut command = db.begin().unwrap();
     command.write(INSERT, &[json!({"id":1})]).unwrap();
-    let broken = Arc::clone(&db);
     assert!(
-        fault_thread(move || {
-            let _locked = broken.inner.published.lock().unwrap();
-            std::panic::panic_any(FAULT);
-        })
-        .join()
-        .is_err()
+        poisoned(&db, Hold::Published),
+        "the published state was whole"
     );
     assert!(db.inner.published.is_poisoned());
     assert_eq!(command.commit(), Err(Error::StoragePoisoned));
@@ -280,19 +296,14 @@ fn a_prepared_publish_refuses_each_poisoned_storage_lock() {
         let id = command.id;
         command.write(INSERT, &[json!({"id":1})]).unwrap();
         let prepared = command.prepare().unwrap();
-        let broken = Arc::clone(&db);
+        let hold = if working {
+            Hold::Working(id)
+        } else {
+            Hold::Published
+        };
         assert!(
-            fault_thread(move || {
-                if working {
-                    let _lock = broken.inner.working_of(id).unwrap();
-                    std::panic::panic_any(FAULT);
-                } else {
-                    let _lock = broken.inner.published.lock().unwrap();
-                    std::panic::panic_any(FAULT);
-                }
-            })
-            .join()
-            .is_err()
+            poisoned(&db, hold),
+            "the prepared command's state was whole"
         );
         assert_eq!(prepared.publish(), Err(Error::StoragePoisoned));
         assert_eq!(db.read(GET, &[json!(1)]), Err(Error::StoragePoisoned));
@@ -389,14 +400,9 @@ fn a_terminal_failure_is_synchronized_with_the_check_to_wait_window() {
         let _ = sent.send(result);
     });
     ready.recv_timeout(Duration::from_secs(3)).unwrap();
-    let broken = Arc::clone(&db);
     assert!(
-        fault_thread(move || {
-            let _locked = broken.inner.published.lock().unwrap();
-            std::panic::panic_any(FAULT);
-        })
-        .join()
-        .is_err()
+        poisoned(&db, Hold::Published),
+        "the published state was whole"
     );
     let (entered, entering) = mpsc::channel();
     let (done, finished) = mpsc::channel();
