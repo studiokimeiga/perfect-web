@@ -984,6 +984,8 @@ impl StorePg {
         isolation: Isolation,
         seats: crate::feed_pg::RenderSeats,
     ) -> Result<StorePg, String> {
+        #[cfg(test)]
+        crate::tests::pg_places::hold(url);
         let mut admin = Client::connect(url, NoTls).map_err(pg)?;
         admin
             .batch_execute(&format!("CREATE SCHEMA IF NOT EXISTS {}", ident(schema)))

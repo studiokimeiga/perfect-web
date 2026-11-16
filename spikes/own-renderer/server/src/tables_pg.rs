@@ -146,6 +146,8 @@ impl TablesPg {
         database: &Database,
     ) -> Result<TablesPg, String> {
         tables::servable(build, contracts)?;
+        #[cfg(test)]
+        crate::tests::pg_places::hold(&database.url);
         let path = build.join("tables.json");
         let text =
             std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;

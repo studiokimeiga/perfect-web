@@ -2344,6 +2344,27 @@ fn generic_hosts_trim_shared_history_in_bounded_batches_with_a_watermark() {
     );
 }
 
+/// **The tables' layer takes its thread's place** (`tests::pg_places`, the
+/// review of 2026-11-16): none before the layer is opened, one after.
+#[test]
+fn the_tables_layer_takes_its_threads_place() {
+    let Some(url) = database() else {
+        return;
+    };
+    let held = std::thread::spawn(move || {
+        let schema = Schema::new(&url, "pg_place");
+        let (_dir, out) = guestbook();
+        let before = super::pg_places::holds();
+        let server = serve(&out, &schema);
+        let after = super::pg_places::holds();
+        drop(server);
+        (before, after)
+    })
+    .join()
+    .expect("the tables' thread");
+    assert_eq!(held, (false, true));
+}
+
 #[test]
 fn the_suite_holds_for_fixed_relation_windows_on_postgresql() {
     let Some(url) = database() else {
