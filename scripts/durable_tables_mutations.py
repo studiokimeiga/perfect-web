@@ -38,7 +38,8 @@ anywhere but an assertion is no kill):
 6. the review of 3ccd083a (2026-11-02): a command waiting for its session
    while it holds its host's turn, a command holding the turn waiting for a
    connection; the shared outbox consumed too soon, its old rows never
-   trimmed; the host never sweeping, or sweeping at every pass, sessions or
+   trimmed, or trimmed in another order than their ids' (the review of
+   2026-11-16); the host never sweeping, or sweeping at every pass, sessions or
    sign-ins never swept, a sweep unbounded or waiting for a row a command
    holds; a rolled-back commit answered as unknown, by the layer or by the
    host, and an unanswered one answered refused;
@@ -235,6 +236,14 @@ MUTANTS = [
     ("the outbox rows a host left behind are never trimmed", LAYER,
      "                self.tables.trim_outbox(OUTBOX_LEFT, SWEPT),\n",
      "                self.tables.trim_outbox(OUTBOX_LEFT, 0),\n"),
+    # The watermark is an id: a trim takes the first ids first, not the rows
+    # as they lie nor the oldest by their time (the review of 2026-11-16).
+    ("an outbox trim takes its rows as they lie", PLATFORM,
+     "ORDER BY id LIMIT $2 FOR UPDATE SKIP LOCKED) RETURNING id)",
+     "LIMIT $2 FOR UPDATE SKIP LOCKED) RETURNING id)"),
+    ("an outbox trim takes the oldest rows by their time first", PLATFORM,
+     "ORDER BY id LIMIT $2 FOR UPDATE SKIP LOCKED) RETURNING id)",
+     "ORDER BY created LIMIT $2 FOR UPDATE SKIP LOCKED) RETURNING id)"),
     ("the host never sweeps", MAIN,
      "        self.data\n"
      "            .housekeeping(now, &self.identity.principals().lifetimes());\n",

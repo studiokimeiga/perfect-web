@@ -418,8 +418,16 @@ called it to put L1's deletion back.
 gone before its age, and platform 0004's triggers move the watermark for
 any deletion, an operator's statement among them
 (`any_deletion_from_the_outbox_moves_the_trim_watermark`). Its test keeps
-the trimming it also held, now with the limit's batches, oldest first
+the trimming it also held, now with the limit's batches, first ids first
 (`the_outboxs_rows_are_trimmed_once_older_than_an_age`). The mutant deletes
 through `trim_outbox` at age zero instead, every row at once, and is killed
 (8 of the script's 85 tests fail).
+
+**Reviewed** (independently, 2026-11-16): sound. One low finding is repaired
+here. The test could not tell the trim's `ORDER BY id` from the order its rows
+lie in, or from their age, since all three agreed. It now ages its rows apart,
+one statement each, so that neither agrees with their ids. Two new mutants
+take the rows as they lie and the oldest by their time; each is killed at the
+test's assertion. ADR-0397 points here, as its decisions 3 and 6 still
+described the outbox L1 forgot.
 

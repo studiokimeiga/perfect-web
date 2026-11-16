@@ -849,10 +849,19 @@ fn the_outboxs_rows_are_trimmed_once_older_than_an_age() {
         scratch.texts("SELECT name FROM pw_outbox ORDER BY id"),
         ["a", "b", "c"]
     );
-    scratch
-        .sql("UPDATE pw_outbox SET created = created - interval '2 minutes'")
-        .assert_ok("aged");
-    // Old: at most the limit, the oldest first.
+    // Aged a row a statement, b the most and a the least: an UPDATE writes
+    // its row anew at the heap's end, so neither the order the rows lie in
+    // (b, c, a) nor their age (b, c, a) is their ids' order, and only the
+    // trim's `ORDER BY id` takes a and b first (the review of 2026-11-16).
+    for (name, minutes) in [("b", 4), ("c", 3), ("a", 2)] {
+        scratch
+            .sql(&format!(
+                "UPDATE pw_outbox SET created = created - interval '{minutes} minutes' \
+                 WHERE name = '{name}'"
+            ))
+            .assert_ok("aged");
+    }
+    // Old: at most the limit, the first ids first.
     assert_eq!(tables.trim_outbox(Duration::from_secs(60), 2), Ok(2));
     assert_eq!(scratch.texts("SELECT name FROM pw_outbox"), ["c"]);
     assert_eq!(
