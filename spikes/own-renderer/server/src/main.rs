@@ -8793,7 +8793,7 @@ impl Server {
         let cookie = if fresh {
             // TRACK SEAM (identity): the session cookie, HttpOnly and Secure
             // outside this machine.
-            identity::session_cookie(session)
+            stream.session_cookie(session)
         } else {
             String::new()
         };
@@ -10465,7 +10465,6 @@ fn main() {
     // states it, refused at start where it may not run.
     let deployment = identity::Deployment::from_env(port)
         .and_then(|d| {
-            identity::configure_cookies(&d);
             let choice = std::env::var("PW_IDENTITY").ok();
             server.identity.configure(&d, choice.as_deref()).map(|_| d)
         })
@@ -10685,6 +10684,9 @@ struct Keeping {
     /// The session the request is answered for, its cookie's or the one made
     /// for it (ADR-0423).
     session: Mutex<String>,
+    /// **The cookies it is answered with**: its server's identity's, so a
+    /// fresh session's cookie is the deployment's (`identity::Cookies`).
+    cookies: Mutex<identity::Cookies>,
 }
 
 impl Conn {
@@ -10716,6 +10718,21 @@ impl Conn {
     /// The session this request is answered for.
     fn answering_for(&self, session: &str) {
         session.clone_into(&mut self.keeping.session.lock().expect("session"));
+    }
+
+    /// Answered with `cookies`, its server's identity's.
+    fn answering_with(&self, cookies: identity::Cookies) {
+        *self.keeping.cookies.lock().expect("cookies") = cookies;
+    }
+
+    /// **The cookie that names a fresh `session`**, as this connection's
+    /// server names it.
+    fn session_cookie(&self, session: &str) -> String {
+        self.keeping
+            .cookies
+            .lock()
+            .expect("cookies")
+            .session_line(session)
     }
 
     /// The session the last request was answered for.
@@ -11140,7 +11157,9 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
             return;
         }
     };
-    let (session, fresh) = session_of(&headers);
+    let cookies = server.identity.cookies();
+    let (session, fresh) = session_of(&headers, cookies);
+    stream.answering_with(cookies);
     stream.answering_for(&session);
     // Kept for the next request where HTTP/1.1 keeps it, the request did not
     // ask to close, the host has room, and no dropped command is armed for
@@ -12772,7 +12791,7 @@ fn stream_held(
     let cookie = if fresh {
         // TRACK SEAM (identity): the session cookie, HttpOnly and Secure
         // outside this machine.
-        identity::session_cookie(session)
+        stream.session_cookie(session)
     } else {
         String::new()
     };
@@ -13358,7 +13377,7 @@ fn moved(
         pw_render::escape::attribute(&location)
     );
     let cookie = if fresh {
-        identity::session_cookie(session)
+        stream.session_cookie(session)
     } else {
         String::new()
     };
@@ -14822,18 +14841,15 @@ fn speculation_manifests(dist: &std::path::Path) -> BTreeMap<String, serde_json:
         .collect()
 }
 
-/// **The request's session, and whether it is new**: its cookie's, or a
-/// new one where it carries none. A cookie naming a session the platform
-/// opens on a reader's behalf (NEXT 6c, `identity::ON_BEHALF`) is a new
-/// session too: those are never a browser's to present, though their names
-/// are no secret.
-fn session_of(headers: &str) -> (String, bool) {
-    match headers
-        .split("pw-session=")
-        .nth(1)
-        .and_then(|rest| rest.split([';', '\r', '\n']).next())
-    {
-        Some(id) if !id.starts_with(identity::ON_BEHALF) => (id.to_string(), false),
+/// **The request's session, and whether it is new**: its session cookie's
+/// (`identity::session_in`, by its server's names, `cookies`), or a new one
+/// where it carries none. A cookie naming a session the platform opens on a
+/// reader's behalf (NEXT 6c, `identity::ON_BEHALF`) is a new session too:
+/// those are never a browser's to present, though their names are no
+/// secret.
+fn session_of(headers: &str, cookies: identity::Cookies) -> (String, bool) {
+    match identity::session_in(headers, cookies) {
+        Some(id) if !id.starts_with(identity::ON_BEHALF) => (id, false),
         // TRACK SEAM (identity): a fresh session's id, 128 random bits.
         _ => (identity::new_session_id(), true),
     }
@@ -14867,7 +14883,7 @@ fn respond_json(stream: &mut Conn, code: u16, session: &str, fresh: bool, body: 
 /// `content-length` promises the whole body, and the body's first half.
 fn respond_in_part(stream: &mut Conn, code: u16, session: &str, fresh: bool, body: &str) {
     let cookie = if fresh {
-        identity::session_cookie(session)
+        stream.session_cookie(session)
     } else {
         String::new()
     };
@@ -14938,7 +14954,7 @@ fn respond(stream: &mut Conn, code: u16, mime: &str, session: &str, fresh: bool,
     let cookie = if fresh {
         // TRACK SEAM (identity): the session cookie, HttpOnly and Secure
         // outside this machine.
-        identity::session_cookie(session)
+        stream.session_cookie(session)
     } else {
         String::new()
     };
