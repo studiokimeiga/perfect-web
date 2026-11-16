@@ -46,7 +46,22 @@ impl MemoryTables {
         self.inner.asset_operations.load(Ordering::SeqCst)
     }
 }
+/// A trusted bridge's proposal function on the SAME existing command. It owns
+/// no turn/lifetime and cannot publish, prepare or end the command.
+pub type AssetPublisher = Arc<dyn Fn(&str, Descriptor) -> Result<Reference, Error> + Send + Sync>;
 impl Command {
+    pub fn asset_publisher(&self) -> AssetPublisher {
+        let inner = Arc::clone(&self.inner);
+        let id = self.id;
+        Arc::new(move |declaration, descriptor| {
+            let borrowed = Command {
+                inner: Arc::clone(&inner),
+                id,
+                ended: true,
+            };
+            borrowed.propose_asset(declaration, descriptor)
+        })
+    }
     /// A trusted bridge supplies canonical metadata only after authenticating
     /// the actual session/declaration/claim. This method confers no app grant.
     pub fn propose_asset(

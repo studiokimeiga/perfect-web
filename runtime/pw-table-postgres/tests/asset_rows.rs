@@ -1727,3 +1727,157 @@ fn actual_upload_receipt_is_verified_after_outbox_hooks_before_keep() {
 fn actual_upload_receipt_is_verified_after_deferred_hooks_before_commit() {
     rewritten_actual_receipt_refuses("deferred");
 }
+
+#[test]
+fn captured_asset_publisher_and_receipt_marker_borrow_only_the_original_pg_command() {
+    let Some(url) = common::database() else {
+        return;
+    };
+    let s = common::Scratch::new(&url, "asset_handles");
+    let store = Arc::new(ByteStore::default());
+    let db = open(&s, &store);
+    let mut c = db.begin().assert_ok("original lifetime");
+    let publish = c.asset_publisher();
+    let marker = c.asset_receipt_marker();
+    marker().assert_ok("same command claim marker");
+    let image = publish("PostImage", candidate('b'), Arc::from(b"abc".as_slice()))
+        .assert_ok("trusted callback on same lease");
+    c.write("pw:tables/assets#insert", &[row(1, Some(&image))])
+        .assert_ok("callback did not end original owner");
+    let p = c.prepare().assert_ok("original prepares");
+    assert!(publish("PostImage", candidate('c'), Arc::from(b"abc".as_slice())).is_err());
+    assert!(marker().is_err(), "prepared claims cannot be marked again");
+    p.publish_with(record("handles"))
+        .assert_ok("same original transaction commits");
+    let mut next = db.begin().assert_ok("next original turn");
+    assert!(
+        publish("PostImage", candidate('c'), Arc::from(b"abc".as_slice())).is_err(),
+        "stale callback cannot mutate a next command"
+    );
+    assert!(marker().is_err());
+    next.write("pw:tables/assets#insert", &[row(2, Some(&image))])
+        .assert_ok("new turn remains valid");
+    next.commit()
+        .assert_ok("row-only same declaration copy commits");
+    assert_eq!(
+        s.texts("SELECT count::text FROM pw_asset_references"),
+        ["2"]
+    );
+}
+#[test]
+fn raw_asset_interaction_inspection_preserves_attempt_fields_and_stored_time_without_age_filter() {
+    let Some(url) = common::database() else {
+        return;
+    };
+    let s = common::Scratch::new(&url, "asset_raw_receipt");
+    let store = Arc::new(ByteStore::default());
+    let db = open(&s, &store);
+    let answer = r#"{"committed":true,"result":null,"upload_attempt":"opaque-attempt","extra":"private-answer-marker"}"#;
+    let c = db.begin().assert_ok("actual command");
+    c.require_upload_receipt()
+        .assert_ok("actual acquired/discarded marker");
+    c.prepare()
+        .assert_ok("prepare")
+        .publish_with(Records {
+            interaction: Some(Interaction {
+                key: "raw",
+                sent: "private-sent-marker",
+                answer,
+                at_ms: 1000,
+                forget_before_ms: 0,
+            }),
+            outbox: &[],
+        })
+        .assert_ok("actual raw receipt commits");
+    assert!(
+        db.recalled("raw", 1001)
+            .assert_ok("ordinary age filtered receipt")
+            .is_none()
+    );
+    let raw = db
+        .inspect_asset_interaction("raw")
+        .assert_ok("raw inspection reacquires namespace")
+        .assert_ok("actual retained positive proof");
+    assert_eq!(raw.sent, "private-sent-marker");
+    assert_eq!(raw.answer, answer);
+    assert_eq!(raw.at_ms, 1000);
+    let debug = format!("{raw:?}");
+    assert!(!debug.contains("private-sent-marker"));
+    assert!(!debug.contains("private-answer-marker"));
+    assert!(!debug.contains("opaque-attempt"));
+    assert!(
+        db.inspect_asset_interaction("absent")
+            .assert_ok("raw negative is only absence")
+            .is_none()
+    );
+}
+#[test]
+fn raw_asset_interaction_waits_on_namespace_before_query_with_one_connection_and_no_host_turn() {
+    use std::sync::mpsc;
+    let Some(url) = common::database() else {
+        return;
+    };
+    let s = common::Scratch::new(&url, "asset_raw_wait");
+    let store = Arc::new(ByteStore::default());
+    let first = open(&s, &store);
+    let name = format!("asset_raw_wait_{}", std::process::id());
+    let named = common::named(&url, &name);
+    let p = asset_program();
+    let second = Arc::new(
+        PgTables::open_with_uploads(
+            &named,
+            s.schema(),
+            p.tables,
+            Options {
+                connections: 1,
+                wait: std::time::Duration::from_millis(500),
+                ..Options::default()
+            },
+            Uploads {
+                metadata: p.uploads,
+                store: store.clone(),
+                fresh_namespace: Namespace::from_bytes([2; 16]),
+            },
+        )
+        .assert_ok("single connection inspecting host"),
+    );
+    let held = first.begin().assert_ok("old transaction lifetime retained");
+    let turns = Arc::new(AtomicUsize::new(0));
+    let counted = Arc::clone(&turns);
+    second.tell_on_wait(move || {
+        counted.fetch_add(1, Ordering::SeqCst);
+    });
+    let (done, observed) = mpsc::channel();
+    let worker = Arc::clone(&second);
+    let child = std::thread::spawn(move || {
+        let result = worker.inspect_asset_interaction("pending");
+        let _ = done.send(());
+        result
+    });
+    assert!(
+        asset_until(|| common::waiting_on_advisory(&s, &name) == 1),
+        "raw receipt query must reacquire the old transaction's namespace"
+    );
+    assert_eq!(
+        turns.load(Ordering::SeqCst),
+        0,
+        "receipt inspection holds no host writer turn"
+    );
+    assert!(
+        observed.try_recv().is_err(),
+        "no inspection result precedes ended old transaction"
+    );
+    drop(held);
+    assert!(
+        child
+            .join()
+            .expect("inspection thread exits")
+            .assert_ok("same one reserved lease supports lock and read")
+            .is_none()
+    );
+    drop(
+        second
+            .begin()
+            .assert_ok("inspection released namespace and original connection"),
+    );
+}

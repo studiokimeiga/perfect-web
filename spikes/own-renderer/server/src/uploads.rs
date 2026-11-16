@@ -34,6 +34,8 @@
 //! key, with the type sniffed from its bytes, `nosniff`, a sandbox, and kept
 //! forever by any cache, since what a key names never changes.
 
+#[allow(dead_code)] // Actual generic adapter bridge is connected in the following slice.
+pub(crate) mod generic;
 #[cfg(test)]
 mod generic_lease_tests;
 pub(crate) mod icc;
@@ -177,6 +179,8 @@ fn lease_key(session: &str, declaration: &str) -> LeaseKey {
 struct State {
     /// One independent lease per session and actual declaration.
     leases: BTreeMap<LeaseKey, Lease>,
+    pending: BTreeMap<String, generic::Pending>,
+    pending_proof_bytes: usize,
     /// How many leases hold each staged blob: the same bytes from two
     /// sessions are one blob.
     holds: BTreeMap<BlobKey, u32>,

@@ -119,7 +119,36 @@ fn descriptor(row: &postgres::Row) -> Result<Descriptor, Error> {
     Ok(descriptor)
 }
 const COLUMNS: &str = "generation,key,kind,width,height,bytes";
+/// Trusted functions on the command's existing state/lease; no independent
+/// lifetime owner and no second pool connection or transaction.
+pub type AssetPublisher =
+    Arc<dyn Fn(&str, Descriptor, Arc<[u8]>) -> Result<Reference, Error> + Send + Sync>;
+pub type AssetReceiptMarker = Arc<dyn Fn() -> Result<(), Error> + Send + Sync>;
 impl Command {
+    pub fn asset_publisher(&self) -> AssetPublisher {
+        let inner = Arc::clone(&self.inner);
+        let state = Arc::clone(&self.state);
+        Arc::new(move |declaration, descriptor, bytes| {
+            let borrowed = Command {
+                inner: Arc::clone(&inner),
+                state: Arc::clone(&state),
+                ended: true,
+            };
+            borrowed.propose_asset(declaration, descriptor, bytes)
+        })
+    }
+    pub fn asset_receipt_marker(&self) -> AssetReceiptMarker {
+        let inner = Arc::clone(&self.inner);
+        let state = Arc::clone(&self.state);
+        Arc::new(move || {
+            let borrowed = Command {
+                inner: Arc::clone(&inner),
+                state: Arc::clone(&state),
+                ended: true,
+            };
+            borrowed.require_upload_receipt()
+        })
+    }
     /// Trusted bridge proposal after actual session/declaration/claim checks.
     pub fn propose_asset(
         &self,
@@ -575,7 +604,62 @@ impl Drop for NamespaceLoan {
         }
     }
 }
+/// Raw durable interaction inspected under a reacquired upload lifetime.
+/// Diagnostics redact persisted private arguments/answer and any attempt nonce.
+#[derive(Clone, PartialEq, Eq)]
+pub struct AssetInteraction {
+    pub key: String,
+    pub sent: String,
+    pub answer: String,
+    pub at_ms: i64,
+}
+impl std::fmt::Debug for AssetInteraction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AssetInteraction").finish_non_exhaustive()
+    }
+}
 impl PgTables {
+    /// Raw positive attempt proof, without an age filter or answer decoding.
+    /// Namespace reacquisition proves an earlier transaction ended. Absence
+    /// does NOT prove rollback: another host may already have pruned a receipt.
+    pub fn inspect_asset_interaction(&self, key: &str) -> Result<Option<AssetInteraction>, Error> {
+        if self.inner.uploads.is_none() {
+            return Err(Error::Input("uploads are unbound".into()));
+        }
+        let mut loan = NamespaceLoan {
+            lease: self.inner.pool.take()?,
+            released: false,
+        };
+        let lifetime = lock_lifetime(&self.inner, &mut loan.lease)?;
+        let answer = (|| {
+            let sql = format!(
+                "SELECT key,sent,answer,at_ms FROM {} WHERE key=$1",
+                self.inner.names.qualified("pw_interactions")
+            );
+            let rows = loan
+                .lease
+                .conn()?
+                .query(&self.inner.counters, &sql, &[Box::new(key.to_string())])
+                .map_err(database)?;
+            if rows.is_empty() {
+                return Ok(None);
+            }
+            if rows.len() != 1 {
+                return Err(Error::Drift("multiple upload interaction records".into()));
+            }
+            Ok(Some(AssetInteraction {
+                key: rows[0].get(0),
+                sent: rows[0].get(1),
+                answer: rows[0].get(2),
+                at_ms: rows[0].get(3),
+            }))
+        })();
+        if let Some(key) = lifetime {
+            self.inner.unfence(&mut loan.lease, key);
+        }
+        loan.released = true;
+        answer
+    }
     /// Resolve authoritative current same-declaration liveness and read/check
     /// bytes under namespace exclusion. Callers decide HTTP headers only after
     /// this succeeds: no reference is None; LIVE but missing/unreadable is Err.

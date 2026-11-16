@@ -40,6 +40,7 @@ use pw_core::tables::{Primitive, Schema, Stored, TableJson, TablesJson};
 use serde_json::{Map, Value};
 
 mod assets;
+pub use assets::AssetPublisher;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Error {
