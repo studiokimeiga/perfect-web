@@ -169,6 +169,24 @@ class Plan(unittest.TestCase):
         self.assertGreaterEqual(len(skips), 10, skips)
         self.assertEqual(sorted(set(skips) - set(plan.NEEDS_DATABASE)), [])
 
+    def test_a_part_of_a_scripts_mutants_costs_its_mutants_alone(self) -> None:
+        # The second review of L5 (2026-11-17): `--part i/n` ran one part,
+        # and the plan costed it as the script's every mutant, so both of
+        # d3's parts cost 136; a measured part's unit then looked cheaper
+        # than it was, and every estimate of its kind with it.
+        import d3_postgres_mutations as d3
+        import refusal_mutations as refusal
+
+        body = plan.bodies()
+        self.assertEqual(plan.cost(body["e14-d3-postgres"]), 1 + len(d3.DECLARED))
+        self.assertEqual(plan.cost(body["e14-d3-postgres-2"]), 1 + len(d3.UPLOADS))
+        first, second = refusal.PARTS
+        self.assertEqual(plan.cost(body["e14-refusal-2"]), 1 + second[1] - second[0])
+        # A part a script does not define costs the whole, as before.
+        self.assertEqual(
+            plan.cost("python3 scripts/d3_postgres_mutations.py --part 3/2"), 1 + len(d3.MUTANTS)
+        )
+
     def test_a_recipe_that_reads_a_database_is_dealt_beside_one(self) -> None:
         # Found before L5's full verify (2026-11-17): `e14-generic-upload-claims`
         # is refused without a database ("refused, it needs

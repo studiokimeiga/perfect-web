@@ -282,23 +282,38 @@ def recipes_at(text: list[str], lines: list[tuple[int, int]], names: list[str]) 
     return out
 
 
-def mutants(script: str) -> int:
-    """How many mutants `scripts/<script>` plants, or 0 where it cannot be read."""
+def mutants(script: str, part: tuple[int, int] | None = None) -> int:
+    """How many mutants `scripts/<script>` plants, or 0 where it cannot be
+    read; of its `part` alone (`(i, n)`, its `--part i/n`), where it asks one
+    of the script's `PARTS`."""
     path = ROOT / "scripts" / script
     try:
         spec = importlib.util.spec_from_file_location(path.stem, path)
         module = importlib.util.module_from_spec(spec)
         assert spec.loader is not None
         spec.loader.exec_module(module)
-        return len(getattr(module, "MUTANTS", []))
+        planted = list(getattr(module, "MUTANTS", []))
+        parts = list(getattr(module, "PARTS", []))
+        if part is not None and part[1] == len(parts) and 1 <= part[0] <= len(parts):
+            start, end = parts[part[0] - 1]
+            return len(planted[start:end])
+        return len(planted)
     except Exception:
         return 0
 
 
+# A recipe that runs one part of a script's mutants (`--part i/n`).
+PART = re.compile(r"scripts/([a-z0-9_]+_mutations\.py) --part (\d+)/(\d+)")
+
+
 def cost(body: str) -> int:
-    """A recipe's work: one for itself, and one for each mutant it plants."""
+    """A recipe's work: one for itself, and one for each mutant it plants,
+    of the part it runs where it runs one. Until 2026-11-17 a part cost its
+    script's every mutant (both of d3's 136), which made a measured part's
+    unit look cheaper than it was, and every estimate of its kind with it."""
+    parts = {s: (int(i), int(n)) for s, i, n in PART.findall(body)}
     scripts = set(re.findall(r"scripts/([a-z0-9_]+_mutations\.py)", body))
-    return 1 + sum(mutants(s) for s in scripts)
+    return 1 + sum(mutants(s, parts.get(s)) for s in scripts)
 
 
 def hunks(base: str, head: str | None, root: pathlib.Path | None = None) -> dict[str, list[tuple[int, int]]]:

@@ -337,6 +337,13 @@ MUTANTS = [
         '    "e14-scheduled-orders",\n',
         "",
     ),
+    # The second review of L5 (2026-11-17): a part costs its own mutants.
+    (
+        "a part of a script's mutants costs them all",
+        PLAN,
+        "    return 1 + sum(mutants(s, parts.get(s)) for s in scripts)\n",
+        "    return 1 + sum(mutants(s) for s in scripts)\n",
+    ),
     # Found before L5's full verify (2026-11-17): a recipe refused without
     # a database, in words the skip's test does not read, dealt where there
     # is none, fails its run.

@@ -1918,8 +1918,8 @@ fn raw_asset_interaction_waits_on_namespace_before_query_with_one_connection_and
 
 /// **A publication of a live hash keeps its descriptor** (L5a's review,
 /// finding L4): the same bytes proposed again under another descriptor, here
-/// another width, are refused, not adopted as the live generation's, whose
-/// row, count and bytes stay as they were.
+/// another width, are refused. Without the check the proposal adopts the
+/// live generation and answers its reference (width 6), not the caller's.
 #[test]
 fn a_publication_of_a_live_hash_under_another_descriptor_is_refused() {
     let Some(url) = common::database() else {

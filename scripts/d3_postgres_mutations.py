@@ -163,8 +163,10 @@ UPLOADS = [
      'pub(crate) fn lock_lifetime(inner: &Inner, lease: &mut Lease) -> Result<Option<i64>, Error> {\n    let Some(binding) = &inner.uploads else {\n        return Ok(None);\n    };\n    let conn = lease.conn()?;\n    conn.batch(&inner.counters, "BEGIN").map_err(database)?;\n    let key = acquire_namespace(conn, &inner.counters, &binding.namespace)?;\n    conn.batch(&inner.counters, "COMMIT").map_err(database)?;\n    binding\n        .store\n        .enroll(&binding.namespace, false)\n        .map_err(|e| Error::Refused(format!("upload storage namespace: {e}")))?;\n    Ok(Some(key))\n}\n', 'pub(crate) fn lock_lifetime(inner: &Inner, lease: &mut Lease) -> Result<Option<i64>, Error> {\n    let Some(binding) = &inner.uploads else {\n        return Ok(None);\n    };\n    let conn = lease.conn()?;\n    conn.batch(&inner.counters, "BEGIN").map_err(database)?;\n    let key = acquire_namespace(conn, &inner.counters, &binding.namespace)?;\n    release_namespace(conn, &inner.counters, key)?;\n    conn.batch(&inner.counters, "COMMIT").map_err(database)?;\n    binding\n        .store\n        .enroll(&binding.namespace, false)\n        .map_err(|e| Error::Refused(format!("upload storage namespace: {e}")))?;\n    Ok(None)\n}\n'),
 ]
 
-# **D3's own mutants** (ADR-0338, ADR-0393): the declared tables. Part 1 of
-# `PARTS`, run by `just e14-d3-postgres`.
+# **Every mutant but the uploads'**: D3's own (ADR-0338, ADR-0393), the
+# declared tables, and since then the platform's on PostgreSQL (the
+# connection's keepalives, the outbox's removals marked). Part 1 of `PARTS`,
+# run by `just e14-d3-postgres`.
 DECLARED = [
     ('closed cases PostgreSQL additive columns use a different encoding', MIGRATE,
      '    let (kind, nullable) = crate::shape::column_of(&field.stored);', '    let (kind, nullable) = match &field.stored {\n        Stored::Option(inner) if matches!(**inner, Stored::Cases(_)) => (crate::shape::Kind::Json, true),\n        _ => crate::shape::column_of(&field.stored),\n    };'),
@@ -487,13 +489,15 @@ DECLARED = [
 ]
 
 # **Two recipes, each a part** (ADR-0393, amended 2026-11-17, after the
-# integrator's ruling 2 of 2026-10-17): the whole no longer fits a CI job.
-# L5a's verify 43860567064 ran its 133 mutants and baseline in 16,275 s,
-# 122 s a run, on a runner that took its shard's other recipes 1.6 to 2.2
-# times as long as L4's verify had: a runner that slow ends the whole past
-# the 20,700 s a job runs. Ranges of `MUTANTS`, half open: part 1 D3's own,
-# part 2 the uploads'; `evidence_counts.py` holds the two to every mutant
-# once. A run with no part runs every mutant.
+# integrator's ruling 2 of 2026-10-17). L5a's verify 43860567064 ran the
+# script's 132 mutants and baseline in 16,275 s, 122 s a run, on a runner
+# that took its shard's other recipes 1.6 to 2.2 times as long as L4's verify
+# had: 79% of the 20,700 s a job runs, by itself, and its shard was stopped
+# there because the plan, from L4's 4,708 s, dealt five recipes beside it.
+# Two parts keep a slower runner's whole within a job. Ranges of `MUTANTS`,
+# half open: part 1 every mutant but the uploads', part 2 the uploads';
+# `evidence_counts.py` holds the two to every mutant once. A run with no part
+# runs every mutant.
 MUTANTS = DECLARED + UPLOADS
 PARTS = [(0, len(DECLARED)), (len(DECLARED), len(MUTANTS))]
 
@@ -567,7 +571,12 @@ def chosen(argv: list[str]) -> tuple[list, str]:
         i = int(asked.group(1))
         start, end = PARTS[i - 1]
         return MUTANTS[start:end], f"part {i} of {len(PARTS)}: mutants {start + 1} to {end} of {len(MUTANTS)}"
-    return [m for m in MUTANTS if not argv or any(w in m[0] for w in argv)], ""
+    picked = [m for m in MUTANTS if not argv or any(w in m[0] for w in argv)]
+    # Words that name no mutant (a part mistyped, `--part=1/2`, among them)
+    # would run the baseline alone and pass: the second review of L5.
+    if not picked:
+        raise SystemExit(f"d3_postgres_mutations.py: no mutant's description holds {' or '.join(map(repr, argv))}")
+    return picked, ""
 
 
 def main():
