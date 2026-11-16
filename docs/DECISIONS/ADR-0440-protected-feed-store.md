@@ -936,10 +936,10 @@ any deletion, an operator's statement among them
 the trimming it also held, now with the limit's batches, first ids first
 (`the_outboxs_rows_are_trimmed_once_older_than_an_age`). The mutant deletes
 through `trim_outbox` at age zero instead, every row at once, and is killed:
-7 of the script's 89 tests fail in the run of record
-(`docs/evidence/E14/durable-tables.txt`, verify 43877665544 at `06038e66`,
-71 of 71 mutants killed). The local run while it was written saw 8 of 85,
-before the review's test and the branch's base were in the count.
+7 of the script's 91 tests fail in the run of record
+(`docs/evidence/E14/durable-tables.txt`, verify 43893340880 at `148405a7`,
+master's L4 merged in, 71 of 71 mutants killed). The local run while it was
+written saw 8 of 85, before the review's test and L4 were in the count.
 
 **Reviewed** (independently, 2026-11-16): sound. One low finding is repaired
 here. The test could not tell the trim's `ORDER BY id` from the order its rows
