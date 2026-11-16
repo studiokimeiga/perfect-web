@@ -71,6 +71,9 @@ async function inTemp(fn) {
 
 const listen = (server, host = "127.0.0.1") => new Promise((resolve) => server.listen(0, host, () => resolve(server.address().port)));
 
+/** Whether this machine has an IPv6 loopback a server can listen on. */
+const hasIPv6 = () => Object.values(os.networkInterfaces()).flat().some((i) => i?.family === "IPv6" && i.internal);
+
 const shut = (server) =>
   new Promise((resolve) => {
     server.closeAllConnections?.();
@@ -674,10 +677,26 @@ test("`processTree` and `treeCost` of a live process and the child it started, a
 test("`portFree` is false for a port a server listens on, on the loopback or on every interface, and true once it has closed", async () => {
   const onLoopback = net.createServer();
   const onAll = net.createServer();
-  const [first, second] = [await listen(onLoopback), await listen(onAll, "0.0.0.0")];
-  assert.deepEqual([await portFree(first), await portFree(second)], [false, false]);
-  await Promise.all([shut(onLoopback), shut(onAll)]);
-  assert.deepEqual([await portFree(first), await portFree(second)], [true, true]);
+  // Closed whatever the assertions say: a server left listening keeps the
+  // whole file from ending, and `node --test` waits on it (2026-11-16, macOS).
+  try {
+    const [first, second] = [await listen(onLoopback), await listen(onAll, "0.0.0.0")];
+    assert.deepEqual([await portFree(first), await portFree(second)], [false, false]);
+    await Promise.all([shut(onLoopback), shut(onAll)]);
+    assert.deepEqual([await portFree(first), await portFree(second)], [true, true]);
+  } finally {
+    await Promise.all([onLoopback, onAll].filter((s) => s.listening).map(shut));
+  }
+});
+
+test("`portFree` is false for a port a dual-stack server holds on `::`", { skip: !hasIPv6() && "no IPv6 loopback" }, async () => {
+  const dual = net.createServer();
+  try {
+    const port = await listen(dual, "::");
+    assert.equal(await portFree(port), false);
+  } finally {
+    if (dual.listening) await shut(dual);
+  }
 });
 
 test("`portFree` leaves the port free: a server can listen on it right after", async () => {
