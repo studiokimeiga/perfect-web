@@ -14,17 +14,26 @@ anywhere but an assertion is no kill):
 2. each outcome settles its claims: an attempt that kept nothing inspected
    all the same (its claim held for good), a failed attempt's receipt never
    inspected (a landed commit's claim given back), the layers' word on
-   what kept nothing (PostgreSQL's refusal, memory's unpublished rows)
-   taken for an unknown outcome;
-3. the bridge: a query reading its session's leases by another handle;
+   what kept nothing (PostgreSQL's refusal and another attempt's record
+   answering first, memory's unpublished rows) taken for an unknown outcome;
+3. the bridge and staging: a query reading its session's leases by another
+   handle; a lease keyed by another declaration than its route's; a lease
+   claimed, or shown, whoever its reader;
 4. the memory layer: a new generation's bytes not kept before its rows;
 5. the ledger: an absent receipt giving the claim back (absence is never
-   rollback), a live attempt offered to the periodic pass.
+   rollback), a live attempt offered to the periodic pass, another attempt's
+   receipt (alike but for its nonce) settling this one, an inspection that
+   could not be made holding its claim for good, the periodic pass inspecting
+   nothing;
+6. the PostgreSQL adapter: a keep that fails not refusing its commit.
 
-Not here, each for its reason: `recorded` (another attempt's record answering
-first) has no server test yet; memory's collection of an unnamed generation
+Not here, each for its reason: memory's collection of an unnamed generation
 is storage-internal, unseen at the server; the receipt marker is required by
-the ledger's own freeze anyway.
+the ledger's own freeze anyway; the serving handler's check of a live
+generation's bytes and the storage's own (`check_bytes`) are each the
+other's backstop, so neither alone can be killed, and
+`a_live_generations_corrupt_bytes_are_answered_503_on_postgresql` holds the
+two together.
 
 The tests: `tests::upload_bridge` (the compiled program through the server,
 on memory and on PostgreSQL), `uploads::bridge` and `uploads::generic`. They
@@ -55,6 +64,8 @@ BRIDGE = SERVER / "uploads/bridge.rs"
 GENERIC = SERVER / "uploads/generic.rs"
 LAYER_PG = SERVER / "tables_pg.rs"
 LAYER_MEMORY = SERVER / "tables.rs"
+STAGING = SERVER / "uploads.rs"
+PG_ASSETS = ROOT / "runtime/pw-table-postgres/src/assets/command.rs"
 
 MUTANTS = [
     # 1. the commit carries the attempt
@@ -83,10 +94,22 @@ MUTANTS = [
     ("a refused publication's claims are left pending in memory", LAYER_MEMORY,
      "        !self.published\n",
      "        false\n"),
+    ("a commit another attempt recorded first leaves its claims pending", LAYER_PG,
+     "        self.refused || self.recorded\n",
+     "        self.refused\n"),
     # 3. the bridge
     ("a query reads its session's leases by another handle", BRIDGE,
      "                let cookie = asked.session(\"upload.attached\", &handle)?;\n",
      "                let cookie = {\n                    let _ = &asked;\n                    handle.as_str()\n                };\n"),
+    ("a lease is keyed by another declaration than its route's", STAGING,
+     "        let lease_key = lease_key(session, &declared.name);\n",
+     "        let lease_key = lease_key(session, &self.declared.iter().find(|d| d.name != declared.name).unwrap_or(declared).name);\n"),
+    ("a lease is claimed whoever its reader", STAGING,
+     "            .filter(|l| !l.claimed && l.reader == *reader)?;\n",
+     "            .filter(|l| !l.claimed)?;\n"),
+    ("a lease is shown whoever its reader", STAGING,
+     "            .filter(|lease| lease.reader == *reader)?;\n",
+     "            .filter(|_| true)?;\n"),
     # 4. the memory layer
     ("a new generation's bytes are not kept in memory", LAYER_MEMORY,
      "                if plan.keep_new {\n",
@@ -98,6 +121,19 @@ MUTANTS = [
     ("a live attempt is offered to the periodic pass", GENERIC,
      "            .filter(due)\n",
      "            .filter(|_| true)\n"),
+    ("another attempt's receipt, alike but for its nonce, settles this one", GENERIC,
+     "            || receipt.answer != ticket.proof.answer\n",
+     ""),
+    ("an inspection that could not be made holds its claim for good", GENERIC,
+     "                self.leases.inspected(&ticket, false)?;\n",
+     "                self.leases.inspected(&ticket, true)?;\n"),
+    ("the periodic pass inspects no pending upload", MAIN,
+     "        self.reconcile_uploads(16);\n",
+     "        let _ = 16;\n"),
+    # 6. the PostgreSQL adapter
+    ("a keep that fails does not refuse its commit on PostgreSQL", PG_ASSETS,
+     '                .map_err(|e| Error::Refused(format!("upload keep: {e}")))?;\n',
+     "                .ok();\n"),
 ]
 
 # One command, its filters, as the inventory is kept per command.

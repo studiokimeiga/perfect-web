@@ -451,6 +451,10 @@ thread_local! {
     /// adapter's would where its storage had failed.
     pub(crate) static FAIL_NEXT_PUBLISH: std::cell::Cell<bool> =
         const { std::cell::Cell::new(false) };
+    /// **A test's: the next keep of a new generation's bytes on this thread
+    /// fails**, as the layer's storage would where it had failed.
+    pub(crate) static FAIL_NEXT_KEEP: std::cell::Cell<bool> =
+        const { std::cell::Cell::new(false) };
 }
 
 /// **Where one command's transaction is.**
@@ -501,6 +505,10 @@ impl TablesStaging<'_> {
                 .map_err(|_| "upload bytes are unavailable")?;
             for plan in &plans {
                 if plan.keep_new {
+                    #[cfg(test)]
+                    if FAIL_NEXT_KEEP.with(|fail| fail.replace(false)) {
+                        return Err("the upload generation was not kept: a test's failure".into());
+                    }
                     let descriptor = &plan.generation.descriptor;
                     let bytes = kept
                         .get(&descriptor.reference.generation)

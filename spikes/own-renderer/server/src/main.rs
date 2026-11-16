@@ -1334,6 +1334,17 @@ struct Server {
     before_commit: Mutex<Option<KeyedFetched>>,
     #[cfg(test)]
     before_command_authority: Mutex<Option<KeyedFetched>>,
+    /// **What a test does before a failed command inspects its own upload
+    /// receipt** (ADR-0440, L5b), once: the command's lease and its namespace
+    /// lock already given back, so another host may commit there, or a
+    /// test hold the namespace lock against the inspection.
+    #[cfg(test)]
+    before_upload_inspection: Mutex<Option<KeyedFetched>>,
+    /// **A test's fixed instant**: where set, what [`Server::now`] answers,
+    /// so that two hosts read one clock to the millisecond (ADR-0440, L5b's
+    /// equal-clock retry).
+    #[cfg(test)]
+    frozen_now: Mutex<Option<i64>>,
     /// A test's: told a command's component and session once its
     /// transaction has begun, fenced on its reader's session.
     #[cfg(test)]
@@ -2388,6 +2399,10 @@ impl Server {
             before_commit: Mutex::new(None),
             #[cfg(test)]
             before_command_authority: Mutex::new(None),
+            #[cfg(test)]
+            before_upload_inspection: Mutex::new(None),
+            #[cfg(test)]
+            frozen_now: Mutex::new(None),
             #[cfg(test)]
             after_command_authority: Mutex::new(None),
             #[cfg(test)]
@@ -3936,6 +3951,15 @@ impl Server {
         let settled =
             held_claims(claims).and_then(|mut invocation| match invocation.pending_ticket() {
                 Some(ticket) if !kept_nothing => {
+                    #[cfg(test)]
+                    if let Some(hook) = self
+                        .before_upload_inspection
+                        .lock()
+                        .expect("upload inspection hook")
+                        .take()
+                    {
+                        hook(self);
+                    }
                     let receipt = self.data.upload_receipt(ticket.key());
                     invocation.reconcile(receipt).map(|_| ())
                 }
@@ -4886,6 +4910,10 @@ impl Server {
     /// time and by a test (`/bench/clock`). One clock, so what is kept and
     /// what is compared move together.
     fn now(&self) -> i64 {
+        #[cfg(test)]
+        if let Some(frozen) = *self.frozen_now.lock().expect("a test's instant") {
+            return frozen;
+        }
         self.sync_query_clock();
         self.epoch + i64::try_from(self.query_clock.0.now()).unwrap_or(i64::MAX)
     }

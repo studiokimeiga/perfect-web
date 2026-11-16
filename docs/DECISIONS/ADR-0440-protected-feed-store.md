@@ -1203,13 +1203,51 @@ as it was, the lease taken); a discard ending its lease and keeping its
 record; a removed row's image answered `404`; a refused commit giving its
 claim back; on PostgreSQL, a commit whose answer was lost settled from its
 own receipt (applied, served), and one that never reached the database held
-for good (absent, inspected once). Twelve mutants in
-`generic_upload_claims_mutations.py` (`just e14-generic-upload-claims`),
-each killed. Owed before the landing: a test of `Recorded` (another
-attempt's record answering first), of an equal-clock retry by another host,
-of a reconcile the namespace lock delayed, of a rotated reader and a
-foreign declaration at the server, of a live generation's corrupt bytes
-(`503`) and of a keep that fails.
+for good (absent, inspected once).
+
+The seven tests the decision owed are written too. On both layers:
+- a lease staged before its reader rotated (the session signed in) is shown
+  to no one and claimed by no one, while the account's own lease is its;
+- a claim through one declaration finds no other declaration's lease
+  (PostImage's `Keep` beside a staged Avatar, which `SetAvatar` then
+  claims);
+- a keep of a new generation's bytes that fails keeps nothing and gives the
+  claim back.
+
+On PostgreSQL, across two hosts of one schema where two are named:
+- a commit another attempt's record answered first (`Recorded`, B's commit
+  made before A's authority) keeps nothing and gives A's claim back, and A is
+  answered from B's record;
+- an equal-clock retry by host B (both hosts read one frozen instant), after
+  A's `COMMIT` was dropped before the database saw it, leaves a receipt
+  that is A's own proof in its key, sent body, answer and millisecond, and
+  differs only in its nonce. A holds its claim for good, neither applied
+  nor given back;
+- a reconcile the namespace lock delayed (another session holds it through
+  A's own inspection, five seconds) stays due and is made at the next
+  periodic pass;
+- a live generation whose stored bytes were corrupted is answered `503`, and
+  so is a request naming the `ETag` it was served with, before any `304`.
+
+Their seams are test-only:
+- `before_upload_inspection`, run before a failed command inspects its own
+  receipt;
+- `frozen_now`, a host's fixed instant;
+- `Ticket::proof`;
+- memory's `FAIL_NEXT_KEEP`.
+
+Twenty mutants in `generic_upload_claims_mutations.py` (`just
+e14-generic-upload-claims`), each killed, the eight new ones among them:
+- `Recorded` left pending;
+- a lease keyed by another declaration than its route's;
+- a lease claimed, or shown, whoever its reader;
+- another attempt's receipt, alike but for its nonce, settling this one;
+- an inspection that could not be made held for good;
+- the periodic pass inspecting nothing;
+- PostgreSQL's keep failure not refusing its commit.
+
+The serving handler's check of a live generation's bytes and the storage's
+own are each the other's backstop, so neither alone is a mutant.
 
 ## Landing (L3, 2026-11-13)
 

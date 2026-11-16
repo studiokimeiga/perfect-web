@@ -42,6 +42,17 @@ impl Ticket {
     pub(crate) fn key(&self) -> &str {
         &self.proof.key
     }
+    /// The receipt this attempt's own commit would have kept, for a test to
+    /// hold another attempt's against.
+    #[cfg(test)]
+    pub(crate) fn proof(&self) -> Receipt {
+        Receipt {
+            key: self.proof.key.clone(),
+            sent: self.proof.sent.clone(),
+            answer: self.proof.answer.clone(),
+            at_ms: self.proof.at_ms,
+        }
+    }
 }
 impl std::fmt::Debug for Ticket {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
