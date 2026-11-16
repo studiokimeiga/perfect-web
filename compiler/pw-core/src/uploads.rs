@@ -26,6 +26,11 @@
 //!   `multipart/form-data`, to an upload's route, with one file in it; and
 //!   a form posting to an upload's route is such a form. A form is checked
 //!   as a link is (PW5009): against what the program declares.
+//! - **PW5604**: an upload's emitted interface and generated declarations
+//!   are its own: no other upload's, and no other declaration's
+//!   (`uploads::declared`, ADR-0440's L5).
+//! - **PW5605**: a command that claims or releases an upload declares
+//!   `idempotent_by`, the key the claim bridge settles a claim by.
 
 mod declared;
 pub(crate) use declared::check_generated;

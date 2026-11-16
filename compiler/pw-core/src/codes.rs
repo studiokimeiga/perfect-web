@@ -366,6 +366,11 @@ codes! {
     // private would say what it does not do.
     OWNER_NAMES_A_PRINCIPAL = "PW0370" / owner_names_a_principal / 1, DeclarationRules,
         "`owned by` names one field of an owned table's row holding a principal's id (`capability.UserId`), and `shares with` others, never its owner, each once; a `public` table, read by every reader, shares with no one, and `public` is the one word a table is declared with";
+    // ADR-0440's L5 (L5a's review, finding L7; its follow-up's review, L1):
+    // a table's assets, each told by a rule of its own, where PW0361's (the
+    // row, its key and its indexes) told them until 2026-11-17.
+    TABLE_ASSET_MALFORMED = "PW0371" / table_asset_malformed / 1, DeclarationRules,
+        "a table keeps an upload only as an asset of a public table: one top-level field of its row, holding the exact generated reference of a public upload its source holds, associated once, and never a claim";
     // Its bound too (the review of the track, finding 2): a bound counts
     // every owner's rows, so a write refused by it would tell one owner how
     // many rows the others hold.
@@ -950,7 +955,7 @@ codes! {
     // committed is served, and its limits, each a literal the host holds a
     // browser to: the program states its invariants, as `PostText`'s 280 is.
     UPLOAD_MALFORMED = "PW5601" / upload_malformed / 1, Uploads,
-        "an upload states its route, where it is served, and each of its limits, once and as literals";
+        "an upload states its route, where it is served, and each of its limits, once and as literals, none past what a host reads whole";
     UPLOAD_ROUTE_TAKEN = "PW5602" / upload_route_taken / 1, Uploads,
         "an upload's paths are its own: no page's, and no other upload's";
     FILE_FORM_POSTS_TO_NO_UPLOAD = "PW5603" / file_form_posts_to_no_upload / 1, Uploads,
@@ -960,6 +965,8 @@ codes! {
     // PW5601's (its clauses and limits) told them until 2026-11-16.
     UPLOAD_IDENTITY_TAKEN = "PW5604" / upload_identity_taken / 1, Uploads,
         "an upload's emitted interface and generated declarations are its own: no other upload's or declaration's";
+    // ADR-0440's L5b: the claim bridge settles a claim by its command's
+    // interaction, so a command that claims is idempotent by one.
     UPLOAD_CLAIM_NOT_IDEMPOTENT = "PW5605" / upload_claim_not_idempotent / 1, Uploads,
         "a command that claims or releases an upload declares `idempotent_by`";
 

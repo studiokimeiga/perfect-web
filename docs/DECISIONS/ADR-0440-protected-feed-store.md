@@ -1695,3 +1695,38 @@ one statement each, so that neither agrees with their ids. Two new mutants
 take the rows as they lie and the oldest by their time; each is killed at the
 test's assertion. ADR-0397 points here, as its decisions 3 and 6 still
 described the outbox L1 forgot.
+
+## Amended 2026-11-17: each upload and asset refusal told by its own rule (L5's follow-up)
+
+The integrator's, under the owner's delegation, from L5a's independent
+review (its findings L7 and L9) and the follow-up's own review. The compiler
+filed refusals under rules whose invariants do not describe them, and the
+asset tests held most refusals to being errors, whatever their reason.
+
+- **PW5604 `upload_identity_taken`**: an upload's emitted interface and
+  generated declarations are its own, no other upload's or declaration's.
+  It tells both collisions (two uploads whose names emit one interface; a
+  declaration emitting a generated declaration's identity), which PW5601
+  (an upload's clauses and limits) told until now.
+- **PW5605 `upload_claim_not_idempotent`**: a command that claims or releases
+  an upload declares `idempotent_by`, the key the claim bridge settles a
+  claim by (L5b above); PW5601's until now.
+- **PW0371 `table_asset_malformed`**: a table keeps an upload only as an asset
+  of a public table, one top-level field of its row holding the exact
+  generated reference of a public upload its source holds, associated once,
+  and never a claim. `tables::assets`' twelve refusals were PW0361's, whose
+  invariant is the row, its key and its indexes. An `asset` clause written
+  wrong stays PW0361's, with every clause's form.
+- **PW5601** now names the ceiling it has always held (ADR-0260): no limit
+  past what a host reads whole.
+- **Each asset test's refusal names its reason**: the 85 bare `is_err()` in
+  the six asset suites and nine checks that matched only a prefix every
+  refusal of their kind carries, each reason observed before it was
+  written; a loop's or a helper's cases name themselves when they fail, and
+  three enum variants are matched exactly.
+
+Held by `tests/table_assets.rs` (each refusal by its code and its words;
+`a_declaration_emitting_a_generated_upload_identity_is_pw5604` and
+`a_command_claiming_an_upload_without_idempotent_by_is_pw5605`, new), and four
+mutants in `row_ownership_mutations.py`, each telling one of the three new
+codes' refusals as its old code again.

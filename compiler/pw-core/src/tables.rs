@@ -1716,6 +1716,32 @@ const MALFORMED: &str = "A table is the program's statement of its data: its row
      a row by (an `Int`, a `String`, a `Bool`, an opaque type over one, or cases that carry no \
      value); and a reference names a table keyed by the field's type.";
 
+/// **PW0371: a table's asset** (ADR-0440's L5): an upload's reference kept in
+/// a row, as `tables::assets` holds it, told apart from the row's own form.
+pub(super) fn asset_malformed(
+    message: String,
+    span: Span,
+    related: Vec<Related>,
+    repair: String,
+) -> Diagnostic {
+    refusal(
+        codes::TABLE_ASSET_MALFORMED,
+        "table_asset_malformed",
+        Severity::Error,
+        message,
+        span,
+        related,
+        ASSET_MALFORMED,
+        repair,
+    )
+}
+
+const ASSET_MALFORMED: &str = "A table keeps an upload's committed image as an asset: one \
+     top-level field of its row, `Option<Upload.Ref>` or `Upload.Ref`, associated by `asset \
+     <field> from <Upload>`, of a public table whose source holds the upload, a public upload \
+     declared in the module of its name. The reference is public by construction, and never a \
+     claim, which a command's transaction owns.";
+
 fn malformed(message: String, span: Span, related: Vec<Related>, repair: String) -> Diagnostic {
     refusal(
         codes::TABLE_MALFORMED,

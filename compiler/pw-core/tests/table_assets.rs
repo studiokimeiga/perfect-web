@@ -123,11 +123,14 @@ fn diagnostics(posts: &str, image: &str, source: &str, app: &str) -> Vec<(String
         .map(|d| (d.code.to_string(), d.message))
         .collect()
 }
-fn refused(posts: &str, image: &str, source: &str, app: &str, says: &str) {
+/// **A refusal by its rule and its words**: a diagnostic of `code` whose
+/// message holds `says` (the follow-up's review, L4: words alone, as short
+/// as "claim", matched another rule's refusal).
+fn refused(posts: &str, image: &str, source: &str, app: &str, code: &str, says: &str) {
     let got = diagnostics(posts, image, source, app);
     assert!(
-        got.iter().any(|(_, m)| m.contains(says)),
-        "expected named {says:?} refusal, got {got:#?}"
+        got.iter().any(|(c, m)| c == code && m.contains(says)),
+        "expected {code} saying {says:?}, got {got:#?}"
     );
 }
 
@@ -297,42 +300,48 @@ fn assets_require_the_actual_public_reference_field_and_held_source() {
         IMAGE,
         SOURCE,
         APP,
-        "asset field",
+        "PW0371",
+        "is not declared in the row",
     );
     refused(
         &POSTS.replace("Option<PostImage.Ref>", "Option<String>"),
         IMAGE,
         SOURCE,
         APP,
-        "reference type",
+        "PW0371",
+        "must have the exact generated upload reference type",
     );
     refused(
         &POSTS.replace("Option<PostImage.Ref>", "List<PostImage.Ref>"),
         IMAGE,
         SOURCE,
         APP,
-        "top-level",
+        "PW0371",
+        "must be one top-level Ref or Option<Ref>",
     );
     refused(
         &POSTS.replace("    key id", "    key id\n    private image"),
         IMAGE,
         SOURCE,
         APP,
-        "public asset-bearing table",
+        "PW0371",
+        "an asset requires a public asset-bearing table",
     );
     refused(
         POSTS,
         IMAGE,
         &SOURCE.replace("holds PostImage, Posts", "holds Posts"),
         APP,
-        "same explicit source",
+        "PW0371",
+        "an asset and its upload require the same explicit source",
     );
     refused(
         POSTS,
         IMAGE,
         SOURCE,
         &APP.replace("    idempotent_by InteractionId\n", ""),
-        "idempotent_by",
+        "PW5605",
+        "acquires or releases a generic upload claim and requires idempotent_by",
     );
 }
 
@@ -343,12 +352,27 @@ fn claims_and_lookalike_reference_records_cannot_be_stored_as_assets() {
         IMAGE,
         SOURCE,
         APP,
-        "claim",
+        "PW0371",
+        "cannot store an upload claim, a transaction-owned resource",
     );
     let image = IMAGE.to_string() + "\ntype Ref = Ref { key: String }\n";
-    refused(POSTS, &image, SOURCE, APP, "generated upload");
+    refused(
+        POSTS,
+        &image,
+        SOURCE,
+        APP,
+        "PW5604",
+        "is a generated upload declaration and the program declares its emitted identity",
+    );
     let image = IMAGE.to_string() + "\nfn publish() -> Int { 1 }\n";
-    refused(POSTS, &image, SOURCE, APP, "generated upload");
+    refused(
+        POSTS,
+        &image,
+        SOURCE,
+        APP,
+        "PW5604",
+        "is a generated upload declaration and the program declares its emitted identity",
+    );
 }
 
 #[test]
@@ -455,20 +479,41 @@ fn imported_reference_spelling_is_valid_and_claims_do_not_escape_through_nested_
         )
         .replace("alt: String }", "alt: String, hidden: Option<Wrapper> }")
         .replace("    asset image from PostImage\n", "");
-    refused(&posts, IMAGE, SOURCE, "module photos.app\n", "upload claim");
+    refused(
+        &posts,
+        IMAGE,
+        SOURCE,
+        "module photos.app\n",
+        "PW0371",
+        "cannot store an upload claim, a transaction-owned resource",
+    );
 }
 
 #[test]
 fn a_persisted_reference_requires_its_asset_association_and_top_level_shape() {
     let unannotated = POSTS.replace("    asset image from PostImage\n", "");
-    refused(&unannotated, IMAGE, SOURCE, APP, "asset association");
+    refused(
+        &unannotated,
+        IMAGE,
+        SOURCE,
+        APP,
+        "PW0371",
+        "requires its asset association",
+    );
     let nested = unannotated
         .replace(
             "type Post =",
             "type Wrapper = Wrapper { inner: PostImage.Ref }\ntype Post =",
         )
         .replace("Option<PostImage.Ref>", "Option<Wrapper>");
-    refused(&nested, IMAGE, SOURCE, "module photos.app\n", "top-level");
+    refused(
+        &nested,
+        IMAGE,
+        SOURCE,
+        "module photos.app\n",
+        "PW0371",
+        "must be a top-level Ref or Option<Ref>",
+    );
 }
 
 #[test]
@@ -478,7 +523,8 @@ fn generated_upload_visibility_and_interface_identities_are_not_silently_broaden
         &IMAGE.replace("upload PostImage", "private upload PostImage"),
         SOURCE,
         APP,
-        "public upload declaration",
+        "PW0371",
+        "an asset requires a public upload declaration",
     );
     let inputs = files(
         POSTS,
@@ -530,6 +576,12 @@ fn distinct_upload_names_cannot_emit_one_resource_interface() {
             .any(|d| d.code.to_string() == "PW5604"
                 && d.message.contains("generated upload interface")),
         "two names emit one upload interface, told PW5604: {got:#?}"
+    );
+    assert!(
+        got.iter()
+            .flat_map(|(_, ds)| ds)
+            .all(|d| d.code.to_string() != "PW5601"),
+        "{got:#?}"
     );
 }
 
@@ -592,6 +644,7 @@ fn the_public_asset_rule_refuses_an_otherwise_valid_owned_table() {
         IMAGE,
         SOURCE,
         "module photos.app\n",
-        "public asset-bearing table",
+        "PW0371",
+        "an asset requires a public asset-bearing table",
     );
 }

@@ -44,7 +44,7 @@ fn asset_metadata_is_not_silently_served_by_an_adapter_with_no_upload_binding() 
     let program = asset_program();
     let result = MemoryTables::new(program.tables);
     assert!(
-        matches!(result,Err(pw_table_memory::Error::Schema(ref why)) if why.contains("asset")),
+        matches!(result,Err(pw_table_memory::Error::Schema(ref why)) if why.contains("generic asset reference storage is not installed")),
         "asset declarations need their actual storage binding"
     );
 }
@@ -144,7 +144,7 @@ fn real_compiled_upload_imports_need_explicit_binding_before_any_resource_callba
     calls.store(0, Ordering::SeqCst);
     let result = call(&program.manifest);
     assert!(
-        matches!(result,Err(ref why) if why.contains("upload gate")),
+        matches!(result,Err(ref why) if why.contains("upload gate: generic uploads are not bound")),
         "{result:?}"
     );
     assert_eq!(calls.load(Ordering::SeqCst), 0);
@@ -182,7 +182,7 @@ fn actual_compiled_resource_grants_and_callback_answers_are_checked_independentl
         .manifest
         .clone()
         .with_uploads(&program.uploads)
-        .unwrap();
+        .assert_ok("the compiler's uploads bind");
     let full = component.granted();
     for capability in [
         "resource.acquire<PostImage.Claim>",
@@ -204,7 +204,7 @@ fn actual_compiled_resource_grants_and_callback_answers_are_checked_independentl
             &[],
         );
         assert!(
-            matches!(result,Err(ref why) if why.contains("upload gate")),
+            matches!(result,Err(ref why) if why.contains(&format!("upload gate: {capability} is required in the contract and granted here"))),
             "{result:?}"
         );
         assert_eq!(calls.load(Ordering::SeqCst), 0);
@@ -220,7 +220,7 @@ fn actual_compiled_resource_grants_and_callback_answers_are_checked_independentl
             &[],
         );
         assert!(
-            matches!(result,Err(ref why) if why.contains("upload gate")),
+            matches!(result,Err(ref why) if why.contains(&format!("upload gate: {capability} is required in the contract and granted here"))),
             "{result:?}"
         );
         assert_eq!(calls.load(Ordering::SeqCst), 0);
@@ -284,7 +284,7 @@ fn actual_upload_reference_abi_is_checked_before_any_claim_callback() {
         &[],
     );
     assert!(
-        matches!(result,Err(ref why) if why.contains("upload ABI") && why.contains("variant cases or payloads differ")),
+        matches!(result,Err(ref why) if why.contains("upload ABI: `kind`: variant cases or payloads differ from tables.json")),
         "{result:?}"
     );
     assert_eq!(calls.load(Ordering::SeqCst), 0);
@@ -298,9 +298,9 @@ fn actual_upload_reference_abi_is_checked_before_any_claim_callback() {
         &[],
     );
     assert!(
-        result
-            .as_ref()
-            .is_err_and(|why| why.to_string().contains("upload ABI")),
+        result.as_ref().is_err_and(|why| why
+            .to_string()
+            .contains("upload ABI: `kind`: variant cases or payloads differ from tables.json")),
         "root ABI: {result:?}"
     );
 }
@@ -322,7 +322,7 @@ fn compiled_attached_reads_validate_the_declared_record_without_resource_authori
         .manifest
         .clone()
         .with_uploads(&program.uploads)
-        .unwrap();
+        .assert_ok("the compiler's uploads bind");
     let expected = Val::List(vec![Val::Record(vec![
         (
             "src".into(),
@@ -435,7 +435,7 @@ fn link_only_instantiation_also_refuses_an_unbound_compiled_upload_import() {
             &component.granted(),
         );
         assert!(
-            matches!(result,Err(ref why) if why.contains("upload gate")),
+            matches!(result,Err(ref why) if why.contains("upload gate: generic uploads are not bound")),
             "{name}: {result:?}"
         );
     }
@@ -482,7 +482,7 @@ fn authorization_only_upload_reuse_checks_root_binding_without_running_a_body() 
         .manifest
         .clone()
         .with_uploads(&program.uploads)
-        .unwrap();
+        .assert_ok("the compiler's uploads bind");
     for (manifest, allowed) in [(&bound, true), (&program.manifest, false)] {
         let state = UploadAdmissionOnly {
             manifest,
@@ -518,7 +518,7 @@ fn authorization_only_uses_the_actual_root_grant_and_contract_axes() {
         .manifest
         .clone()
         .with_uploads(&program.uploads)
-        .unwrap();
+        .assert_ok("the compiler's uploads bind");
     let calls = Arc::new(AtomicUsize::new(0));
     let state = UploadAdmissionOnly {
         manifest: &bound,
@@ -547,9 +547,9 @@ fn authorization_only_uses_the_actual_root_grant_and_contract_axes() {
             |_, _| Ok(false),
         );
         assert!(
-            result
-                .as_ref()
-                .is_err_and(|why| why.to_string().contains("upload gate")),
+            result.as_ref().is_err_and(|why| why.to_string().contains(
+                "upload gate: database.read<PostImage> is required in the contract and granted here"
+            )),
             "{result:?}"
         );
         assert_eq!(calls.load(Ordering::SeqCst), 0);
@@ -563,7 +563,7 @@ fn empty_session_inputs_and_empty_claim_answers_are_refused_before_the_next_call
         .manifest
         .clone()
         .with_uploads(&program.uploads)
-        .unwrap();
+        .assert_ok("the compiler's uploads bind");
     let calls = Arc::new(AtomicUsize::new(0));
     let attached = program.component("Attached");
     let hooks = upload_hooks(attached, &calls);

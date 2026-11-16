@@ -242,10 +242,10 @@ fn ignored_publication_and_captured_old_collection_do_not_serve_or_remove_new_by
             .is_empty()
     );
     db.fail_closed();
-    refused(
+    assert!(matches!(
         db.asset_reference("PostImage", &old.key, "png"),
-        "StoragePoisoned",
-    );
+        Err(pw_table_memory::Error::StoragePoisoned)
+    ));
 }
 
 fn multi_database() -> MemoryTables {
@@ -663,10 +663,16 @@ fn captured_asset_publisher_borrows_only_its_original_memory_command_and_never_e
     c.write("pw:tables/assets#insert", &[row(1, Some(&image))])
         .assert_ok("original command still owns its turn");
     let p = c.prepare().assert_ok("original command prepares once");
-    refused(publish("PostImage", candidate('c')), "Ended");
+    assert!(matches!(
+        publish("PostImage", candidate('c')),
+        Err(pw_table_memory::Error::Ended)
+    ));
     p.publish().assert_ok("original owner publishes");
     let mut next = db.begin().assert_ok("new command owns new turn");
-    refused(publish("PostImage", candidate('c')), "Ended");
+    assert!(matches!(
+        publish("PostImage", candidate('c')),
+        Err(pw_table_memory::Error::Ended)
+    ));
     next.write("pw:tables/assets#insert", &[row(2, Some(&image))])
         .assert_ok("stale callback did not end the new command");
     next.commit().assert_ok("new command remains valid");

@@ -12,6 +12,16 @@ fn refused<T, E: std::fmt::Debug>(result: Result<T, E>, why: &str) {
         "a refusal saying {why:?}, where it said {said:?}"
     );
 }
+
+/// [`refused`] for one case of a loop, whose failure names `case`: a loop's
+/// cases that share a reason are told apart (the follow-up's review, L3).
+fn refused_in<T, E: std::fmt::Debug>(case: &str, result: Result<T, E>, why: &str) {
+    let said = result.err().map(|e| format!("{e:?}"));
+    assert!(
+        said.as_deref().is_some_and(|said| said.contains(why)),
+        "{case}: a refusal saying {why:?}, where it said {said:?}"
+    );
+}
 fn declaration() -> Value {
     json!({"name":"PostImage","module":"PostImage","source":"PhotoData","route":"/uploads/post-image","serves":"/images","max_bytes":5000000,"types":["png","jpeg"],"max_width":4096,"max_height":4096})
 }
@@ -81,14 +91,16 @@ fn upload_operations_keep_independent_database_and_resource_grants_in_both_axes(
         let linked = gate_links(&contract, &actual, Some(&manifest), true).unwrap();
         assert_eq!(linked.len(), 1);
         assert_eq!(linked.values().next().unwrap().operation(), operation);
-        refused(
+        refused_in(
+            name,
             gate_links(&contract, &actual, None, true),
             "upload gate: generic uploads are not bound",
         );
         if name == "attached" {
             assert!(gate_links(&contract, &actual, Some(&manifest), false).is_ok());
         } else {
-            refused(
+            refused_in(
+                name,
                 gate_links(&contract, &actual, Some(&manifest), false),
                 "upload gate: claims link only into commands",
             );
@@ -102,10 +114,15 @@ fn upload_operations_keep_independent_database_and_resource_grants_in_both_axes(
                 "upload gate: {} is required in the contract and granted here",
                 caps[i]
             );
-            refused(gate_links(&missing, &actual, Some(&manifest), true), &why);
+            refused_in(
+                &format!("{name}, its contract missing {}", caps[i]),
+                gate_links(&missing, &actual, Some(&manifest), true),
+                &why,
+            );
             let mut reduced = caps.clone();
             reduced.remove(i);
-            refused(
+            refused_in(
+                &format!("{name}, its grant missing {}", caps[i]),
                 gate_links(&contract, &grants(&reduced), Some(&manifest), true),
                 &why,
             );
@@ -145,7 +162,8 @@ fn unused_or_forged_upload_imports_do_not_define_their_own_meaning() {
     ] {
         let mut import = valid.clone();
         import[field] = value;
-        refused(
+        refused_in(
+            field,
             gate_links(
                 &contract(json!([import]), &caps),
                 &actual,
@@ -188,9 +206,10 @@ fn upload_metadata_rejects_legacy_identity_aliases_bad_limits_and_ambiguous_path
         ("route", json!("/../outside"), paths),
         ("serves", json!("/uploads/post-image"), paths),
     ] {
+        let case = format!("{field} {value}");
         let mut bad = valid.clone();
         bad[field] = value;
-        refused(Manifest::from_json(&json!([bad]).to_string()), why);
+        refused_in(&case, Manifest::from_json(&json!([bad]).to_string()), why);
     }
     let mut alias = valid.clone();
     alias["name"] = json!("Post_Image");
@@ -238,14 +257,17 @@ fn reference_shape_is_whole_data_and_declaration_limits_do_not_grant_a_lease() {
         ),
         ("alt", json!("extra"), "unknown field `alt`"),
     ] {
+        let case = format!("{field} {value}");
         let mut bad = valid.clone();
         bad[field] = value;
-        refused(Reference::from_value(&bad), why);
+        refused_in(&case, Reference::from_value(&bad), why);
     }
     for (field, value) in [("kind", json!("gif")), ("width", json!(4097))] {
+        let case = format!("{field} {value}");
         let mut bad = valid.clone();
         bad[field] = value;
-        refused(
+        refused_in(
+            &case,
             declaration.validate_reference(&Reference::from_value(&bad).unwrap()),
             "PostImage reference exceeds its declared kind or dimensions",
         );
@@ -268,7 +290,8 @@ fn the_host_rejects_a_forged_declaration_above_the_compilers_whole_body_ceiling(
     for bytes in [100_000_001, u64::MAX] {
         let mut bad = declaration();
         bad["max_bytes"] = json!(bytes);
-        refused(
+        refused_in(
+            &format!("max_bytes {bytes}"),
             Manifest::from_json(&json!([bad]).to_string()),
             "PostImage has invalid upload limits or kinds",
         );
@@ -279,7 +302,8 @@ fn upload_wire_paths_use_the_compilers_literal_path_domain() {
     for path in ["/Images", "/images:private", "/imagés", "/a.b"] {
         let mut bad = declaration();
         bad["serves"] = json!(path);
-        refused(
+        refused_in(
+            path,
             Manifest::from_json(&json!([bad]).to_string()),
             "PostImage has ambiguous or invalid upload paths",
         );
@@ -303,11 +327,13 @@ fn versioned_and_bare_upload_namespaces_cannot_escape_declaration_admission() {
             json!([{"interface":interface,"name":"attached","capability":caps[0]}]),
             &caps,
         );
-        refused(
+        refused_in(
+            interface,
             gate_links(&contract, &actual, Some(&manifest), false),
             &format!("upload gate: no declaration for {interface}"),
         );
-        refused(
+        refused_in(
+            interface,
             gate_links(&contract, &actual, None, false),
             "upload gate: generic uploads are not bound",
         );

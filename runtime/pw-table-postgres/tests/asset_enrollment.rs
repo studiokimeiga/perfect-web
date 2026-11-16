@@ -244,7 +244,7 @@ fn an_unbound_manifest_cannot_remove_prior_asset_associations() {
     rehash(&mut unbound);
     let refused = PgTables::open(&url, s.schema(), unbound);
     assert!(
-        matches!(refused,Err(pw_table_postgres::Error::Schema(ref why)) if why.contains("upload")),
+        matches!(refused,Err(pw_table_postgres::Error::Schema(ref why)) if why.contains("recorded upload bindings have lost their enrollment metadata")),
         "prior upload metadata must be checked even with no asset clauses"
     );
     assert_eq!(
@@ -315,14 +315,23 @@ fn old_structural_reference_data_is_not_implicitly_enrolled_as_public_upload_aut
     assert_eq!(s.texts("SELECT count(*)::text FROM \"Assets\""), ["1"]);
 }
 #[test]
-fn failed_application_ddl_rolls_back_namespace_rows_but_keeps_the_storage_reservation() {
+/// **A refusal after the storage's reservation rolls the namespace's rows
+/// back and keeps the reservation**: an unmanaged table where the program's
+/// would be is refused inside the migration, once the storage has reserved
+/// the candidate, which a later open with it is refused, and a new candidate
+/// enrolls. (Named until 2026-11-17 for a failed DDL, which this fixture
+/// never reaches: the drift check refuses first, as its reason now says.)
+fn a_refusal_after_the_storage_reservation_rolls_back_namespace_rows_and_keeps_it() {
     let Some(url) = common::database() else {
         return;
     };
     let s = common::Scratch::new(&url, "asset_ddl_rollback");
     let store = Arc::new(MarkerStore::default());
     s.sql(&format!("CREATE SCHEMA \"{}\"; SET search_path TO \"{}\"; CREATE TABLE \"Assets\" (foreign_column bigint)",s.schema,s.schema)).assert_ok("unmanaged application table");
-    refused(open(&s, model("", false), &store, 1), "");
+    refused(
+        open(&s, model("", false), &store, 1),
+        "and no schema is recorded there: it was made by something other than this adapter",
+    );
     assert!(
         store
             .names

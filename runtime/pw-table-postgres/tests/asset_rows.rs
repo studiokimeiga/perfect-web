@@ -19,6 +19,16 @@ fn refused<T, E: std::fmt::Debug>(result: Result<T, E>, why: &str) {
         "a refusal saying {why:?}, where it said {said:?}"
     );
 }
+
+/// [`refused`] for one case of a helper or a loop, whose failure names `case`
+/// (the follow-up's review, L3).
+fn refused_in<T, E: std::fmt::Debug>(case: &str, result: Result<T, E>, why: &str) {
+    let said = result.err().map(|e| format!("{e:?}"));
+    assert!(
+        said.as_deref().is_some_and(|said| said.contains(why)),
+        "{case}: a refusal saying {why:?}, where it said {said:?}"
+    );
+}
 type CollectHook = Arc<dyn Fn() + Send + Sync>;
 type ReservedBytes = BTreeMap<(Namespace, String), (Descriptor, Option<Vec<u8>>)>;
 #[derive(Default)]
@@ -461,7 +471,7 @@ fn rewritten_storage_state_refuses(target: &str, late: bool) {
     } else {
         "actual asset registry differs from prepared generations/counts"
     };
-    refused(refusal, why);
+    refused_in(&format!("{target} rewrite (late={late})"), refusal, why);
     assert_eq!(
         s.texts("SELECT count(*)::text FROM pw_asset_generations"),
         ["0"]
@@ -1243,7 +1253,7 @@ fn the_final_session_clock_fence_runs_after_blocking_keep_on_the_same_single_con
     store.keep_delay_ms.store(1200, Ordering::SeqCst);
     let outcome = p.publish_with(record("expired-during-keep"));
     assert!(
-        matches!(&outcome,Err(pw_table_postgres::Error::Refused(why)) if why.contains("session")),
+        matches!(&outcome,Err(pw_table_postgres::Error::Refused(why)) if why.contains("the session the command acts for changed before it committed")),
         "expired session cannot commit after a slow physical keep: {outcome:?}"
     );
     assert_eq!(
@@ -1549,7 +1559,7 @@ fn suppressed_collection_completion_leaves_a_retryable_job_and_never_refuses_the
     );
     refused(
         db.collect_assets(1),
-        "0 upload generations collected, 1 not: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb: Refused(",
+        "captured collection completion was suppressed",
     );
     assert_eq!(
         s.texts("SELECT count(*)::text FROM pw_asset_collections"),
@@ -1587,7 +1597,7 @@ fn reinserted_collection_completion_is_not_counted_as_done_and_preserves_applied
     );
     refused(
         db.collect_assets(1),
-        "0 upload generations collected, 1 not: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb: Refused(",
+        "captured collection job remains after completion",
     );
     assert_eq!(
         s.texts("SELECT count(*)::text FROM pw_asset_collections"),
@@ -1683,7 +1693,11 @@ fn rewritten_actual_receipt_refuses(case: &str) {
         .prepare()
         .assert_ok("prepared actual rows")
         .publish_with(records);
-    refused(outcome, "the exact upload interaction record was not kept");
+    refused_in(
+        &format!("a receipt's {case} rewritten"),
+        outcome,
+        "the exact upload interaction record was not kept",
+    );
     assert_eq!(s.texts("SELECT count(*)::text FROM pw_interactions"), ["0"]);
     assert_eq!(
         s.texts("SELECT count(*)::text FROM pw_asset_generations"),
@@ -1762,19 +1776,19 @@ fn captured_asset_publisher_and_receipt_marker_borrow_only_the_original_pg_comma
     c.write("pw:tables/assets#insert", &[row(1, Some(&image))])
         .assert_ok("callback did not end original owner");
     let p = c.prepare().assert_ok("original prepares");
-    refused(
+    assert!(matches!(
         publish("PostImage", candidate('c'), Arc::from(b"abc".as_slice())),
-        "Ended",
-    );
-    refused(marker(), "Ended");
+        Err(pw_table_postgres::Error::Ended)
+    ));
+    assert!(matches!(marker(), Err(pw_table_postgres::Error::Ended)));
     p.publish_with(record("handles"))
         .assert_ok("same original transaction commits");
     let mut next = db.begin().assert_ok("next original turn");
-    refused(
+    assert!(matches!(
         publish("PostImage", candidate('c'), Arc::from(b"abc".as_slice())),
-        "Ended",
-    );
-    refused(marker(), "Ended");
+        Err(pw_table_postgres::Error::Ended)
+    ));
+    assert!(matches!(marker(), Err(pw_table_postgres::Error::Ended)));
     next.write("pw:tables/assets#insert", &[row(2, Some(&image))])
         .assert_ok("new turn remains valid");
     next.commit()
@@ -1883,7 +1897,10 @@ fn raw_asset_interaction_waits_on_namespace_before_query_with_one_connection_and
         0,
         "receipt inspection holds no host writer turn"
     );
-    refused(observed.try_recv(), "Empty");
+    assert!(matches!(
+        observed.try_recv(),
+        Err(mpsc::TryRecvError::Empty)
+    ));
     drop(held);
     assert!(
         child
@@ -1915,15 +1932,9 @@ fn a_publication_of_a_live_hash_under_another_descriptor_is_refused() {
     let mut other = candidate('c');
     other.reference.width = live.width + 1;
     let mut c = db.begin().assert_ok("a second command");
-    let refused = c
-        .propose_asset("PostImage", other, Arc::from(b"abc".as_slice()))
-        .err()
-        .map(|e| format!("{e:?}"));
-    assert!(
-        refused
-            .as_deref()
-            .is_some_and(|e| e.contains("publication changes an immutable descriptor")),
-        "{refused:?}"
+    refused(
+        c.propose_asset("PostImage", other, Arc::from(b"abc".as_slice())),
+        "publication changes an immutable descriptor",
     );
     drop(c);
     assert_eq!(
@@ -1947,11 +1958,5 @@ fn a_command_is_refused_once_its_storage_namespace_marker_is_gone() {
     let db = open(&s, &store);
     seed(&db);
     store.names.lock().unwrap().clear();
-    let refused = db.begin().err().map(|e| format!("{e:?}"));
-    assert!(
-        refused
-            .as_deref()
-            .is_some_and(|e| e.contains("upload storage namespace") && e.contains("missing marker")),
-        "{refused:?}"
-    );
+    refused(db.begin(), "upload storage namespace: missing marker");
 }

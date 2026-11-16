@@ -227,6 +227,8 @@ MUTANTS = [
      '                codes::UPLOAD_IDENTITY_TAKEN,\n                "upload_interface_collision",', '                codes::UPLOAD_MALFORMED,\n                "upload_interface_collision",'),
     ('upload generated identity collision told as a malformed upload', ROOT / 'compiler/pw-core/src/uploads/declared.rs',
      'diagnostic(codes::UPLOAD_IDENTITY_TAKEN,"upload_generated_collision",', 'diagnostic(codes::UPLOAD_MALFORMED,"upload_generated_collision",'),
+    ('a table asset refusal told as a malformed table', ROOT / 'compiler/pw-core/src/tables.rs',
+     '        codes::TABLE_ASSET_MALFORMED,\n        "table_asset_malformed",', '        codes::TABLE_MALFORMED,\n        "table_asset_malformed",'),
     ('upload claim without idempotency told as a malformed upload', ROOT / 'compiler/pw-core/src/uploads/declared.rs',
      '                codes::UPLOAD_CLAIM_NOT_IDEMPOTENT,\n                "upload_without_idempotency",', '                codes::UPLOAD_MALFORMED,\n                "upload_without_idempotency",'),
     ('upload claim consuming command lacks receipt', ROOT / 'compiler/pw-core/src/uploads/declared.rs',
