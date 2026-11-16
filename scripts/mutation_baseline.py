@@ -107,7 +107,7 @@ mutation_bound.start()
 # still the default, so that the `finally` putting a mutant back runs: most
 # scripts write their mutants themselves, in a `try`/`finally`, which a
 # default SIGTERM skips (`mutation_source.unwinding`, 2026-11-16).
-import mutation_source
+import mutation_source  # noqa: E402 - after the bytecode settings, as the imports beside it
 mutation_source.unwinding()
 
 import mutant_incremental
