@@ -36,11 +36,13 @@
 //!   once ([`Staged::definitely_refused`]); one whose `COMMIT` was sent and
 //!   never answered, or whose interaction another commit recorded, is
 //!   reconciled by the host from the record.
-//! - **What the database keeps of the platform's stays bounded**: each
-//!   commit's outbox rows are forgotten once delivered (no host tails this
-//!   layer's outbox yet), and the scheduler's passes sweep the sessions and
-//!   sign-ins past their lifetimes and the outbox rows a host that ended
-//!   left behind ([`DataLayer::housekeeping`]).
+//! - **Every host reads the retained commit-ordered outbox** (ADR-0369):
+//!   local delivery leaves rows for other hosts, notifications wake their
+//!   cursors and polling recovers a lost wakeup. A trim watermark makes a
+//!   host that missed history reload; database instances number pages apart.
+//! - **Platform state stays bounded**: the scheduler sweeps expired sessions,
+//!   sign-ins and outbox history beyond its shared retention age, each in
+//!   bounded batches ([`DataLayer::housekeeping`]).
 
 use super::*;
 use crate::data::{Commit, DataLayer, Ops, Provided, Snapshot, Staged};
@@ -51,10 +53,9 @@ use pw_table_postgres::{Command, Lifetimes, PgTables, Records};
 /// kind: one statement's batch, short whatever the backlog.
 const SWEPT: usize = 500;
 
-/// **How old an outbox row a host left behind is before it is forgotten**:
-/// a committing host forgets its own as it delivers them, so a row older
-/// than this is one whose host ended between its commit and its forgetting.
-const OUTBOX_LEFT: std::time::Duration = std::time::Duration::from_secs(60);
+/// Shared outbox retention: local delivery leaves rows for every host,
+/// and older history is removed in bounded batches with a trim watermark.
+const OUTBOX_LEFT: std::time::Duration = std::time::Duration::from_secs(10 * 60);
 
 /// **Where a deployment keeps a program's tables**: its database, the schema
 /// its tables are in (a test's setting; the connection's own otherwise),
@@ -96,6 +97,8 @@ pub(crate) struct TablesPg {
     /// When its housekeeping next sweeps, on the host's clock
     /// ([`DataLayer::housekeeping`]): at once, where the host starts.
     housekept: Mutex<i64>,
+    tail: hosts::Tail,
+    instance: u64,
     /// The database and the schema, for a test's SQL.
     #[cfg(test)]
     url: String,
@@ -142,15 +145,31 @@ impl TablesPg {
         let path = build.join("tables.json");
         let text =
             std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+        let host = hosts::new_host();
         let options = pw_table_postgres::Options {
             render_seats: database.seats.seats,
             seat_wait: database.seats.wait,
-            host: hosts::new_host(),
+            host: host.clone(),
             ..pw_table_postgres::Options::default()
         };
         let tables = PgTables::open_json(&database.url, database.schema.as_deref(), &text, options)
             .map_err(|e| format!("PW_TABLES_DATABASE_URL: the program's tables: {e:?}"))?;
         let tables = Arc::new(tables);
+        let outbox = hosts::Outbox::for_tables(
+            tables.schema(),
+            tables.outbox_channel(),
+            tables.outbox_lock_key(),
+        );
+        let mut c =
+            postgres::Client::connect(&database.url, postgres::NoTls).map_err(feed_pg::pg)?;
+        c.batch_execute(&format!(
+            "SET search_path TO {}",
+            feed_pg::ident(tables.schema())
+        ))
+        .map_err(feed_pg::pg)?;
+        let instance = hosts::instance_in(&mut c, &outbox)?;
+        let highest = hosts::highest_in(&mut c, &outbox)?;
+        let tail = hosts::Tail::at(&database.url, outbox, &host, highest);
         let grants = tables
             .host_tables()
             .names()
@@ -167,6 +186,8 @@ impl TablesPg {
             grants,
             queue_authority: pw_materialize::QueueAuthority::new(),
             housekept: Mutex::new(i64::MIN),
+            tail,
+            instance,
             #[cfg(test)]
             url: database.url.clone(),
             #[cfg(test)]
@@ -276,6 +297,14 @@ impl DataLayer for TablesPg {
 
     /// Its sessions are the database's (ADR-0369): a restarted host keeps
     /// its readers signed in, and so does a second host on the database.
+    fn tail(&self) -> Option<&hosts::Tail> {
+        Some(&self.tail)
+    }
+
+    fn instance(&self) -> Option<u64> {
+        Some(self.instance)
+    }
+
     fn sessions(&self) -> Option<Arc<dyn identity::Kept>> {
         Some(Arc::clone(&self.kept))
     }
@@ -307,7 +336,7 @@ impl DataLayer for TablesPg {
                     .sweep_sign_ins(identity::SIGN_IN_LIFETIME, SWEPT),
             ),
             (
-                "outbox rows a host left behind",
+                "shared outbox rows past retention",
                 self.tables.trim_outbox(OUTBOX_LEFT, SWEPT),
             ),
         ];
@@ -757,14 +786,8 @@ impl Staged for PgStaging<'_> {
             Err(e) => return self.refuse(format!("the tables did not commit: {e:?}")),
         };
         *self.turn.get_mut() = Turn::Committed;
-        // Delivered by this host, and read by no other (no host tails this
-        // layer's outbox yet, track `durable-tables`): its rows are forgotten
-        // at once, and any a host that ended left behind by the layer's
-        // housekeeping ([`DataLayer::housekeeping`]).
-        let ids: Vec<i64> = committed.outbox.iter().map(|(id, _)| *id).collect();
-        if let Err(e) = self.layer.tables.forget_outbox(&ids) {
-            eprintln!("pw dev server: the tables' delivered outbox rows were kept: {e:?}");
-        }
+        // Every host has a cursor. Local delivery leaves the retained log
+        // available to the others; age-based trimming records its watermark.
         // Committed: what the outbox kept is what is delivered. One that
         // cannot be read back is what the command handed it.
         match delivered(committed.outbox) {

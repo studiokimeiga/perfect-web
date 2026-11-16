@@ -141,8 +141,8 @@ MUTANTS = [
         "the clock invokes nothing",
         COMPILER,
         INVOKED,
-        'pub const INVOKERS: &[&str] = &["Payments", "Clock"];\n',
-        'pub const INVOKERS: &[&str] = &["Payments"];\n',
+        'pub const INVOKERS: &[&str] = &["Payments", "Clock", "Identity"];\n',
+        'pub const INVOKERS: &[&str] = &["Payments", "Identity"];\n',
     ),
     (
         "the clock's command is given one `Settled`",
@@ -155,7 +155,7 @@ MUTANTS = [
         "the clock runs one command",
         COMPILER,
         INVOKED,
-        '        if invoker == "Payments"\n            && let Some(each) = all.get(invoker)\n',
+        '        if matches!(invoker, "Payments" | "Identity")\n            && let Some(each) = all.get(invoker)\n',
         "        if true\n            && let Some(each) = all.get(invoker)\n",
     ),
     # --- the host, the store in memory ----------------------------------

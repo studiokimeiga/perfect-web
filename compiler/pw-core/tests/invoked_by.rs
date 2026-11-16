@@ -289,3 +289,31 @@ fn a_payments_command_is_told_at_its_invoked_by_clause() {
     let pressed = command("begin", "n: Int", "    requires Anyone\n");
     assert!(reported(&pressed).is_empty(), "{:?}", reported(&pressed));
 }
+
+/// A checked identity rotation has one parameter-free lifecycle command.
+/// Its handles come from platform context, never browser arguments.
+#[test]
+fn an_identity_transition_has_one_parameter_free_idempotent_target() {
+    let policy = "    invoked_by Identity\n    idempotent_by InteractionId\n";
+    let joined = command("joined", "", policy);
+    assert!(reported(&joined).is_empty(), "{:?}", reported(&joined));
+    assert_eq!(
+        export_of(&joined, "t.joined").invoked_by.as_deref(),
+        Some("Identity")
+    );
+    let params = reported(&command("joined", "previous: String", policy));
+    assert_eq!(with("PW6402", &params).len(), 1, "{params:?}");
+    let twice = reported(&(joined + &command("another", "", policy)));
+    assert_eq!(with("PW6403", &twice).len(), 1, "{twice:?}");
+    let unkeyed = reported(&command("joined", "", "    invoked_by Identity\n"));
+    assert_eq!(with("PW6405", &unkeyed).len(), 1, "{unkeyed:?}");
+    let guarded = reported(&format!(
+        "predicate SignedIn\n    says \"Sign in.\"\n{}",
+        command(
+            "joined",
+            "",
+            &(policy.to_string() + "    requires SignedIn\n")
+        )
+    ));
+    assert_eq!(with("PW6401", &guarded).len(), 1, "{guarded:?}");
+}

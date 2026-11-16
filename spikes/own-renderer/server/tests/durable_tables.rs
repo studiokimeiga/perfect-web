@@ -532,7 +532,12 @@ fn the_guestbook_outlives_its_host_killed_or_stopped() {
     assert_eq!(schema.texts("SELECT hash FROM pw_schema").len(), 1);
     assert_eq!(
         schema.texts("SELECT version FROM pw_platform ORDER BY version"),
-        ["0001_platform", "0002_runs_and_sessions"]
+        [
+            "0001_platform",
+            "0002_runs_and_sessions",
+            "0003_shared_outbox",
+            "0004_outbox_removals_marked"
+        ]
     );
     other.stop();
     host.stop();

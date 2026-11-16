@@ -30,7 +30,7 @@ mod session_authority_tests {
         assert!(identity.answer(
             "POST", "/sign-out",
             "Host: 127.0.0.1:3143\r\nOrigin: http://127.0.0.1:3143\r\nSec-Fetch-Site: same-origin\r\n",
-            COOKIE, false, &[], &mut server, "", &|_| {},
+            COOKIE, false, &[], &mut server, "", None, &|_| {},
         ));
         server.shutdown(Shutdown::Write).expect("finished response");
         let mut reply = String::new();

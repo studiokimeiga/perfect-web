@@ -1,8 +1,8 @@
 ADR-0054 - an opaque value is built and read inside a component
 
 produced by: just e10-opaque
-commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 726b5e725d7ebdef23b7e2a8fa08a4538d13f37e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43434914007 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
@@ -10,10 +10,10 @@ node: v22.21.1
 
 test an_opaque_value_is_built_in_a_loop_and_folded ... ok
 test an_opaque_value_is_built_and_read_back ... ok
-test a_record_a_list_and_an_option_are_each_an_opaque_types_representation ... ok
 test an_opaque_value_is_passed_to_a_recursion_and_captured ... ok
+test a_record_a_list_and_an_option_are_each_an_opaque_types_representation ... ok
 test an_opaque_value_crosses_the_boundary_as_its_representation ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.23s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.08s
 
 == the component and the JavaScript module, on the same arguments
 
@@ -37,7 +37,7 @@ test one_defect_reached_by_two_rules_is_reported_once ... ok
 test an_opaque_types_value_is_its_representation_in_its_own_module ... ok
 test an_opaque_types_value_is_refused_outside_its_module ... ok
 test an_opaque_types_module_declares_no_member_named_value ... ok
-test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.23s
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.03s
 
 == mutation controls (scripts/opaque_mutations.py)
 

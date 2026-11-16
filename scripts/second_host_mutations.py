@@ -219,33 +219,49 @@ MUTANTS = [
         "the trim's mark is read before the rows",
         "hosts",
         HOSTS,
-        "            let rows = c.query(\n"
-        '                "SELECT id, host, committed_in::text, kind, name, args::text FROM outbox \\\n'
-        '                 WHERE id > $1 ORDER BY id LIMIT $2",\n'
-        "                &[&cursor, &BATCH],\n"
-        "            )?;\n"
-        "            #[cfg(test)]\n"
-        "            self.between_reads();\n"
-        "            let trimmed: i64 = c\n"
-        '                .query_one("SELECT through FROM outbox_trimmed", &[])?\n'
-        "                .get(0);\n",
-        "            let trimmed: i64 = c\n"
-        '                .query_one("SELECT through FROM outbox_trimmed", &[])?\n'
-        "                .get(0);\n"
-        "            #[cfg(test)]\n"
-        "            self.between_reads();\n"
-        "            let rows = c.query(\n"
-        '                "SELECT id, host, committed_in::text, kind, name, args::text FROM outbox \\\n'
-        '                 WHERE id > $1 ORDER BY id LIMIT $2",\n'
-        "                &[&cursor, &BATCH],\n"
-        "            )?;\n",
+        (
+            '            let rows = c.query(\n'
+            '                &format!(\n'
+            '                    "SELECT id, host, committed_in::text, kind, name, args::text FROM {} \\\n'
+            '                 WHERE id > $1 ORDER BY id LIMIT $2",\n'
+            '                    self.outbox.rows\n'
+            '                ),\n'
+            '                &[&cursor, &BATCH],\n'
+            '            )?;\n'
+            '            #[cfg(test)]\n'
+            '            self.between_reads();\n'
+            '            let trimmed: i64 = c\n'
+            '                .query_one(\n'
+            '                    &format!("SELECT through FROM {}", self.outbox.watermark),\n'
+            '                    &[],\n'
+            '                )?\n'
+            '                .get(0);\n'
+        ),
+        (
+            '            let trimmed: i64 = c\n'
+            '                .query_one(\n'
+            '                    &format!("SELECT through FROM {}", self.outbox.watermark),\n'
+            '                    &[],\n'
+            '                )?\n'
+            '                .get(0);\n'
+            '            #[cfg(test)]\n'
+            '            self.between_reads();\n'
+            '            let rows = c.query(\n'
+            '                &format!(\n'
+            '                    "SELECT id, host, committed_in::text, kind, name, args::text FROM {} \\\n'
+            '                 WHERE id > $1 ORDER BY id LIMIT $2",\n'
+            '                    self.outbox.rows\n'
+            '                ),\n'
+            '                &[&cursor, &BATCH],\n'
+            '            )?;\n'
+        ),
     ),
     (
-        "a trim records no mark",
+        'a trim records no mark',
         "hosts",
         HOSTS,
-        "UPDATE outbox_trimmed SET through = greatest(through, (SELECT max(id) FROM gone))",
-        "UPDATE outbox_trimmed SET through = through",
+        'UPDATE {watermark} SET through = greatest(through, coalesce((SELECT max(id) FROM gone), 0))',
+        'UPDATE {watermark} SET through = through',
     ),
     (
         "a reader's cursor never moves",

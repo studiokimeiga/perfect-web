@@ -1,14 +1,14 @@
 a template's layout is not the page
 
 produced by: just e14-rows
-commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 726b5e725d7ebdef23b7e2a8fa08a4538d13f37e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43434914007 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == what the compiler writes (compiler/pw-core/tests/template_layout.rs)
 
-test a_list_keeps_a_space_a_style_could_show ... ok
 test a_blank_text_outside_any_element_of_those_is_one_space ... ok
+test a_list_keeps_a_space_a_style_could_show ... ok
 test a_run_with_a_line_break_beside_one_without_is_only_itself_made_one ... ok
 test a_value_is_content_however_it_is_written ... ok
 test a_space_that_is_no_white_space_stays ... ok

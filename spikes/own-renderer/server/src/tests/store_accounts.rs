@@ -221,16 +221,8 @@ fn a_guests_cart_follows_them_in() {
         "{page}"
     );
     // Run twice, the second finds nothing to join.
-    s.joined(&identity::SignedIn {
-        guest: "guest-1",
-        session: &ada,
-        principal: &identity::Principal {
-            user: "ada".to_string(),
-            handle: "@ada".to_string(),
-            name: "Ada".to_string(),
-            issuer: "https://id.example.test".to_string(),
-        },
-    });
+    let again = signed_in(&s, &provider, "guest-1", "ada");
+    assert_eq!(s.cart_lines(&again), s.cart_lines(&ada));
     assert_eq!(
         s.cart_lines(&ada),
         [("espresso".to_string(), 3), ("cortado".to_string(), 1)]
@@ -263,6 +255,32 @@ fn a_signed_in_sessions_cart_is_not_joined_to_the_next_user() {
         "ben is joined ada's session's cart"
     );
     assert_eq!(s.cart_lines(&ada), [("espresso".to_string(), 1)]);
+}
+
+/// **A session admitted signed in joins nothing at its next sign-in, whatever
+/// its session's guest partition holds** (ADR-0440): who may join is the
+/// reader the callback's request was admitted as, never what the session
+/// held before. The lines a guest added stay its session's guest partition's
+/// when that session is then signed in where it stands (a test's sign-in,
+/// which no rotation follows, so only a test reaches this); signed in as
+/// ben through the flow, it joins them to no one, and they stay.
+#[test]
+fn a_signed_in_sessions_guest_lines_join_no_one_at_its_next_sign_in() {
+    let provider = Arc::new(TestProvider::default());
+    let s = store_with(provider.clone());
+    s.command(ADD, "came-ada", &add_shown("espresso", 2), false)
+        .expect("the guest adds");
+    s.identity.signed_in_for_test("came-ada", "ada", "Ada");
+    let ben = signed_in(&s, &provider, "came-ada", "ben");
+    assert!(
+        s.cart_lines(&ben).is_empty(),
+        "ben is joined the guest lines of a session admitted signed in"
+    );
+    assert_eq!(
+        s.cart_lines("came-ada"),
+        [("espresso".to_string(), 2)],
+        "the guest's lines stay its own"
+    );
 }
 
 /// **On a program that keys its cart by the session, a session's own change

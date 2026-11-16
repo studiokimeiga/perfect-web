@@ -1,8 +1,8 @@
 ADR-0159 - a handler handles what its command answers
 
 produced by: just e14-handler-failures
-commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 726b5e725d7ebdef23b7e2a8fa08a4538d13f37e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43434914007 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the rule (compiler/pw-core/tests/results_handled.rs)
@@ -35,10 +35,10 @@ test an_int_a_javascript_number_cannot_carry_stops_the_handler_before_it_sends .
 test an_opaque_constructor_sends_its_representation ... ok
 test each_path_read_is_read_where_the_document_carries_it ... ok
 test a_program_that_does_not_check_compiles_no_handlers ... ok
-test a_handler_calls_its_commands_by_the_contracts_own_ids ... ok
 test the_stores_handlers_compile_to_the_calls_their_bodies_make ... ok
+test a_handler_calls_its_commands_by_the_contracts_own_ids ... ok
 test a_module_and_its_event_part_name_one_handler ... ok
-test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.27s
+test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.90s
 
 == the canonical store with its demos, the benchmark's store, kiokun
 
