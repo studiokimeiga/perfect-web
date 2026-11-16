@@ -1,8 +1,8 @@
 ADR-0351 - query and discard producer controls
 
 produced by: just e14-generic-finish-producers
-commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 726b5e725d7ebdef23b7e2a8fa08a4538d13f37e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43434914007 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 test_a_later_invalid_command_does_not_borrow_an_earlier_assertion (test_generic_finish_producers.GenericFinishProducers.test_a_later_invalid_command_does_not_borrow_an_earlier_assertion) ... ok
 test_assertions_are_kills_and_survivors_remain_failures (test_generic_finish_producers.GenericFinishProducers.test_assertions_are_kills_and_survivors_remain_failures) ... ok
 test_invalid_mutant_restores_and_refuses_without_a_kill (test_generic_finish_producers.GenericFinishProducers.test_invalid_mutant_restores_and_refuses_without_a_kill) ... ok
@@ -10,11 +10,11 @@ test_native_status_and_result_must_agree (test_generic_finish_producers.GenericF
 test_producer_exception_preserves_original_source (test_generic_finish_producers.GenericFinishProducers.test_producer_exception_preserves_original_source) ... ok
 
 ----------------------------------------------------------------------
-Ran 5 tests in 0.015s
+Ran 5 tests in 0.019s
 
 OK
 
-Python structured receipt: /tmp/pw-guide-result-621x2lda
+Python structured receipt: /tmp/pw-guide-result-sklio3gr
 {"valid": true, "reason": "complete", "passed": ["test_generic_finish_producers.GenericFinishProducers.test_a_later_invalid_command_does_not_borrow_an_earlier_assertion", "test_generic_finish_producers.GenericFinishProducers.test_assertions_are_kills_and_survivors_remain_failures", "test_generic_finish_producers.GenericFinishProducers.test_invalid_mutant_restores_and_refuses_without_a_kill", "test_generic_finish_producers.GenericFinishProducers.test_native_status_and_result_must_agree", "test_generic_finish_producers.GenericFinishProducers.test_producer_exception_preserves_original_source"], "assertion_failed": [], "body_errors": [], "executed": 5, "report_sha256": "ef33b23ce2ba6b2648c14e0acadf3aaa6a4a3c6f93e125b2c2747e03b7ce3299"}
 
 baseline: 5 passed, 0 failed
@@ -133,11 +133,11 @@ False
 + (False, 0, 0)
 
 ----------------------------------------------------------------------
-Ran 5 tests in 0.035s
+Ran 5 tests in 0.020s
 
 FAILED (failures=6)
 
-Python structured receipt: /tmp/pw-guide-result-tz1skjs1
+Python structured receipt: /tmp/pw-guide-result-e2ln1js6
 {"valid": true, "reason": "complete", "passed": ["test_generic_finish_producers.GenericFinishProducers.test_a_later_invalid_command_does_not_borrow_an_earlier_assertion", "test_generic_finish_producers.GenericFinishProducers.test_assertions_are_kills_and_survivors_remain_failures", "test_generic_finish_producers.GenericFinishProducers.test_invalid_mutant_restores_and_refuses_without_a_kill", "test_generic_finish_producers.GenericFinishProducers.test_producer_exception_preserves_original_source"], "assertion_failed": ["test_generic_finish_producers.GenericFinishProducers.test_native_status_and_result_must_agree"], "body_errors": [], "executed": 5, "report_sha256": "da7f9648d732eed4cc05062b7bfc7cb082655347ca71efe45bc7e970bf20af91"}
 
 query results ignore the actual Cargo status: KILLED (1 assertion methods fail)
@@ -274,11 +274,11 @@ False
 + (False, 0, 0)
 
 ----------------------------------------------------------------------
-Ran 5 tests in 0.016s
+Ran 5 tests in 0.022s
 
 FAILED (failures=7)
 
-Python structured receipt: /tmp/pw-guide-result-f74wgxm2
+Python structured receipt: /tmp/pw-guide-result-g6wsbigv
 {"valid": true, "reason": "complete", "passed": ["test_generic_finish_producers.GenericFinishProducers.test_assertions_are_kills_and_survivors_remain_failures", "test_generic_finish_producers.GenericFinishProducers.test_invalid_mutant_restores_and_refuses_without_a_kill", "test_generic_finish_producers.GenericFinishProducers.test_producer_exception_preserves_original_source"], "assertion_failed": ["test_generic_finish_producers.GenericFinishProducers.test_a_later_invalid_command_does_not_borrow_an_earlier_assertion", "test_generic_finish_producers.GenericFinishProducers.test_native_status_and_result_must_agree"], "body_errors": [], "executed": 5, "report_sha256": "49eb4874403921c6836232904d553c4df6ea669f45cc60e84714b58660c26d2c"}
 
 discard results ignore the actual Cargo status: KILLED (2 assertion methods fail)
@@ -311,11 +311,11 @@ First differing element 0:
 
 
 ----------------------------------------------------------------------
-Ran 5 tests in 0.339s
+Ran 5 tests in 0.019s
 
 FAILED (failures=1)
 
-Python structured receipt: /tmp/pw-guide-result-x8z83nhb
+Python structured receipt: /tmp/pw-guide-result-kpgjg5i3
 {"valid": true, "reason": "complete", "passed": ["test_generic_finish_producers.GenericFinishProducers.test_a_later_invalid_command_does_not_borrow_an_earlier_assertion", "test_generic_finish_producers.GenericFinishProducers.test_assertions_are_kills_and_survivors_remain_failures", "test_generic_finish_producers.GenericFinishProducers.test_native_status_and_result_must_agree", "test_generic_finish_producers.GenericFinishProducers.test_producer_exception_preserves_original_source"], "assertion_failed": ["test_generic_finish_producers.GenericFinishProducers.test_invalid_mutant_restores_and_refuses_without_a_kill"], "body_errors": [], "executed": 5, "report_sha256": "3b1e7a6a2ab20262f4fb3f099246e66b1f9d7040eab97f821727800b2dd9bdad"}
 
 query invalid mutants pass the campaign: KILLED (1 assertion methods fail)
@@ -348,11 +348,11 @@ First differing element 0:
 
 
 ----------------------------------------------------------------------
-Ran 5 tests in 0.015s
+Ran 5 tests in 0.019s
 
 FAILED (failures=1)
 
-Python structured receipt: /tmp/pw-guide-result-mv796yi2
+Python structured receipt: /tmp/pw-guide-result-2kbb20vl
 {"valid": true, "reason": "complete", "passed": ["test_generic_finish_producers.GenericFinishProducers.test_a_later_invalid_command_does_not_borrow_an_earlier_assertion", "test_generic_finish_producers.GenericFinishProducers.test_assertions_are_kills_and_survivors_remain_failures", "test_generic_finish_producers.GenericFinishProducers.test_native_status_and_result_must_agree", "test_generic_finish_producers.GenericFinishProducers.test_producer_exception_preserves_original_source"], "assertion_failed": ["test_generic_finish_producers.GenericFinishProducers.test_invalid_mutant_restores_and_refuses_without_a_kill"], "body_errors": [], "executed": 5, "report_sha256": "c75d8aaae0d76a5c2a70012d7ed3b30891374d75491fa52b6f1b75b7415f0cbe"}
 
 discard invalid mutants pass the campaign: KILLED (1 assertion methods fail)

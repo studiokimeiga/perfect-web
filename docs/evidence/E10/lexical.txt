@@ -1,8 +1,8 @@
 ADR-0063 - every name means one binding
 
 produced by: just e10-lexical
-commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 726b5e725d7ebdef23b7e2a8fa08a4538d13f37e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43434914007 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the scopes, and what each reader makes of them (compiler/pw-core/tests/lexical_scope.rs)
@@ -24,12 +24,12 @@ test two_arms_binding_one_name_are_typed_apart ... ok
 test two_arms_binding_one_name_in_a_template_are_typed_apart ... ok
 test two_branches_binding_one_name_are_typed_apart ... ok
 test two_lambdas_binding_one_name_are_typed_apart ... ok
-test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.73s
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.60s
 
 == a match over a name an arm binds again (compiler/pw-core/tests/match_exhaustiveness.rs)
 
-test a_call_returning_a_declared_sum_type_is_checked ... ok
 test a_declared_option_parameter_is_checked_too ... ok
+test a_call_returning_a_declared_sum_type_is_checked ... ok
 test a_field_count_is_checked_at_any_depth_and_in_every_arm ... ok
 test a_name_an_arm_binds_again_is_not_read_as_the_parameter ... ok
 test a_literal_is_one_value_of_its_type ... ok
@@ -43,7 +43,7 @@ test the_kiokun_slices_matches_are_proven_now ... ok
 test a_type_no_pattern_takes_apart_is_matched_by_a_name_only ... ok
 test what_the_analysis_cannot_read_is_blocked_not_proven ... ok
 test exhaustive_matches_pass ... ok
-test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.77s
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.68s
 
 == what the value relations decide: the store program
 
@@ -54,7 +54,7 @@ test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fin
   Return      agree                            409
   Return      undecided: Unknown               1
   Binding     agree                            25
-  Annotation  agree                            1321
+  Annotation  agree                            1322
   Operand     agree                            484
   Assignment  agree                            73
   Member      agree                            558
@@ -78,7 +78,7 @@ test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fin
   Return      agree                            101
   Return      undecided: Unknown               1
   Binding     agree                            1
-  Annotation  agree                            486
+  Annotation  agree                            487
   Operand     agree                            221
   Assignment  agree                            1
   Member      agree                            127
@@ -102,7 +102,7 @@ test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fin
   Return      undecided: Unknown               1
   Binding     agree                            3
   Binding     undecided: Unknown               3
-  Annotation  agree                            1069
+  Annotation  agree                            1070
   Operand     agree                            248
   Operand     undecided: Unknown               3
   Assignment  agree                            5
