@@ -90,3 +90,47 @@ Dated statements above that call landing or combined gates pending describe
 the candidate before it landed and are kept as written. The
 [acceptance record](../diagnostics/train-12/acceptance-record-2026-10-21.md)
 states what the landing's evidence does and does not prove.
+
+## Amended 2026-11-16: a whole test module declared out of line
+
+The integrator's, under the owner's delegation of 2026-10-02.
+
+**Finding.** The Limits above left "custom Rust module layouts" outside the
+rule, and one such layout is ordinary Rust: a whole test module in a file of
+its own, declared under `#[cfg(test)]` by the module above it (`#[cfg(test)]
+mod failure_tests;` in `pw-table-memory`'s `lib.rs`). It is under no
+`tests/` directory and holds no inline `mod tests {`, so a change to it
+planned nothing. The nightly of 2026-11-15 (verify 43721856914) found
+`e14-d2-writes` INVALID by a probe's `unwrap` in `failure_tests.rs`, and the
+push of its fix planned no recipe (`ci_plan.py --changed` gave `shards=[]`):
+the fix's verify would not have run the recipe it fixes, and the evidence
+fetched after it would have been taken for current. Six such files are in
+the repository: `failure_tests.rs` (`pw-table-memory`), `test_assertions.rs`
+(`pw-host`), `tests.rs` (`pw-outbound`, and `tools/fuzz`), `queue_tests.rs`
+(`pw-core`'s `effects`), and `privacy_tests.rs` (the server's `uploads`).
+
+**Decision.** `ci_plan.test_module_files` finds a changed `.rs` file that its
+declaring file (where Rust looks for it: `lib.rs`, `main.rs` or `mod.rs`
+beside it, or the file named for its directory) declares under
+`#[cfg(test)]`, other attributes and a visibility allowed between them. Such
+a file reaches what an inline test module reaches: its own name and its
+declaring module's, as filters (`test_modules`); and, declared by a crate's
+root, its package's tests, run whole (`root_test_packages`), as a root's
+inline module does. A module named `tests` is no filter, which would name
+every crate's; its package reaches it. A module no `#[cfg(test)]` declares
+is untouched by the rule, whatever it holds.
+
+**Validation.** `scripts/tests/test_ci_scripts.py`'s
+`test_an_out_of_line_test_module_reaches_what_runs_it`: the real
+`failure_tests.rs` plans `d2_writes_mutations.py` and `e14-d2-writes` (it
+failed before the change), and a fixture crate holds each case: a root's
+module (its package and filter), a root's `tests` (its package only), a
+nested module (its filter and its parent's, not the package) and an
+undeclared module (nothing). `ci_test_reach_mutations.py` gains five
+mutants, one for each edge, and the old root mutant is re-anchored: 15 of 15
+killed. Each of the six files now plans the recipes that run it (1 to 21
+each).
+
+**Limits.** A nested module's change does not reach a consumer that runs its
+package's tests whole by `-p` alone, as a nested inline module's does not;
+`#[path]` attributes and modules declared by a macro stay outside the rule.

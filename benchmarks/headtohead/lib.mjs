@@ -234,12 +234,26 @@ export function treeCost(pid) {
 // --- servers --------------------------------------------------------------------------
 
 /** Whether a port on the loopback is free: a server already there must never
- * be taken for the one a run starts. */
-export function portFree(port) {
-  return new Promise((resolve) => {
+ * be taken for the one a run starts. A bind to `127.0.0.1` alone does not say:
+ * on macOS and the BSDs, Node's listening sockets set `SO_REUSEADDR`, under
+ * which that bind succeeds beside a server listening on every interface
+ * (`0.0.0.0`, or a dual-stack `::`), and the port was called free (found
+ * 2026-11-16 on macOS; Linux refuses the bind). So a connection to it is tried
+ * too, which any of them accepts: the port is free only where it is refused. */
+export async function portFree(port) {
+  const bound = await new Promise((resolve) => {
     const s = net.createServer();
     s.once("error", () => resolve(false));
     s.listen(port, "127.0.0.1", () => s.close(() => resolve(true)));
+  });
+  if (!bound) return false;
+  return new Promise((resolve) => {
+    const c = net.connect({ port, host: "127.0.0.1" });
+    c.once("connect", () => {
+      c.destroy();
+      resolve(false);
+    });
+    c.once("error", (error) => resolve(error.code === "ECONNREFUSED"));
   });
 }
 
