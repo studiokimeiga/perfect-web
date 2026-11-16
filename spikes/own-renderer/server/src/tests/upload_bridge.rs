@@ -190,6 +190,12 @@ fn claimed_image_is_committed_and_served(s: &Server) {
     );
     let kept = keep(s, "reader", 1, "keep-1");
     assert!(kept.committed, "{kept:?}");
+    // Its claim applied: the lease taken, nothing left pending.
+    let leases = s.uploads.leases().expect("staged leases");
+    assert!(
+        leases.pending_attempts(10).expect("pending").is_empty(),
+        "applied"
+    );
     let (key, kind) = image_of(s, 1).expect("the row names its image");
     let (head, body) = get(s, &format!("/images/{key}.{kind}"));
     assert!(head.starts_with("http/1.1 200"), "{head}");
@@ -359,4 +365,126 @@ fn a_refused_commit_gives_its_claim_back_on_postgresql() {
         // sequence, which no rollback takes back.
         schema.sql("CREATE SEQUENCE refusals; CREATE FUNCTION refuse_once() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF nextval(quote_ident(TG_TABLE_SCHEMA) || '.refusals') = 1 THEN RAISE EXCEPTION 'fixture refuses commit'; END IF; RETURN NULL; END $$; CREATE CONSTRAINT TRIGGER refuse_once AFTER INSERT ON \"Assets\" DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION refuse_once()").asserted("refusal installed");
     });
+}
+
+/// The program on PostgreSQL behind a proxy that loses the next COMMIT's
+/// answer once armed (`before_forward`: before the database sees it).
+fn behind_a_losing_proxy(
+    schema: &super::tables_pg::Schema,
+    out: &std::path::Path,
+    before_forward: bool,
+) -> (super::tables_pg::LosingProxy, Server) {
+    let url = super::tables_pg::database().asserted_some("a database");
+    let proxy = super::tables_pg::LosingProxy::start(&url);
+    let mut database = schema.database();
+    database.url = proxy.url(&database.url);
+    let s = super::tables_pg::served_on(out, &database);
+    proxy
+        .before_forward
+        .store(before_forward, std::sync::atomic::Ordering::SeqCst);
+    let armed = proxy.armed.clone();
+    *s.before_commit.lock().unwrap() = Some(Box::new(move |_| {
+        armed.store(true, std::sync::atomic::Ordering::SeqCst);
+    }));
+    (proxy, s)
+}
+
+trait AssertedSome<T> {
+    fn asserted_some(self, why: &str) -> T;
+}
+impl<T> AssertedSome<T> for Option<T> {
+    fn asserted_some(self, why: &str) -> T {
+        assert!(self.is_some(), "{why}");
+        match self {
+            Some(value) => value,
+            None => unreachable!(),
+        }
+    }
+}
+
+/// **A commit whose answer was lost settles its claim from its own
+/// receipt** (ADR-0440, L5b): the COMMIT landed and its answer was lost;
+/// once the command holds nothing, the host reads the attempt's raw receipt
+/// under the reacquired namespace lock, finds its own nonce and applies the
+/// claim. The command is answered committed, the image served, the lease
+/// taken, and nothing left pending.
+#[test]
+fn a_lost_commit_answer_settles_its_claim_from_its_receipt_on_postgresql() {
+    if super::tables_pg::database().is_none() {
+        return;
+    }
+    let (_dir, out) = built();
+    let schema = super::tables_pg::Schema::new(
+        &super::tables_pg::database().asserted_some("a database"),
+        "bridge_lost",
+    );
+    let (proxy, s) = behind_a_losing_proxy(&schema, &out, false);
+    assert!(
+        attach(&s, "reader", &png()).contains(" 303 "),
+        "the upload staged"
+    );
+    let landed = keep(&s, "reader", 1, "keep-lost");
+    assert_eq!(
+        proxy.lost.load(std::sync::atomic::Ordering::SeqCst),
+        1,
+        "the answer lost"
+    );
+    assert!(landed.committed, "{landed:?}");
+    let (key, kind) = image_of(&s, 1).expect("the row names its image");
+    let (head, _) = get(&s, &format!("/images/{key}.{kind}"));
+    assert!(head.starts_with("http/1.1 200"), "{head}");
+    let leases = s.uploads.leases().asserted_some("staged leases");
+    assert!(
+        leases.pending_attempts(10).asserted("pending").is_empty(),
+        "applied"
+    );
+    assert!(
+        !keep(&s, "reader", 2, "keep-after").committed,
+        "the lease was taken"
+    );
+}
+
+/// **A commit that never reached the database holds its claim** (ADR-0440,
+/// L5b: absence is never rollback): its COMMIT dropped before the database
+/// saw it, the attempt's receipt is absent, which proves nothing (another
+/// host may have pruned a committed one), so the claim stays held and
+/// pending, and the lease is neither given back nor taken.
+#[test]
+fn a_commit_that_never_arrived_holds_its_claim_on_postgresql() {
+    if super::tables_pg::database().is_none() {
+        return;
+    }
+    let (_dir, out) = built();
+    let schema = super::tables_pg::Schema::new(
+        &super::tables_pg::database().asserted_some("a database"),
+        "bridge_never",
+    );
+    let (_proxy, s) = behind_a_losing_proxy(&schema, &out, true);
+    assert!(
+        attach(&s, "reader", &png()).contains(" 303 "),
+        "the upload staged"
+    );
+    let unknown = s.command_answer(
+        "photos.app.Keep",
+        "reader",
+        &[serde_json::json!(1), serde_json::json!("a picture")],
+        Some("keep-never"),
+    );
+    assert!(
+        !matches!(&unknown, Ok(answer) if answer.committed),
+        "{unknown:?}"
+    );
+    assert!(image_of(&s, 1).is_none(), "nothing committed");
+    let leases = s.uploads.leases().asserted_some("staged leases");
+    assert_eq!(
+        leases.pending_attempts(10).asserted("pending").len(),
+        1,
+        "held"
+    );
+    assert!(
+        leases.due_attempts(10).asserted("due").is_empty(),
+        "inspected once, for good"
+    );
+    // Held, not given back: a second Keep claims nothing.
+    assert!(!keep(&s, "reader", 2, "keep-held").committed);
 }

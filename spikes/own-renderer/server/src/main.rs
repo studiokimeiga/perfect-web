@@ -3979,6 +3979,7 @@ impl Server {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn commit_staged(
         &self,
         staging: &mut dyn data::Staged,

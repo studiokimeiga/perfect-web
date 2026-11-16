@@ -2,6 +2,16 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**L5b, the server's claim bridge, 2026-11-16 (built, not landed):** on L5a
+(`wip/l5b-claims`). A compiled command claims, publishes and commits a
+declared upload through the server, on memory and on PostgreSQL: its
+imports bound to an invocation's ledger on the command's own transaction,
+its answer sealed with the attempt's nonce, each outcome settling its claims
+once (an unknown one from its own raw receipt; absence holds it), and
+`servable` admitting an upload a table keeps. Ten server tests and twelve
+mutants hold it (ADR-0440, "The server's claim bridge"); seven more tests
+are owed before it lands, then its full verify and review.
+
 **L5a, declared uploads to their claim ledger, 2026-11-16:** on L4
 (`7b8fb7cc`), the fifth train of the declared data layer's landing, its
 first part (`wip/l5-uploads`): the integration branch's forty-two commits

@@ -47,3 +47,25 @@ e14-generic-upload-leases:
     @mkdir -p docs/evidence/E14/generic-upload-leases
     @PW_GENERIC_UPLOAD_LEASE_EVIDENCE=docs/evidence/E14/generic-upload-leases python3 scripts/generic_upload_leases_mutations.py > docs/evidence/E14/generic-upload-leases.txt
     @cat docs/evidence/E14/generic-upload-leases.txt
+
+# The server's claim bridge (ADR-0440, L5b): a compiled command claims,
+# publishes and commits a declared upload through the server, on memory and
+# on PostgreSQL, each rule held by a mutant. It needs a throwaway database,
+# PW_TABLES_DATABASE_URL (or PW_STORE_DATABASE_URL, which CI's database
+# shards name): refused without one.
+e14-generic-upload-claims:
+    @url="${PW_TABLES_DATABASE_URL:-${PW_STORE_DATABASE_URL:-${PW_FEED_DATABASE_URL:-}}}"; \
+     if [ -z "$url" ]; then \
+       echo "e14-generic-upload-claims: refused, it needs PW_TABLES_DATABASE_URL (or PW_STORE_DATABASE_URL), a throwaway PostgreSQL database"; \
+       exit 1; \
+     fi
+    @mkdir -p docs/evidence/E14
+    @url="${PW_TABLES_DATABASE_URL:-${PW_STORE_DATABASE_URL:-${PW_FEED_DATABASE_URL:-}}}"; \
+     export PW_TABLES_DATABASE_URL="$url"; \
+     { echo "generic-upload-claims - the server's claim bridge: a compiled command claims, publishes and commits a declared upload, each outcome settling its claims once"; echo; \
+       echo "produced by: just e14-generic-upload-claims"; \
+       echo "commit: $(git rev-parse HEAD)$(git diff --quiet HEAD -- . ':(exclude)docs/evidence' || echo ' + uncommitted changes')"; \
+       echo "rust: $(rustc --version)"; echo; \
+       CARGO_INCREMENTAL=0 python3 scripts/generic_upload_claims_mutations.py; \
+     } > docs/evidence/E14/generic-upload-claims.txt 2>&1; \
+     status=$?; cat docs/evidence/E14/generic-upload-claims.txt; exit $status

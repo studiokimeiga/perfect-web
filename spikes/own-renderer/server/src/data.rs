@@ -454,17 +454,21 @@ pub(crate) trait Staged {
 /// `require_receipt` says the commit must carry its interaction's record.
 #[derive(Clone)]
 pub(crate) struct UploadPublisher {
-    pub(crate) publish: Arc<
-        dyn Fn(
-                &str,
-                pw_host::assets::Descriptor,
-                Arc<[u8]>,
-            ) -> Result<pw_host::assets::Reference, String>
-            + Send
-            + Sync,
-    >,
+    pub(crate) publish: PublishUpload,
     pub(crate) require_receipt: Arc<dyn Fn() -> Result<(), String> + Send + Sync>,
 }
+
+/// The layer's proposal of a canonical descriptor and its bytes, in the
+/// command's transaction, answered with the reference it keeps.
+pub(crate) type PublishUpload = Arc<
+    dyn Fn(
+            &str,
+            pw_host::assets::Descriptor,
+            Arc<[u8]>,
+        ) -> Result<pw_host::assets::Reference, String>
+        + Send
+        + Sync,
+>;
 
 thread_local! {
     /// The component of the last command this thread ran that failed in a

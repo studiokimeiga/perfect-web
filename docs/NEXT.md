@@ -29,7 +29,9 @@ owner. What stays open, in order:
    compiled upload imports bound to an invocation's ledger, the attempt's
    nonce in the commit's record, its outcome applied or refused, an
    unknown one reconciled from the raw receipt, and the startup refusal
-   opened only with those gates. Keep the
+   opened only with those gates. Built on `wip/l5b-claims` (ten server
+   tests, twelve mutants); owed: the seven tests ADR-0440's "Built"
+   paragraph names, then its full verify and review. Keep the
    mixed-layer and upload startup refusals until their replacements are
    real; the design must address cross-host last-reference races, database
    disconnects during physical cleanup, immutable storage generations,

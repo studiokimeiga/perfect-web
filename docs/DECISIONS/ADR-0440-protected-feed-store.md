@@ -1186,6 +1186,31 @@ seconds at most), to be measured before L7.
 from a missing receipt (both above); a fresh interaction per attempt (the
 record that answers a retry is keyed by the interaction).
 
+**Built** (2026-11-16, `wip/l5b-claims`). `uploads::bridge` binds each
+declaration's imports to the run's `Invocation`; both layers open bound to
+`uploads.json` (PostgreSQL's generations in `LocalBlobs` under the
+deployment's blob root, memory's in `MemoryBlobs`); `main.rs` seals the
+answer, freezes the ledger just before the commit (a claiming command
+commits its record even where it writes no row), settles each outcome, and
+inspects again, in turn, an attempt whose inspection failed; `servable`
+admits an upload a table keeps. The ledger gained `due_attempts` (never an
+attempt its owner may still be committing) and `Invocation::reconcile`.
+
+**Held by** `tests::upload_bridge`, a compiled program through the server,
+on memory and on PostgreSQL: a claimed image committed with its row and
+served (`304` on its `ETag`, nothing pending, the interaction answered again
+as it was, the lease taken); a discard ending its lease and keeping its
+record; a removed row's image answered `404`; a refused commit giving its
+claim back; on PostgreSQL, a commit whose answer was lost settled from its
+own receipt (applied, served), and one that never reached the database held
+for good (absent, inspected once). Twelve mutants in
+`generic_upload_claims_mutations.py` (`just e14-generic-upload-claims`),
+each killed. Owed before the landing: a test of `Recorded` (another
+attempt's record answering first), of an equal-clock retry by another host,
+of a reconcile the namespace lock delayed, of a rotated reader and a
+foreign declaration at the server, of a live generation's corrupt bytes
+(`503`) and of a keep that fails.
+
 ## Landing (L3, 2026-11-13)
 
 L3 merges the integration branch's six commits after `a9a8d79e`

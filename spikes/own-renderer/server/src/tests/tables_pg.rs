@@ -169,7 +169,7 @@ pub(super) fn serve(out: &std::path::Path, schema: &Schema) -> Server {
 }
 
 /// A build served by the tables' PostgreSQL layer on `database`.
-fn served_on(out: &std::path::Path, database: &crate::tables_pg::Database) -> Server {
+pub(super) fn served_on(out: &std::path::Path, database: &crate::tables_pg::Database) -> Server {
     Server::from_build_tables(
         out.to_path_buf(),
         out.to_path_buf(),
