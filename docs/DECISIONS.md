@@ -3214,6 +3214,7 @@ Dependency audits require a complete, internally consistent producer result (lan
 [ADR-0372](DECISIONS/ADR-0372-ci-test-reach.md):
 Changed test witnesses reach their verification recipes (landed with train-12 at `e7664d2e`, 2026-10-21).
 - Root Rust tests reach package-wide commands, Python unittest selectors retain their tests, and evidence counts only scripts actually executed by a recipe.
+- Amended 2026-11-16: a whole test module declared out of line under `#[cfg(test)]` (`failure_tests.rs`) reaches what an inline one does, its filters and, from a crate's root, its package; its change had planned nothing.
 
 [ADR-0373](DECISIONS/ADR-0373-component-namespaces.md):
 Component identities preserve declaration namespaces (landed with train-12 at `e7664d2e`, 2026-10-21).
