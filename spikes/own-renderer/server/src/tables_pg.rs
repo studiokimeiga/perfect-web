@@ -254,6 +254,7 @@ impl DataLayer for TablesPg {
             actor: None,
             authorization: Authorization::NotAttempted,
             refused: false,
+            conflicted: false,
         })
     }
 
@@ -430,6 +431,9 @@ pub(crate) struct PgStaging<'a> {
     authorization: Authorization,
     /// The commit failed knowing it kept nothing ([`Staged::definitely_refused`]).
     refused: bool,
+    /// And it failed as the database could not serialize it
+    /// ([`Staged::conflicted`]).
+    conflicted: bool,
 }
 
 impl PgStaging<'_> {
@@ -441,6 +445,18 @@ impl PgStaging<'_> {
     fn refuse(&mut self, why: String) -> Result<Commit, String> {
         self.refused = true;
         Err(why)
+    }
+
+    /// [`Self::refuse`], for a statement of the commit the adapter answered
+    /// `e`: one the database could not serialize is a conflict
+    /// ([`Staged::conflicted`]), wherever in the commit it met it. The
+    /// command has left `turn` by then, so its own word is no longer read;
+    /// each of the commit's statements answers through here, so that none is
+    /// left unmarked (the review of 2026-11-16 found the runs' scheduling
+    /// was).
+    fn refused_by(&mut self, e: &pw_table_postgres::Error, why: String) -> Result<Commit, String> {
+        self.conflicted = matches!(e, pw_table_postgres::Error::Serialization(_));
+        self.refuse(why)
     }
 
     /// **The session's authority, for `actor`**, as [`Staged::authorize`]
@@ -747,11 +763,13 @@ impl Staged for PgStaging<'_> {
                 // The run selected, and not taken (its deletion suppressed,
                 // or the statement failed): refused, never taken for a run
                 // another command completed.
-                Err(e) => return self.refuse(format!("the scheduled run was not taken: {e:?}")),
+                Err(e) => {
+                    return self.refused_by(&e, format!("the scheduled run was not taken: {e:?}"));
+                }
             }
         }
         if let Err(e) = command.schedule(&schedulings) {
-            return self.refuse(format!("the runs were not scheduled: {e:?}"));
+            return self.refused_by(&e, format!("the runs were not scheduled: {e:?}"));
         }
         if let Some(actor) = &self.actor
             && matches!(actor.reader, ReaderIdentity::Guest)
@@ -761,7 +779,7 @@ impl Staged for PgStaging<'_> {
         }
         let prepared = match command.prepare() {
             Ok(prepared) => prepared,
-            Err(e) => return self.refuse(format!("the tables refused the commit: {e:?}")),
+            Err(e) => return self.refused_by(&e, format!("the tables refused the commit: {e:?}")),
         };
         let committed = match prepared.publish_with(Records {
             interaction: interaction.map(|r| pw_table_postgres::Interaction {
@@ -783,7 +801,7 @@ impl Staged for PgStaging<'_> {
             ) => return Err(format!("the tables did not commit: {e:?}")),
             // Rolled back, as the database answered: a serialization
             // failure, a deadlock, a refusal, a statement that failed.
-            Err(e) => return self.refuse(format!("the tables did not commit: {e:?}")),
+            Err(e) => return self.refused_by(&e, format!("the tables did not commit: {e:?}")),
         };
         *self.turn.get_mut() = Turn::Committed;
         // Every host has a cursor. Local delivery leaves the retained log
@@ -801,6 +819,15 @@ impl Staged for PgStaging<'_> {
 
     fn definitely_refused(&self) -> bool {
         self.refused
+    }
+
+    /// A statement met a serialization failure (the open command says so),
+    /// or the commit did.
+    fn conflicted(&self) -> bool {
+        match self.turn.try_borrow().as_deref() {
+            Ok(Turn::Open(command)) => command.conflicted(),
+            _ => self.conflicted,
+        }
     }
 }
 

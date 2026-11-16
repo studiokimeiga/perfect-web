@@ -1092,6 +1092,17 @@ pub struct Command {
 }
 
 impl Command {
+    /// **Whether a statement of this command failed as the database could not
+    /// serialize it** ([`Error::Serialization`]): its transaction keeps
+    /// nothing, and the whole command may run again from its beginning. A
+    /// read or a write that met it answered it, and the command failed with
+    /// it; this says so after its caller turned that answer into its own.
+    pub fn conflicted(&self) -> bool {
+        self.state
+            .lock()
+            .is_ok_and(|open| matches!(open.failed, Some(Error::Serialization(_))))
+    }
+
     /// Read through a compiler-emitted import, as [`PgTables::read`] does,
     /// in this command's transaction: its own writes seen.
     pub fn read(&self, import: &str, args: &[Value]) -> Result<Value, Error> {

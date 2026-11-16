@@ -396,6 +396,42 @@ pub(crate) trait Staged {
     fn definitely_refused(&self) -> bool {
         false
     }
+
+    /// **Whether the command failed as the database could not serialize it
+    /// against another** (a serialization failure or a deadlock, SQLSTATE
+    /// 40001 or 40P01; NEXT after L3, item 3): a statement of it or its
+    /// commit met it, its transaction kept nothing, and run again from its
+    /// beginning it may commit. A browser's client runs such a command again
+    /// (its refusal), and the platform runs again the one no client sends,
+    /// an identity's lifecycle (`Server::identity_answer`). Only a layer
+    /// whose commands run beside each other's has one; by default, never.
+    fn conflicted(&self) -> bool {
+        false
+    }
+}
+
+thread_local! {
+    /// The component of the last command this thread ran that failed in a
+    /// conflict, as [`Staged::conflicted`] said of it: its error is a
+    /// `String` from there on, as it is answered, and the one caller that
+    /// runs such a command again (`Server::identity_answer`) reads it here,
+    /// as the refusal's predicate is read (`identity::take_refusal`). Kept
+    /// by component, so that another command run on the thread meanwhile (a
+    /// second host's, nested in a test's hook) is never taken for the
+    /// lifecycle's own (the review of 2026-11-16).
+    static CONFLICTED: std::cell::RefCell<Option<String>> = const { std::cell::RefCell::new(None) };
+}
+
+/// Note what the failed command of `component` said of a conflict: one that
+/// conflicted is noted, one that did not forgets any noted before it.
+pub(crate) fn note_conflicted(component: &str, conflicted: bool) {
+    CONFLICTED.with(|noted| *noted.borrow_mut() = conflicted.then(|| component.to_string()));
+}
+
+/// **Whether the last command this thread ran failed in a conflict, and was
+/// `component`'s**; either way, forget it.
+pub(crate) fn take_conflicted(component: &str) -> bool {
+    CONFLICTED.with(|noted| noted.borrow_mut().take().as_deref() == Some(component))
 }
 
 /// **The guard of a layer's writes** (ADR-0218, ADR-0352): one command of
