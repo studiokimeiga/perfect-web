@@ -6,8 +6,15 @@ A page's server HTML is visible before either. `optimistic.spec.mjs` reloaded
 the store page, waited for a count its HTML already showed, and read
 `window.__pw.log`: on PR #119's CI, Firefox evaluated it first ("window.__pw
 is undefined"). This check fails any spec that reads `window.__pw.` (not
-`window.__pw?.`) within a few lines after a navigation, with no wait for the
-runtime between them. It would have found that read when it was written.
+`window.__pw?.`) within fifteen lines after a navigation, with no wait for
+the runtime between them. It would have found that read when it was written.
+
+It reads lines, so what a helper hides is not seen: a helper that navigates
+and does not wait, or one that reads the report, called after a navigation.
+Each spec's own `ready(...)` waits for the mark by convention, and is taken
+to. Any `waitForFunction` counts as a wait, since some wait on the report
+itself. A poll that may run before the runtime reads with `?.`, as
+`device-store.spec.mjs` does.
 """
 import pathlib
 import re
@@ -20,7 +27,7 @@ NAVIGATION = re.compile(r"\.(goto|reload|goBack|goForward)\(")
 # What waits for the runtime: its ready mark, a function the page must
 # answer, or a spec's own `ready(...)` helper (each waits for the mark).
 WAITED = re.compile(r"pwReady|waitForFunction\(|\bready\(")
-TEST = re.compile(r"^\s*test(\.describe)?\(")
+TEST = re.compile(r"^\s*test(\.(describe|skip|fixme|only))?\(")
 # A read that throws where the report is not there yet.
 READ = re.compile(r"window\.__pw\.")
 # How far after a navigation a read is held to it.
@@ -89,6 +96,22 @@ class RuntimeReads(unittest.TestCase):
                 "  await ready(page);",
                 "  await page.reload();",
                 "  await ready(page);",
+                "  const log = await page.evaluate(() => window.__pw.log);",
+            ]),
+            [],
+        )
+
+    def test_a_read_is_held_to_the_fifteen_lines_after_a_navigation(self):
+        lines = ["  await page.reload();"] + ["  await page.click('#next');"] * 14
+        self.assertEqual(unwaited_reads(lines + ["  window.__pw.log;"]), [16])
+        self.assertEqual(unwaited_reads(lines + ["  // a step", "  window.__pw.log;"]), [])
+
+    def test_a_skipped_test_starts_unnavigated_too(self):
+        self.assertEqual(
+            unwaited_reads([
+                "  await page.goto(PAGE);",
+                "});",
+                'test.skip("later", async ({ page }) => {',
                 "  const log = await page.evaluate(() => window.__pw.log);",
             ]),
             [],
