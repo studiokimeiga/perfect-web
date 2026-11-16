@@ -74,3 +74,37 @@ GHSA-27mw-82g8-phjj
     Revisit: at E14-E, before deploying or exposing this baseline externally,
     or if prerendering/setHeaders is introduced. Upgrade to compatible
     SvelteKit >=3.0.0, rerun the contract and remove this allowance.
+
+GHSA-mw6w-2fmv-pvw3
+    SvelteKit <2.70.4 (and 3.0.0 to 3.1.0) — where `reroute` turns an invalid
+    percent-encoded path into a valid one, a comparison can crash an
+    adapter-node server (moderate; published 2026-11-13).
+    https://github.com/advisories/GHSA-mw6w-2fmv-pvw3
+
+    Why accepted temporarily: the only @sveltejs/kit dependency is the
+    undeployed E14 benchmark baseline, pinned to 2.70.3 under ADR-0120. It
+    declares no `reroute` hook (it has no `src/hooks.ts`; its server hook is
+    `handle` alone), so the comparison the advisory names is never made. The
+    baseline is a local harness that untrusted traffic never reaches.
+
+    Revisit: a patched release exists, 2.70.4, a patch within ADR-0120's pin.
+    Move to it once the owner approves the download (2026-11-16, asked), rerun
+    the three-store contract and remove this allowance; sooner if `reroute`
+    is introduced or the baseline is exposed outside the local harness.
+
+GHSA-rqw3-x7hx-mm3p
+    @sveltejs/adapter-node 5.5.7 (and 6.0.0-next to 6.0.0) — the adapter can
+    add a header to an immutable request where a request is proxied through
+    `fetch`, which crashes the server for every request it serves (moderate;
+    published 2026-11-13).
+    https://github.com/advisories/GHSA-rqw3-x7hx-mm3p
+
+    Why accepted temporarily: the same undeployed E14 baseline, pinned to
+    adapter-node 5.5.7 under ADR-0120, makes no `fetch` from its server code
+    (`src/hooks.server.ts`, `src/lib/server/`, its one `+page.server.ts`), so
+    it proxies no request, and no untrusted client reaches it.
+
+    Revisit: a patched release exists, 5.5.8. Move to it with SvelteKit 2.70.4
+    on the owner's approval of the download, rerun the three-store contract and
+    remove this allowance; sooner if the baseline proxies a request or is
+    exposed outside the local harness.
