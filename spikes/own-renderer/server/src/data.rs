@@ -139,8 +139,11 @@ pub(crate) trait DataLayer: Send + Sync {
     /// **The statements its reads and commands have run** (NEXT 4b): a
     /// layer that counts none (memory) says nothing.
     #[cfg(test)]
-    // Operation costs exclude database transaction boundaries; an adapter
-    // may expose its total including those separately (PgTables does).
+    // Operation costs leave a transaction's boundaries out (`BEGIN`,
+    // `COMMIT`, `ROLLBACK`): PostgreSQL's layer answers
+    // `PgTables::operation_statements`, and the adapter keeps its total,
+    // boundaries included, in `PgTables::statements`, which no layer
+    // answers here (ADR-0395, amended 2026-11-16).
     fn statements(&self) -> Option<u64> {
         None
     }

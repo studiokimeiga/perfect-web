@@ -21,7 +21,8 @@ Each mutant undoes one guarantee and must be killed by a test:
    arguments alone, and no materialization depends on it (PW6907); a query
    that requires is read by a page's binding alone, never called, named or
    bound elsewhere (PW6926); a predicate with a body is required where it is
-   seen and asked by no page (PW6925); a requirement names the component
+   seen and asked by no page (PW6925), whose ask is told PW6925 alone, the
+   body's reads no effect of the page's; a requirement names the component
    that answers it, and the ABI names it too; the engine asks the program's
    predicate itself, before the export runs, from the program's compiled
    predicates, each one `predicate` export requiring nothing, under the
@@ -72,6 +73,7 @@ SELECTORS = ROOT / "runtime/pw-host/src/engine/table_selectors.rs"
 HOST_TABLES = ROOT / "runtime/pw-host/src/tables.rs"
 HOST = ROOT / "runtime/pw-host/src/lib.rs"
 PROGRAM_PREDICATES = ROOT / "runtime/pw-host/src/engine/program_predicates.rs"
+EFFECTS = ROOT / "compiler/pw-core/src/effects.rs"
 MEMORY = ROOT / "runtime/pw-table-memory/src/lib.rs"
 SERVER = ROOT / "spikes/own-renderer/server/src/main.rs"
 IDENTITY = SERVER.with_name("identity.rs")
@@ -520,6 +522,14 @@ MUTANTS = [
     ("PW6925 a page asks a predicate with a body", PREDICATES,
      "            if declared.body.is_none() {\n",
      "            if declared.body.is_none() || true {\n"),
+    # ADR-0395's "Not claimed", repaired 2026-11-16: a page's `{#if P}` asks
+    # the deployment, so P's body's reads are no effect of the page's.
+    ("a page asking a predicate is charged its body's reads", EFFECTS,
+     "                && self.asks_a_predicate(unit, &path)\n",
+     "                && self.asks_a_predicate(unit, &path) && false\n"),
+    ("a predicate with parameters is passed over as a page's ask", EFFECTS,
+     "            .is_none_or(|sig| sig.params.is_empty());\n",
+     "            .is_none_or(|_| true);\n"),
     ("PW6907 a query that requires a predicate is cached shared", PREDICATES,
      '                    Some(("shared", c)) => (\n',
      '                    Some(("shared", c)) if false => (\n'),

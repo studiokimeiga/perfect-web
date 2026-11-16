@@ -258,6 +258,43 @@ fn pw6925_a_page_asks_no_predicate_with_a_body() {
 }
 
 #[test]
+fn pw6925_alone_tells_a_page_asking_a_predicate_whose_body_reads_a_table() {
+    // ADR-0395's "Not claimed": a page asking a predicate whose body reads a
+    // table was told PW0401 beside PW6925, one defect told twice. The page
+    // asks the deployment (ADR-0307), never the body, so the body's read is
+    // no effect of the page's, and PW6925 is what is wrong.
+    let writes = "import List\n\npredicate Writes\n    says \"Only one who wrote a note.\"\n{\n    List.length(Notes.of_author(current_user())) > 0\n}\n";
+    let page = "session page Home() {\n    route     \"/\"\n    placement origin\n    cache     private\n\n    view {\n        <title>Home</title>\n        <main>\n            {#if Writes}<p id=\"writes\">A writer</p>{/if}\n        </main>\n    }\n}\n";
+    let got = found(&[("probe.pw", &probe(&format!("{writes}\n{page}")))]);
+    assert!(
+        got.iter().any(|(c, m)| c == "PW6925"
+            && m.contains(
+                "`Home` asks `Writes` of its reader, and the program gives `Writes` a body"
+            )),
+        "{got:#?}"
+    );
+    assert!(
+        !got.iter().any(|(c, _)| c == "PW0401"),
+        "one defect, told once: {got:#?}"
+    );
+    // The neighbours: the body itself reads its table, which a predicate may
+    // (no diagnostic of its own), and a page that reads the table itself is
+    // told PW0401 still.
+    let alone = found(&[("probe.pw", &probe(writes))]);
+    assert!(alone.is_empty(), "{alone:#?}");
+    let reading = page.replace(
+        "{#if Writes}<p id=\"writes\">A writer</p>{/if}",
+        "<p id=\"writes\">{List.length(Notes.of_author(current_user()))}</p>",
+    );
+    let got = found(&[("probe.pw", &probe(&format!("import List\n\n{reading}")))]);
+    assert!(
+        got.iter()
+            .any(|(c, m)| c == "PW0401" && m.contains("database.read<Notes>")),
+        "{got:#?}"
+    );
+}
+
+#[test]
 fn pw6907_a_query_that_requires_a_predicate_is_never_cached_shared() {
     // The review's finding 7b (probe H): a public query cached shared,
     // answered to whoever asks next whether or not `Wrote` holds for them.
@@ -528,5 +565,65 @@ fn a_bodied_predicate_is_a_component_its_requirements_name() {
             .iter()
             .any(|c| c.component_id == "probe.SignedIn"),
         "a deployment's predicate became a component"
+    );
+}
+
+/// `probe.writers`: a predicate with no parameters whose body reads a table.
+const WRITERS: &str = "module probe.writers\n\nimport List\nimport context.{ current_user }\nimport Notes\n\npredicate Writes\n    says \"Only one who wrote a note.\"\n{\n    List.length(Notes.of_author(current_user())) > 0\n}\n";
+
+/// A session page that imports `imports` and shows `markup`.
+fn home(imports: &str, markup: &str) -> String {
+    format!(
+        "{imports}\nsession page Home() {{\n    route     \"/\"\n    placement origin\n    cache     private\n\n    view {{\n        <title>Home</title>\n        <main>\n            {markup}\n        </main>\n    }}\n}}\n"
+    )
+}
+
+#[test]
+fn pw6925_alone_tells_a_page_or_a_view_asking_an_imported_predicate_with_a_body() {
+    // The predicate imported from the module that gives it its body (the
+    // resolver's `Imported` branch), asked by a page and by a view: PW6925,
+    // and the body's read no effect of either.
+    let page = home(
+        "import probe.writers.{ Writes }\n",
+        "{#if Writes}<p id=\"w\">A writer</p>{/if}",
+    );
+    let view = "import probe.writers.{ Writes }\n\nview Badge() !{} {\n    {#if Writes}<p id=\"w\">A writer</p>{/if}\n}\n";
+    for (asker, src) in [("Home", page.as_str()), ("Badge", view)] {
+        let got = found(&[("writers.pw", WRITERS), ("probe.pw", &probe(src))]);
+        let told: Vec<&str> = got.iter().map(|(c, _)| c.as_str()).collect();
+        assert_eq!(told, ["PW6925"], "{asker}: {got:#?}");
+        assert!(
+            got[0]
+                .1
+                .contains(&format!("`{asker}` asks `Writes` of its reader")),
+            "{got:#?}"
+        );
+    }
+}
+
+#[test]
+fn a_predicate_named_where_no_page_asks_it_is_charged_its_bodys_reads() {
+    // Only what `holds::asked` counts as asked is passed over: a predicate
+    // named in a handler, or with parameters, is no page's ask, and PW6925
+    // says nothing of it; its body's read is charged as before.
+    let handler = home(
+        "import probe.writers.{ Writes }\n",
+        "<button type=\"button\" on:press={Writes}>Go</button>",
+    );
+    let got = found(&[("writers.pw", WRITERS), ("probe.pw", &probe(&handler))]);
+    assert!(
+        got.iter()
+            .any(|(c, m)| c == "PW5005" && m.contains("database.read<Notes>")),
+        "a handler's: {got:#?}"
+    );
+    let parameterised = home(
+        "import probe.preds.{ Wrote }\n",
+        "{#if Wrote}<p id=\"w\">A writer</p>{/if}",
+    );
+    let got = found(&[("preds.pw", PREDS), ("probe.pw", &probe(&parameterised))]);
+    assert!(
+        got.iter()
+            .any(|(c, m)| c == "PW0401" && m.contains("database.read<Notes>")),
+        "a predicate with parameters: {got:#?}"
     );
 }
