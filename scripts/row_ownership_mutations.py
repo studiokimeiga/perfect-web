@@ -225,8 +225,11 @@ MUTANTS = [
     # ADR-0395's "Not claimed", repaired 2026-11-16: a page's `{#if P}` asks
     # the deployment, so P's body's reads are no effect of the page's.
     ("a page asking a predicate is charged its body's reads", EFFECTS,
-     "            if self.names_a_predicate(unit, &path) {\n",
-     "            if false && self.names_a_predicate(unit, &path) {\n"),
+     "                && self.asks_a_predicate(unit, &path)\n",
+     "                && self.asks_a_predicate(unit, &path) && false\n"),
+    ("a predicate with parameters is passed over as a page's ask", EFFECTS,
+     "            .is_none_or(|sig| sig.params.is_empty());\n",
+     "            .is_none_or(|_| true);\n"),
     ("PW6907 a query that requires a predicate is cached shared", PREDICATES,
      '                    Some(("shared", c)) => (\n',
      '                    Some(("shared", c)) if false => (\n'),

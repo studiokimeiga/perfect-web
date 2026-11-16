@@ -216,18 +216,34 @@ the page the effects of the predicate's body.
 **Decided.** A predicate named is asked, never called where the value goes:
 a page's `{#if P}` asks the deployment's `P` (ADR-0307), and a requirement
 is answered by the engine. A body the program gives `P` reads for itself,
-so its reads are no effect of the page's. The pass now skips a name only
-where it resolves to the declaration the predicate namespace gives it; a
-name that resolves to any other declaration is charged as before. PW6925
-tells what is wrong, once.
+so its reads are no effect of the page's. The pass now skips only what
+`holds::asked` counts as asked, which is what PW6925 tells:
+- a bare name, outside a handler;
+- of a predicate with no parameters;
+- resolving to the declaration the predicate namespace gives it, and no
+  other declaration a name of that spelling resolves to.
 
-**Held by**
-`pw6925_alone_tells_a_page_asking_a_predicate_whose_body_reads_a_table`
-(`compiler/pw-core/tests/predicate_bodies.rs`). It fails on master with
-PW0401 beside PW6925. Its neighbours: the predicate alone, whose body may
-read, is told nothing; a page that reads the table itself is told PW0401
-still. The mutant "a page asking a predicate is charged its body's reads"
-in `row_ownership_mutations.py` puts the old charge back.
+Every other naming of a predicate is charged as before: in a handler (also
+PW5005, PW0629 and PW0614), with parameters (PW0401), or by a qualified
+path (PW0021, which says it does not resolve, and PW0401). The independent
+review of `2ba479c8` found the first form of the skip wider than `asked`,
+and these forms pin it. PW6925 tells what is wrong, once.
+
+**Held by** `compiler/pw-core/tests/predicate_bodies.rs`:
+- `pw6925_alone_tells_a_page_asking_a_predicate_whose_body_reads_a_table`,
+  which fails on master with PW0401 beside PW6925. Its neighbours: the
+  predicate alone, whose body may read, is told nothing, and a page that
+  reads the table itself is told PW0401 still.
+- `pw6925_alone_tells_a_page_or_a_view_asking_an_imported_predicate_with_a_body`:
+  the resolver's `Imported` branch, and a view as well as a page.
+- `a_predicate_named_where_no_page_asks_it_is_charged_its_bodys_reads`: a
+  handler's naming and a predicate with parameters.
+
+Two mutants in `row_ownership_mutations.py` cover it: the old charge put
+back, and the skip passing over a predicate with parameters. The handler's
+exclusion has none: the call walk charges a handler's callee whatever the
+skip does, so no test can tell it is gone. It is kept so that the skip is
+exactly `asked`.
 
 ## Amended 2026-11-16: one count of a transaction's boundaries
 

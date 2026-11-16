@@ -567,3 +567,63 @@ fn a_bodied_predicate_is_a_component_its_requirements_name() {
         "a deployment's predicate became a component"
     );
 }
+
+/// `probe.writers`: a predicate with no parameters whose body reads a table.
+const WRITERS: &str = "module probe.writers\n\nimport List\nimport context.{ current_user }\nimport Notes\n\npredicate Writes\n    says \"Only one who wrote a note.\"\n{\n    List.length(Notes.of_author(current_user())) > 0\n}\n";
+
+/// A session page that imports `imports` and shows `markup`.
+fn home(imports: &str, markup: &str) -> String {
+    format!(
+        "{imports}\nsession page Home() {{\n    route     \"/\"\n    placement origin\n    cache     private\n\n    view {{\n        <title>Home</title>\n        <main>\n            {markup}\n        </main>\n    }}\n}}\n"
+    )
+}
+
+#[test]
+fn pw6925_alone_tells_a_page_or_a_view_asking_an_imported_predicate_with_a_body() {
+    // The predicate imported from the module that gives it its body (the
+    // resolver's `Imported` branch), asked by a page and by a view: PW6925,
+    // and the body's read no effect of either.
+    let page = home(
+        "import probe.writers.{ Writes }\n",
+        "{#if Writes}<p id=\"w\">A writer</p>{/if}",
+    );
+    let view = "import probe.writers.{ Writes }\n\nview Badge() !{} {\n    {#if Writes}<p id=\"w\">A writer</p>{/if}\n}\n";
+    for (asker, src) in [("Home", page.as_str()), ("Badge", view)] {
+        let got = found(&[("writers.pw", WRITERS), ("probe.pw", &probe(src))]);
+        let told: Vec<&str> = got.iter().map(|(c, _)| c.as_str()).collect();
+        assert_eq!(told, ["PW6925"], "{asker}: {got:#?}");
+        assert!(
+            got[0]
+                .1
+                .contains(&format!("`{asker}` asks `Writes` of its reader")),
+            "{got:#?}"
+        );
+    }
+}
+
+#[test]
+fn a_predicate_named_where_no_page_asks_it_is_charged_its_bodys_reads() {
+    // Only what `holds::asked` counts as asked is passed over: a predicate
+    // named in a handler, or with parameters, is no page's ask, and PW6925
+    // says nothing of it; its body's read is charged as before.
+    let handler = home(
+        "import probe.writers.{ Writes }\n",
+        "<button type=\"button\" on:press={Writes}>Go</button>",
+    );
+    let got = found(&[("writers.pw", WRITERS), ("probe.pw", &probe(&handler))]);
+    assert!(
+        got.iter()
+            .any(|(c, m)| c == "PW5005" && m.contains("database.read<Notes>")),
+        "a handler's: {got:#?}"
+    );
+    let parameterised = home(
+        "import probe.preds.{ Wrote }\n",
+        "{#if Wrote}<p id=\"w\">A writer</p>{/if}",
+    );
+    let got = found(&[("preds.pw", PREDS), ("probe.pw", &probe(&parameterised))]);
+    assert!(
+        got.iter()
+            .any(|(c, m)| c == "PW0401" && m.contains("database.read<Notes>")),
+        "a predicate with parameters: {got:#?}"
+    );
+}
