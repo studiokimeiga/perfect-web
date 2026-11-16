@@ -42,6 +42,10 @@ the run to `mutation_slots.py`, which runs the script's own copy in each
 slot, its mutants dealt among them, and ends this process with the run's
 code: the script's loop never runs in this tree.
 
+Imported, it also makes a SIGTERM unwind the script, where its disposition
+is still the default (`mutation_source.unwinding`, 2026-11-16): a default
+SIGTERM ends Python with no `finally`, and the mutant a script's `finally`
+would put back stayed in the tree.
 And where the run sets `PW_MUTANT_INCREMENTAL=1` (verify.yml's recipe step),
 the script and every process it starts have no `CARGO_INCREMENTAL`, whatever
 its recipe's line says, so that cargo's defaults apply (incremental for the dev
@@ -99,6 +103,12 @@ mutation_slots.engage()
 
 # Every process the script starts from here on, bounded in memory.
 mutation_bound.start()
+# And a SIGTERM unwinds the script from here on, where its disposition is
+# still the default, so that the `finally` putting a mutant back runs: most
+# scripts write their mutants themselves, in a `try`/`finally`, which a
+# default SIGTERM skips (`mutation_source.unwinding`, 2026-11-16).
+import mutation_source
+mutation_source.unwinding()
 
 import mutant_incremental
 
