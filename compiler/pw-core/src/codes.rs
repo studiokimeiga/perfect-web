@@ -955,6 +955,13 @@ codes! {
         "an upload's paths are its own: no page's, and no other upload's";
     FILE_FORM_POSTS_TO_NO_UPLOAD = "PW5603" / file_form_posts_to_no_upload / 1, Uploads,
         "a form that sends a file posts it, as multipart/form-data, to an upload the program declares";
+    // ADR-0440's L5 (L5a's review, finding L7): an upload's generated names
+    // and the commands that claim it, each told by a rule of its own, where
+    // PW5601's (its clauses and limits) told them until 2026-11-16.
+    UPLOAD_IDENTITY_TAKEN = "PW5604" / upload_identity_taken / 1, Uploads,
+        "an upload's emitted interface and generated declarations are its own: no other upload's or declaration's";
+    UPLOAD_CLAIM_NOT_IDEMPOTENT = "PW5605" / upload_claim_not_idempotent / 1, Uploads,
+        "a command that claims or releases an upload declares `idempotent_by`";
 
     // --- the todomvc track (PW61xx; track `todomvc`, W7) --------------------
     //

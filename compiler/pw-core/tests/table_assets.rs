@@ -527,9 +527,43 @@ fn distinct_upload_names_cannot_emit_one_resource_interface() {
     assert!(
         got.iter()
             .flat_map(|(_, ds)| ds)
-            .any(|d| d.message.contains("generated upload interface")),
-        "two names emit one upload interface: {got:#?}"
+            .any(|d| d.code.to_string() == "PW5604"
+                && d.message.contains("generated upload interface")),
+        "two names emit one upload interface, told PW5604: {got:#?}"
     );
+}
+
+/// **A declaration may not take a generated upload declaration's identity**
+/// (PW5604, L5a's review, finding L7: it was PW5601's, the upload's clauses
+/// and limits): `KIND` emits `kind`, as the upload's generated `Kind` does.
+#[test]
+fn a_declaration_emitting_a_generated_upload_identity_is_pw5604() {
+    let taken = format!("{IMAGE}opaque type KIND = String\n");
+    let got = diagnostics(POSTS, &taken, SOURCE, APP);
+    assert!(
+        got.iter()
+            .any(|(code, m)| code == "PW5604" && m.contains("is a generated upload declaration")),
+        "a declaration named as a generated one, told PW5604: {got:#?}"
+    );
+    assert!(got.iter().all(|(code, _)| code != "PW5601"), "{got:#?}");
+}
+
+/// **A command that claims or releases an upload declares `idempotent_by`**
+/// (PW5605, L5a's review, finding L7: it was PW5601's).
+#[test]
+fn a_command_claiming_an_upload_without_idempotent_by_is_pw5605() {
+    let got = diagnostics(
+        POSTS,
+        IMAGE,
+        SOURCE,
+        &APP.replace("    idempotent_by InteractionId\n", ""),
+    );
+    assert!(
+        got.iter()
+            .any(|(code, m)| code == "PW5605" && m.contains("requires idempotent_by")),
+        "a claiming command without idempotent_by, told PW5605: {got:#?}"
+    );
+    assert!(got.iter().all(|(code, _)| code != "PW5601"), "{got:#?}");
 }
 
 #[test]

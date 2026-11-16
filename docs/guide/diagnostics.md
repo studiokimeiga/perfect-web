@@ -304,6 +304,8 @@ number or its symbol.
 | PW5601 | `upload_malformed` | an upload states its route, where it is served, and each of its limits, once and as literals | [0253](../DECISIONS/ADR-0253-two-tracks-are-built-in-parallel-each-in-files-of-its-own.md), [0260](../DECISIONS/ADR-0260-an-image-on-a-post-a-typed-upload-served-safely.md) |
 | PW5602 | `upload_route_taken` | an upload's paths are its own: no page's, and no other upload's | — |
 | PW5603 | `file_form_posts_to_no_upload` | a form that sends a file posts it, as multipart/form-data, to an upload the program declares | — |
+| PW5604 | `upload_identity_taken` | an upload's emitted interface and generated declarations are its own: no other upload's or declaration's | [0440](../DECISIONS/ADR-0440-protected-feed-store.md) |
+| PW5605 | `upload_claim_not_idempotent` | a command that claims or releases an upload declares `idempotent_by` | [0440](../DECISIONS/ADR-0440-protected-feed-store.md) |
 
 ## Todomvc
 

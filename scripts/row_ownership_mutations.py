@@ -221,6 +221,14 @@ MUTANTS = [
      '            !hir.generated_uploads.contains_key(&other) && crate::wit::ident(&decl.name) == identity', '            false && !hir.generated_uploads.contains_key(&other) && crate::wit::ident(&decl.name) == identity'),
     ('upload interface alias silent', ROOT / 'compiler/pw-core/src/uploads/declared.rs',
      '                && other.name != d.name', '                && false && other.name != d.name'),
+    # L5a's review, finding L7: each refusal told by its own rule, where
+    # PW5601's (an upload's clauses and limits) told them.
+    ('upload interface collision told as a malformed upload', ROOT / 'compiler/pw-core/src/uploads/declared.rs',
+     '                codes::UPLOAD_IDENTITY_TAKEN,\n                "upload_interface_collision",', '                codes::UPLOAD_MALFORMED,\n                "upload_interface_collision",'),
+    ('upload generated identity collision told as a malformed upload', ROOT / 'compiler/pw-core/src/uploads/declared.rs',
+     'diagnostic(codes::UPLOAD_IDENTITY_TAKEN,"upload_generated_collision",', 'diagnostic(codes::UPLOAD_MALFORMED,"upload_generated_collision",'),
+    ('upload claim without idempotency told as a malformed upload', ROOT / 'compiler/pw-core/src/uploads/declared.rs',
+     '                codes::UPLOAD_CLAIM_NOT_IDEMPOTENT,\n                "upload_without_idempotency",', '                codes::UPLOAD_MALFORMED,\n                "upload_without_idempotency",'),
     ('upload claim consuming command lacks receipt', ROOT / 'compiler/pw-core/src/uploads/declared.rs',
      'd.kind == DeclKind::Command && d.policy("idempotent_by").is_none()', 'd.kind == DeclKind::Command && false && d.policy("idempotent_by").is_none()'),
     ('asset source mismatch silent', ROOT / 'compiler/pw-core/src/tables/assets.rs',

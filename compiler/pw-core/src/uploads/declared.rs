@@ -288,7 +288,7 @@ pub(crate) fn check_generated(
                 && crate::wit::ident(&other.name) == identity
         }) {
             out.push(diagnostic(
-                codes::UPLOAD_MALFORMED,
+                codes::UPLOAD_IDENTITY_TAKEN,
                 "upload_interface_collision",
                 format!(
                     "`{}` emits a generated upload interface already named by another declaration",
@@ -307,7 +307,7 @@ pub(crate) fn check_generated(
         if hir.all_decls().any(|(other, decl)| {
             !hir.generated_uploads.contains_key(&other) && crate::wit::ident(&decl.name) == identity
         }) {
-            out.push(diagnostic(codes::UPLOAD_MALFORMED,"upload_generated_collision",format!("`{}` is a generated upload declaration and the program declares its emitted identity",d.name),hir.decl_span(g.upload),vec![],"Generated resource types and operations have one declared meaning.","rename the program's declaration".into()));
+            out.push(diagnostic(codes::UPLOAD_IDENTITY_TAKEN,"upload_generated_collision",format!("`{}` is a generated upload declaration and the program declares its emitted identity",d.name),hir.decl_span(g.upload),vec![],"Generated resource types and operations have one declared meaning.","rename the program's declaration".into()));
         }
     }
     let resources = hirs
@@ -335,7 +335,7 @@ pub(crate) fn check_generated(
             })
         }) {
             out.push(diagnostic(
-                codes::UPLOAD_MALFORMED,
+                codes::UPLOAD_CLAIM_NOT_IDEMPOTENT,
                 "upload_without_idempotency",
                 format!(
                     "`{}` acquires or releases a generic upload claim and requires idempotent_by",
