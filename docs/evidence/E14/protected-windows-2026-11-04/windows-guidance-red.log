@@ -1,0 +1,29 @@
+   Compiling pw-core v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-core)
+    Finished `test` profile [unoptimized] target(s) in 3.29s
+     Running tests/table_windows.rs (target/debug/deps/table_windows-19bcde89f3c822b3)
+
+running 8 tests
+test window_reads_still_require_the_readers_handle ... ok
+test window_bounds_do_not_alias_a_selector_parameter_named_limit ... ok
+test windows_compile_as_owned_and_shared_bounded_reads_of_existing_selectors ... ok
+test a_combined_selector_and_bound_loop_gets_the_common_bound_repair ... ok
+test windows_inside_element_dependent_loops_keep_the_round_trip_refusal ... ok
+test a_varying_window_bound_does_not_offer_the_shared_bound_set_as_a_replacement ... ok
+test an_owned_readers_field_name_cannot_alias_generated_parameters ... ok
+test generated_owned_set_repairs_describe_the_list_separately_from_the_reader ... FAILED
+
+failures:
+
+---- generated_owned_set_repairs_describe_the_list_separately_from_the_reader stdout ----
+
+thread 'generated_owned_set_repairs_describe_the_list_separately_from_the_reader' (1258159) panicked at compiler/pw-core/tests/table_windows.rs:311:13:
+read them together, before the loop, with `Windows.count_by_owner_bucket_many`: supply scalar values for `bucket`; pass the reader handle separately; then give each turn its matching rows from the flat result (or no row for a missing key)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    generated_owned_set_repairs_describe_the_list_separately_from_the_reader
+
+test result: FAILED. 7 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.43s
+
+error: test failed, to rerun pass `-p pw-core --test table_windows`

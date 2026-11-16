@@ -1,0 +1,11 @@
+focused campaign: data_path; controls: ['relations memory ignores membership selection', 'relations memory uses another readers memberships', 'relations memory retains every matching target row', 'relations memory chooses first rows for a last window', 'relations memory omits empty source groups', 'windows memory retains every matching row', 'windows memory chooses first rows for last windows']
+baseline: 85 passed, 0 failed
+relations memory ignores membership selection: KILLED (6 of 85 tests fail)
+relations memory uses another readers memberships: KILLED (5 of 85 tests fail)
+relations memory retains every matching target row: KILLED (5 of 85 tests fail)
+relations memory chooses first rows for a last window: KILLED (5 of 85 tests fail)
+relations memory omits empty source groups: KILLED (3 of 85 tests fail)
+windows memory retains every matching row: KILLED (4 of 85 tests fail)
+windows memory chooses first rows for last windows: KILLED (4 of 85 tests fail)
+7 of 7 mutants killed
+memory bound: no process was stopped

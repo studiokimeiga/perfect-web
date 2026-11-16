@@ -1110,29 +1110,88 @@ impl<'p, 'i> Reads<'p, 'i> {
     /// Generated many reads answer flat rows and can take composite records.
     /// Their existing metadata supplies the pair and the key fields; a repair
     /// describes regrouping rather than replacing each read with the batch.
-    fn generated_help(&self, read: DefId, place: &str) -> Option<String> {
+    fn generated_help(&self, reached: &Reached, place: &str) -> Option<String> {
+        let read = reached.read;
         let hir = self.hirs[read.unit];
         let generated = hir.generated.get(&DeclId(read.decl))?;
-        let crate::tables::Wrote::Function { by, .. } = &generated.what else {
+        let crate::tables::Wrote::Function { by, primitive } = &generated.what else {
             return None;
         };
+        if primitive.window() && reached.param + 1 == self.decl_of(read).params.len() {
+            return Some(format!(
+                "choose one common bound and read before the {place}, then select each turn's \
+                 requested rows in pure code; a different limit on each turn is not one \
+                 batched window"
+            ));
+        }
         let set = *self.pairs.get(&read)?;
         let table = &hir.decl(generated.table).name;
         let many = self.decl_of(set);
-        let fields = by
+        // A protected set takes its reader before its list. Read the list's
+        // complete element type, never User's argument or the formal's name.
+        let (list_at, list) = many.params.iter().enumerate().find_map(|(at, param)| {
+            let ty = param.ty.as_ref()?;
+            (ty.constructor_head_only() == "List").then_some((at, ty))
+        })?;
+        let held = by.get(list_at..)?;
+        let range_fields;
+        let held = if primitive.range() {
+            let record = list.args().first()?.written();
+            range_fields = hir
+                .all_decls()
+                .find(|(_, d)| d.name == record)?
+                .1
+                .fields
+                .as_ref()?
+                .iter()
+                .map(|f| f.name.clone())
+                .collect::<Vec<_>>();
+            range_fields.as_slice()
+        } else {
+            held
+        };
+
+        let fields = held
             .iter()
             .map(|f| format!("`{f}`"))
             .collect::<Vec<_>>()
             .join(", ");
-        let input = if by.len() == 1 {
-            format!("scalar values for {fields}")
+        let input = if held.len() == 1 {
+            if primitive.range() {
+                let record = list.args().first()?.written();
+                format!("key records of `{table}.{record}` with fields {fields}")
+            } else {
+                format!("scalar values for {fields}")
+            }
         } else {
-            let record = many.params.first()?.ty.as_ref()?.args().first()?.written();
+            let record = list.args().first()?.written();
             format!("key records of `{table}.{record}` with fields {fields}")
         };
+        let reader = if list_at > 0 {
+            "; pass the reader handle separately"
+        } else {
+            ""
+        };
+        let bound = if primitive.window() {
+            "; use one common bound, then apply each requested limit in pure selection"
+        } else {
+            ""
+        };
+        if primitive.related() {
+            return Some(format!(
+                "read them together, before the {place}, with `{table}.{}`: supply {input}{reader}{bound}; \
+                 match each turn's key/rows group from the result, including an empty rows group for a missing key",
+                many.name
+            ));
+        }
+        let (entries, missing) = if primitive.counts() {
+            ("key/count entries", "a zero entry")
+        } else {
+            ("rows", "no row")
+        };
         Some(format!(
-            "read them together, before the {place}, with `{table}.{}`: supply {input}; \
-             then give each turn its matching rows from the flat result (or no row for a \
+            "read them together, before the {place}, with `{table}.{}`: supply {input}{reader}{bound}; \
+             then give each turn its matching {entries} from the flat result (or {missing} for a \
              missing key)",
             many.name
         ))
@@ -1158,7 +1217,7 @@ impl<'p, 'i> Reads<'p, 'i> {
             Turn::Recursion { .. } => "recursion",
             _ => "loop",
         };
-        if let Some(help) = self.generated_help(reached.read, place) {
+        if let Some(help) = self.generated_help(reached, place) {
             return help;
         }
         let keyed = &self.decl_of(reached.read).name;
@@ -1371,16 +1430,16 @@ impl<'p, 'i> Reads<'p, 'i> {
                 format!("one read per {}", self.key_name(reached)),
             ));
         }
-        let help = self
-            .generated_help(reached.read, "loop")
-            .unwrap_or_else(|| match self.pairs.get(&reached.read) {
+        let help = self.generated_help(reached, "loop").unwrap_or_else(|| {
+            match self.pairs.get(&reached.read) {
                 Some(set) => format!(
                     "read them together, before the loop, with `{}`, and give each turn what it \
                  answers",
                     self.decl_of(*set).name
                 ),
                 None => format!("`{keyed}` has no set read; its source can declare one"),
-            });
+            }
+        });
         Diagnostic {
             code: codes::READ_PER_ELEMENT.id,
             invariant: codes::READ_PER_ELEMENT.invariant,
@@ -1496,12 +1555,21 @@ impl<'p, 'i> Reads<'p, 'i> {
                         Primitive::Get => Primitive::GetMany,
                         Primitive::Prefix => Primitive::PrefixMany,
                         Primitive::Index => Primitive::IndexMany,
+                        Primitive::Count => Primitive::CountMany,
+                        Primitive::CountAfter => Primitive::CountAfterMany,
+                        Primitive::First => Primitive::FirstMany,
+                        Primitive::Last => Primitive::LastMany,
+                        Primitive::RelatedFirst => Primitive::RelatedFirstMany,
+                        Primitive::RelatedLast => Primitive::RelatedLastMany,
                         _ => continue,
                     };
-                    if let Some((set, _, _)) = functions
-                        .iter()
-                        .find(|(_, p, fields)| *p == many && fields == by)
-                    {
+                    if let Some((set, _, _)) = functions.iter().find(|(candidate, p, fields)| {
+                        *p == many
+                            && fields == by
+                            && (!primitive.related()
+                                || hir.decl(*candidate).name
+                                    == format!("{}_many", hir.decl(*id).name))
+                    }) {
                         pairs.insert(Self::def(unit, *id), Self::def(unit, *set));
                     }
                 }

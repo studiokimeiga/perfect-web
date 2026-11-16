@@ -124,7 +124,15 @@ pub(crate) struct TableShape {
 }
 
 #[derive(Debug, Clone)]
+pub(crate) struct RelatedShape {
+    pub target: usize,
+    pub source_match: usize,
+    pub target_match: usize,
+}
+
+#[derive(Debug, Clone)]
 pub(crate) struct FunctionShape {
+    pub related: Option<RelatedShape>,
     pub table: usize,
     pub primitive: Primitive,
     /// Column places it reads or writes by.
@@ -440,7 +448,34 @@ pub(crate) fn shape_of(manifest: &TablesJson) -> Result<Shape, Error> {
                         .indexes
                         .iter()
                         .any(|i| i.unique && i.fields == function.by));
+            let related = if function.primitive.related() {
+                let window = table
+                    .windows
+                    .iter()
+                    .find(|window| Some(&window.name) == function.relation.as_ref())
+                    .ok_or_else(|| Error::Schema("relation declaration is missing".into()))?;
+                let target = place(&window.target)
+                    .ok_or_else(|| Error::Schema("relation target is missing".into()))?;
+                let target_match = manifest.tables[target]
+                    .schema
+                    .fields
+                    .iter()
+                    .position(|field| field.name == window.target_field)
+                    .ok_or_else(|| Error::Schema("target match field is missing".into()))?;
+                Some(RelatedShape {
+                    target,
+                    source_match: at_field(&window.source_field)?,
+                    target_match,
+                })
+            } else {
+                None
+            };
+            let result_table = related
+                .as_ref()
+                .map(|r| &manifest.tables[r.target])
+                .unwrap_or(table);
             let shaped = FunctionShape {
+                related,
                 table: at,
                 primitive: function.primitive,
                 by: function
@@ -451,7 +486,16 @@ pub(crate) fn shape_of(manifest: &TablesJson) -> Result<Shape, Error> {
                 sorted_by: function
                     .sorted_by
                     .iter()
-                    .map(|f| at_field(f))
+                    .map(|name| {
+                        result_table
+                            .schema
+                            .fields
+                            .iter()
+                            .position(|field| field.name == *name)
+                            .ok_or_else(|| {
+                                Error::Schema(format!("target sort field {name} is missing"))
+                            })
+                    })
                     .collect::<Result<_, _>>()?,
                 one,
             };
@@ -661,4 +705,83 @@ fn same_value(left: &Value, right: &Value) -> bool {
         (Value::Object(left), Value::Object(right)) => same_fields(left, right),
         _ => left == right,
     }
+}
+
+/// Typed request columns: equality selectors, then a separately named order mark.
+pub(crate) fn range_columns(
+    table: &TableShape,
+    function: &FunctionShape,
+) -> Result<Vec<Column>, Error> {
+    let order = table
+        .order
+        .ok_or_else(|| Error::Schema("range count requires declared order".into()))?;
+    let mut columns = function
+        .by
+        .iter()
+        .map(|&at| table.columns[at].clone())
+        .collect::<Vec<_>>();
+    let mut mark = table.columns[order].clone();
+    mark.name = pw_core::tables::after_field(table.columns.iter().map(|c| c.name.as_str()));
+    columns.push(mark);
+    Ok(columns)
+}
+
+/// The cutoff participates in dedup/order, never in the equality-selector inventory.
+pub(crate) fn typed_ranges(
+    table: &TableShape,
+    function: &FunctionShape,
+    args: &[Value],
+) -> Result<(Vec<Column>, Vec<Key>), Error> {
+    let columns = range_columns(table, function)?;
+    let supplied = if function.primitive.many() {
+        let [Value::Array(requests)] = args else {
+            return Err(Error::Input(
+                "set range count takes one array of selector-and-mark records".into(),
+            ));
+        };
+        requests
+            .iter()
+            .map(|request| {
+                let record = request
+                    .as_object()
+                    .ok_or_else(|| Error::Input("range request is a record".into()))?;
+                if record.len() != columns.len() {
+                    return Err(Error::Input("range request fields differ".into()));
+                }
+                columns
+                    .iter()
+                    .map(|column| {
+                        record.get(&column.name).ok_or_else(|| {
+                            Error::Input(format!("range request lacks {}", column.name))
+                        })
+                    })
+                    .collect::<Result<Vec<_>, Error>>()
+            })
+            .collect::<Result<Vec<_>, Error>>()?
+    } else {
+        if args.len() != columns.len() {
+            return Err(Error::Input(
+                "range count takes equality selectors and an order mark".into(),
+            ));
+        }
+        vec![args.iter().collect()]
+    };
+    let mut keys = BTreeSet::new();
+    for request in supplied {
+        let key = columns
+            .iter()
+            .zip(request)
+            .map(|(column, value)| {
+                if !validates(value, &column.stored) {
+                    return Err(Error::Input(format!(
+                        "range field {} fails its declared type or bound",
+                        column.name
+                    )));
+                }
+                Atom::parse(value)
+            })
+            .collect::<Result<Key, Error>>()?;
+        keys.insert(key);
+    }
+    Ok((columns, keys.into_iter().collect()))
 }

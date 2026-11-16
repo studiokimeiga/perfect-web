@@ -2327,3 +2327,23 @@ fn generic_hosts_trim_shared_history_in_bounded_batches_with_a_watermark() {
         ["1001"]
     );
 }
+
+#[test]
+fn the_suite_holds_for_fixed_relation_windows_on_postgresql() {
+    let Some(url) = database() else {
+        return;
+    };
+    let (_dir, out) = super::conformance::relations_build();
+    let checked = suite_on_postgresql(&out, &url, "suite_relations");
+    assert!(checked.reads > 0 && checked.writes > 0);
+}
+
+#[test]
+fn warm_relation_selections_are_private_to_each_reader_on_postgresql() {
+    let Some(url) = database() else {
+        return;
+    };
+    let schema = Schema::new(&url, "warm_relations");
+    let (_dir, out) = super::conformance::relations_build();
+    super::conformance::warm_relation_cache(&out, &|build| pg_layer(build, &schema.database()));
+}

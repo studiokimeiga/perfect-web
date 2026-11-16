@@ -67,6 +67,8 @@ mod tests {
             vec![rank.clone(), id.clone()]
         };
         Read {
+            target: None,
+            source_key: None,
             handle: None,
             import: "pw:tables/likes#get".into(),
             table: "Likes".into(),
@@ -83,6 +85,238 @@ mod tests {
             unique: false,
             bounded: None,
         }
+    }
+
+    #[test]
+    fn range_callbacks_validate_every_selector_and_typed_mark_before_the_adapter() {
+        let mut range = read(true);
+        range.order = Some("rank".into());
+        range.row[0].stored = Stored::Int {
+            at_least: Some(0),
+            at_most: None,
+        };
+        range.primitive = Primitive::CountAfter;
+        let calls = Arc::new(AtomicUsize::new(0));
+        let observed = calls.clone();
+        let scalar = host_fn(
+            range.clone(),
+            Arc::new(move |args| {
+                observed.fetch_add(1, Ordering::SeqCst);
+                assert_eq!(args, &[json!("x"), json!(0)]);
+                Ok(json!(2))
+            }),
+        );
+        for bad in [
+            vec![],
+            vec![Val::String("x".into())],
+            vec![Val::S64(1), Val::S64(0)],
+            vec![Val::String("x".into()), Val::S64(-1)],
+            vec![Val::String("x".into()), Val::Bool(false)],
+        ] {
+            assert!(scalar(&bad).is_err(), "malformed scalar range {bad:?}");
+        }
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
+        assert_eq!(
+            scalar(&[Val::String("x".into()), Val::S64(0)]),
+            Ok(vec![Val::S64(2)])
+        );
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+
+        range.primitive = Primitive::CountAfterMany;
+        let pair = |id: &str, mark| {
+            Val::Record(vec![
+                ("id".into(), Val::String(id.into())),
+                ("after".into(), Val::S64(mark)),
+            ])
+        };
+        let calls = Arc::new(AtomicUsize::new(0));
+        let observed = calls.clone();
+        let many = host_fn(
+            range,
+            Arc::new(move |args| {
+                observed.fetch_add(1, Ordering::SeqCst);
+                assert_eq!(
+                    args,
+                    &[
+                        json!([{"id":"x","after":2},{"id":"x","after":0},{"id":"x","after":0},{"id":"y","after":1}])
+                    ]
+                );
+                Ok(json!([
+                    {"key":{"id":"x","after":0},"count":2},
+                    {"key":{"id":"x","after":2},"count":0},
+                    {"key":{"id":"y","after":1},"count":0}
+                ]))
+            }),
+        );
+        for bad in [
+            Val::List(vec![pair("x", 0), pair("y", -1)]),
+            Val::List(vec![Val::String("x".into())]),
+            Val::List(vec![Val::Record(vec![(
+                "id".into(),
+                Val::String("x".into()),
+            )])]),
+            Val::List(vec![Val::Record(vec![
+                ("id".into(), Val::String("x".into())),
+                ("after".into(), Val::S64(0)),
+                ("extra".into(), Val::Bool(true)),
+            ])]),
+        ] {
+            assert!(many(&[bad]).is_err());
+        }
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
+        let expected = Val::List(vec![
+            Val::Record(vec![
+                ("key".into(), pair("x", 0)),
+                ("count".into(), Val::S64(2)),
+            ]),
+            Val::Record(vec![
+                ("key".into(), pair("x", 2)),
+                ("count".into(), Val::S64(0)),
+            ]),
+            Val::Record(vec![
+                ("key".into(), pair("y", 1)),
+                ("count".into(), Val::S64(0)),
+            ]),
+        ]);
+        assert_eq!(
+            many(&[Val::List(vec![
+                pair("x", 2),
+                pair("x", 0),
+                pair("x", 0),
+                pair("y", 1)
+            ])]),
+            Ok(vec![expected])
+        );
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+    }
+
+    #[test]
+    fn count_callbacks_validate_selectors_before_data_and_encode_only_count_shapes() {
+        let mut count = read(false);
+        count.primitive = Primitive::Count;
+        let calls = Arc::new(AtomicUsize::new(0));
+        let observed = Arc::clone(&calls);
+        let scalar = host_fn(
+            count.clone(),
+            Arc::new(move |args| {
+                observed.fetch_add(1, Ordering::Relaxed);
+                assert_eq!(args, &[json!(7), json!("x")]);
+                Ok(json!(0))
+            }),
+        );
+        for wrong in [
+            vec![Val::String("7".into()), Val::String("x".into())],
+            vec![Val::S64(7)],
+            vec![Val::S64(7), Val::Bool(false)],
+        ] {
+            assert!(scalar(&wrong).is_err());
+        }
+        assert_eq!(calls.load(Ordering::Relaxed), 0);
+        assert_eq!(
+            scalar(&[Val::S64(7), Val::String("x".into())]),
+            Ok(vec![Val::S64(0)])
+        );
+        assert_eq!(calls.load(Ordering::Relaxed), 1);
+        for wrong in [
+            json!(-1),
+            json!(1.5),
+            json!(true),
+            json!(null),
+            json!({"count":2}),
+            json!(18446744073709551615u64),
+        ] {
+            let callback = host_fn(count.clone(), Arc::new(move |_| Ok(wrong.clone())));
+            assert!(callback(&[Val::S64(7), Val::String("x".into())]).is_err());
+        }
+        count.primitive = Primitive::CountMany;
+        let selected = Val::Record(vec![
+            ("rank".into(), Val::S64(7)),
+            ("id".into(), Val::String("x".into())),
+        ]);
+        let args = [Val::List(vec![selected.clone()])];
+        let correct = host_fn(
+            count.clone(),
+            Arc::new(|_| Ok(json!([{"key":{"id":"x", "rank":7}, "count":0}]))),
+        );
+        assert_eq!(
+            correct(&args),
+            Ok(vec![Val::List(vec![Val::Record(vec![
+                ("key".into(), selected),
+                ("count".into(), Val::S64(0))
+            ])])])
+        );
+        for wrong in [
+            json!([{"key":{"id":"x", "rank":7}, "count":-1}]),
+            json!([{"key":{"id":"x", "rank":7}, "count":0, "secret":"hidden"}]),
+            json!([{"key":{"id":"x"}, "count":0}]),
+            json!([{"key":{"id":"x", "rank":7, "active":true}, "count":0}]),
+            json!([{"key":{"id":"x", "rank":7}}]),
+        ] {
+            let callback = host_fn(count.clone(), Arc::new(move |_| Ok(wrong.clone())));
+            assert!(callback(&args).is_err());
+        }
+    }
+
+    #[test]
+    fn window_selectors_and_typed_limits_are_checked_before_the_adapter_even_at_zero() {
+        let mut window = read(false);
+        window.primitive = Primitive::First;
+        let calls = Arc::new(AtomicUsize::new(0));
+        let observed = Arc::clone(&calls);
+        let first = host_fn(
+            window.clone(),
+            Arc::new(move |args| {
+                observed.fetch_add(1, Ordering::Relaxed);
+                assert_eq!(args.len(), 3);
+                assert_eq!(&args[..2], &[json!(7), json!("x")]);
+                Ok(if args[2].as_i64().unwrap_or(0) <= 0 {
+                    json!([])
+                } else {
+                    json!([{"rank":7,"id":"x","active":true}])
+                })
+            }),
+        );
+        for args in [
+            vec![Val::S64(7), Val::String("x".into())],
+            vec![Val::S64(7), Val::String("x".into()), Val::Bool(false)],
+            vec![Val::Bool(true), Val::String("x".into()), Val::S64(0)],
+            vec![Val::S64(7), Val::Bool(false), Val::S64(-1)],
+        ] {
+            assert!(first(&args).is_err());
+        }
+        assert_eq!(calls.load(Ordering::Relaxed), 0);
+        assert_eq!(
+            first(&[Val::S64(7), Val::String("x".into()), Val::S64(2)]),
+            Ok(vec![Val::List(vec![row(7, "x")])])
+        );
+        assert_eq!(
+            first(&[Val::S64(7), Val::String("x".into()), Val::S64(0)]),
+            Ok(vec![Val::List(vec![])])
+        );
+        assert_eq!(calls.load(Ordering::Relaxed), 2);
+        window.primitive = Primitive::FirstMany;
+        let observed = Arc::clone(&calls);
+        let many = host_fn(
+            window,
+            Arc::new(move |_| {
+                observed.fetch_add(1, Ordering::Relaxed);
+                Ok(json!([]))
+            }),
+        );
+        let good = Val::Record(vec![
+            ("rank".into(), Val::S64(7)),
+            ("id".into(), Val::String("x".into())),
+        ]);
+        let bad = Val::Record(vec![
+            ("rank".into(), Val::Bool(false)),
+            ("id".into(), Val::String("x".into())),
+        ]);
+        assert!(many(&[Val::List(vec![good, bad]), Val::S64(0)]).is_err());
+        assert_eq!(
+            calls.load(Ordering::Relaxed),
+            2,
+            "validate the complete set before any empty-window shortcut"
+        );
     }
 
     fn row(rank: i64, id: &str) -> Val {

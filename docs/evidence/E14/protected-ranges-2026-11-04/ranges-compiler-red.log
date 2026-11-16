@@ -1,0 +1,73 @@
+   Compiling pw-core v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-core)
+    Finished `test` profile [unoptimized] target(s) in 0.62s
+     Running tests/table_ranges.rs (target/debug/deps/table_ranges-8654758b3accf390)
+
+running 5 tests
+test range_counts_compile_through_owned_shared_and_reader_only_set_imports ... FAILED
+test range_count_inputs_keep_the_reader_and_the_nominal_order_type ... FAILED
+test generated_range_parameters_and_fields_do_not_alias_after_or_reader_names ... FAILED
+test a_table_without_declared_order_has_no_range_counts ... ok
+test range_count_loops_repair_to_selector_and_mark_records ... FAILED
+
+failures:
+
+---- range_counts_compile_through_owned_shared_and_reader_only_set_imports stdout ----
+
+thread 'range_counts_compile_through_owned_shared_and_reader_only_set_imports' (1279800) panicked at compiler/pw-core/tests/table_ranges.rs:112:9:
+range build for Int where value >= 0: Some("the program does not check, so nothing is compiled: Ranges.pw: [PW0021] `Ranges.count_after_by_owner` does not resolve; Ranges.pw: [PW0021] `Ranges.count_after_by_recipient_bucket` does not resolve; Ranges.pw: [PW0026] the declared result names `List<RangesOwnerBucketAfterCount>`: `RangesOwnerBucketAfterCount` is not a type visible here; Ranges.pw: [PW0026] parameter `ranges` names `List<RangesBucketAfter>`: `RangesBucketAfter` is not a type visible here; Ranges.pw: [PW0021] `Ranges.count_after_by_owner_bucket_many` does not resolve; Ranges.pw: [PW0026] the declared result names `List<RangesOwnerAfterCount>`: `RangesOwnerAfterCount` is not a type visible here; Ranges.pw: [PW0026] parameter `ranges` names `List<RangesAfter>`: `RangesAfter` is not a type visible here; Ranges.pw: [PW0021] `Ranges.count_after_by_owner_many` does not resolve")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- range_count_inputs_keep_the_reader_and_the_nominal_order_type stdout ----
+
+thread 'range_count_inputs_keep_the_reader_and_the_nominal_order_type' (1279798) panicked at compiler/pw-core/tests/table_ranges.rs:223:9:
+typed range refusal: Some("the program does not check, so nothing is compiled: Ranges.pw: [PW0021] `Ranges.count_after_by_owner` does not resolve; Ranges.pw: [PW0021] `Ranges.count_after_by_recipient_bucket` does not resolve; Ranges.pw: [PW0026] the declared result names `List<RangesOwnerBucketAfterCount>`: `RangesOwnerBucketAfterCount` is not a type visible here; Ranges.pw: [PW0026] parameter `ranges` names `List<RangesBucketAfter>`: `RangesBucketAfter` is not a type visible here; Ranges.pw: [PW0021] `Ranges.count_after_by_owner_bucket_many` does not resolve; Ranges.pw: [PW0026] the declared result names `List<RangesOwnerAfterCount>`: `RangesOwnerAfterCount` is not a type visible here; Ranges.pw: [PW0026] parameter `ranges` names `List<RangesAfter>`: `RangesAfter` is not a type visible here; Ranges.pw: [PW0021] `Ranges.count_after_by_owner_many` does not resolve")
+
+---- generated_range_parameters_and_fields_do_not_alias_after_or_reader_names stdout ----
+
+thread 'generated_range_parameters_and_fields_do_not_alias_after_or_reader_names' (1279797) panicked at compiler/pw-core/tests/table_ranges.rs:321:9:
+selector after: Some("the program does not check, so nothing is compiled: Ranges.pw: [PW0021] `Ranges.count_after_by_owner` does not resolve; Ranges.pw: [PW0021] `Ranges.count_after_by_recipient_after` does not resolve; Ranges.pw: [PW0026] the declared result names `List<RangesOwnerAfterAfterCount>`: `RangesOwnerAfterAfterCount` is not a type visible here; Ranges.pw: [PW0026] parameter `ranges` names `List<RangesAfterAfter>`: `RangesAfterAfter` is not a type visible here; Ranges.pw: [PW0021] `Ranges.count_after_by_owner_after_many` does not resolve; Ranges.pw: [PW0026] parameter `ranges` names `List<RangesAfter>`: `RangesAfter` is not a type visible here; Ranges.pw: [PW0021] `Ranges.count_after_by_owner_many` does not resolve")
+
+---- range_count_loops_repair_to_selector_and_mark_records stdout ----
+
+thread 'range_count_loops_repair_to_selector_and_mark_records' (1279799) panicked at compiler/pw-core/tests/table_ranges.rs:252:9:
+assertion `left == right` failed: [
+    Diagnostic {
+        code: "PW0021",
+        invariant: "an imported name must be declared by the module it comes from",
+        reason: "unresolved_use",
+        detector: DeclarationRule,
+        severity: Error,
+        message: "`Ranges.count_after_by_owner_bucket` does not resolve",
+        primary_span: 771..827,
+        related: [
+            Related {
+                span: 640..830,
+                label: "used inside `per`",
+                file: None,
+                unit: None,
+            },
+        ],
+        explanation: Some(
+            "`Ranges` is not a module this file can see. Names are visible through lexical scope, module membership, or an explicit import — external implementation is allowed, a missing declaration is not.",
+        ),
+        repairs: [
+            Repair {
+                description: "add `import Ranges`, or declare it",
+                replacement: None,
+            },
+        ],
+    },
+]
+  left: "PW0021"
+ right: "PW0405"
+
+
+failures:
+    generated_range_parameters_and_fields_do_not_alias_after_or_reader_names
+    range_count_inputs_keep_the_reader_and_the_nominal_order_type
+    range_count_loops_repair_to_selector_and_mark_records
+    range_counts_compile_through_owned_shared_and_reader_only_set_imports
+
+test result: FAILED. 1 passed; 4 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+error: test failed, to rerun pass `-p pw-core --test table_ranges`

@@ -2,6 +2,27 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**L4, bounded reads, 2026-11-16:** on L3 (`f375b92d`), the fourth train
+of the declared data layer's landing (`wip/l4-bounded`): the integration
+branch's seventeen commits after `2e2ef45b`, to `ff57edc7`, ADR-0440's
+fifth prerequisite. A declared selector's rows are counted
+(`count_by_<fields>` and its `_many` form, a set's counts one grouped
+aggregate, a zero for each absent selector), windowed (`first_by_<fields>`
+and `last_by_<fields>`, a limit per distinct selector, applied by the
+database before its rows are returned), counted by a typed order range, and
+read through a fixed public-target relation window, on memory and
+PostgreSQL, each under the read's own grant and owner. The
+merge's six conflicts: `tables.rs`'s four (L4's count, window and relation
+readers beside L2's `public` tables and the PW0370 numbering, which master
+kept; the table manifest's `public` and `windows` both kept),
+`head-only-allow.txt` (PW0370 again, and L4's own entry), the row-ownership
+script's test list (both sides', 19 commands, none twice), and the docs: the
+integration branch's 454 lines added to the unnumbered decision moved into
+ADR-0440, before L3's landing, and NEXT and STATUS kept, an entry each. What
+git did not show: nothing the tests found; at the merge the workspace's
+4,274 tests pass on PostgreSQL 18.6 (26 ignored), and every mutation anchor
+matches once (6,104). The full verify is the record.
+
 **L3, the platform's prerequisites, 2026-11-13:** on train-34 (which holds
 L1, L2 and train-33), the third train of the declared data layer's landing
 (`wip/l3-platform`): the integration branch's six commits after
