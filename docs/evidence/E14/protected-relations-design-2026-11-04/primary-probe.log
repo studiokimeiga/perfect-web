@@ -1,0 +1,16 @@
+18.6 (Ubuntu 18.6-1.pgdg22.04+2)
+BEGIN
+CREATE TABLE
+CREATE TABLE
+INSERT 0 6
+INSERT 0 5
+CREATE VIEW
+CREATE VIEW
+DO
+scalar global window|b3,a3
+1|b3,a3
+2|c9
+4|a3,a1
+5|a3,a1
+logical target rows for alice with duplicate edges|2
+ROLLBACK

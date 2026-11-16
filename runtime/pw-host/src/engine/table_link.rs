@@ -24,7 +24,7 @@
 #[cfg(test)]
 use crate::test_assertions::*;
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use wasmtime::component::Val;
 use wasmtime::component::types::{ComponentFunc, Type};
@@ -65,6 +65,7 @@ pub fn check_import(access: &Access, func: &ComponentFunc) -> Result<(), String>
 }
 
 fn read_import(read: &Read, params: &[Type], results: &[Type]) -> Result<(), String> {
+    let params = range_params(read, params)?;
     let words = read.primitive.by_words();
     if read.many() {
         let [Type::List(given)] = params else {
@@ -73,9 +74,19 @@ fn read_import(read: &Read, params: &[Type], results: &[Type]) -> Result<(), Str
                 listed(params)
             ));
         };
-        selector(words, &read.by, &given.ty())?;
+        if read.primitive.range() {
+            record(&read.count_columns()?, &given.ty())?;
+        } else {
+            selector(words, &read.by, &given.ty())?;
+        }
     } else {
         fields(words, &read.by, params)?;
+    }
+    if read.primitive.counts() {
+        return count_results(read, results);
+    }
+    if read.primitive.related() {
+        return related_results(read, results);
     }
     if read.one() {
         let [Type::Option(row)] = results else {
@@ -93,6 +104,81 @@ fn read_import(read: &Read, params: &[Type], results: &[Type]) -> Result<(), Str
             ));
         };
         record(&read.row, &rows.ty())
+    }
+}
+
+/// Scalar range marks use the actual order type, not a window's Int limit.
+/// A relation returns target rows, with full source keys only around set groups.
+pub(super) fn related_results(read: &Read, results: &[Type]) -> Result<(), String> {
+    let [Type::List(list)] = results else {
+        return Err("a relation read answers one list".into());
+    };
+    if !read.many() {
+        return record(&read.row, &list.ty());
+    }
+    let Type::Record(group) = list.ty() else {
+        return Err("a relation group is a key/rows record".into());
+    };
+    let fields = group.fields().collect::<Vec<_>>();
+    let [key, rows] = fields.as_slice() else {
+        return Err("a relation group has exactly key and rows".into());
+    };
+    if key.name != "key" || rows.name != "rows" {
+        return Err("a relation group has key then rows".into());
+    }
+    selector("source selector", &read.by, &key.ty)?;
+    let Type::List(rows) = &rows.ty else {
+        return Err("a relation group's rows is a list".into());
+    };
+    record(&read.row, &rows.ty())
+}
+
+pub(super) fn range_params<'a>(read: &Read, params: &'a [Type]) -> Result<&'a [Type], String> {
+    if read.primitive.range() && !read.many() {
+        let (mark, selectors) = params
+            .split_last()
+            .ok_or("a range count takes its order mark after the selectors")?;
+        stored(&read.mark_column()?.stored, mark)?;
+        return Ok(selectors);
+    }
+    window_params(read, params)
+}
+
+pub(super) fn window_params<'a>(read: &Read, params: &'a [Type]) -> Result<&'a [Type], String> {
+    if !read.primitive.window() {
+        return Ok(params);
+    }
+    let Some((Type::S64, selectors)) = params.split_last() else {
+        return Err("a window takes an Int limit after its selectors".into());
+    };
+    Ok(selectors)
+}
+
+pub(super) fn count_results(read: &Read, results: &[Type]) -> Result<(), String> {
+    if !read.many() {
+        return match results {
+            [Type::S64] => Ok(()),
+            _ => Err("a count answers one Int (s64)".into()),
+        };
+    }
+    let [Type::List(entries)] = results else {
+        return Err("a set count answers a list of key/count records".into());
+    };
+    let Type::Record(entry) = entries.ty() else {
+        return Err("a set count entry is a key/count record".into());
+    };
+    let fields: Vec<_> = entry.fields().collect();
+    let [key, count] = fields.as_slice() else {
+        return Err("a set count entry has exactly key and count".into());
+    };
+    if key.name != "key" || count.name != "count" || !matches!(count.ty, Type::S64) {
+        return Err("a set count entry is key, then count: Int".into());
+    }
+    let columns = read.count_columns()?;
+    match columns.as_slice() {
+        [one] => stored(&one.stored, &key.ty),
+        columns if !columns.is_empty() => record(columns, &key.ty),
+        _ => Err("a set count has no selector".into()),
     }
 }
 
@@ -296,7 +382,29 @@ pub fn check_answer(access: &Access, args: &[Val], results: &[Val]) -> Result<()
     }
 }
 
+/// A window's trailing typed bound is not a selector field. Keep its raw
+/// signed value; each consumer clamps nonpositive values to an empty window.
+pub(super) fn window_arguments<'a>(
+    read: &Read,
+    args: &'a [Val],
+) -> Result<(&'a [Val], Option<i64>), String> {
+    if !read.primitive.window() {
+        return Ok((args, None));
+    }
+    let Some((Val::S64(limit), selectors)) = args.split_last() else {
+        return Err("a window takes an Int limit after its selectors".into());
+    };
+    Ok((selectors, Some(*limit)))
+}
+
 fn read_answer(read: &Read, args: &[Val], results: &[Val]) -> Result<(), String> {
+    if read.primitive.counts() {
+        return count_answer(read, args, results);
+    }
+    if read.primitive.related() {
+        return related_answer(read, args, results);
+    }
+    let (args, limit) = window_arguments(read, args)?;
     let [answer] = results else {
         return Err(format!("{} values where a read answers one", results.len()));
     };
@@ -354,13 +462,24 @@ fn read_answer(read: &Read, args: &[Val], results: &[Val]) -> Result<(), String>
     let order = read.canonical();
     let mut seen = BTreeSet::new();
     let mut last: Option<Vec<Atom>> = None;
+    let mut last_group: Option<Vec<Atom>> = None;
+    let mut spent: BTreeMap<Vec<Atom>, u64> = BTreeMap::new();
     for (index, row) in rows.iter().enumerate() {
         let at = |why: String| format!("row {}: {why}", index + 1);
         let fields = exact_row(&read.row, row).map_err(at)?;
-        if let Some(asked) = &asked {
-            let found = atoms(&read.row, fields, by()).map_err(at)?;
-            if !asked.contains(&found) {
-                return Err(at(format!("{} was not asked for", shown(&found))));
+        let found = atoms(&read.row, fields, by()).map_err(at)?;
+        if let Some(asked) = &asked
+            && !asked.contains(&found)
+        {
+            return Err(at(format!("{} was not asked for", shown(&found))));
+        }
+        if let Some(limit) = limit {
+            let n = spent.entry(found.clone()).or_default();
+            *n += 1;
+            if *n > limit.max(0) as u64 {
+                return Err(at(
+                    "a selector returned more rows than its window limit".into()
+                ));
             }
         }
         let key = atoms(&read.row, fields, read.key.iter().map(String::as_str)).map_err(at)?;
@@ -368,13 +487,156 @@ fn read_answer(read: &Read, args: &[Val], results: &[Val]) -> Result<(), String>
             return Err(at(format!("{} was answered before", shown(&key))));
         }
         let place = atoms(&read.row, fields, order.iter().map(String::as_str)).map_err(at)?;
-        if last.as_ref().is_some_and(|last| *last > place) {
+        let backwards = last.as_ref().is_some_and(|last| {
+            if read.primitive.descending() {
+                if read.many() && last_group.as_ref() != Some(&found) {
+                    last_group.as_ref().is_some_and(|group| *group > found)
+                } else {
+                    *last < place
+                }
+            } else {
+                *last > place
+            }
+        });
+        if backwards {
             return Err(at(format!(
                 "it is out of tables.json's order (by {})",
                 order.join(", ")
             )));
         }
         last = Some(place);
+        last_group = Some(found);
+    }
+    Ok(())
+}
+
+/// Reuse the ordinary row/window validator against the target alone. This
+/// internal empty-selector description grants no new operation or adapter call.
+fn related_answer(read: &Read, args: &[Val], results: &[Val]) -> Result<(), String> {
+    let (selectors, limit) = window_arguments(read, args)?;
+    let limit = limit.ok_or("a relation window requires its limit")?;
+    let mut target = read.clone();
+    target.table = read
+        .target
+        .clone()
+        .ok_or("a relation read has no public target")?;
+    target.target = None;
+    target.source_key = None;
+    target.handle = None;
+    target.by.clear();
+    target.primitive = if read.primitive.descending() {
+        Primitive::Last
+    } else {
+        Primitive::First
+    };
+    let bounds = [Val::S64(limit)];
+    if !read.many() {
+        if selectors.len() != read.by.len() {
+            return Err("a relation read is given its source selector fields".into());
+        }
+        for (column, value) in read.by.iter().zip(selectors) {
+            check_value(&column.stored, value)?;
+        }
+        return read_answer(&target, &bounds, results);
+    }
+    let asked = asked_selectors(read, selectors)?;
+    let [Val::List(groups)] = results else {
+        return Err("a relation set answers one list of key/rows groups".into());
+    };
+    let mut seen = BTreeSet::new();
+    let mut last: Option<Vec<Atom>> = None;
+    for group in groups {
+        let Val::Record(fields) = group else {
+            return Err("a relation group is a record".into());
+        };
+        let [(key_name, key), (rows_name, rows)] = fields.as_slice() else {
+            return Err("a relation group has exactly key and rows".into());
+        };
+        if key_name != "key" || rows_name != "rows" {
+            return Err("a relation group has key then rows".into());
+        }
+        let selected = match read.by.as_slice() {
+            [one] => {
+                check_value(&one.stored, key)?;
+                vec![atom(key)?]
+            }
+            columns => {
+                let fields = exact_row(columns, key)?;
+                atoms(columns, fields, columns.iter().map(|c| c.name.as_str()))?
+            }
+        };
+        if !asked.contains(&selected) || !seen.insert(selected.clone()) {
+            return Err(
+                "a relation set answers each requested source selector exactly once".into(),
+            );
+        }
+        if last.as_ref().is_some_and(|last| *last >= selected) {
+            return Err("relation groups are in canonical source selector order".into());
+        }
+        last = Some(selected);
+        // Target uniqueness/order/bound resets per group; overlapping groups
+        // legitimately return the same target primary key.
+        read_answer(&target, &bounds, std::slice::from_ref(rows))?;
+    }
+    if seen != asked {
+        return Err("a relation set omits a requested group (empty groups are required)".into());
+    }
+    Ok(())
+}
+
+fn count_answer(read: &Read, args: &[Val], results: &[Val]) -> Result<(), String> {
+    let [answer] = results else {
+        return Err("a count answers exactly one value".into());
+    };
+    let columns = read.count_columns()?;
+    if !read.many() {
+        if args.len() != columns.len() {
+            return Err("a count is given its selector fields".into());
+        }
+        for (column, value) in columns.iter().zip(args) {
+            check_value(&column.stored, value)?;
+        }
+        return match answer {
+            Val::S64(n) if *n >= 0 => Ok(()),
+            _ => Err("a count must be a nonnegative Int".into()),
+        };
+    }
+    let asked = asked_selectors(read, args)?;
+    let Val::List(entries) = answer else {
+        return Err("a set count answers a list".into());
+    };
+    let mut seen = BTreeSet::new();
+    let mut last: Option<Vec<Atom>> = None;
+    for entry in entries {
+        let Val::Record(fields) = entry else {
+            return Err("a set count entry must be a record".into());
+        };
+        let [(key_name, key), (count_name, Val::S64(count))] = fields.as_slice() else {
+            return Err("a set count entry is exactly key and count: Int".into());
+        };
+        if key_name != "key" || count_name != "count" || *count < 0 {
+            return Err("a set count entry has key and a nonnegative count".into());
+        }
+        let selected = match columns.as_slice() {
+            [one] => {
+                check_value(&one.stored, key)?;
+                vec![atom(key)?]
+            }
+            columns => {
+                let fields = exact_row(columns, key)?;
+                atoms(columns, fields, columns.iter().map(|c| c.name.as_str()))?
+            }
+        };
+        if !asked.contains(&selected) || !seen.insert(selected.clone()) {
+            return Err("a set count answers each requested selector exactly once".into());
+        }
+        if last.as_ref().is_some_and(|last| *last >= selected) {
+            return Err("set counts are in canonical selector order".into());
+        }
+        last = Some(selected);
+    }
+    if seen != asked {
+        return Err("a set count omits a requested selector (zero counts are required)".into());
     }
     Ok(())
 }
@@ -564,6 +826,7 @@ fn atoms<'a>(
 /// What a set form was given: each its one field's value, or a record of
 /// its fields by their WIT names.
 fn asked_selectors(read: &Read, args: &[Val]) -> Result<BTreeSet<Vec<Atom>>, String> {
+    let columns = read.count_columns()?;
     let words = read.primitive.by_words();
     let [Val::List(given)] = args else {
         return Err(format!(
@@ -573,13 +836,14 @@ fn asked_selectors(read: &Read, args: &[Val]) -> Result<BTreeSet<Vec<Atom>>, Str
     };
     given
         .iter()
-        .map(|value| match (read.by.as_slice(), value) {
+        .map(|value| match (columns.as_slice(), value) {
             ([_], value) => Ok(vec![atom(value)?]),
             (columns, Val::Record(fields)) if fields.len() == columns.len() => columns
                 .iter()
                 .zip(fields)
                 .map(|(column, (name, value))| {
                     if *name == column.wit {
+                        check_value(&column.stored, value)?;
                         atom(value)
                     } else {
                         Err(format!(
@@ -697,6 +961,8 @@ mod tests {
             }
         }
         Read {
+            target: None,
+            source_key: None,
             handle: None,
             import: format!("pw:tables/items#{}", primitive.name()),
             table: "Items".into(),
@@ -1038,5 +1304,166 @@ mod tests {
         );
         assert!(check_value(&nested, &Val::Record(vec![("at_most".into(), Val::S64(1))])).is_err());
         assert!(check_value(&Stored::Unit, &Val::Tuple(vec![])).is_err());
+    }
+    #[test]
+    fn window_answers_hold_direction_ties_and_the_limit_of_each_selector() {
+        let last = serde_json::from_str::<Primitive>("\"last\"");
+        assert!(
+            last.is_ok(),
+            "the host admits the declared last-window primitive: {last:?}"
+        );
+        let last = read(items(last.assert_ok("last primitive"), &["list"]));
+        let args = [Val::String("a".into()), Val::S64(2)];
+        let top = added("a", "2", 1, 9, None);
+        let next = added("a", "1", 1, 9, None);
+        assert!(check_answer(&last, &args, &[Val::List(vec![top.clone(), next.clone()])]).is_ok());
+        for rows in [
+            vec![next.clone(), top.clone()],
+            vec![top.clone(), next.clone(), added("a", "0", 1, 8, None)],
+            vec![added("b", "2", 1, 9, None)],
+            vec![top.clone(), top.clone()],
+        ] {
+            assert!(check_answer(&last, &args, &[Val::List(rows)]).is_err());
+        }
+        for n in [0, -1] {
+            let args = [Val::String("a".into()), Val::S64(n)];
+            assert!(check_answer(&last, &args, &[Val::List(vec![])]).is_ok());
+            assert!(check_answer(&last, &args, &[Val::List(vec![top.clone()])]).is_err());
+        }
+        let many =
+            serde_json::from_str::<Primitive>("\"last-many\"").assert_ok("last-many primitive");
+        let many = read(items(many, &["list"]));
+        let args = [
+            Val::List(vec![
+                Val::String("b".into()),
+                Val::String("a".into()),
+                Val::String("a".into()),
+            ]),
+            Val::S64(1),
+        ];
+        let b = added("b", "1", 1, 7, None);
+        assert!(
+            check_answer(&many, &args, &[Val::List(vec![top.clone(), b.clone()])]).is_ok(),
+            "the bound is per distinct key, not global"
+        );
+        assert!(
+            check_answer(&many, &args, &[Val::List(vec![b.clone(), top.clone()])]).is_err(),
+            "selector groups stay canonical ascending"
+        );
+        assert!(
+            check_answer(&many, &args, &[Val::List(vec![top, next, b])]).is_err(),
+            "one key cannot spend another's bound"
+        );
+    }
+
+    fn counted(key: Val, count: i64) -> Val {
+        Val::Record(vec![("key".into(), key), ("count".into(), Val::S64(count))])
+    }
+
+    #[test]
+    fn range_answers_cover_every_selector_and_mark_in_canonical_order_without_extras() {
+        let one = read(items(Primitive::CountAfter, &["list"]));
+        assert!(
+            check_answer(
+                &one,
+                &[Val::String("a".into()), Val::S64(0)],
+                &[Val::S64(0)]
+            )
+            .is_ok()
+        );
+        assert!(check_answer(&one, &[Val::String("a".into())], &[Val::S64(0)]).is_err());
+        let many = read(items(Primitive::CountAfterMany, &["list"]));
+        let key = |list: &str, mark| {
+            Val::Record(vec![
+                ("list".into(), Val::String(list.into())),
+                ("after".into(), Val::S64(mark)),
+            ])
+        };
+        let args = [Val::List(vec![
+            key("a", 2),
+            key("b", 0),
+            key("a", 0),
+            key("a", 0),
+        ])];
+        let correct = vec![
+            counted(key("a", 0), 3),
+            counted(key("a", 2), 0),
+            counted(key("b", 0), 0),
+        ];
+        assert!(check_answer(&many, &args, &[Val::List(correct.clone())]).is_ok());
+        for wrong in [
+            vec![counted(key("a", 0), 3), counted(key("b", 0), 0)],
+            vec![
+                counted(key("a", 0), 3),
+                counted(key("a", 1), 0),
+                counted(key("b", 0), 0),
+            ],
+            vec![
+                counted(key("a", 2), 0),
+                counted(key("a", 0), 3),
+                counted(key("b", 0), 0),
+            ],
+            vec![
+                counted(key("a", 0), 3),
+                counted(key("a", 0), 3),
+                counted(key("a", 2), 0),
+                counted(key("b", 0), 0),
+            ],
+            vec![
+                counted(
+                    Val::Record(vec![("list".into(), Val::String("a".into()))]),
+                    3,
+                ),
+                counted(key("a", 2), 0),
+                counted(key("b", 0), 0),
+            ],
+            vec![
+                counted(key("a", 0), -1),
+                counted(key("a", 2), 0),
+                counted(key("b", 0), 0),
+            ],
+        ] {
+            assert!(
+                check_answer(&many, &args, &[Val::List(wrong.clone())]).is_err(),
+                "invalid range answer: {wrong:?}"
+            );
+        }
+        assert!(check_answer(&many, &[Val::List(vec![])], &[Val::List(vec![])]).is_ok());
+    }
+
+    #[test]
+    fn count_answers_are_nonnegative_and_cover_exactly_the_requested_keys() {
+        let one = read(items(Primitive::Count, &["list"]));
+        assert!(check_answer(&one, &[Val::String("a".into())], &[Val::S64(0)]).is_ok());
+        assert!(check_answer(&one, &[Val::String("a".into())], &[Val::S64(-1)]).is_err());
+        let many = read(items(Primitive::CountMany, &["list", "id"]));
+        let asked = [Val::List(vec![key("b", "2"), key("a", "1"), key("a", "1")])];
+        let correct = vec![counted(key("a", "1"), 4), counted(key("b", "2"), 0)];
+        assert!(check_answer(&many, &asked, &[Val::List(correct.clone())]).is_ok());
+        for wrong in [
+            vec![counted(key("a", "1"), 4)],
+            vec![counted(key("a", "1"), 4), counted(key("c", "2"), 0)],
+            vec![counted(key("b", "2"), 0), counted(key("a", "1"), 4)],
+            vec![
+                counted(key("a", "1"), 4),
+                counted(key("a", "1"), 4),
+                counted(key("b", "2"), 0),
+            ],
+            vec![counted(key("a", "1"), -1), counted(key("b", "2"), 0)],
+            vec![
+                Val::Record(vec![
+                    ("key".into(), key("a", "1")),
+                    ("count".into(), Val::S64(4)),
+                    ("secret".into(), Val::String("LEAK".into())),
+                ]),
+                counted(key("b", "2"), 0),
+            ],
+        ] {
+            assert!(
+                check_answer(&many, &asked, &[Val::List(wrong.clone())]).is_err(),
+                "accepted {wrong:?}"
+            );
+        }
+        assert!(check_answer(&many, &[Val::List(Vec::new())], &[Val::List(Vec::new())]).is_ok());
     }
 }

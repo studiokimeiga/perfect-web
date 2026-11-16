@@ -1,0 +1,7 @@
+baseline: 74 passed, 0 failed
+ranges memory ignores its mark: KILLED (5 of 74 tests fail)
+ranges memory includes equal integer marks: KILLED (5 of 74 tests fail)
+ranges memory coalesces different marks for the same selector: KILLED (4 of 74 tests fail)
+ranges memory count is wrong for every generated table: KILLED (4 of 74 tests fail)
+4 of 4 mutants killed
+memory bound: no process was stopped

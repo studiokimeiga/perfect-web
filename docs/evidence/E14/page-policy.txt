@@ -1,8 +1,8 @@
 ADR-0195 ruling 13 - every HTML answer carries a Content-Security-Policy generated from its build, and the build refuses what it would refuse
 
 produced by: just e14-page-policy
-commit: 726b5e725d7ebdef23b7e2a8fa08a4538d13f37e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43434914007 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6407ba55f1a975923518f1e3fe6973fbfefb7d73
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43854756182 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 playwright: Version 1.58.0
 
@@ -10,7 +10,7 @@ playwright: Version 1.58.0
 
 test a_link_html_allows_in_the_body_is_written_where_it_is ... ok
 test a_link_the_head_holds_is_refused_in_markup ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 test an_address_names_another_origin_as_a_browser_reads_it ... ok
 test a_links_address_is_written_as_text ... ok
 test a_load_from_another_origin_is_refused_where_it_is_written ... ok
@@ -24,9 +24,9 @@ accepted: 49/49 charter §16 categories covered
 rejected: 106 files
 rejected: 106/106 charter §16 categories covered
 corpus-check: OK
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 227.66s
-test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.97s
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 208.56s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 150.17s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 8.17s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 152.47s
 
 == the policy, and the answers it is sent with (csp.rs, tests/page_policy.rs)
 
@@ -45,16 +45,16 @@ test tests::page_policy::a_sign_in_at_another_origin_is_a_forms_to_reach ... ok
 test tests::page_policy::a_document_allows_each_inline_script_and_style_it_holds_by_its_hash ... ok
 test tests::page_policy::the_runtime_is_started_by_the_text_its_policy_hashes ... ok
 test tests::page_policy::every_answers_type_is_its_type ... ok
-test tests::page_policy::every_other_html_answer_runs_nothing ... ok
 test tests::page_policy::the_host_writes_no_style_attribute ... ok
+test tests::page_policy::every_other_html_answer_runs_nothing ... ok
 test tests::sign_in::the_development_provider_signs_up_and_in_through_the_flow ... ok
 test tests::redirects::a_page_at_another_address_of_the_page_is_moved_there_for_good ... ok
-test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 1104 filtered out; finished in 41.42s
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 1121 filtered out; finished in 29.17s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
 
 == the pages the suite serves, under it, in three engines (e2e/page-policy.spec.mjs)
 
-  51 passed (2.2m)
+  51 passed (1.9m)
 
 == mutation controls (scripts/page_policy_mutations.py)
 

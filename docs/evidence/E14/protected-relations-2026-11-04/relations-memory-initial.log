@@ -1,0 +1,24 @@
+   Compiling pw-table-memory v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-memory)
+warning: field `source_match` is never read
+   --> runtime/pw-table-memory/src/lib.rs:123:5
+    |
+121 | struct RelatedShape {
+    |        ------------ field in this struct
+122 |     target: usize,
+123 |     source_match: String,
+    |     ^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `pw-table-memory` (lib) generated 1 warning
+    Finished `test` profile [unoptimized] target(s) in 1.49s
+     Running tests/compiled_relations.rs (target/debug/deps/compiled_relations-34df9920119e0c42)
+
+running 4 tests
+test a_relation_never_uses_another_readers_memberships ... ok
+test compiled_relation_windows_are_global_and_sets_keep_overlapping_empty_groups ... ok
+test the_relation_reply_gate_checks_nested_groups_and_target_rows_whole ... ok
+test relation_manifest_admission_holds_both_tables_and_both_grants_independently ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.45s
+

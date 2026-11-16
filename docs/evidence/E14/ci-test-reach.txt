@@ -1,8 +1,8 @@
 Changed tests reach the verification that consumes them
 
 produced by: just e14-ci-test-reach
-commit: 726b5e725d7ebdef23b7e2a8fa08a4538d13f37e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43434914007 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6407ba55f1a975923518f1e3fe6973fbfefb7d73
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43854756182 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 test_bound_controls_require_a_complete_actual_intended_assertion (scripts.tests.test_ci_scripts.BoundEvidence.test_bound_controls_require_a_complete_actual_intended_assertion) ... ok
 test_exact_no_stop_and_absent_guard_remain_valid (scripts.tests.test_ci_scripts.BoundEvidence.test_exact_no_stop_and_absent_guard_remain_valid) ... ok
 test_fetch_excludes_all_outputs_and_completed_timing_of_stopped_recipe (scripts.tests.test_ci_scripts.BoundEvidence.test_fetch_excludes_all_outputs_and_completed_timing_of_stopped_recipe) ... ok
@@ -64,6 +64,7 @@ test_a_run_takes_more_shards_than_it_asks_where_its_would_end_past_the_ceiling (
 test_a_safe_database_bundle_keeps_the_fewest_database_shards (scripts.tests.test_ci_scripts.Plan.test_a_safe_database_bundle_keeps_the_fewest_database_shards) ... ok
 test_a_shard_with_a_database_sets_up_what_its_recipe_needs (scripts.tests.test_ci_scripts.Plan.test_a_shard_with_a_database_sets_up_what_its_recipe_needs) ... ok
 test_a_todomvc_plan_writes_only_the_workflow_output (scripts.tests.test_ci_scripts.Plan.test_a_todomvc_plan_writes_only_the_workflow_output) ... ok
+test_an_out_of_line_test_module_reaches_what_runs_it (scripts.tests.test_ci_scripts.Plan.test_an_out_of_line_test_module_reaches_what_runs_it) ... ok
 test_bare_python_module_inventories_reach_their_campaigns (scripts.tests.test_ci_scripts.Plan.test_bare_python_module_inventories_reach_their_campaigns) ... ok
 test_main_deals_a_run_within_the_ceiling (scripts.tests.test_ci_scripts.Plan.test_main_deals_a_run_within_the_ceiling) ... ok
 test_no_shard_is_planned_empty (scripts.tests.test_ci_scripts.Plan.test_no_shard_is_planned_empty) ... ok
@@ -104,7 +105,7 @@ test_the_runs_are_read_through_gh_by_their_commit (scripts.tests.test_ci_scripts
 test_where_no_run_passed_master_plans_from_the_commit_before (scripts.tests.test_ci_scripts.VerifiedBase.test_where_no_run_passed_master_plans_from_the_commit_before) ... ok
 
 ----------------------------------------------------------------------
-Ran 96 tests in 20.624s
+Ran 97 tests in 41.660s
 
 OK
   not copied, its recipe failed: docs/evidence/E14/stopped.txt
@@ -116,16 +117,21 @@ evidence-fetch: run 1 failed only in summary, known (ADR-0281)
   not copied, its recipe failed: docs/evidence/E14/stopped.wasm
   docs/evidence/E14/good.txt
 evidence-fetch: 1 files from https://example.invalid/run/1; 1 recipes' seconds kept
-baseline: 6 passed, 0 failed
+baseline: 7 passed, 0 failed
 hash inputs are counted as executed campaigns: KILLED (1 assertion failures)
 a long witness identifier replaces the mutant description: KILLED (1 assertion failures)
-root tests reach no mutation script: KILLED (1 assertion failures)
+root tests reach no mutation script: KILLED (2 assertion failures)
 Python tests reach no mutation script: KILLED (2 assertion failures)
-root tests reach no direct recipe: KILLED (1 assertion failures)
+root tests reach no direct recipe: KILLED (2 assertion failures)
 Python tests reach no direct recipe: KILLED (2 assertion failures)
 library root tests are ignored: KILLED (1 assertion failures)
+an out-of-line test module is no test module: KILLED (1 assertion failures)
+an out-of-line test module's own name is no filter: KILLED (1 assertion failures)
+an out-of-line test module's declaring module is no filter: KILLED (1 assertion failures)
+`tests` declared out of line is every crate's filter: KILLED (1 assertion failures)
+a root's out-of-line test module reaches no package: KILLED (1 assertion failures)
 bare Python module selectors are ignored: KILLED (1 assertion failures)
 reading TodoMVC metadata starts its mutation runtime: KILLED (1 assertion failures)
 workspace consumers omit changed root tests: KILLED (1 assertion failures)
-10 of 10 mutants killed
+15 of 15 mutants killed
 memory bound: no process was stopped

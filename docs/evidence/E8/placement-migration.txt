@@ -15,7 +15,7 @@ test the_solver_answers_at_all ... ok
 test the_combinations_that_have_nowhere_to_run ... ok
 test no_source_file_maps_an_effect_family_to_a_world ... ok
 test the_placement_baseline ... ok
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.74s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.89s
 
 and the contracts the deletion could have moved,
 after re-running just e8-contracts:

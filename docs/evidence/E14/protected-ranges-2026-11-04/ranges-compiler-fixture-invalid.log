@@ -1,0 +1,15 @@
+   Compiling pw-core v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-core)
+error[E0609]: no field `name` on type `&Vec<pw_core::hir::Param>`
+   --> compiler/pw-core/tests/table_ranges.rs:169:32
+    |
+169 |                     .map(|f| f.name.as_str())
+    |                                ^^^^ unknown field
+
+error[E0609]: no field `name` on type `&Vec<pw_core::hir::Param>`
+   --> compiler/pw-core/tests/table_ranges.rs:303:49
+    |
+303 |                 .map(|f| pw_core::wit::ident(&f.name))
+    |                                                 ^^^^ unknown field
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `pw-core` (test "table_ranges") due to 2 previous errors

@@ -1,0 +1,366 @@
+    Finished `test` profile [unoptimized] target(s) in 0.08s
+     Running unittests src/lib.rs (target/debug/deps/pw_core-8efd964006d9e075)
+
+running 198 tests
+test abi::tests::a_bare_null_is_never_accepted_for_either ... ok
+test abi::tests::arity_mismatch_is_an_error ... ok
+test abi::tests::decoding_is_type_directed_not_shape_directed ... ok
+test abi::tests::nested_recursive_values_decode ... ok
+test abi::tests::option_and_list_cannot_be_confused_even_though_koka_makes_both_null ... ok
+test abi::tests::raw_primitive_cannot_enter_a_nominal_position_undetected_in_debug_mode ... ok
+test abi::tests::unknown_constructor_lists_the_legal_ones ... ok
+test abi::tests::wrong_field_type_is_rejected_rather_than_coerced ... ok
+test backend::ir::tests::a_type_reports_every_nominal_inside_it ... ok
+test backend::ir::tests::an_import_call_is_not_an_ordinary_call ... ok
+test backend::ir::tests::an_unsupported_construct_is_not_an_empty_lowering ... ok
+test backend::ir::tests::authority_lives_on_the_import_and_not_on_the_call ... ok
+test backend::ir::tests::map_keeps_a_refusal_rather_than_producing_a_default ... ok
+test binding::tests::a_page_returns_nothing_and_that_is_not_undetermined ... ok
+test backend::lower::checked_input_tests::another_program_of_equal_length_cannot_receive_the_proof ... ok
+test binding::tests::a_resource_in_a_result_refuses_it_too ... ok
+test binding::tests::a_resource_in_an_argument_refuses_the_edge ... ok
+test binding::tests::a_session_scoped_type_is_conditional_rather_than_remotable ... ok
+test binding::tests::an_undetermined_position_is_neither_refused_nor_transferable ... ok
+test binding::tests::an_ordinary_query_is_remotable ... ok
+test binding::tests::local_is_always_direct_and_remote_is_not ... ok
+test binding::tests::the_error_side_is_a_position_of_its_own ... ok
+test boundary::tests::a_resource_cannot_cross_either_boundary ... ok
+test boundary::tests::a_resource_is_reported_as_a_resource_even_when_it_is_also_private ... ok
+test boundary::tests::a_scope_from_the_producer_counts_even_when_the_label_is_public ... ok
+test boundary::tests::an_unknown_destination_blocks_a_restricted_value_and_not_a_public_one ... ok
+test boundary::tests::an_undetermined_schema_is_blocked_and_not_permitted ... ok
+test boundary::tests::disagreeing_producers_scopes_are_joined_and_refuse_what_either_alone_would ... ok
+test boundary::tests::public_flows_into_a_restricted_destination_at_both_boundaries ... ok
+test boundary::tests::remote_session_a_into_session_a_is_allowed ... ok
+test boundary::tests::remote_session_a_into_session_b_is_refused ... ok
+test boundary::tests::resume_session_a_into_public_is_refused ... ok
+test boundary::tests::resume_session_a_into_session_a_is_allowed ... ok
+test boundary::tests::the_label_and_the_producer_scope_are_joined_rather_than_chosen ... ok
+test bounded::tests::a_component_is_a_cycle_or_a_call_of_itself ... ok
+test capability::tests::a_declared_but_unimported_capability_is_reported_without_failing ... ok
+test capability::tests::a_secret_capability_leaking_into_an_edge_component_is_caught ... ok
+test capability::tests::an_import_outside_the_profile_allowance_still_fails ... ok
+test capability::tests::the_minimal_guest_is_compliant ... ok
+test capability::tests::the_audit_can_go_red_and_green ... ok
+test capability::tests::the_std_guest_fails_the_minimal_profile_with_all_fourteen_extras ... ok
+test capability::tests::the_wasi_cli_profile_tolerates_them_but_only_when_chosen_explicitly ... ok
+test codes::tests::a_retired_code_is_never_reused ... ok
+test codes::tests::a_tracks_block_holds_only_its_tracks_codes ... ok
+test codes::tests::an_invariant_reads_as_a_sentence_about_the_program ... ok
+test codes::tests::an_old_number_is_no_registered_rule ... ok
+test codes::tests::every_alias_resolves_to_a_registered_code ... ok
+test codes::tests::every_code_is_unique ... ok
+test codes::tests::every_code_sits_in_its_owner_range ... ok
+test codes::tests::every_corpus_rule_is_registered_or_an_owned_known_gap ... ok
+test codes::tests::every_known_gap_names_an_owner_and_the_missing_analysis ... ok
+test codes::tests::every_code_a_checker_writes_is_registered ... ok
+test codes::tests::every_retired_code_says_why_and_what_replaced_it ... ok
+test contexts::tests::a_dependency_clause_is_not_an_expression_and_a_view_call_is ... ok
+test contexts::tests::a_handler_inside_a_frame_is_an_interaction ... ok
+test contexts::tests::a_later_time_is_not_another_declaration ... ok
+test contexts::tests::only_the_contexts_that_produce_a_value_yield_one ... ok
+test contract::tests::a_bare_family_parses ... ok
+test contract::tests::a_capability_keeps_its_type_argument ... ok
+test contract::tests::an_operation_is_part_of_the_identity ... ok
+test diag::tests::an_exhaustive_match_renders_nothing ... ok
+test diag::tests::pw1004_names_every_missing_case_and_the_effect_rule ... ok
+test diagnostics::tests::a_diagnostic_carries_the_charter_16_3_shape ... ok
+test diagnostics::tests::no_comparison_translates_an_old_number ... ok
+test diagnostics::tests::one_invariant_can_be_reported_by_two_detectors_under_one_code ... ok
+test diagnostics::tests::syntax_codes_and_semantic_codes_do_not_share_a_range ... ok
+test effects::queue_tests::a_self_reader_refreshes_its_own_call_charge_after_row_growth ... ok
+test effects::queue_tests::late_rows_refresh_declared_metadata_and_noninvoked_member_values ... ok
+test effects::queue_tests::many_growing_dependencies_enqueue_their_pending_reader_only_once ... ok
+test effects::queue_tests::readers_remain_registered_when_a_dependency_grows_again ... ok
+test effects::queue_tests::single_effect_chains_visit_only_the_bodies_whose_rows_changed ... ok
+test effects::tests::a_database_effect_names_its_domain ... ok
+test effects::tests::a_declared_family_covers_its_members_but_not_the_reverse ... ok
+test effects::tests::a_direct_call_contributes_its_effect ... ok
+test effects::tests::a_pure_body_infers_nothing ... ok
+test effects::tests::a_query_may_read_and_not_write ... ok
+test effects::tests::a_row_that_is_not_written_is_not_checked ... ok
+test effects::tests::a_view_may_not_reach_the_database_whatever_it_declares ... ok
+test effects::tests::an_effect_hidden_behind_a_helper_still_propagates ... ok
+test effects::tests::an_effect_inside_a_callback_still_propagates ... ok
+test effects::tests::an_undeclared_effect_is_reported_with_its_chain ... ok
+test exhaust::tests::a_blocked_analysis_is_not_a_proof_of_exhaustiveness ... ok
+test exhaust::tests::a_nested_pattern_is_validated_against_its_fields_type ... ok
+test exhaust::tests::a_pattern_whose_arity_disagrees_with_its_constructor_does_not_crash ... ok
+test exhaust::tests::a_right_nested_or_chain_expands_completely ... ok
+test exhaust::tests::bool_needs_both_arms ... ok
+test exhaust::tests::complete_match_is_exhaustive ... ok
+test exhaust::tests::empty_arm_list_over_a_finite_type_reports_every_constructor ... ok
+test exhaust::tests::infinite_types_always_need_a_wildcard ... ok
+test exhaust::tests::missing_variants_are_named_not_merely_counted ... ok
+test exhaust::tests::nested_patterns_find_nested_gaps ... ok
+test exhaust::tests::opaque_types_cannot_be_matched_structurally ... ok
+test exhaust::tests::or_patterns_count_toward_coverage ... ok
+test exhaust::tests::recursive_list_type_terminates_and_reports_cons ... ok
+test exhaust::tests::unreachable_arms_are_reported ... ok
+test exhaust::tests::wildcard_makes_any_match_exhaustive ... ok
+test hir::tests::an_arena_keeps_a_span_for_every_node ... ok
+test hir::tests::only_lower_touches_syntax_nodes ... ok
+test hir::tests::the_syntax_node_guard_can_fail ... ok
+test manifest::tests::a_manifest_round_trips_through_json ... ok
+test manifest::tests::durations_parse_in_every_unit_the_corpus_uses ... ok
+test manifest::tests::every_consistency_mode_the_corpus_uses_is_known ... ok
+test manifest::tests::retry_policies_parse_including_the_illegal_one ... ok
+test ontology::tests::a_path_is_read_once_and_then_asked ... ok
+test ontology::tests::capability_none_is_an_answer_and_not_a_missing_clause ... ok
+test outcome::tests::a_blocker_says_why_in_the_developers_vocabulary ... ok
+test outcome::tests::blocked_is_neither_proven_nor_a_violation ... ok
+test placement::tests::a_body_needing_both_the_dom_and_the_database_has_nowhere_to_run ... ok
+test placement::tests::a_database_effect_cannot_run_in_the_browser ... ok
+test placement::tests::a_declared_effect_with_no_placement_rules_out_nothing ... ok
+test placement::tests::a_declared_placement_narrows_but_cannot_widen ... ok
+test placement::tests::a_device_value_exists_only_in_the_browser ... ok
+test placement::tests::a_dom_effect_cannot_run_on_the_origin ... ok
+test placement::tests::a_pure_body_can_run_anywhere ... ok
+test placement::tests::a_secret_never_leaves_the_origin ... ok
+test placement::tests::a_type_argument_is_not_part_of_the_lookup ... ok
+test placement::tests::an_undeclared_effect_is_blocked_and_not_unrestricted ... ok
+test placement::tests::build_time_has_no_user_to_be_private_to ... ok
+test placement::tests::every_world_grants_something_and_nothing_grants_everything ... ok
+test policy::tests::an_operator_belongs_to_one_domain ... ok
+test policy::tests::every_clause_head_takes_its_value_on_its_line ... ok
+test policy::tests::every_policy_keyword_has_a_domain ... ok
+test policy::tests::only_executable_positions_carry_terms ... ok
+test policy::tests::operator_ids_are_unique_and_namespaced ... ok
+test policy::tests::the_table_describes_only_policies_the_language_has ... ok
+test privacy::tests::a_cache_key_must_carry_every_partition_the_value_needs ... ok
+test privacy::tests::a_join_is_an_upper_bound_and_the_least_one ... ok
+test privacy::tests::a_shared_cache_holds_no_one_readers_value ... ok
+test privacy::tests::flows_into_is_a_partial_order_and_not_a_total_one ... ok
+test privacy::tests::join_is_commutative_associative_and_idempotent ... ok
+test privacy::tests::joining_two_tenants_is_stricter_than_either ... ok
+test privacy::tests::public_is_the_identity_and_the_bottom ... ok
+test privacy::tests::violations_name_what_is_missing_not_merely_that_something_is ... ok
+test provenance::tests::a_chain_is_walkable_and_a_coincidence_is_not ... ok
+test provenance::tests::a_forbidden_route_is_nameable ... ok
+test provenance::tests::absorbing_keeps_two_bodies_answers_apart ... ok
+test resolve::tests::a_duplicate_declaration_is_reported_once ... ok
+test resolve::tests::a_local_declaration_shadows_nothing_and_resolves_first ... ok
+test resolve::tests::a_qualified_path_needs_both_the_module_and_the_member ... ok
+test resolve::tests::an_each_rows_name_is_a_local_binding ... ok
+test resolve::tests::an_import_cycle_is_visible ... ok
+test resolve::tests::an_imported_name_resolves_and_an_unimported_one_does_not ... ok
+test resolve::tests::an_unresolved_module_and_an_unresolved_name_are_different_errors ... ok
+test resolve::tests::file_order_does_not_decide_whether_a_program_resolves ... ok
+test resolve::tests::one_name_from_two_modules_is_ambiguous ... ok
+test resolve::tests::resolution_yields_an_identity_not_a_name ... ok
+test resume_artifacts::tests::a_declared_but_unread_capture_makes_the_walks_disagree ... ok
+test resume_artifacts::tests::a_valid_pair_agrees ... ok
+test resume_artifacts::tests::mutating_one_artifact_is_always_caught ... ok
+test resume_artifacts::tests::the_scheme_2_identity_matrix_holds ... ok
+test rules::corpus_tests::declaration_level_coverage_of_the_rejected_corpus_does_not_regress ... ok
+test rules::corpus_tests::every_caught_rejection_matches_its_declared_rule ... ok
+test rules::corpus_tests::no_accepted_corpus_file_produces_an_error ... ok
+test rules::tests::a_browser_only_effect_at_origin_is_rejected ... ok
+test rules::tests::a_finding_records_its_detector_and_reason_as_metadata ... ok
+test rules::tests::a_last_known_good_fallback_is_public_data_alone ... ok
+test rules::tests::a_shared_cache_with_no_invalidation_warns_but_does_not_error ... ok
+test rules::tests::a_stale_session_query_is_rejected_but_a_fresh_one_is_not ... ok
+test rules::tests::a_subscription_declaring_application_scope_is_rejected ... ok
+test rules::tests::a_written_rollback_is_rejected_and_an_optimistic_alone_is_not ... ok
+test rules::tests::an_effect_naming_a_host_operation_is_rejected_and_a_fn_naming_one_is_not ... ok
+test rules::tests::an_effect_the_placement_cannot_grant_is_rejected ... ok
+test rules::tests::read_your_writes_on_a_public_query_is_rejected ... ok
+test rules::tests::retry_without_idempotency_is_rejected ... ok
+test rules::tests::the_rules_can_go_green_as_well_as_red ... ok
+test rules::tests::unbounded_retry_is_rejected ... ok
+test scope::tests::a_dead_component_cannot_accept_a_late_result ... ok
+test scope::tests::a_durable_job_may_outlive_its_creating_scope ... ok
+test scope::tests::a_task_used_inside_its_owning_scope_is_fine ... ok
+test scope::tests::detached_task_without_durable_capability_is_rejected ... ok
+test scope::tests::escaping_into_a_descendant_scope_is_fine ... ok
+test scope::tests::resources_and_subscriptions_obey_the_same_rule_as_tasks ... ok
+test scope::tests::subscription_declaring_application_scope_inside_a_component_is_rejected ... ok
+test scope::tests::subscription_declaring_component_scope_inside_a_component_is_fine ... ok
+test scope::tests::task_handle_escaping_its_owner_is_rejected ... ok
+test scope::tests::the_checker_can_distinguish_safe_from_unsafe ... ok
+test signatures::tests::a_label_comes_from_the_declared_type_not_the_function_name ... ok
+test signatures::tests::a_member_resolves_by_receiver_type_and_ambiguity_resolves_to_nothing ... ok
+test signatures::tests::a_pure_function_carries_no_effects_and_no_label ... ok
+test signatures::tests::no_checker_carries_a_table_of_library_names ... ok
+test signatures::tests::one_declaration_answers_privacy_effects_and_placement ... ok
+test signatures::tests::the_same_signature_is_reachable_by_path_and_by_identity ... ok
+test signatures::tests::there_is_no_by_name_member_lookup_in_the_compiler ... ok
+test tables::tests::a_migration_reads_its_three_forms ... ok
+test tables::tests::a_table_outside_the_module_of_its_name_gives_nothing ... ok
+test tables::tests::a_table_with_no_bound_has_no_all_and_no_unique_put_refused ... ok
+test tables::tests::clauses_read_as_written_and_their_faults_named ... ok
+test tables::tests::each_generated_declaration_is_what_its_pleris_lowers_to ... ok
+test types::tests::opaque_types_do_not_expose_their_representation ... ok
+test types::tests::option_and_list_are_distinct_types ... ok
+test types::tests::result_error_side_is_generic ... ok
+test types::tests::two_opaques_over_the_same_representation_are_different_types ... ok
+test wit::tests::a_collision_is_refused_rather_than_resolved ... ok
+test wit::tests::a_declared_type_is_named_by_its_qualified_path ... ok
+test wit::tests::an_unmappable_type_is_refused_rather_than_guessed ... ok
+test wit::tests::mangling_is_kebab_and_lossy_in_a_way_callers_must_check ... ok
+test wit::tests::two_modules_declaring_one_name_stay_two_types ... ok
+test codes::tests::every_registered_code_is_one_a_checker_can_emit ... ok
+
+test result: ok. 198 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.67s
+
+     Running tests/bounded_reads.rs (target/debug/deps/bounded_reads-b145cf1a7a574b92)
+
+running 32 tests
+test a_build_from_before_sets_reads_as_guaranteeing_nothing ... ok
+test a_build_states_what_each_set_read_costs_its_source ... ok
+test a_call_that_reads_and_writes_per_element_is_refused_as_a_read ... ok
+test a_callback_bound_by_a_let_or_passed_on_by_a_function_is_in_the_loop ... ok
+test a_key_a_read_computes_ends_the_trace_and_its_read_is_refused_once ... ok
+test a_helper_that_reads_by_what_it_is_given_is_a_read_per_element ... ok
+test a_key_comes_from_the_element_through_a_field_a_pure_call_and_a_match_arm ... ok
+test a_parameter_a_mutual_recursion_hands_on_whole_is_not_walked_unless_it_is_stepped ... ok
+test a_read_in_a_combinators_callback_keyed_by_its_element_is_refused ... ok
+test a_read_in_a_for_keyed_by_its_element_through_a_let_is_refused ... ok
+test a_read_in_a_recursion_over_data_keyed_by_its_part_is_refused ... ok
+test a_read_keyed_by_an_outer_loops_element_is_refused_for_the_outer_loop ... ok
+test a_reads_verdict_depends_on_its_key_and_on_nothing_else ... ok
+test a_set_belongs_to_a_function_that_reads_and_sets_to_a_source ... ok
+test a_known_read_is_known_only_where_the_list_names_it ... ok
+test a_set_names_a_function_of_the_same_source_given_and_answering_lists ... ok
+test a_set_pair_can_keep_each_keys_exact_result ... ok
+test a_set_pairs_key_field_is_named_as_the_key_parameter ... ok
+test a_set_read_on_a_source_that_batches_is_not_warned ... ok
+test a_set_reads_cost_is_what_its_source_states ... ok
+test a_set_that_does_not_fit_is_the_pairs_own_rule_and_a_bad_sets_value_is_a_policys ... ok
+test a_set_read_on_a_source_that_cannot_batch_is_warned ... ok
+test a_sources_sets_is_one_call_chunked_or_per_key ... ok
+test every_combinator_that_applies_its_callback_to_elements_is_a_loop ... ok
+test set_and_sets_head_a_clause_only_where_a_name_follows ... ok
+test the_feed_reads_nothing_per_element ... ok
+test the_ledger_reads_its_lines_together_and_checks ... ok
+test kiokun_reads_per_element_where_it_is_known_to_and_nowhere_else ... ok
+test the_store_reads_nothing_per_element ... ok
+test the_stores_loop_is_seen_and_refused_where_it_reads_per_element ... ok
+test what_is_no_read_per_element_is_accepted ... ok
+test the_stores_pairs_and_source_cost_are_declared_together ... ok
+
+test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.46s
+
+     Running tests/bounded_tables.rs (target/debug/deps/bounded_tables-b682a1ee8fc5e6de)
+
+running 8 tests
+test a_generated_many_read_before_the_loop_selects_each_turns_matching_rows ... ok
+test a_generated_read_in_a_generic_result_callback_remains_a_read_per_row ... ok
+test a_generated_batch_before_generic_row_selection_keeps_its_source_cost ... ok
+test a_generated_read_named_as_the_callback_has_the_same_matching_row_repair ... ok
+test generated_key_prefix_and_index_repairs_name_the_matching_many_read ... ok
+test a_generated_read_through_a_member_stays_a_read_per_row ... ok
+test generated_many_reads_accept_one_call_and_chunked_sources ... ok
+test generated_many_reads_warn_for_default_and_per_key_sources ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s
+
+     Running tests/invoked_by.rs (target/debug/deps/invoked_by-0837ac672c2dea74)
+
+running 9 tests
+test a_command_the_platform_invokes_holds_no_reader_to_a_predicate ... ok
+test a_command_the_platform_invokes_is_idempotent ... ok
+test a_command_the_platform_invokes_is_given_what_the_host_has ... ok
+test a_payments_command_is_told_at_its_invoked_by_clause ... ok
+test a_command_the_platform_invokes_says_so_in_its_contract ... ok
+test no_page_presses_a_command_the_platform_invokes ... ok
+test one_command_answers_a_payments_outcome ... ok
+test an_identity_transition_has_one_parameter_free_idempotent_target ... ok
+test only_the_platforms_invokers_and_only_on_a_command ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/scheduled.rs (target/debug/deps/scheduled-69fee762f94026cb)
+
+running 9 tests
+test a_command_the_clock_invokes_checks_clean_and_says_so_in_its_contract ... ok
+test a_programs_own_instant_is_not_the_clocks ... ok
+test a_command_the_clock_invokes_requires_nothing_and_is_idempotent ... ok
+test a_schedule_at_an_instant_or_after_a_duration_checks_clean ... ok
+test a_runs_time_is_an_instant_or_a_duration ... ok
+test a_schedule_is_a_commands_statement ... ok
+test a_schedule_performs_clock_schedule ... ok
+test a_schedule_names_a_command_the_clock_invokes ... ok
+test a_schedule_relates_its_arguments_as_a_call ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+
+     Running tests/table_counts.rs (target/debug/deps/table_counts-ca36dcb91758cc87)
+
+running 4 tests
+test an_owned_count_does_not_accept_a_plain_user_id ... ok
+test counting_each_loop_element_is_refused_with_its_generated_set_repair ... ok
+test counts_are_compiled_reads_of_the_same_owned_and_shared_selectors ... ok
+test count_scalar_and_set_names_cannot_silently_replace_each_other ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s
+
+     Running tests/table_owners.rs (target/debug/deps/table_owners-89b1f771a88d17c1)
+
+running 20 tests
+test a_set_form_takes_the_handle_and_a_list_of_what_follows_it ... ok
+test an_owned_table_gives_each_read_and_write_by_its_readers_handle ... ok
+test an_unowned_table_gives_what_it_gave ... ok
+test an_owned_read_in_a_shared_cache_is_pw5001 ... ok
+test each_clause_is_read_as_its_grammar_says ... ok
+test private_is_still_a_declarations_visibility_after_a_table ... ok
+test pw0362_a_binding_by_hand_reaches_no_owned_row ... ok
+test pw0367_owned_by_names_a_field_holding_a_principals_id ... ok
+test no_program_reads_anothers_rows_by_naming_an_id ... ok
+test pw0368_an_owned_table_is_never_read_whole ... ok
+test pw0367_shares_with_names_others_fields_holding_principals_ids ... ok
+test pw0368_an_owned_table_states_no_bound_across_its_owners ... ok
+test pw0368_every_read_of_an_owned_table_leads_with_a_reader ... ok
+test pw0369_the_seen_row_is_the_compilers_to_declare ... ok
+test pw6924_a_reference_into_an_owned_table_is_made_from_its_owners_field ... ok
+test pw6924_an_owned_table_refers_to_no_table_no_one_owns ... ok
+test pw0369_a_private_field_is_one_no_other_reader_reads_rows_by ... ok
+test the_fixture_checks_clean_and_reads_each_clause ... ok
+test without_a_private_field_a_sharer_is_answered_the_row ... ok
+test tables_json_states_whose_rows_and_each_functions_reader ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.23s
+
+     Running tests/tables.rs (target/debug/deps/tables-83bb3ec3b7f3dad0)
+
+running 37 tests
+test a_bound_gives_all_and_no_bound_none ... ok
+test a_bound_is_a_count_and_each_clause_its_grammar ... ok
+test a_clause_on_another_declaration_is_no_tables ... ok
+test a_change_no_migrate_states_is_refused ... ok
+test a_lock_changed_by_hand_is_no_release ... ok
+test a_dropped_field_is_refused_without_its_migrate_and_planned_with_it ... ok
+test a_program_held_to_its_release_is_refused_where_it_is_checked_and_built ... ok
+test a_program_with_no_table_has_no_tables_file ... ok
+test a_table_gives_each_read_and_write_with_its_type_and_effect ... ok
+test a_table_reference_uses_its_own_module_beside_a_namesake ... ok
+test a_three_field_key_gives_a_read_by_each_proper_prefix ... ok
+test a_rename_is_refused_without_its_migrate_and_planned_with_it ... ok
+test an_additive_change_is_planned ... ok
+test checking_with_no_release_is_checking ... ok
+test a_type_changed_or_a_field_added_with_no_value_is_refused_unless_backfilled ... ok
+test every_keyed_read_has_its_set_form ... ok
+test count_records_cannot_alias_selector_records_or_other_count_keys ... ok
+test full_validation_preserves_native_migration_unit_span_and_reason ... ok
+test its_imports_are_the_platforms_and_its_program_builds ... ok
+test generic_fields_project_their_arguments_recursively_and_a_change_is_destructive ... ok
+test pw0361_a_reference_names_a_table_keyed_by_its_fields_type ... ok
+test pw0361_a_source_name_cannot_hide_another_database ... ok
+test pw0361_a_table_is_declared_in_the_module_of_its_name ... ok
+test pw0361_generated_composite_records_have_one_shape_each ... ok
+test pw0361_its_order_and_indexes_name_its_rows_fields ... ok
+test pw0361_its_key_names_its_rows_fields_of_types_every_adapter_keys ... ok
+test pw0361_its_row_is_a_record_declared_beside_it ... ok
+test pw0361_two_functions_cannot_emit_the_same_import ... ok
+test pw0361_two_tables_cannot_emit_the_same_interface ... ok
+test pw0364_all_reads_only_a_bounded_table ... ok
+test pw0362_its_rows_are_reached_only_through_its_functions ... ok
+test source_ambiguity_is_not_an_alternate_copy_of_the_own_module ... ok
+test pw0365_every_reference_across_sources_is_warned_and_builds ... ok
+test the_control_checks_clean_and_reads_each_clause ... ok
+test tables_json_states_each_table_its_functions_and_their_order ... ok
+test the_corpus_fixtures_that_name_a_release_are_held_to_it ... ok
+test two_indexes_cannot_describe_one_ordered_field_list ... ok
+
+test result: ok. 37 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.72s
+

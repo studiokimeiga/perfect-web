@@ -1,0 +1,14 @@
+// @corpus: fixture
+// @id: RELATION-RelationWindowData
+// @category: fixed relation-window conformance fixture
+// @milestone: E14
+
+module RelationWindowData
+import RelationPosts
+import RelationMembers
+source RelationWindowData
+    holds RelationPosts, RelationMembers
+    transactions serializable
+    reads strong
+    changes none
+    sets one_call

@@ -1,8 +1,8 @@
 ADR-0280 - a handler navigates after its command commits
 
 produced by: just e14-navigate
-commit: 726b5e725d7ebdef23b7e2a8fa08a4538d13f37e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43434914007 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 7b8fb7cc8cbc9601e49df15c750d1eeaf6cabdd2
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43809526375 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -15,12 +15,12 @@ test a_navigation_names_a_page ... ok
 test the_module_goes_to_the_page_after_the_answer_and_only_on_ok ... ok
 test its_arguments_are_the_pages_parameters ... ok
 test it_is_written_last_in_the_ok_arm_of_a_commands_answer ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.97s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.46s
 
 == the order placed and gone to, in three engines (e2e/navigate.spec.mjs)
 
   2 skipped
-  28 passed (30.1s)
+  28 passed (35.5s)
 
 == mutation controls (scripts/navigate_mutations.py)
 

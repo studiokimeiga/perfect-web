@@ -1,0 +1,65 @@
+   Compiling pw-core v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-core)
+    Finished `test` profile [unoptimized] target(s) in 2.75s
+     Running tests/table_relations.rs (target/debug/deps/table_relations-889bfcf6162cb984)
+
+running 13 tests
+test a_relation_does_not_disclose_memberships_through_a_shared_cache ... ok
+test a_protected_relation_target_is_refused_beside_the_public_neighbor ... ok
+test a_relation_loop_names_its_own_set_and_nested_empty_groups ... FAILED
+test a_relation_requires_one_explicit_source_for_both_tables ... ok
+test a_relation_row_annotation_is_the_exact_declared_target_row ... ok
+test duplicate_relation_names_and_user_group_names_are_named_refusals ... ok
+test matching_fields_keep_nominal_identity_and_both_declared_lookup_paths ... ok
+test reader_only_relations_keep_the_existing_empty_set_exception ... ok
+test nominal_names_are_qualified_and_imported_row_spellings_preserve_identity ... ok
+test relation_owner_formals_do_not_alias_the_list_or_bound ... ok
+test relation_row_annotations_obey_visibility_and_require_the_declared_shape ... ok
+test the_existing_table_neighbor_without_a_relation_is_valid ... ok
+test relation_windows_compile_real_owned_shared_and_group_components_with_dual_grants ... ok
+
+failures:
+
+---- a_relation_loop_names_its_own_set_and_nested_empty_groups stdout ----
+
+thread 'a_relation_loop_names_its_own_set_and_nested_empty_groups' (1825958) panicked at compiler/pw-core/tests/table_relations.rs:352:5:
+no patch marker in rendered relation repair: Diagnostic {
+    code: "PW0405",
+    invariant: "a read in a loop over data is not keyed by the loop's element: the list's reads are one set read, before the loop",
+    reason: "read_per_element",
+    detector: DeclarationRule,
+    severity: Error,
+    message: "`Links.last_stories_by_reader_topic` reads `Links` once for each element of `topics`",
+    primary_span: 791..841,
+    related: [
+        Related {
+            span: 833..838,
+            label: "its key `topic` comes from `topic`, the element `List.map` passes",
+            file: None,
+            unit: None,
+        },
+        Related {
+            span: 775..781,
+            label: "one read per topic",
+            file: None,
+            unit: None,
+        },
+    ],
+    explanation: Some(
+        "A read in a loop over data runs once for each element, so the page or command makes as many round trips as its list is long (N+1). A key that does not come from the element is one key, which the host's cache answers again; a key that does is a read per element. Read the list's keys together, in one set read before the loop, and find each element's in what it answers.",
+    ),
+    repairs: [
+        Repair {
+            description: "read them together, before the loop, with `Links.last_stories_by_reader_topic_many`: supply scalar values for `topic`; pass the reader handle separately; use one common bound, then apply each requested limit in pure selection; +                 match each turn's key/rows group from the result, including an empty rows group for a missing key",
+            replacement: None,
+        },
+    ],
+}
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    a_relation_loop_names_its_own_set_and_nested_empty_groups
+
+test result: FAILED. 12 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.98s
+
+error: test failed, to rerun pass `-p pw-core --test table_relations`

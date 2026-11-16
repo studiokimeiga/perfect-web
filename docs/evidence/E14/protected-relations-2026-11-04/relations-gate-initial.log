@@ -1,0 +1,28 @@
+   Compiling pw-host v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-host)
+   Compiling pw-table-memory v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-memory)
+    Finished `test` profile [unoptimized] target(s) in 1.55s
+     Running tests/compiled_relations.rs (target/debug/deps/compiled_relations-34df9920119e0c42)
+
+running 4 tests
+test compiled_relation_windows_are_global_and_sets_keep_overlapping_empty_groups ... FAILED
+test a_relation_never_uses_another_readers_memberships ... ok
+test the_relation_reply_gate_checks_nested_groups_and_target_rows_whole ... ok
+test relation_manifest_admission_holds_both_tables_and_both_grants_independently ... ok
+
+failures:
+
+---- compiled_relation_windows_are_global_and_sets_keep_overlapping_empty_groups stdout ----
+
+thread 'compiled_relation_windows_are_global_and_sets_keep_overlapping_empty_groups' (1680030) panicked at runtime/pw-table-memory/tests/compiled_relations.rs:16:9:
+assertion `left == right` failed
+  left: Err("error while executing at wasm backtrace:\n    0:    0x44d - <unknown>!<wasm function 0>\n    1:    0x2a0 - <unknown>!<wasm function 2>: a Links row: it has `edge`, which tables.json does not declare")
+ right: Ok([List([Record([("id", S64(1)), ("author", String("bob")), ("stamp", S64(1)), ("text", String("B1"))]), Record([("id", S64(2)), ("author", String("carol")), ("stamp", S64(2)), ("text", String("C2"))])])])
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    compiled_relation_windows_are_global_and_sets_keep_overlapping_empty_groups
+
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.42s
+
+error: test failed, to rerun pass `-p pw-table-memory --test compiled_relations`

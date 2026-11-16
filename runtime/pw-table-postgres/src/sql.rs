@@ -165,6 +165,21 @@ fn order_by(alias: &str, table: &TableShape, sorted_by: &[usize]) -> String {
     format!(" ORDER BY {}", columns.join(", "))
 }
 
+fn window_order(alias: &str, table: &TableShape, sorted_by: &[usize], descending: bool) -> String {
+    let mut fields = Vec::new();
+    for &field in sorted_by.iter().chain(&table.key) {
+        if !fields.contains(&field) {
+            fields.push(field);
+        }
+    }
+    let direction = if descending { "DESC" } else { "ASC" };
+    fields
+        .iter()
+        .map(|&field| format!("{alias}.{} {direction}", ident(&table.columns[field].name)))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
 /// The row's values, parameters 1 to n in the declared order, cast.
 fn row_params(table: &TableShape) -> String {
     table
@@ -242,9 +257,90 @@ pub(crate) fn statements(names: &Names, shape: &Shape) -> BTreeMap<String, Strin
         .iter()
         .map(|(import, function)| {
             let table = &shape.tables[function.table];
-            (import.clone(), statement(names, table, function))
+            let sql = if let Some(relation) = &function.related {
+                related_statement(
+                    names,
+                    table,
+                    &shape.tables[relation.target],
+                    function,
+                    relation,
+                )
+            } else {
+                statement(names, table, function)
+            };
+            (import.clone(), sql)
         })
         .collect()
+}
+
+/// A fixed semi-join: target ordering and LIMIT occur globally across all
+/// matching members inside each source selector, before rows cross SQL.
+fn related_statement(
+    names: &Names,
+    source: &TableShape,
+    target: &TableShape,
+    function: &FunctionShape,
+    relation: &crate::shape::RelatedShape,
+) -> String {
+    let from = names.qualified(&source.name);
+    let to = names.qualified(&target.name);
+    let matched = format!(
+        "s.{} = t.{}",
+        ident(&source.columns[relation.source_match].name),
+        ident(&target.columns[relation.target_match].name)
+    );
+    let order = window_order(
+        "t",
+        target,
+        &function.sorted_by,
+        function.primitive.descending(),
+    );
+    let parameter = function.by.len() + 1;
+    if !function.primitive.many() {
+        let by = (1..=function.by.len()).collect::<Vec<_>>();
+        return format!(
+            "SELECT {} FROM {to} t WHERE EXISTS (SELECT 1 FROM {from} s WHERE {} AND {matched}) ORDER BY {order} LIMIT ${parameter}::bigint",
+            row_list("t", target),
+            equal("s", source, &function.by, &by)
+        );
+    }
+    let arrays = function
+        .by
+        .iter()
+        .enumerate()
+        .map(|(i, &field)| format!("${}::{}", i + 1, source.columns[field].kind.array()))
+        .collect::<Vec<_>>();
+    let mut columns = (0..function.by.len())
+        .map(|i| format!("c{i}"))
+        .collect::<Vec<_>>();
+    columns.push("pw_slot".into());
+    let selectors = function
+        .by
+        .iter()
+        .enumerate()
+        .map(|(i, &field)| format!("s.{} = k.c{i}", ident(&source.columns[field].name)))
+        .collect::<Vec<_>>();
+    let named = target
+        .columns
+        .iter()
+        .map(|column| format!("{} AS {}", read_column("t", column), ident(&column.name)))
+        .collect::<Vec<_>>();
+    format!(
+        "SELECT k.pw_slot AS pw_related_slot, {} FROM unnest({}) WITH ORDINALITY AS k({}) CROSS JOIN LATERAL \
+             (SELECT {} FROM {to} t WHERE EXISTS (SELECT 1 FROM {from} s WHERE {} AND {matched}) ORDER BY {order} LIMIT ${parameter}::bigint) w \
+             ORDER BY k.pw_slot, {}",
+        row_list("w", target),
+        arrays.join(", "),
+        columns.join(", "),
+        named.join(", "),
+        selectors.join(" AND "),
+        window_order(
+            "w",
+            target,
+            &function.sorted_by,
+            function.primitive.descending()
+        )
+    )
 }
 
 fn statement(names: &Names, table: &TableShape, function: &FunctionShape) -> String {
@@ -252,6 +348,12 @@ fn statement(names: &Names, table: &TableShape, function: &FunctionShape) -> Str
     let rows = row_list("t", table);
     let by: Vec<usize> = (1..=function.by.len()).collect();
     match function.primitive {
+        Primitive::RelatedFirst
+        | Primitive::RelatedFirstMany
+        | Primitive::RelatedLast
+        | Primitive::RelatedLastMany => {
+            unreachable!("relation SQL is generated with both table shapes")
+        }
         Primitive::Get | Primitive::Prefix | Primitive::Index => {
             let mut sql = format!(
                 "SELECT {rows} FROM {t} t WHERE {}",
@@ -267,6 +369,142 @@ fn statement(names: &Names, table: &TableShape, function: &FunctionShape) -> Str
             among("t", table, &function.by),
             order_by("t", table, &function.sorted_by)
         ),
+        Primitive::First | Primitive::Last => format!(
+            "SELECT {rows} FROM {t} t WHERE {} ORDER BY {} LIMIT ${}::bigint",
+            equal("t", table, &function.by, &by),
+            window_order(
+                "t",
+                table,
+                &function.sorted_by,
+                function.primitive.descending()
+            ),
+            function.by.len() + 1
+        ),
+        Primitive::FirstMany | Primitive::LastMany => {
+            let arrays = function
+                .by
+                .iter()
+                .enumerate()
+                .map(|(i, &f)| format!("${}::{}", i + 1, table.columns[f].kind.array()))
+                .collect::<Vec<_>>();
+            let mut keys = (0..function.by.len())
+                .map(|i| format!("c{i}"))
+                .collect::<Vec<_>>();
+            keys.push("pw_slot".into());
+            let join = function
+                .by
+                .iter()
+                .enumerate()
+                .map(|(i, &f)| format!("t.{} = k.c{i}", ident(&table.columns[f].name)))
+                .collect::<Vec<_>>();
+            let named = table
+                .columns
+                .iter()
+                .map(|c| format!("{} AS {}", read_column("t", c), ident(&c.name)))
+                .collect::<Vec<_>>();
+            format!(
+                "SELECT {} FROM unnest({}) WITH ORDINALITY AS k({}) CROSS JOIN LATERAL \
+                 (SELECT {} FROM {t} t WHERE {} ORDER BY {} LIMIT ${}::bigint) w \
+                 ORDER BY k.pw_slot, {}",
+                row_list("w", table),
+                arrays.join(", "),
+                keys.join(", "),
+                named.join(", "),
+                join.join(" AND "),
+                window_order(
+                    "t",
+                    table,
+                    &function.sorted_by,
+                    function.primitive.descending()
+                ),
+                function.by.len() + 1,
+                window_order(
+                    "w",
+                    table,
+                    &function.sorted_by,
+                    function.primitive.descending()
+                )
+            )
+        }
+        Primitive::CountAfter => {
+            let order = &table.columns[table.order.expect("validated range order")];
+            format!(
+                "SELECT count(*) AS pw_range_count FROM {t} t WHERE {} AND t.{} > ${}::{}",
+                equal("t", table, &function.by, &by),
+                ident(&order.name),
+                function.by.len() + 1,
+                order.kind.sql()
+            )
+        }
+        Primitive::CountAfterMany => {
+            let order = &table.columns[table.order.expect("validated range order")];
+            let mut arrays = function
+                .by
+                .iter()
+                .enumerate()
+                .map(|(i, &field)| format!("${}::{}", i + 1, table.columns[field].kind.array()))
+                .collect::<Vec<_>>();
+            arrays.push(format!(
+                "${}::{}",
+                function.by.len() + 1,
+                order.kind.array()
+            ));
+            let mut columns = (0..=function.by.len())
+                .map(|i| format!("c{i}"))
+                .collect::<Vec<_>>();
+            columns.push("pw_slot".into());
+            let mut join = function
+                .by
+                .iter()
+                .enumerate()
+                .map(|(i, &field)| format!("t.{} = k.c{i}", ident(&table.columns[field].name)))
+                .collect::<Vec<_>>();
+            join.push(format!(
+                "t.{} > k.c{}",
+                ident(&order.name),
+                function.by.len()
+            ));
+            format!(
+                "SELECT k.pw_slot AS pw_range_slot, count(t.{}) FROM unnest({}) WITH ORDINALITY AS k({}) \
+                     LEFT JOIN {t} t ON {} GROUP BY k.pw_slot ORDER BY k.pw_slot",
+                ident(&table.columns[table.key[0]].name),
+                arrays.join(", "),
+                columns.join(", "),
+                join.join(" AND ")
+            )
+        }
+        Primitive::Count => format!(
+            "SELECT count(*) FROM {t} t WHERE {}",
+            equal("t", table, &function.by, &by)
+        ),
+        Primitive::CountMany => {
+            // Equal-length arrays of canonical distinct selectors, one slot per
+            // selector. Counting a NOT NULL key (rather than *) keeps absent
+            // selectors at zero after the left join. No application row crosses
+            // this boundary; the client pairs slots with its typed input keys.
+            let arrays: Vec<_> = function
+                .by
+                .iter()
+                .enumerate()
+                .map(|(i, &f)| format!("${}::{}", i + 1, table.columns[f].kind.array()))
+                .collect();
+            let mut columns: Vec<_> = (0..function.by.len()).map(|i| format!("c{i}")).collect();
+            columns.push("pw_slot".into());
+            let join: Vec<_> = function
+                .by
+                .iter()
+                .enumerate()
+                .map(|(i, &f)| format!("t.{} = k.c{i}", ident(&table.columns[f].name)))
+                .collect();
+            format!(
+                "SELECT k.pw_slot, count(t.{}) FROM unnest({}) WITH ORDINALITY AS k({}) \
+                 LEFT JOIN {t} t ON {} GROUP BY k.pw_slot ORDER BY k.pw_slot",
+                ident(&table.columns[table.key[0]].name),
+                arrays.join(", "),
+                columns.join(", "),
+                join.join(" AND ")
+            )
+        }
         Primitive::All => format!(
             "SELECT {rows} FROM {t} t{} LIMIT {}",
             order_by("t", table, &function.sorted_by),

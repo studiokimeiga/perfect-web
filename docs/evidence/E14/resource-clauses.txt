@@ -1,24 +1,24 @@
 ADR-0251 - a resource's clauses are held to PW2005
 
 produced by: just e14-resource-clauses
-commit: 726b5e725d7ebdef23b7e2a8fa08a4538d13f37e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43434914007 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 7b8fb7cc8cbc9601e49df15c750d1eeaf6cabdd2
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43809526375 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the checker (compiler/pw-core/tests/resource_clauses.rs)
 
-test a_release_owes_nothing_where_its_acquire_acquires_nothing ... ok
 test a_release_clause_reads_its_own_bindings ... ok
+test a_release_owes_nothing_where_its_acquire_acquires_nothing ... ok
 test an_acquisition_in_a_key_is_the_clauses ... ok
 test a_release_clause_ends_what_it_is_given ... ok
 test a_release_clause_ends_it_once_on_every_path ... ok
 test an_acquisition_in_a_release_clause_is_held_or_refused ... ok
 test what_an_acquire_clause_binds_moves_to_its_resource ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.38s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.12s
 
 == the generality witnesses (examples/generality/affine_not_consumed_once)
 
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 97.56s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 151.57s
 
 == the accepted corpus, A-007, A-019 and A-024 among it, checks as one program
 

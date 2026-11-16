@@ -1,0 +1,34 @@
+   Compiling pw-core v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-core)
+    Finished `test` profile [unoptimized] target(s) in 4.79s
+     Running tests/table_ranges.rs (target/debug/deps/table_ranges-8654758b3accf390)
+
+running 5 tests
+test generated_range_parameters_and_fields_do_not_alias_after_or_reader_names ... FAILED
+test a_table_without_declared_order_has_no_range_counts ... ok
+test range_counts_compile_through_owned_shared_and_reader_only_set_imports ... FAILED
+test range_count_inputs_keep_the_reader_and_the_nominal_order_type ... ok
+test range_count_loops_repair_to_selector_and_mark_records ... ok
+
+failures:
+
+---- generated_range_parameters_and_fields_do_not_alias_after_or_reader_names stdout ----
+
+thread 'generated_range_parameters_and_fields_do_not_alias_after_or_reader_names' (1280602) panicked at compiler/pw-core/tests/table_ranges.rs:321:9:
+selector after: Some("the program does not check, so nothing is compiled: Ranges.pw: [PW0024] `RangesOwnerAfter` is declared twice in this module; Ranges.pw: [PW0024] `RangesOwnerAfterCount` is declared twice in this module; Ranges.pw: [PW0361] generated records of `Ranges` emit the same type `ranges-owner-after` for different shapes; Ranges.pw: [PW0361] generated records of `Ranges` emit the same type `ranges-owner-after-count` for different shapes; Ranges.pw: [PW0024] `RangesRecipientAfter` is declared twice in this module; Ranges.pw: [PW0024] `RangesRecipientAfterCount` is declared twice in this module; Ranges.pw: [PW0361] generated records of `Ranges` emit the same type `ranges-recipient-after` for different shapes; Ranges.pw: [PW0361] generated records of `Ranges` emit the same type `ranges-recipient-after-count` for different shapes")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- range_counts_compile_through_owned_shared_and_reader_only_set_imports stdout ----
+
+thread 'range_counts_compile_through_owned_shared_and_reader_only_set_imports' (1280605) panicked at compiler/pw-core/tests/table_ranges.rs:151:13:
+assertion `left == right` failed
+  left: Null
+ right: Array []
+
+
+failures:
+    generated_range_parameters_and_fields_do_not_alias_after_or_reader_names
+    range_counts_compile_through_owned_shared_and_reader_only_set_imports
+
+test result: FAILED. 3 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s
+
+error: test failed, to rerun pass `-p pw-core --test table_ranges`

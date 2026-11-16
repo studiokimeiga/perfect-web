@@ -1,8 +1,8 @@
 Train-11 - every spec an optional build can leave out runs where that build is made
 
 produced by: just e14-skipped-specs
-commit: 726b5e725d7ebdef23b7e2a8fa08a4538d13f37e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43434914007 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 7b8fb7cc8cbc9601e49df15c750d1eeaf6cabdd2
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43809526375 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 python: Python 3.12.3
 
 == the check (scripts/skipped_specs.py) and its tests (scripts/tests/test_skipped_specs.py)

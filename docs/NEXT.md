@@ -6,6 +6,39 @@
 
 # Next
 
+## After L4, bounded reads, 2026-11-16
+
+L4, the fourth train of the declared data layer's landing (ADR-0440's
+fifth prerequisite, bounded reads), on L3: the integration branch's
+seventeen commits after `2e2ef45b`, to `ff57edc7`. A declared selector's
+rows are counted (`count_by_<fields>`, and its `_many` form, one grouped
+aggregate a set), windowed (`first_by_<fields>`, `last_by_<fields>`, a
+limit per distinct selector, applied before the rows leave the database),
+counted by a typed order range, and read through a fixed public-target
+relation window, on memory and PostgreSQL, under the read's own grant and
+owner. What stays open, in order:
+
+1. **L4's record**: the full verify 43809526375 at `7b8fb7cc`, fetched
+   (`bddbcf54`, 355 of 357 recipes); its two failures and the review's two
+   findings repaired at the head, and what they reach verified again there
+   (`ci_plan.py --changed 7b8fb7cc HEAD`) before the PR merges.
+2. **L5, declared uploads** (ADR-0440's fourth prerequisite; `018fad14`):
+   generic upload claims, publication and reference lifetime. Keep the
+   mixed-layer and upload startup refusals until their replacements are
+   real; the design must address cross-host last-reference races, database
+   disconnects during physical cleanup, immutable storage generations,
+   declaration and namespace identity, and uncertain commits.
+3. **Public initialization, stable ids and private child deletion**, as the
+   ports need them.
+4. **L7, the canonical feed and store on tables**: their rows, projections,
+   transitions and predicates in `.pw`, guest and account carts, payments
+   and scheduling, uploads and private cross-host delivery preserved,
+   verified on the PostgreSQL adapter and its persisted rows. No remote or
+   production conversion is authorized. A window's or a relation's limit is the
+   app's to clamp (no server-side cap bounds it: `examples/relations/app.pw`
+   passes a browser's limit through), and the memory adapter's relation read
+   scans its target for each selector, as ADR-0440 allows.
+
 ## After L3, the platform's prerequisites, 2026-11-13
 
 L3, the third train of the declared data layer's landing (ADR-0440,
@@ -29,13 +62,21 @@ lifecycle and owned Clock actions. What stays open, in order:
    issuer kept beside its `sub` (guest ids and `sub` values share one owner
    namespace today).
 3. **A lifecycle that does not commit strands the guest's rows** (the
-   review's third): the proof is spent and nothing retries the merge; a
-   bounded retry of a serialization failure inside the proof's lifetime,
-   or the guest's rows kept reachable to a later merge, with a test that
-   races the account's own write against it.
-4. **The owned Clock witness stands twice**: `tests::protected_migration`'s
-   (L3's, `4f80e543`) and `tests::owned_clock` (L2's port of it): keep one,
-   each script's controls held to the one kept.
+   review's third). Its named case is done (ADR-0440, amended 2026-11-16):
+   a lifecycle the database could not serialize against the account's own
+   write (at any statement of it or its commit) runs again, at most four
+   times, while its proof holds, raced by a second host in the test.
+   Open: four conflicts in a row (sustained contention), after which the
+   guest's rows stay where they were, logged; a lifecycle that never ran
+   (a host gone between the account's opening and its lifecycle), which a
+   merge recorded beside the guest's rows would cover; and a browser
+   command's conflict run again by the platform (L1's item 5).
+4. **The owned Clock witness stands twice**: done (2026-11-16, with item 3's
+   change): `tests::owned_clock` (L2's) is kept, which `e14-durable-tables`
+   names, and `tests::protected_migration`'s copy (L3's, `4f80e543`) is gone
+   with its program; `durable_tables_mutations.py` runs both modules, and
+   `row_ownership_mutations.py` now runs `tests::owned_clock` too, so their
+   controls hold to the one kept.
 5. **L4, bounded reads** (ADR-0440's fifth prerequisite): merge `ff57edc7`,
    its CI records only (1,370 receipts).
 6. **L5, declared uploads** (its fourth): finish `018fad14`, then merge.

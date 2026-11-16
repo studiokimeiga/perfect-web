@@ -1,8 +1,8 @@
 ADR-0063 - every name means one binding
 
 produced by: just e10-lexical
-commit: 726b5e725d7ebdef23b7e2a8fa08a4538d13f37e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43434914007 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 7b8fb7cc8cbc9601e49df15c750d1eeaf6cabdd2
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43809526375 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the scopes, and what each reader makes of them (compiler/pw-core/tests/lexical_scope.rs)
@@ -24,17 +24,17 @@ test two_arms_binding_one_name_are_typed_apart ... ok
 test two_arms_binding_one_name_in_a_template_are_typed_apart ... ok
 test two_branches_binding_one_name_are_typed_apart ... ok
 test two_lambdas_binding_one_name_are_typed_apart ... ok
-test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.60s
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.68s
 
 == a match over a name an arm binds again (compiler/pw-core/tests/match_exhaustiveness.rs)
 
-test a_declared_option_parameter_is_checked_too ... ok
 test a_call_returning_a_declared_sum_type_is_checked ... ok
+test a_declared_option_parameter_is_checked_too ... ok
 test a_field_count_is_checked_at_any_depth_and_in_every_arm ... ok
 test a_name_an_arm_binds_again_is_not_read_as_the_parameter ... ok
 test a_literal_is_one_value_of_its_type ... ok
-test a_result_match_without_err_is_refused ... ok
 test a_nested_pattern_is_read_against_its_fields_type ... ok
+test a_result_match_without_err_is_refused ... ok
 test a_pattern_nested_under_some_is_analysed ... ok
 test a_constructor_its_type_lacks_is_refused_not_read_as_a_wildcard ... ok
 test an_option_match_without_none_is_refused ... ok
@@ -43,7 +43,7 @@ test the_kiokun_slices_matches_are_proven_now ... ok
 test a_type_no_pattern_takes_apart_is_matched_by_a_name_only ... ok
 test what_the_analysis_cannot_read_is_blocked_not_proven ... ok
 test exhaustive_matches_pass ... ok
-test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.68s
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.74s
 
 == what the value relations decide: the store program
 
@@ -102,7 +102,7 @@ test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fin
   Return      undecided: Unknown               1
   Binding     agree                            3
   Binding     undecided: Unknown               3
-  Annotation  agree                            1070
+  Annotation  agree                            1327
   Operand     agree                            248
   Operand     undecided: Unknown               3
   Assignment  agree                            5

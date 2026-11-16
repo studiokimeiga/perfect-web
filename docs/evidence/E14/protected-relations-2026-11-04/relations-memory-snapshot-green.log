@@ -1,0 +1,13 @@
+   Compiling pw-table-memory v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-memory)
+    Finished `test` profile [unoptimized] target(s) in 0.83s
+     Running tests/compiled_relations.rs (target/debug/deps/compiled_relations-34df9920119e0c42)
+
+running 5 tests
+test a_relation_never_uses_another_readers_memberships ... ok
+test a_relation_predicate_sees_both_staged_tables_and_pins_membership_with_the_body ... ok
+test compiled_relation_windows_are_global_and_sets_keep_overlapping_empty_groups ... ok
+test relation_manifest_admission_holds_both_tables_and_both_grants_independently ... ok
+test the_relation_reply_gate_checks_nested_groups_and_target_rows_whole ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.69s
+
