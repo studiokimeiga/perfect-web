@@ -48,7 +48,7 @@ test("the count moves before the server answers", async ({ page }) => {
   await expect(page.locator("#cart-count")).toHaveText("1");
   // The count is in the server's HTML before the runtime boots, and
   // `window.__pw` is the runtime's: its log is read once the runtime is
-  // ready. Firefox read it before, on PR #119's CI (2026-11-16).
+  // ready, and shows the boot speculated nothing.
   await page.waitForFunction(() => document.documentElement.dataset.pwReady === "1");
   const log = await page.evaluate(() => window.__pw.log.join("\n"));
   expect(log).not.toMatch(/speculated/);
