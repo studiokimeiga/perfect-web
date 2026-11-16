@@ -86,10 +86,10 @@ lifecycle and owned Clock actions. What stays open, in order:
    NOTIFY), and a deploy still replaces every worker at once.
 8. **L7, the benchmark store on tables**, and the feed: the apps' port,
    ADR-0440's application modeling.
-9. **`PgTables::forget_outbox` has no caller** but its own test: since L3
-   a host retains what it delivers. Either a caller that needs a row gone
-   at once is named, with a test of it, or it goes with its test (platform
-   0004 moves the watermark for any deletion).
+9. **`PgTables::forget_outbox` has no caller**: done (2026-11-16, ADR-0440
+   amended): it is gone with its statement; its test keeps the trimming,
+   with the limit's batches; the durable tables' mutant that put L1's
+   deletion back deletes through `trim_outbox` at age zero (killed).
 10. **`cargo test` on a many-core machine exhausts a default PostgreSQL**:
     done (2026-11-16). Reproduced at 32 test threads (7 of the feed's, the
     store's and second-host's 65 tests failed `53300`); a test takes a place

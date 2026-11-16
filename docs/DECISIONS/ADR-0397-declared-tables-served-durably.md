@@ -154,6 +154,17 @@ pw-dev-server`, as every other strict script of the server already did
 nine more). The train lands with trains 31 to 33 (ADR-0436 to ADR-0438),
 merged onto it, under one full verify at their head.
 
+## Amended by ADR-0440 (2026-11-13 and 2026-11-16)
+
+Decision 6's outbox no longer holds, nor does decision 3's `forget_outbox`:
+
+- **L3** (ADR-0440's landing, 2026-11-13) has every generic PostgreSQL host
+  tail the shared outbox. A host keeps the rows it delivers until the shared
+  retention age, and only `trim_outbox` removes them, first ids first, moving
+  the trim watermark.
+- **ADR-0440's amendment of 2026-11-16** removes `PgTables::forget_outbox`,
+  which no host had called since L3.
+
 ## Context
 
 - **Two pieces, not joined.** `data-path` serves the guide's guestbook with
