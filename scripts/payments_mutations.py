@@ -263,8 +263,8 @@ MUTANTS = [
         "a browser may present a session the platform opened on a reader's behalf",
         MEMORY,
         SERVER,
-        "        Some(id) if !id.starts_with(identity::ON_BEHALF) => (id.to_string(), false),\n",
-        "        Some(id) => (id.to_string(), false),\n",
+        "        Some(id) if !id.starts_with(identity::ON_BEHALF) => (id, false),\n",
+        "        Some(id) => (id, false),\n",
     ),
     (
         "the settling command runs as no reader",

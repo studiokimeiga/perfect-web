@@ -348,3 +348,118 @@ feed's default left to the guest model.
 - `PW_IDENTITY`, `PW_DEPLOYMENT` and `PW_ORIGIN` are new environment
   variables of the development server.
 - No diagnostic code was needed: the track's checks are the host's.
+
+## Amended 2026-11-16: a session is its one session cookie, `__Host-` where cookies are `Secure`
+
+The integrator's, under the owner's delegation of 2026-10-02, from L3's
+independent review (ADR-0440, Landing; NEXT after L3, item 2: "a guest's
+rows are keyed by a cookie the client can choose") and what reading the
+host's code for it found.
+
+**Found.** The host took a request's session as the text after the first
+`pw-session=` anywhere in its headers (`main.rs`'s `session_of`, a
+`split`), not as the `Cookie` header's cookie of that name, which
+`identity.rs` already read correctly for the sign-in's state (`cookie`).
+So:
+
+- a `Referer` naming a page of this origin whose query wrote
+  `pw-session=<id>` chose the session the request ran as. Browsers send a
+  same-origin `Referer` whole (the default policy,
+  `strict-origin-when-cross-origin`) and before the `Cookie` header, and
+  the host sends no `Referrer-Policy`, so a link to any page with such a
+  query ran the reader's later requests from that page as `<id>`;
+- a cookie whose name ends in the session's (`xpw-session`), which a
+  sibling origin of the site may set, chose it too, and so would a
+  `__Host-pw-session`, had the name been prefixed alone;
+- an empty `pw-session=` was the session `""`, shared by everyone who sent
+  one.
+
+And, as the review said, the cookie had no prefix: a sibling origin of the
+site (`Domain=` the site) or a network attacker on plain HTTP could set the
+session or the sign-in's state cookie this host reads, fixing a reader's
+anonymous session (and its guest's rows), or completing a sign-in as the
+attacker's account in the victim's browser (login CSRF through the state
+cookie, which the state's binding exists to stop).
+
+**Decided.**
+
+1. **A request's session is its one cookie of the session's name**, in its
+   `Cookie` headers, exactly (`identity::session_in`, through `cookie`).
+   Nothing else of the request's names it. Two cookies of one name are
+   none: a browser keeps one per name, path and domain, and this host sets
+   each of its own at one path and no domain, so a second was set by
+   another origin or at another path, and the request does not say which
+   is this host's (RFC 6265bis-22 §5.8.3 orders them by path and creation).
+   An empty one is none. Where a request names none, it is a new session,
+   as before.
+2. **Where cookies are `Secure`** (every deployment but plain HTTP on this
+   machine, `Deployment::secure_cookies`), **the session's and the
+   sign-in's cookies are `__Host-` cookies**: `__Host-pw-session` and
+   `__Host-pw-sign-in`, each `Secure`, at `Path=/`, with no `Domain`, the
+   sign-in's moved from `/sign-in` to `/` as the prefix requires
+   (RFC 6265bis-22 §4.1.3.2). A browser keeps such a cookie only where this
+   host set it so, from a secure origin; the plain names are not read
+   there. On plain HTTP on this machine the names stay plain: Chromium and
+   WebKit refuse a `__Host-` cookie over `http://localhost` (Firefox takes
+   one; the HTTP working group's issue 2605 and PR 2759, 2023 to 2024, which
+   left "secure connection" to each user agent in RFC 6265bis), and every
+   test and browser suite runs there.
+
+3. **A cookie's name is its bytes, but for the header's own whitespace**:
+   a pair is trimmed of SP and HTAB alone, and its name compared exactly,
+   in its case. The independent review of this amendment found the first
+   draft trimmed with Rust's Unicode `trim`, so a cookie named
+   `\u{2000}__Host-pw-session`, which no browser holds to the prefix's
+   rules and a sibling origin may set with `Domain`, was read as this
+   host's own: fixation and login CSRF again, past the prefix (PortSwigger,
+   "Cookie Chaos", 2025, shows browsers keep such names; Safari keeps
+   U+0085 and U+00A0).
+4. **The cookies are each server's identity's** (`Identity::cookies`), set
+   from its deployment by `Identity::configure`, where they were the
+   process's, set once by `main`: no test could run a server whose cookies
+   are `Secure`, and the review found five one-line regressions of the
+   `Secure` path that compiled and passed every test. A connection carries
+   its server's (`Conn::session_cookie`); the sign-in's routes and replies
+   read their identity's.
+
+**Switching a deployment that has served the plain names over HTTPS** signs
+everyone out once, and leaves the plain cookies in browsers, read by no
+host, until they expire; hosts sharing a database (ADR-0369) must switch
+together, as a host of the other names reads none of these sessions. No
+deployment has served them: L6, the first production host, starts with
+these names.
+
+**Not chosen.**
+
+- *The prefix alone*: the `split` would still have read the `Referer` and
+  any name ending in `pw-session`, `__Host-pw-session` included.
+- *`__Secure-`*: it keeps `Path=/sign-in`, but allows `Domain`, so a sibling
+  on a secure origin could still set the cookie this host reads.
+- *The first of two cookies of one name*: whichever the browser sends first
+  is the longer path's, then the earlier's; a cookie set by another origin
+  before this host's would win. None is the safe reading, and a browser of
+  this host's never holds two.
+- *Host-issued ids now* (an id the host keeps or signs, refused otherwise):
+  it is the review's second remedy and is still owed (below), but a
+  `__Host-` cookie already keeps any other origin from setting the cookie;
+  it changes every test that names a session by a literal, and needs a
+  record shared by every host (ADR-0369) or a deployment's key.
+
+**Still owed before any deployment keeps guest-owned rows** (NEXT): a
+session id only the host issued, refused otherwise; and the provider's
+issuer kept beside its `sub`, which today share one owner namespace with
+guest ids.
+
+**Held by** `identity::tests::a_requests_session_is_its_one_session_cookie`
+(each reading above, the three that named another's session among them, a
+name with Unicode whitespace or in another case among them, for a plain and
+a `Secure` process), `a_secure_processs_cookies_are_host_cookies` (the
+prefix's attributes), `an_identitys_cookies_are_its_deployments`,
+`tests::sign_in::a_secure_deployment_signs_in_through_host_cookies_alone`
+(a `Secure` server's first visit, sign-in, callback, pages and sign-out,
+the plain names refused), and `tests::sign_in::a_request_runs_as_its_session_cookies_session_alone`
+(over HTTP: signed in as Ada, a `Referer` naming Mallory's session, or a
+cookie `xpw-session` holding it, reads Ada's page; none, a new session),
+and twelve mutants in `scripts/identity_mutations.py`, each one reading of
+the old host or one rule above undone: the old `split` put back is killed
+by the HTTP test alone, which is how the host read a session before.
