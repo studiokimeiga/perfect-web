@@ -25,12 +25,15 @@
 //!    could not fail.) Parts 1 and 2, and the programs' query pins, read
 //!    both outside a render and in one, through the layer's snapshot, as
 //!    every page's query reads (until the re-review of 2026-11-02, outside
-//!    a render alone), a render's reads counted once its transaction is
-//!    begun ([`begun`]);
+//!    a render alone). A transaction's boundaries are not a read's cost:
+//!    the adapter's count leaves them out (`PgTables::operation_statements`,
+//!    ADR-0395 as amended 2026-11-16), so a render's first read, which
+//!    begins its snapshot, is counted as any other is;
 //! 3. **staging**: a command's write is read by that command, and by no other
 //!    read until it commits; each write is one statement of the adapter,
-//!    counted as a read's cost is, once the command's transaction is begun;
-//!    and a row referring to a row its own command staged commits with it,
+//!    counted as a read's cost is, its command's first write among them
+//!    (which begins the transaction); and a row referring to a row its own
+//!    command staged commits with it,
 //!    as the guestbook's first signing does;
 //! 4. **refused commands**: a command dropped keeps nothing; and so does
 //!    each refusal any adapter must give, provoked through what the tables
@@ -1357,9 +1360,6 @@ fn answers_and_costs_read(
         .data
         .table_reads(reads, granted, snapshot)
         .asserted("the reads");
-    if snapshot.is_some() {
-        begun(&ops, &tables[0], &rows[&tables[0].name][0]);
-    }
     let mut checked = 0;
     for table in tables {
         let all = &rows[&table.name];
@@ -1780,39 +1780,13 @@ fn staging_and_refusals(s: &Server, tables: &[Table]) -> BTreeMap<String, usize>
     provoked
 }
 
-/// **A transaction begun before its statements are counted**: `table`'s
-/// first read, of `row`, through `ops`, a command's or a render's, and its
-/// statements not counted. An adapter that begins a transaction at its
-/// first statement (PostgreSQL's `BEGIN` for a command, its read-only
-/// snapshot for a render) spends that once a transaction, not once a read
-/// or a write, as D3's own pins count it
-/// (`runtime/pw-table-postgres/tests/primitives.rs`, "the transaction
-/// begun"); the memory adapter's transaction takes no statement. Until
-/// 2026-11-12 the suite counted it against the first read or write measured
-/// (track `durable-tables`, ADR-0397): a command's first write was two
-/// statements on PostgreSQL, and a render's first read passed only where
-/// its source states more than one.
-fn begun(ops: &data::Ops, table: &Table, row: &Map<String, Json>) {
-    let first = table.functions.iter().find(|f| !f.writes());
-    assert!(
-        first.is_some(),
-        "{} declares a read, which begins the transaction",
-        table.name
-    );
-    let Some(read) = first else {
-        unreachable!("asserted above")
-    };
-    let key: Vec<Json> = read.by.iter().map(|f| row[f].clone()).collect();
-    call(ops, &read.import, &arguments(table, read, &[key]));
-}
-
 /// **Part 3, its writes**: in a command, each write function of every table
 /// (`insert`, `put`, `delete`, `delete-prefix`) is one statement of the
-/// layer's adapter, counted below the layer as a read's cost is, once the
-/// command's transaction is [`begun`]; and a row referring to a row its own
-/// command staged commits, with it, as the guestbook's first signing writes
-/// its book and its entry in one command. The writes measured, and the
-/// references to a staged row committed.
+/// layer's adapter, counted below the layer as a read's cost is, the first
+/// among them (which begins the command's transaction) too; and a row
+/// referring to a row its own command staged commits, with it, as the
+/// guestbook's first signing writes its book and its entry in one command.
+/// The writes measured, and the references to a staged row committed.
 fn writes_and_staged_references(s: &Server, tables: &[Table]) -> (usize, usize) {
     let base = generated(tables, 3, 0);
     written(s, tables, &base);
@@ -1827,7 +1801,6 @@ fn writes_and_staged_references(s: &Server, tables: &[Table]) -> (usize, usize) 
             .asserted("its functions");
         let row = fresh(tables, table, &base, 90_000);
         let there = &base[&table.name][0];
-        begun(&ops, table, there);
         for function in table.functions.iter().filter(|f| f.writes()) {
             let args = match function.primitive.as_str() {
                 "insert" | "put" => vec![wit_row(table, &row)],

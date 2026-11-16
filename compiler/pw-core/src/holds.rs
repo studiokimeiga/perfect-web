@@ -190,7 +190,7 @@ fn nodes(body: &Body) -> Vec<NodeId> {
 }
 
 /// Every expression inside a handler of the body's markup.
-fn handler_exprs(body: &Body) -> BTreeSet<ExprId> {
+pub(crate) fn handler_exprs(body: &Body) -> BTreeSet<ExprId> {
     let mut out = BTreeSet::new();
     for n in nodes(body) {
         if let Node::Element { attrs, .. } = body.node(n) {
