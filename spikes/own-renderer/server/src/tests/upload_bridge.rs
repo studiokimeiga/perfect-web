@@ -101,7 +101,7 @@ public query Image(id: Int) -> Option<PostImage.Ref>
 }
 "#;
 
-fn built() -> (tempfile::TempDir, std::path::PathBuf) {
+pub(super) fn built() -> (tempfile::TempDir, std::path::PathBuf) {
     super::tables::built(
         &[],
         &[
@@ -188,8 +188,18 @@ fn claimed_image_is_committed_and_served(s: &Server) {
         attach(s, "reader", &png()).contains(" 303 "),
         "the upload staged"
     );
-    let kept = keep(s, "reader", 1, "keep-1");
-    assert!(kept.committed, "{kept:?}");
+    let kept = s.command_answer(
+        "photos.app.Keep",
+        "reader",
+        &[serde_json::json!(1), serde_json::json!("a picture")],
+        Some("keep-1"),
+    );
+    // Committed, said here (the review of a7c3377b: a helper's `asserted`
+    // caught a refused commit first, which is no rule of this test's).
+    assert!(matches!(&kept, Ok(answer) if answer.committed), "{kept:?}");
+    let Ok(kept) = kept else {
+        unreachable!("asserted above")
+    };
     // Its claim applied: the lease taken, nothing left pending.
     let leases = s.uploads.leases().expect("staged leases");
     assert!(
@@ -219,6 +229,18 @@ fn claimed_image_is_committed_and_served(s: &Server) {
     let retried = keep(s, "reader", 1, "keep-1");
     assert_eq!(retried, kept);
     assert_eq!(image_of(s, 1).map(|(k, _)| k), Some(key));
+    // And its durable record answers so, not this host's cache of it: what
+    // another host, or this one restarted, is answered from (the review of
+    // a7c3377b: a retry on one host is its cache's).
+    let args = [serde_json::json!(1), serde_json::json!("a picture")];
+    let (record, _, sent) = s.receipt_keys("reader", "photos.app.Keep", "keep-1", &args);
+    let recorded = s.recalled_interaction(&record).asserted("the record read");
+    assert!(
+        matches!(&recorded, Some((first, _)) if *first == sent),
+        "{recorded:?}"
+    );
+    let answer = recorded.map(|(_, answer)| answer).unwrap_or_default();
+    assert_eq!(Answered::from_browser_receipt(&answer).ok(), Some(kept));
 }
 
 /// **A discard ends the lease, and its command's record is kept**: `Drop`
@@ -233,6 +255,12 @@ fn a_discard_ends_the_lease_and_keeps_its_record(s: &Server) {
         .command_answer("photos.app.Drop", "reader", &[], Some("drop-1"))
         .asserted("Drop answered");
     assert!(dropped.committed, "{dropped:?}");
+    // Ended, neither held nor pending.
+    let leases = s.uploads.leases().asserted_some("staged leases");
+    assert!(
+        leases.pending_attempts(10).asserted("pending").is_empty(),
+        "ended, not held"
+    );
     // Nothing left to claim.
     let kept = keep(s, "reader", 1, "keep-after-drop");
     assert!(!kept.committed, "{kept:?}");
@@ -240,6 +268,11 @@ fn a_discard_ends_the_lease_and_keeps_its_record(s: &Server) {
         .command_answer("photos.app.Drop", "reader", &[], Some("drop-1"))
         .asserted("Drop answered again");
     assert_eq!(again, dropped);
+    // Its lease ended, the session stages another image.
+    assert!(
+        attach(s, "reader", &png()).contains(" 303 "),
+        "another image staged"
+    );
 }
 
 /// **An image no row names any more is not served**: its row removed, the
@@ -669,6 +702,40 @@ fn namespace_lock(schema: &super::tables_pg::Schema) -> i64 {
     i64::from_ne_bytes(h.to_ne_bytes())
 }
 
+/// **The upload namespace's lock, held by a session of the test's own** from
+/// the host's first inspection of its own receipt until [`Self::given_back`].
+struct NamespaceLock {
+    key: i64,
+    holder: std::sync::Arc<std::sync::Mutex<Option<postgres::Client>>>,
+}
+
+impl NamespaceLock {
+    fn held_at_inspection(s: &Server, schema: &super::tables_pg::Schema) -> NamespaceLock {
+        let key = namespace_lock(schema);
+        let holder: std::sync::Arc<std::sync::Mutex<Option<postgres::Client>>> = Default::default();
+        let (into, at) = (std::sync::Arc::clone(&holder), schema.database().url);
+        *s.before_upload_inspection.lock().unwrap() = Some(Box::new(move |_| {
+            let mut held =
+                postgres::Client::connect(&at, postgres::NoTls).asserted("a session of the test's");
+            held.query_one("SELECT pg_advisory_lock($1)", &[&key])
+                .asserted("the namespace's lock held");
+            *into.lock().unwrap() = Some(held);
+        }));
+        NamespaceLock { key, holder }
+    }
+
+    fn given_back(&self) {
+        let mut held = self
+            .holder
+            .lock()
+            .unwrap()
+            .take()
+            .asserted_some("the lock held");
+        held.query_one("SELECT pg_advisory_unlock($1)", &[&self.key])
+            .asserted("the lock given back");
+    }
+}
+
 /// **A reconcile the namespace lock delayed is made at the next pass**
 /// (ADR-0440, L5b). A's `COMMIT` lands and its answer is lost. While A
 /// inspects its own receipt another session holds the upload namespace's
@@ -691,16 +758,7 @@ fn a_reconcile_the_namespace_lock_delayed_is_made_at_the_next_pass_on_postgresql
         attach(&s, "reader", &png()).contains(" 303 "),
         "the upload staged"
     );
-    let key = namespace_lock(&schema);
-    let holder: std::sync::Arc<std::sync::Mutex<Option<postgres::Client>>> = Default::default();
-    let (into, at) = (std::sync::Arc::clone(&holder), schema.database().url);
-    *s.before_upload_inspection.lock().unwrap() = Some(Box::new(move |_| {
-        let mut held =
-            postgres::Client::connect(&at, postgres::NoTls).asserted("a session of the test's");
-        held.query_one("SELECT pg_advisory_lock($1)", &[&key])
-            .asserted("the namespace's lock held");
-        *into.lock().unwrap() = Some(held);
-    }));
+    let lock = NamespaceLock::held_at_inspection(&s, &schema);
     let landed = keep(&s, "reader", 1, "keep-delayed");
     assert_eq!(
         proxy.lost.load(std::sync::atomic::Ordering::SeqCst),
@@ -722,9 +780,7 @@ fn a_reconcile_the_namespace_lock_delayed_is_made_at_the_next_pass_on_postgresql
         1,
         "and due again"
     );
-    let mut held = holder.lock().unwrap().take().asserted_some("the lock held");
-    held.query_one("SELECT pg_advisory_unlock($1)", &[&key])
-        .asserted("the lock given back");
+    lock.given_back();
     s.run_due();
     assert!(
         leases.pending_attempts(10).asserted("pending").is_empty(),
@@ -1063,5 +1119,214 @@ fn a_keep_that_fails_gives_its_claim_back_on_postgresql() {
             std::fs::set_permissions(&open, std::fs::Permissions::from_mode(0o755))
                 .asserted("the generations writable again");
         },
+    );
+}
+
+/// **A claiming commit its ledger refuses before its `COMMIT` is answered
+/// refused** (ADR-0440, L5b; the review of a7c3377b). The host's ledger is
+/// as full as its proof budget, so `begin_commit` refuses to hold another
+/// attempt and no `COMMIT` is sent. Until then the host answered such a
+/// command unknown, and kept that answer for its interaction. Its lease is
+/// the reader's again, and once the ledger has room, the next `Keep`
+/// commits it. The ledger's other refusal, a claim left with no
+/// disposition, is the compiler's (PW2005: an affine claim not consumed on
+/// every path).
+fn a_commit_its_ledger_refuses_is_answered_refused(s: &Server) {
+    assert!(
+        attach(s, "reader", &png()).contains(" 303 "),
+        "the upload staged"
+    );
+    let leases = s.uploads.leases().asserted_some("staged leases");
+    leases.proofs_full_for_test(true);
+    let refused = s.command_answer(
+        "photos.app.Keep",
+        "reader",
+        &[serde_json::json!(1), serde_json::json!("a picture")],
+        Some("keep-full"),
+    );
+    leases.proofs_full_for_test(false);
+    assert!(
+        matches!(&refused, Ok(answer) if !answer.committed
+            && answer.why.as_deref().is_some_and(|why| why.contains("waiting for commit confirmation"))),
+        "refused, not unknown: {refused:?}"
+    );
+    assert!(image_of(s, 1).is_none(), "nothing committed");
+    assert!(
+        keep(s, "reader", 1, "keep-with-room").committed,
+        "the lease was given back"
+    );
+}
+
+#[test]
+fn a_commit_its_ledger_refuses_is_answered_refused_in_memory() {
+    let (_dir, out) = built();
+    a_commit_its_ledger_refuses_is_answered_refused(&on_memory(&out));
+}
+
+#[test]
+fn a_commit_its_ledger_refuses_is_answered_refused_on_postgresql() {
+    let Some(url) = super::tables_pg::database() else {
+        return;
+    };
+    let schema = super::tables_pg::Schema::new(&url, "bridge_full");
+    let (_dir, out) = built();
+    a_commit_its_ledger_refuses_is_answered_refused(&super::tables_pg::serve(&out, &schema));
+}
+
+/// **The periodic pass holds for good a claim whose receipt it finds
+/// absent** (ADR-0440, L5b: absence is never rollback; the review of
+/// a7c3377b, which found the pass's conclusion held by nothing). A's
+/// `COMMIT` is dropped before the database sees it. Its own inspection is
+/// delayed by the namespace lock, so the claim stays due. The lock given
+/// back, the pass finds no receipt and holds the claim for good: pending
+/// still, due no more, neither given back nor taken.
+#[test]
+fn the_periodic_pass_holds_an_absent_receipts_claim_for_good_on_postgresql() {
+    if super::tables_pg::database().is_none() {
+        return;
+    }
+    let (_dir, out) = built();
+    let schema = super::tables_pg::Schema::new(
+        &super::tables_pg::database().asserted_some("a database"),
+        "bridge_absent_pass",
+    );
+    let (_proxy, s) = behind_a_losing_proxy(&schema, &out, true);
+    assert!(
+        attach(&s, "reader", &png()).contains(" 303 "),
+        "the upload staged"
+    );
+    let lock = NamespaceLock::held_at_inspection(&s, &schema);
+    let unknown = s.command_answer(
+        "photos.app.Keep",
+        "reader",
+        &[serde_json::json!(1), serde_json::json!("a picture")],
+        Some("keep-absent"),
+    );
+    assert!(
+        !matches!(&unknown, Ok(answer) if answer.committed),
+        "{unknown:?}"
+    );
+    let leases = s.uploads.leases().asserted_some("staged leases");
+    assert_eq!(
+        leases.due_attempts(10).asserted("due").len(),
+        1,
+        "due, its own inspection not made"
+    );
+    lock.given_back();
+    s.run_due();
+    assert_eq!(
+        leases.pending_attempts(10).asserted("pending").len(),
+        1,
+        "held"
+    );
+    assert!(
+        leases.due_attempts(10).asserted("due").is_empty(),
+        "for good: the pass's inspection was made"
+    );
+    assert!(image_of(&s, 1).is_none(), "nothing committed");
+    assert!(
+        !keep(&s, "reader", 2, "keep-after").committed,
+        "neither given back nor taken"
+    );
+}
+
+/// The directory a generation's bytes are kept in, by its key.
+fn generation_dir(root: &std::path::Path, key: &str) -> std::path::PathBuf {
+    let files = generation_files(root, key);
+    assert_eq!(files.len(), 1, "one file keeps the image: {files:?}");
+    files[0]
+        .parent()
+        .map(std::path::Path::to_path_buf)
+        .unwrap_or_default()
+}
+
+/// **A removed row's generation is collected after its commit** (ADR-0440,
+/// L5b; the review of a7c3377b: no test held the layer's collection).
+/// `Remove` deletes the row that named the image, and the commit that
+/// deletes it collects the generation: its bytes leave the deployment's blob
+/// storage at once.
+#[test]
+fn a_removed_rows_generation_is_collected_after_its_commit_on_postgresql() {
+    let Some(url) = super::tables_pg::database() else {
+        return;
+    };
+    let (_dir, out) = built();
+    let schema = super::tables_pg::Schema::new(&url, "bridge_collected");
+    let s = super::tables_pg::serve(&out, &schema);
+    let blobs = schema.database().blobs;
+    assert!(
+        attach(&s, "reader", &png()).contains(" 303 "),
+        "the upload staged"
+    );
+    assert!(keep(&s, "reader", 1, "keep-1").committed);
+    let (key, _) = image_of(&s, 1).asserted_some("the row names its image");
+    assert_eq!(generation_files(&blobs, &key).len(), 1, "kept");
+    let removed = s
+        .command_answer(
+            "photos.app.Remove",
+            "reader",
+            &[serde_json::json!(1)],
+            Some("remove-1"),
+        )
+        .asserted("Remove answered");
+    assert!(removed.committed, "{removed:?}");
+    assert!(
+        generation_files(&blobs, &key).is_empty(),
+        "collected at its commit"
+    );
+}
+
+/// **A generation whose collection failed at its commit is collected by the
+/// host's housekeeping** (ADR-0440, L5b; the review of a7c3377b): its
+/// directory made read-only while `Remove` commits, the bytes stay, and the
+/// job with them. The directory writable again, the next pass collects
+/// them.
+#[test]
+fn a_collection_that_failed_at_its_commit_is_made_by_housekeeping_on_postgresql() {
+    use std::os::unix::fs::PermissionsExt;
+    let Some(url) = super::tables_pg::database() else {
+        return;
+    };
+    let (_dir, out) = built();
+    let schema = super::tables_pg::Schema::new(&url, "bridge_collected_later");
+    let s = super::tables_pg::serve(&out, &schema);
+    let blobs = schema.database().blobs;
+    assert!(
+        attach(&s, "reader", &png()).contains(" 303 "),
+        "the upload staged"
+    );
+    assert!(keep(&s, "reader", 1, "keep-1").committed);
+    let (key, _) = image_of(&s, 1).asserted_some("the row names its image");
+    let dir = generation_dir(&blobs, &key);
+    std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o555))
+        .asserted("the generation's directory made read-only");
+    let probe = dir.join("probe");
+    let refused = std::fs::write(&probe, b"").is_err();
+    let _ = std::fs::remove_file(&probe);
+    assert!(
+        refused,
+        "the directory refuses a change: the tests run as a user its mode binds, not root"
+    );
+    let removed = s.command_answer(
+        "photos.app.Remove",
+        "reader",
+        &[serde_json::json!(1)],
+        Some("remove-1"),
+    );
+    std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o755))
+        .asserted("the generation's directory writable again");
+    assert!(
+        matches!(&removed, Ok(answer) if answer.committed),
+        "{removed:?}"
+    );
+    assert_eq!(
+        generation_files(&blobs, &key).len(),
+        1,
+        "its collection failed at the commit"
+    );
+    s.run_due();
+    assert!(
+        generation_files(&blobs, &key).is_empty(),
+        "collected by housekeeping"
     );
 }

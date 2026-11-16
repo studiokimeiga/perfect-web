@@ -397,10 +397,36 @@ impl DataLayer for TablesLayer {
             .map_err(|e| format!("the upload generation could not be read: {e}"))?
         {
             Some(bytes) => Ok(Some((descriptor, bytes))),
-            None => Err(format!(
-                "the upload generation {} is named and its bytes are missing",
-                descriptor.reference.generation
-            )),
+            // Missing: collected since it was looked up, its row removed
+            // meanwhile (404, as PostgreSQL answers under its lock), or named
+            // still and its bytes gone (503). A second look tells which (the
+            // review of a7c3377b: until then a removal racing the read
+            // answered 503).
+            None => {
+                let missing = |d: &pw_host::assets::Descriptor| {
+                    format!(
+                        "the upload generation {} is named and its bytes are missing",
+                        d.reference.generation
+                    )
+                };
+                match self
+                    .tables
+                    .asset_descriptor(declaration, key, kind)
+                    .map_err(|e| format!("{e:?}"))?
+                {
+                    None => Ok(None),
+                    // Published again meanwhile, another generation: read once.
+                    Some(again) if again != descriptor => match uploads
+                        .storage
+                        .get_generation(&uploads.namespace, &again)
+                        .map_err(|e| format!("the upload generation could not be read: {e}"))?
+                    {
+                        Some(bytes) => Ok(Some((again, bytes))),
+                        None => Err(missing(&again)),
+                    },
+                    Some(_) => Err(missing(&descriptor)),
+                }
+            }
         }
     }
 
@@ -494,6 +520,7 @@ impl TablesStaging<'_> {
     /// the namespace holds; a row published and its bytes not kept would
     /// name nothing, so a keep that fails refuses the publication.
     fn publish_prepared(&mut self, prepared: Prepared) -> Result<(), String> {
+        let mut collect = Vec::new();
         if let Some(uploads) = self.uploads {
             use pw_host::assets::Storage;
             let plans = prepared
@@ -519,15 +546,20 @@ impl TablesStaging<'_> {
                         .map_err(|e| format!("the upload generation was not kept: {e}"))?;
                 }
             }
-            self.collect = plans
+            collect = plans
                 .into_iter()
                 .filter(|plan| plan.collect)
                 .map(|plan| plan.generation.descriptor)
                 .collect();
         }
+        // What it leaves unnamed is collected after the commit, and only
+        // where it published: a publication refused names what it named.
         prepared
             .publish()
-            .map(|_| self.published = true)
+            .map(|_| {
+                self.published = true;
+                self.collect = collect;
+            })
             .map_err(|e| format!("the tables did not publish the commit: {e:?}"))
     }
 

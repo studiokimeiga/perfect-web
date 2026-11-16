@@ -968,11 +968,11 @@ fn a_build_whose_row_names_a_handle_is_refused_where_it_is_served() {
     }
 }
 
-/// **A program of tables that declares an upload is refused where it is
-/// served** (the integrator's note b of 2026-11-02): a table keeps no
-/// upload's image, and such a program was served, its images taken and kept
-/// nowhere. Refused, the upload named; the neighbour, the same program
-/// without it, is served.
+/// **A program of tables that declares an upload no table keeps is refused
+/// where it is served** (the integrator's note b of 2026-11-02; since L5b, a
+/// table keeps one as an asset, `tests::upload_bridge`): such a program was
+/// served, its images taken and kept nowhere. Refused, the upload named; the
+/// neighbour, the same program without it, is served.
 #[test]
 fn a_program_of_tables_declaring_an_upload_is_refused_where_it_is_served() {
     let upload = "module tables.uploads\n\nupload ListImage\n    route      \
@@ -988,6 +988,41 @@ fn a_program_of_tables_declaring_an_upload_is_refused_where_it_is_served() {
     assert!(why.contains("`ListImage` is an `upload`"), "{why}");
     let (_dir, out) = built(&sources, &[]);
     assert!(Server::from_build(out.clone(), out).is_ok());
+}
+
+/// **An upload whose binding its build broke is refused as the build's fault**
+/// (ADR-0440, L5b; the review of a7c3377b): the program's upload, kept by its
+/// table, declared in `uploads.json` of another source than its tables',
+/// which one layer cannot bind. `servable` binds it as the layer would and
+/// refuses it, naming `uploads.json`, before PostgreSQL's layer is built.
+/// That layer binds it again before it connects, and would refuse it too,
+/// but naming `PW_TABLES_DATABASE_URL`, which is not at fault (here, a
+/// database no one serves).
+#[test]
+fn an_upload_whose_binding_the_build_broke_is_refused_as_the_builds_fault() {
+    let (_dir, out) = super::upload_bridge::built();
+    let path = out.join("uploads.json");
+    let text = std::fs::read_to_string(&path).asserted("its uploads");
+    let mut declared: serde_json::Value = serde_json::from_str(&text).asserted("their JSON");
+    let Some(declarations) = declared.as_array_mut() else {
+        panic!("uploads.json is a list: {text}");
+    };
+    assert_eq!(declarations.len(), 1, "{text}");
+    declarations[0]["source"] = serde_json::json!("Elsewhere");
+    std::fs::write(&path, declared.to_string()).asserted("broken");
+    let blobs = tempfile::tempdir().asserted("blob storage");
+    let database = crate::tables_pg::Database {
+        url: "postgres://pw@127.0.0.1:1/none".into(),
+        schema: None,
+        seats: crate::feed_pg::RenderSeats::default(),
+        blobs: blobs.path().to_path_buf(),
+    };
+    let refused = crate::tables_pg::TablesPg::for_build(&out, &database);
+    let why = refused.err().unwrap_or_default();
+    assert!(
+        why.starts_with("uploads.json: upload binding: multiple sources require separate adapters"),
+        "{why}"
+    );
 }
 
 /// **One layer a program**: a program that imports a hand-written data

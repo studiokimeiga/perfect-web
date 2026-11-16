@@ -1833,7 +1833,16 @@ impl Prepared {
         open.assets = prepared_assets;
         let _ = assets::collect_committed(&inner, open);
         {
-            let mut versions = inner.versions.lock().map_err(|_| Error::StoragePoisoned)?;
+            // The COMMIT landed: what it kept is the answer, and the command
+            // ends whatever its counters' lock went through. A poisoned lock
+            // is taken as it is (its counters only grow); until 2026-11-16
+            // it answered the commit `StoragePoisoned` and ended nothing,
+            // which a claim of its took for a commit that kept nothing
+            // (ADR-0440, L5b: the review of a7c3377b).
+            let mut versions = inner
+                .versions
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
             for t in inner.changed(open) {
                 versions[t] += 1;
             }

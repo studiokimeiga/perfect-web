@@ -3633,6 +3633,16 @@ impl Server {
                     let refused = staging.definitely_refused();
                     let conflicted = staging.conflicted();
                     let kept_nothing = staging.claims_kept_nothing();
+                    // A claiming command its ledger never froze never sent
+                    // its COMMIT: `begin_commit`, just before it, refused, or
+                    // a call before that failed. It kept nothing, so it is
+                    // answered refused, not unknown (ADR-0440, L5b; the
+                    // review of a7c3377b: until then the host answered it
+                    // unknown, and kept that answer for its interaction).
+                    let refused = refused
+                        || claims.as_deref().is_some_and(|claims| {
+                            held_claims(claims).is_ok_and(|c| c.before_commit())
+                        });
                     drop(out);
                     drop(host);
                     drop(staged_events);
@@ -3859,25 +3869,6 @@ impl Server {
         }
     }
 
-    /// **A command's writes and its events, committed** (ADR-0019, ADR-0208,
-    /// ADR-0246; track `store-pg`): the one commit path, a program's
-    /// command's and a route's that changes the store's data. `None` where
-    /// nothing was written, and nothing commits.
-    ///
-    /// A layer that keeps its own outbox commits the writes and the events
-    /// in its own transaction, and what it committed is what is delivered,
-    /// read back from its outbox (ADR-0246); refused, nothing of the
-    /// command is kept, and no one is told. A layer that keeps the session's
-    /// entry (the store on PostgreSQL) then has its commit recorded in the
-    /// materializer: the rows and the events it read back, in one
-    /// materializer transaction, as the in-memory layer's commit is
-    /// written, so the session's entry moves as it does in memory. The
-    /// database stays the authority: a record that fails after it committed
-    /// is said, and the command is answered committed.
-    ///
-    /// Returns what is delivered, and the materializer's ids for its events,
-    /// which are consumed once delivered ([`Materializer::delivered`]).
-    #[allow(clippy::too_many_arguments)]
     /// **The uploads a command claims** (ADR-0440, L5b): its declarations'
     /// imports, bound for this run to an invocation of its own on this
     /// command's transaction where it claims, publishes or discards; to its
@@ -4003,6 +3994,24 @@ impl Server {
         }
     }
 
+    /// **A command's writes and its events, committed** (ADR-0019, ADR-0208,
+    /// ADR-0246; track `store-pg`): the one commit path, a program's
+    /// command's and a route's that changes the store's data. `None` where
+    /// nothing was written, and nothing commits.
+    ///
+    /// A layer that keeps its own outbox commits the writes and the events
+    /// in its own transaction, and what it committed is what is delivered,
+    /// read back from its outbox (ADR-0246); refused, nothing of the
+    /// command is kept, and no one is told. A layer that keeps the session's
+    /// entry (the store on PostgreSQL) then has its commit recorded in the
+    /// materializer: the rows and the events it read back, in one
+    /// materializer transaction, as the in-memory layer's commit is
+    /// written, so the session's entry moves as it does in memory. The
+    /// database stays the authority: a record that fails after it committed
+    /// is said, and the command is answered committed.
+    ///
+    /// Returns what is delivered, and the materializer's ids for its events,
+    /// which are consumed once delivered ([`Materializer::delivered`]).
     #[allow(clippy::too_many_arguments)]
     fn commit_staged(
         &self,
@@ -4017,14 +4026,16 @@ impl Server {
     ) -> Result<CommitOutcome, String> {
         // A command that wrote nothing commits nothing, unless it scheduled
         // or cancelled a run (the scheduled-commands track), which is
-        // written as its writes are, or claimed an upload, whose record a
-        // retry is answered from (ADR-0440, L5b).
+        // written as its writes are, or is bound to the upload ledger (it
+        // imports a claim, ADR-0440, L5b), whose record a retry is answered
+        // from: whether or not this run claimed, as the bound command's
+        // every outcome is the record's.
         let claimed = claims.is_some();
         let mut rows = match staging.rows() {
             Some(rows) => rows,
             None if !scheduled.is_empty() || completing.is_some() => Vec::new(),
-            // A command that claimed an upload commits its record, which a
-            // retry of its interaction is answered from (ADR-0440, L5b).
+            // A command bound to the upload ledger commits its record, which
+            // a retry of its interaction is answered from (ADR-0440, L5b).
             None if claimed => Vec::new(),
             None => {
                 staging.revalidate()?;
@@ -10446,10 +10457,6 @@ fn val_to_json(v: &Val) -> serde_json::Value {
     }
 }
 
-/// **A command's answer, for the handler that called it** (ADR-0157): `Ok`
-/// without its value, which reaches the page from the resource, so the page
-/// has one source for what it shows; or the declared `Err`, whole. A result
-/// that is not a `Result` answers nothing.
 /// **A command's upload invocation, held for one call** (ADR-0440, L5b).
 fn held_claims(
     claims: &Mutex<uploads::generic::Invocation>,
@@ -10459,6 +10466,10 @@ fn held_claims(
         .map_err(|_| "the upload invocation is unavailable".to_string())
 }
 
+/// **A command's answer, for the handler that called it** (ADR-0157): `Ok`
+/// without its value, which reaches the page from the resource, so the page
+/// has one source for what it shows; or the declared `Err`, whole. A result
+/// that is not a `Result` answers nothing.
 fn answer_json(v: &Val) -> serde_json::Value {
     match v {
         Val::Result(Ok(_)) => serde_json::json!({ "$case": "ok" }),

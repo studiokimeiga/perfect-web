@@ -25,10 +25,20 @@ anywhere but an assertion is no kill):
    receipt (alike but for its nonce) settling this one, an inspection that
    could not be made holding its claim for good, the periodic pass inspecting
    nothing;
-6. the PostgreSQL adapter: a keep that fails not refusing its commit.
+6. the PostgreSQL adapter: a keep that fails not refusing its commit, and
+   a commit, or housekeeping, collecting no generation left unnamed;
+7. the review of a7c3377b: a commit its ledger refused before its COMMIT
+   answered unknown; the periodic pass leaving an absent receipt's claim due
+   for ever; an attempt dropped uninspected never offered to the pass; each
+   pass taking up its turn from the first again.
 
 Not here, each for its reason: memory's collection of an unnamed generation
-is storage-internal, unseen at the server; the receipt marker is required by
+is storage-internal, unseen at the server (its bytes are its process's);
+the review's robustness repairs (a poisoned counter after a landed COMMIT,
+a ledger that fails while it reconciles, a removal racing memory's read)
+need a panic or a race no test makes; a readerless command's refusing
+imports are held by `uploads::bridge`'s unit test, the server path by no
+fixture; the receipt marker is required by
 the ledger's own freeze anyway; the serving handler's check of a live
 generation's bytes and the storage's own (`check_bytes`) are each the
 other's backstop, so neither alone can be killed, and
@@ -66,6 +76,7 @@ LAYER_PG = SERVER / "tables_pg.rs"
 LAYER_MEMORY = SERVER / "tables.rs"
 STAGING = SERVER / "uploads.rs"
 PG_ASSETS = ROOT / "runtime/pw-table-postgres/src/assets/command.rs"
+PG_LIB = ROOT / "runtime/pw-table-postgres/src/lib.rs"
 
 MUTANTS = [
     # 1. the commit carries the attempt
@@ -97,6 +108,10 @@ MUTANTS = [
     ("a commit another attempt recorded first leaves its claims pending", LAYER_PG,
      "        self.refused || self.recorded\n",
      "        self.refused\n"),
+    # The review of a7c3377b: a commit its ledger refused before its COMMIT.
+    ("a commit its ledger refused before its COMMIT is answered unknown", MAIN,
+     "                            held_claims(claims).is_ok_and(|c| c.before_commit())\n",
+     "                            held_claims(claims).is_ok_and(|c| c.before_commit() && false)\n"),
     # 3. the bridge
     ("a query reads its session's leases by another handle", BRIDGE,
      "                let cookie = asked.session(\"upload.attached\", &handle)?;\n",
@@ -130,6 +145,23 @@ MUTANTS = [
     ("the periodic pass inspects no pending upload", MAIN,
      "        self.reconcile_uploads(16);\n",
      "        let _ = 16;\n"),
+    # The review of a7c3377b: what the pass concludes, and its turn.
+    ("the periodic pass leaves an absent receipt's claim due for ever", MAIN,
+     "                    leases.inspected(&ticket, true)\n",
+     "                    leases.inspected(&ticket, false)\n"),
+    ("an attempt dropped uninspected is not offered to the periodic pass", GENERIC,
+     "                let _ = self.leases.inspected(ticket, false);\n",
+     "                let _ = ticket;\n"),
+    ("each pass takes up the attempts due from the first again", GENERIC,
+     "            state.due_after = Some(last.attempt.clone());\n",
+     "            let _ = last;\n"),
+    # The review of a7c3377b: a removed row's generation collected.
+    ("a commit collects no generation it left unnamed on PostgreSQL", PG_LIB,
+     "        let _ = assets::collect_committed(&inner, open);\n",
+     "        let _ = &open;\n"),
+    ("housekeeping collects no generation a commit failed to on PostgreSQL", LAYER_PG,
+     "            match self.tables.collect_assets(SWEPT) {\n",
+     "            match Ok::<usize, String>(0) {\n"),
     # 6. the PostgreSQL adapter
     ("a keep that fails does not refuse its commit on PostgreSQL", PG_ASSETS,
      '                .map_err(|e| Error::Refused(format!("upload keep: {e}")))?;\n',

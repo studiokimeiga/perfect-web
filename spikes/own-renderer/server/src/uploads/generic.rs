@@ -68,9 +68,11 @@ pub(super) struct Pending {
     /// matches applies it; one absent or another's holds it for good).
     due: bool,
 }
+/// **A test's record of what a publication proposed**: the layer is handed
+/// the bytes itself, and keeps them; a test reads them here.
+#[cfg(test)]
 #[derive(Clone)]
 pub(crate) struct Payload {
-    pub declaration: String,
     pub descriptor: Descriptor,
     pub bytes: Arc<[u8]>,
 }
@@ -95,6 +97,7 @@ pub(crate) struct Invocation {
     reader: ReaderIdentity,
     attempt: String,
     held: BTreeMap<String, Held>,
+    #[cfg(test)]
     payloads: BTreeMap<String, Payload>,
     phase: Phase,
     /// Its own pending attempt inspected once, conclusively or not.
@@ -113,6 +116,7 @@ impl Invocation {
             reader,
             attempt: opaque(),
             held: BTreeMap::new(),
+            #[cfg(test)]
             payloads: BTreeMap::new(),
             phase: Phase::Open,
             reconciled: false,
@@ -120,6 +124,13 @@ impl Invocation {
     }
     /// **This invocation's attempt, where its outcome is pending**: the one
     /// its owner inspects once the command holds nothing.
+    /// **Whether its commit was never begun**: no [`Invocation::begin_commit`]
+    /// froze it, so no `COMMIT` was sent for what it claimed. It refused the
+    /// commit itself (a claim with no final disposition, no room for its
+    /// proof), or a call before it failed.
+    pub(crate) fn before_commit(&self) -> bool {
+        matches!(self.phase, Phase::Open)
+    }
     pub(crate) fn pending_ticket(&self) -> Option<Ticket> {
         match &self.phase {
             Phase::Pending(ticket) => Some(ticket.clone()),
@@ -139,18 +150,23 @@ impl Invocation {
             return Err("this upload invocation has no pending commit".into());
         };
         let ticket = ticket.clone();
-        self.reconciled = true;
+        // Reconciled once the ledger has taken what the inspection found:
+        // where it could not, the drop marks the attempt due again (the
+        // review of a7c3377b; until then a ledger that failed here left the
+        // attempt pending, due never, inspected never).
         match inspected {
             Ok(receipt) => {
                 let applied = self.leases.reconcile_attempt(&ticket, receipt.as_ref())?;
                 if !applied {
                     self.leases.inspected(&ticket, true)?;
                 }
+                self.reconciled = true;
                 self.phase = Phase::Finished;
                 Ok(applied)
             }
             Err(why) => {
                 self.leases.inspected(&ticket, false)?;
+                self.reconciled = true;
                 self.phase = Phase::Finished;
                 Err(why)
             }
@@ -172,9 +188,6 @@ impl Invocation {
         } else {
             Err("this upload invocation has ended its resource operations".into())
         }
-    }
-    pub(crate) fn acquired(&self) -> bool {
-        !self.held.is_empty() || matches!(self.phase, Phase::Pending(_))
     }
     pub(crate) fn claim(
         &mut self,
@@ -279,10 +292,10 @@ impl Invocation {
             .get_mut(declaration)
             .ok_or("the upload claim disappeared")?
             .fate = Fate::Published;
+        #[cfg(test)]
         self.payloads.insert(
             declaration.into(),
             Payload {
-                declaration: declaration.into(),
                 descriptor: Descriptor {
                     reference: selected.clone(),
                     bytes: incoming.bytes,
@@ -320,6 +333,7 @@ impl Invocation {
             height: held.claimed.height,
         }))
     }
+    #[cfg(test)]
     pub(crate) fn payloads(&self) -> impl Iterator<Item = &Payload> {
         self.payloads.values()
     }
@@ -453,6 +467,15 @@ impl Drop for Invocation {
     }
 }
 impl Shared {
+    /// **A test's: the ledger as full as its proof budget**, as a host whose
+    /// unknown outcomes hold sixteen mebibytes of proof would be (`full`), or
+    /// empty again.
+    #[cfg(test)]
+    pub(crate) fn proofs_full_for_test(&self, full: bool) {
+        if let Ok(mut state) = self.state.lock() {
+            state.pending_proof_bytes = if full { PENDING_PROOF_BYTES } else { 0 };
+        }
+    }
     /// **The attempts due another inspection**, at most `limit`, in turn:
     /// each pass takes up after the last one it gave, so an attempt whose
     /// inspection keeps failing never keeps another from its turn.
@@ -502,6 +525,8 @@ impl Shared {
         }
         Ok(())
     }
+    /// The attempts held now, at most `limit`: what a test reads of them.
+    #[cfg(test)]
     pub(crate) fn pending_attempts(&self, limit: usize) -> Result<Vec<Ticket>, String> {
         let state = self
             .state

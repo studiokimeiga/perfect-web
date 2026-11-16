@@ -448,6 +448,11 @@ MUTANTS = [
     ('postgres operation accounting hides a data statement', POOL,
      '        counters\n            .operation_statements\n            .fetch_add(1, Ordering::Relaxed);\n        let rows = self.client.query(&statement, &refs(params))?;\n',
      '        let rows = self.client.query(&statement, &refs(params))?;\n'),
+    # The review of a7c3377b (ADR-0440, L5b): a client that vanished lets go
+    # of its session, and its locks, within a minute.
+    ("a connection keeps the operating system's keepalives", POOL,
+     "        for keepalive in KEEPALIVES {\n            let _ = client.batch_execute(keepalive);\n        }\n",
+     "        let _ = KEEPALIVES;\n"),
     ('postgres operation accounting counts a transaction boundary as data', POOL,
      '        if !matches!(\n            sql,\n',
      '        if true || !matches!(\n            sql,\n'),
@@ -486,7 +491,7 @@ TESTS = [
 # Every test binary of the crate is one of them.
 assert sorted(t[-1] for t in TESTS if "--test" in t) == sorted(p.stem for p in (CRATE / "tests").glob("*.rs"))
 
-SOURCES = [MIGRATE] + sorted((CRATE / "tests").rglob("*.rs")) + sorted((ROOT / "runtime/pw-table-memory/tests/support").glob("*.rs"))
+SOURCES = [MIGRATE, POOL] + sorted((CRATE / "tests").rglob("*.rs")) + sorted((ROOT / "runtime/pw-table-memory/tests/support").glob("*.rs"))
 INVENTORY = {}
 
 

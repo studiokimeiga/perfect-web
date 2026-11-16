@@ -15,8 +15,33 @@
   of several hosts needs affinity for a session's uploads (L6's deploy).
 - **The namespace lock serializes uploads on PostgreSQL.** Every command and
   every image read of a program that declares uploads takes the upload
-  namespace's advisory lock (five seconds at most): measured before L7
-  ports the feed.
+  namespace's advisory lock, and waits five seconds at most for it:
+  measured before L7 ports the feed.
+- **A vanished client holds that lock for about a minute.** The lock is the
+  command connection's session's, so a client gone without closing its
+  socket (a partition, a NAT's timeout) holds it until the database notices
+  the session is dead. Each connection sets the server's keepalives to
+  notice within about a minute, not the operating system's two hours.
+  Meanwhile, every upload command and image read of the schema waits its
+  five seconds and fails.
+- **An inspection the lock delays holds its session and the periodic
+  pass.** A command whose outcome is unknown inspects its own receipt still
+  holding its session's one-at-a-time lock, so that session's other
+  requests on its host wait for it (five seconds at most). The periodic
+  pass inspects up to sixteen attempts one after another before the
+  scheduled runs, each waiting at most five seconds for the lock.
+- **A host holds at most 1024 unknown outcomes**, and sixteen mebibytes of
+  their proof. Past either, every claiming command on that host is refused
+  until outcomes are settled, or the host restarts, not only one session's.
+- **Hosts of one schema share their blob storage.** On PostgreSQL every
+  host serving one schema must name the same blob root (`PW_BLOB_DIR`):
+  a generation another host published is served from it. A host that names
+  another fails closed: it refuses to start, since its storage holds no
+  marker of the namespace the database records (`check_upload_storage`).
+- **A settlement the periodic pass makes tells no page.** When the pass
+  applies or holds a claim, nothing invalidates the session's `attached`
+  query, so a page already shown may still show a lease whose preview no
+  longer answers.
 - **The feed keeps its own uploads.** Startup opens for generic upload
   declarations only; the hand-written feed's are refused beside declared
   tables, and its compatibility is L7's gate.

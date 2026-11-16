@@ -1144,7 +1144,8 @@ check below it; nothing binds a compiled program's upload imports yet, and
    (`pw:uploads/<declaration>#claim`, `#publish`, `#discard`) are bound to
    it for that run alone, by the bound manifest's interfaces, never the
    first declaration; a handle the program passes is the request's
-   session's or nothing is claimed. A query reads `#attached`, the
+   session's, or the call is refused (a trap, the command run no further).
+   A query reads `#attached`, the
    session's own leases. A command no reader runs (a Clock's) claims
    nothing: its upload imports refuse.
 2. **The layer publishes in the command's own transaction**
@@ -1153,16 +1154,19 @@ check below it; nothing binds a compiled program's upload imports yet, and
    publisher, the canonical bytes kept beside it for the keep.
 3. **The commit carries the attempt.** The answer the record keeps is
    sealed with the attempt's nonce before it is recorded, the ledger is
-   frozen just before `COMMIT` (its capacity refused before `COMMIT`), and a
-   command that claimed commits its record even where it writes no row (a
-   discard), so that a retried interaction is answered from it.
+   frozen just before `COMMIT` (its capacity refused before `COMMIT`, which
+   is answered refused: no `COMMIT` was sent), and a command bound to the
+   ledger commits its record even where it writes no row (a discard), so
+   that a retried interaction is answered from it.
 4. **Each outcome settles the claims once.** Committed: applied. Kept
    nothing (a refusal, a definite rollback, or `Recorded`: another
    attempt's record answers this interaction, and this attempt committed
    nothing): returned. Otherwise pending: reconciled from the raw receipt
-   once the command holds nothing (its turn, its lease and the namespace
-   lock let go), and by a periodic pass that retries only an inspection
-   that failed, in turn, never the first few alone. Absence stays held.
+   once the command has let go of its turn, its lease and the namespace
+   lock (it still holds its session's one-at-a-time lock, so that session's
+   other requests on its host wait for the inspection), and by a periodic
+   pass that retries only an inspection that failed, in turn, never the
+   first few alone. Absence stays held.
 5. **The memory layer keeps uploads too**: bytes in memory storage, kept
    before the publication and collected after it; an unknown memory
    outcome (a commit failing after the rows were published) holds its
@@ -1236,8 +1240,10 @@ Their seams are test-only:
 - `Ticket::proof`;
 - memory's `FAIL_NEXT_KEEP`.
 
-Twenty mutants in `generic_upload_claims_mutations.py` (`just
-e14-generic-upload-claims`), each killed, the eight new ones among them:
+Twenty-six mutants in `generic_upload_claims_mutations.py` (`just
+e14-generic-upload-claims`) hold it, each killed, as
+`docs/evidence/E14/generic-upload-claims.txt` records. Eight came with the
+seven tests:
 - `Recorded` left pending;
 - a lease keyed by another declaration than its route's;
 - a lease claimed, or shown, whoever its reader;
@@ -1246,8 +1252,69 @@ e14-generic-upload-claims`), each killed, the eight new ones among them:
 - the periodic pass inspecting nothing;
 - PostgreSQL's keep failure not refusing its commit.
 
+Six came with the review below. d3's "a connection keeps the operating
+system's keepalives" and data-path's "an upload's binding is not checked
+where it is served" are each killed too.
+
 The serving handler's check of a live generation's bytes and the storage's
 own are each the other's backstop, so neither alone is a mutant.
+
+**Reviewed** independently (2026-11-16, `014439c5..a7c3377b`). No high
+finding in the bridge; three medium findings and eleven low, each repaired
+or recorded:
+- **The binding check where a build is served could not be failed** (M1):
+  each layer binds again, so the data-path mutant on it survived.
+  `an_upload_whose_binding_the_build_broke_is_refused_before_the_database`
+  now serves a build whose upload names another source than its tables'
+  on a database no one serves. `servable` refuses it, saying why, before
+  anything connects.
+- **The kills were claimed with no record** (M2): `docs/evidence/E14/
+  generic-upload-claims.txt` is now the whole script's run, and the full
+  verify records it again at the landing.
+- **A half-open connection could hold the namespace lock for hours** (M3):
+  each connection now sets the server's keepalives, about a minute
+  (`each_connection_sets_the_servers_keepalives`, and d3's mutant "a
+  connection keeps the operating system's keepalives"). KNOWN_LIMITATIONS
+  says what remains.
+- **The tests' records were the host's cache's** (L1): the served test
+  reads the durable record, and the discard test holds the lease ended
+  (nothing pending, another image staged). **A helper caught a refused
+  commit first** (L2): the served test asserts its commit itself.
+- **Rules with no mutant** (L3), now held:
+  - the periodic pass holding an absent receipt's claim for good, by a new
+    test, `the_periodic_pass_holds_an_absent_receipts_claim_for_good_on_postgresql`;
+  - an attempt dropped uninspected offered to the pass, and the pass's
+    turn, by their unit tests;
+  - PostgreSQL's collection, at the commit and by housekeeping, by two new
+    tests.
+  A readerless command's refusing imports at the server, and memory's
+  collection, have no mutant: the script says why.
+- **A commit its ledger refused before its `COMMIT` was answered unknown**
+  (L5), and the host kept that for its interaction: it is answered refused
+  now (`a_commit_its_ledger_refuses_is_answered_refused`, on both layers).
+  The ledger's other refusal, a claim left with no disposition, is the
+  compiler's (PW2005).
+- **Robustness** (L6, L7, L9): each needs a panic or a race no test makes,
+  and none has a mutant.
+  - A poisoned counter after a landed `COMMIT` answered it refused and
+    ended nothing; the lock is now taken as it is.
+  - Memory's collection was set before its publication succeeded; now it is
+    set after.
+  - A ledger that failed while it reconciled stranded the attempt;
+    reconciled is now set only once the ledger took the outcome.
+- **A removal racing memory's read answered 503** (L8): a second look
+  answers 404, or serves a generation published again. The duplicate
+  collection the review also named does not happen: both storages' collect
+  and the registry's `collected` are idempotent.
+- **Docs** (L4, L10, L11): KNOWN_LIMITATIONS now says what an inspection
+  holds, the host-wide bounds, the shared blob root and the pages a
+  settlement does not tell. Decision 4 above no longer says the inspecting
+  command holds nothing: it holds its session's lock.
+- **Nits:** two doc comments are back on their functions; the stale
+  `dead_code` allowances are gone (the ledger's test-only parts are
+  `cfg(test)`); the forced record's comment and decision 1's foreign handle
+  now say what the code does. The PostgreSQL keep test fails, not skips,
+  when run as root, as its own doc says.
 
 ## Landing (L3, 2026-11-13)
 
