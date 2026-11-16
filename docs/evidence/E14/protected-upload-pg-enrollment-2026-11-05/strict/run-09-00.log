@@ -1,0 +1,85 @@
+
+running 21 tests
+test a_bound_open_cannot_erase_recorded_associations_after_all_authority_maps_are_lost ... FAILED
+test a_bound_open_cannot_erase_a_recorded_association_after_partial_binding_loss ... FAILED
+test a_rewritten_declaration_insert_is_not_successful_enrollment ... FAILED
+test a_rewritten_binding_insert_is_not_successful_enrollment ... FAILED
+test adding_an_asset_clause_to_an_existing_table_even_on_a_new_optional_field_refuses ... ok
+test a_rewritten_namespace_insert_is_not_successful_enrollment ... FAILED
+test adding_an_optional_non_asset_field_and_a_wholly_new_asset_table_preserves_enrollment ... FAILED
+test an_unbound_manifest_cannot_remove_prior_asset_associations ... ok
+test an_after_insert_rewrite_cannot_hide_behind_returning_values ... ok
+test an_unbound_open_rechecks_that_application_schema_recording_created_no_upload_metadata ... ok
+test application_schema_recording_cannot_rewrite_the_enrolled_namespace_after_validation ... ok
+test changed_base_declaration_refuses_before_an_additive_application_column_is_applied ... ok
+test changed_binding_identity_refuses_before_additive_application_ddl ... ok
+test deferred_schema_recording_cannot_rewrite_namespace_after_the_final_metadata_check ... ok
+test failed_application_ddl_rolls_back_namespace_rows_but_keeps_the_storage_reservation ... FAILED
+test every_asset_platform_relation_name_is_reserved_before_connecting_and_a_neighbor_is_ordinary ... ok
+test fresh_namespace_and_immutable_metadata_commit_then_reopen_uses_the_recorded_namespace ... FAILED
+test missing_enrollment_rows_cannot_erase_recorded_asset_history_for_an_unbound_open ... ok
+test missing_existing_marker_or_a_different_storage_root_refuses_without_schema_changes ... ok
+test old_structural_reference_data_is_not_implicitly_enrolled_as_public_upload_authority ... ok
+test suppressed_namespace_or_binding_insertion_refuses_and_rolls_back_the_metadata_transaction ... ok
+
+failures:
+
+---- a_bound_open_cannot_erase_recorded_associations_after_all_authority_maps_are_lost stdout ----
+
+thread 'a_bound_open_cannot_erase_recorded_associations_after_all_authority_maps_are_lost' (2844909) panicked at runtime/pw-table-postgres/tests/asset_enrollment.rs:643:5:
+assertion `left == right` failed: history refusal precedes fresh namespace enrollment
+  left: 0
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- a_bound_open_cannot_erase_a_recorded_association_after_partial_binding_loss stdout ----
+
+thread 'a_bound_open_cannot_erase_a_recorded_association_after_partial_binding_loss' (2844908) panicked at runtime/pw-table-postgres/tests/asset_enrollment.rs:643:5:
+assertion `left == right` failed: history refusal precedes fresh namespace enrollment
+  left: 0
+ right: 1
+
+---- a_rewritten_declaration_insert_is_not_successful_enrollment stdout ----
+
+thread 'a_rewritten_declaration_insert_is_not_successful_enrollment' (2844935) panicked at runtime/pw-table-postgres/tests/asset_enrollment.rs:475:5:
+known rollback retains the physical reservation
+
+---- a_rewritten_binding_insert_is_not_successful_enrollment stdout ----
+
+thread 'a_rewritten_binding_insert_is_not_successful_enrollment' (2844934) panicked at runtime/pw-table-postgres/tests/asset_enrollment.rs:475:5:
+known rollback retains the physical reservation
+
+---- a_rewritten_namespace_insert_is_not_successful_enrollment stdout ----
+
+thread 'a_rewritten_namespace_insert_is_not_successful_enrollment' (2844968) panicked at runtime/pw-table-postgres/tests/asset_enrollment.rs:475:5:
+known rollback retains the physical reservation
+
+---- adding_an_optional_non_asset_field_and_a_wholly_new_asset_table_preserves_enrollment stdout ----
+
+thread 'adding_an_optional_non_asset_field_and_a_wholly_new_asset_table_preserves_enrollment' (2844992) panicked at runtime/pw-table-postgres/tests/../../pw-table-memory/tests/support/assert_result.rs:12:9:
+safe additive migration
+
+---- failed_application_ddl_rolls_back_namespace_rows_but_keeps_the_storage_reservation stdout ----
+
+thread 'failed_application_ddl_rolls_back_namespace_rows_but_keeps_the_storage_reservation' (2845111) panicked at runtime/pw-table-postgres/tests/asset_enrollment.rs:309:5:
+storage enrollment precedes application DDL/commit
+
+---- fresh_namespace_and_immutable_metadata_commit_then_reopen_uses_the_recorded_namespace stdout ----
+
+thread 'fresh_namespace_and_immutable_metadata_commit_then_reopen_uses_the_recorded_namespace' (2845118) panicked at runtime/pw-table-postgres/tests/../../pw-table-memory/tests/support/assert_result.rs:12:9:
+existing enrollment
+
+
+failures:
+    a_bound_open_cannot_erase_a_recorded_association_after_partial_binding_loss
+    a_bound_open_cannot_erase_recorded_associations_after_all_authority_maps_are_lost
+    a_rewritten_binding_insert_is_not_successful_enrollment
+    a_rewritten_declaration_insert_is_not_successful_enrollment
+    a_rewritten_namespace_insert_is_not_successful_enrollment
+    adding_an_optional_non_asset_field_and_a_wholly_new_asset_table_preserves_enrollment
+    failed_application_ddl_rolls_back_namespace_rows_but_keeps_the_storage_reservation
+    fresh_namespace_and_immutable_metadata_commit_then_reopen_uses_the_recorded_namespace
+
+test result: FAILED. 13 passed; 8 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.78s
+
+error: test failed, to rerun pass `-p pw-table-postgres --test asset_enrollment`

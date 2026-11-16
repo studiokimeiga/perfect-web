@@ -2039,6 +2039,17 @@ impl Server {
         // from the uploads' leases, in the post's own transaction.
         if let Some(leases) = uploads.leases() {
             data.uploaded_by(leases);
+            if data.tables().and_then(|tables| tables.uploads()).is_some() {
+                let layer = Arc::downgrade(&data);
+                uploads.generations_by(Box::new(move |declaration, key, kind| {
+                    layer.upgrade().ok_or("the data layer is gone")?.read_asset(
+                        declaration,
+                        key,
+                        kind,
+                    )
+                }))?;
+            }
+
             // And it says which blobs its committed rows name (ADR-0261):
             // the uploads serve no other. Held weakly, since the layer holds
             // the leases.
@@ -5870,19 +5881,26 @@ impl Server {
             .component
             .as_ref()
             .ok_or_else(|| format!("`{component_id}` has no export path"))?;
-        if export.authorization.is_empty() {
-            return Ok(());
-        }
-        let _granted = self.authorise(component_id)?;
+        let granted = self.authorise(component_id)?;
         let prepared = &self
             .components
             .get(component_id)
             .ok_or_else(|| format!("no compiled component `{component_id}`"))?
             .prepared;
-        let predicates = self.program_predicates(contract)?;
         let caller = self.invocation_caller(session);
         let empty = pw_host::tables::Manifest::from_json(r#"{"tables":[]}"#)?;
         let manifest = self.data.tables().unwrap_or(&empty);
+        if export.authorization.is_empty() {
+            return prepared.admit_with_tables_as(
+                contract,
+                &granted,
+                manifest,
+                &caller,
+                &[&export.interface, &export.function],
+                args,
+            );
+        }
+        let predicates = self.program_predicates(contract)?;
         self.with_query_ops(session, None, |host, tables| {
             let call = TableCall {
                 manifest,
@@ -5892,6 +5910,7 @@ impl Server {
             prepared
                 .authorize_with_tables_as(
                     contract,
+                    &granted,
                     &Self::invocation_limits(),
                     host,
                     &call,
@@ -19096,6 +19115,7 @@ public query Store(",
 
     // The canonical protected-app migration: generic authority seams.
     mod protected_migration;
+    mod upload_generations;
 
     // TRACK SEAM (device-store): a page that holds a value the device keeps,
     // served (ADR-0366).

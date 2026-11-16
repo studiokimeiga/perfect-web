@@ -1,0 +1,44 @@
+   Compiling pw-host v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-host)
+   Compiling pw-table-memory v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-memory)
+    Finished `test` profile [unoptimized] target(s) in 4.11s
+     Running tests/asset_rows.rs (target/debug/deps/asset_rows-fa17c719bd2e7d03)
+
+running 4 tests
+test plain_stale_and_changed_refs_refuse_the_whole_row_transaction ... FAILED
+test ignored_publication_and_captured_old_collection_do_not_serve_or_remove_new_bytes ... FAILED
+test rejected_writes_and_final_moves_cannot_drift_reference_counts ... FAILED
+test upload_rows_and_registry_publish_together_and_dropped_preparation_publishes_neither ... FAILED
+
+failures:
+
+---- plain_stale_and_changed_refs_refuse_the_whole_row_transaction stdout ----
+
+thread 'plain_stale_and_changed_refs_refuse_the_whole_row_transaction' (2617886) panicked at runtime/pw-table-memory/tests/support/assert_result.rs:12:9:
+explicit upload-bound adapter
+
+---- ignored_publication_and_captured_old_collection_do_not_serve_or_remove_new_bytes stdout ----
+
+thread 'ignored_publication_and_captured_old_collection_do_not_serve_or_remove_new_bytes' (2617885) panicked at runtime/pw-table-memory/tests/support/assert_result.rs:12:9:
+explicit upload-bound adapter
+
+---- rejected_writes_and_final_moves_cannot_drift_reference_counts stdout ----
+
+thread 'rejected_writes_and_final_moves_cannot_drift_reference_counts' (2617887) panicked at runtime/pw-table-memory/tests/support/assert_result.rs:12:9:
+explicit upload-bound adapter
+
+---- upload_rows_and_registry_publish_together_and_dropped_preparation_publishes_neither stdout ----
+
+thread 'upload_rows_and_registry_publish_together_and_dropped_preparation_publishes_neither' (2617888) panicked at runtime/pw-table-memory/tests/support/assert_result.rs:12:9:
+explicit upload-bound adapter
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    ignored_publication_and_captured_old_collection_do_not_serve_or_remove_new_bytes
+    plain_stale_and_changed_refs_refuse_the_whole_row_transaction
+    rejected_writes_and_final_moves_cannot_drift_reference_counts
+    upload_rows_and_registry_publish_together_and_dropped_preparation_publishes_neither
+
+test result: FAILED. 0 passed; 4 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+error: test failed, to rerun pass `-p pw-table-memory --test asset_rows`

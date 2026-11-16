@@ -2,6 +2,37 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**L5a, declared uploads to their claim bridge, 2026-11-16:** on L4
+(`7b8fb7cc`), the fifth train of the declared data layer's landing, its
+first part (`wip/l5-uploads`): the integration branch's forty-two commits
+after `ff57edc7`, to `64f03ec9`, ADR-0440's fourth prerequisite short of its
+claim bridge. An upload is declared in a module of its name (`upload
+PostImage`, its route, kinds and bounds), a table that keeps one says so
+(`asset image from PostImage`), and its reference is a closed, payload-free
+case on the canonical column encoding; the runtime binds each compiled
+upload import before any resource callback and admits a table root only on
+both grant axes; reference counts are kept per declaration in the memory
+layer's row transactions; generations live in enrolled, immutable storage;
+PostgreSQL enrolls the namespace and immutable metadata before any row (the
+platform's migration 0005) and commits references and storage under
+lifetime exclusion; and the generic handler serves a current generation
+through a verified read (404 with no current reference, 503 for a live one
+missing, before 304). Staging keeps one lease per session and declaration,
+bound to its reader. A compiled program's upload imports stay unbound, so
+one that claims an upload is refused before any callback: the claim bridge
+(`018fad14`, L5b) binds them. The merge's five conflicts: the platform's
+migrations (L3's `0004_outbox_removals_marked` landed first, so L5's
+`0004_upload_generations` is `0005_upload_generations`, and the three tests
+that list or count the platform's migrations say five), their test, the
+row-ownership script's test list (both sides'), STATUS (master's kept) and
+the docs (the integration branch's 508 lines on the unnumbered decision
+moved into ADR-0440, before L3's landing, its typos mended). What git did
+not show: 70 tests whose programs predate L2's and L3's rules, each table a
+reader's command writes now `written by anyone` (PW6920) and each such
+command `requires Anyone` (PW0367). At the merge the workspace's 4,438
+tests pass on PostgreSQL 18.6 (26 ignored), and every mutation anchor
+matches once (6,253).
+
 **L4, bounded reads, 2026-11-16:** on L3 (`f375b92d`), the fourth train
 of the declared data layer's landing (`wip/l4-bounded`): the integration
 branch's seventeen commits after `2e2ef45b`, to `ff57edc7`, ADR-0440's

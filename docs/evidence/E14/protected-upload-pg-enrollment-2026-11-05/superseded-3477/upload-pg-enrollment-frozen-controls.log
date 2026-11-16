@@ -1,0 +1,12 @@
+baseline 12 native assertions, complete inventories
+KILLED 1/10: upload enrollment accepts unbound removal of persisted upload metadata; 10 pass/1 fail
+KILLED 2/10: upload enrollment accepts changed immutable base declarations; 10 pass/1 fail
+KILLED 3/10: upload enrollment accepts changed immutable field associations; 10 pass/1 fail
+KILLED 4/10: upload enrollment enrolls structural references on existing tables; 9 pass/2 fail
+KILLED 5/10: upload enrollment does not verify existing namespace markers; 10 pass/1 fail
+KILLED 6/10: upload enrollment commits fresh namespace rows without storage enrollment; 8 pass/3 fail
+KILLED 7/10: upload enrollment accepts suppressed metadata inserts; 10 pass/1 fail
+KILLED 8/10: upload enrollment allows collisions with asset platform relation names; 10 pass/1 fail
+KILLED 9/10: upload enrollment enables unfinished command lifetimes after enrollment alone; 10 pass/1 fail
+KILLED 10/10: closed cases PostgreSQL serves assets without a binding; 0 pass/1 fail
+10/10 killed; no invalid or stopped producer

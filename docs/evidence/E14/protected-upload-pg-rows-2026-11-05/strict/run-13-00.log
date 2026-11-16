@@ -1,0 +1,186 @@
+
+running 34 tests
+test a_missing_real_receipt_refuses_before_keep_and_rolls_back_rows_and_registry ... ok
+test a_waiting_namespace_lock_cannot_freeze_the_commands_first_snapshot_before_the_previous_commit ... ok
+test actual_generation_descriptors_are_verified_before_keep ... ok
+test actual_reference_counts_are_verified_before_keep ... FAILED
+test actual_row_asset_fields_are_verified_before_keep ... ok
+test actual_upload_receipt_answer_cannot_be_rewritten ... ok
+test actual_upload_receipt_cannot_be_removed_by_an_immediate_hook ... ok
+test actual_upload_receipt_instant_cannot_be_rewritten ... ok
+test a_fresh_unknown_commit_keeps_its_bytes_and_durable_record_without_guessing_rollback ... FAILED
+test actual_upload_receipt_is_verified_after_deferred_hooks_before_commit ... FAILED
+test actual_upload_receipt_is_verified_after_outbox_hooks_before_keep ... ok
+test actual_upload_receipt_key_cannot_be_rewritten ... ok
+test actual_upload_receipt_sent_cannot_be_rewritten ... ok
+test application_schema_migration_waits_on_the_same_namespace_before_ddl ... ok
+test authoritative_reads_require_current_own_refs_and_distinguish_missing_live_storage_from_no_ref ... FAILED
+test backend_death_after_committed_no_ref_check_cannot_make_old_collection_remove_new_same_hash_bytes ... FAILED
+test changing_one_generation_preserves_unrelated_live_descriptors_counts_and_bytes ... FAILED
+test declarations_share_live_bytes_only_after_independent_publication_and_keep_current_counts_separate ... FAILED
+test deferred_receipt_hooks_finish_before_final_registry_verification_and_commit ... FAILED
+test final_moves_and_repeated_replacement_do_not_retire_live_bytes_or_use_transient_publications ... FAILED
+test fresh_publication_keeps_bytes_and_commits_registry_rows_and_actual_receipt_together ... FAILED
+test ignored_publication_and_rejected_row_do_not_keep_or_settle_untouched_old_uses ... FAILED
+test keep_failure_rolls_back_and_collection_failure_preserves_applied_ack_and_a_durable_job ... FAILED
+test an_actual_applied_commit_with_a_lost_answer_reports_unknown_and_does_no_collection ... FAILED
+test late_receipt_hooks_cannot_change_registry_counts_after_prepare ... FAILED
+test late_receipt_hooks_cannot_change_row_asset_fields_after_prepare ... ok
+test namespace_waiters_hold_no_host_turn_and_begin_no_command_snapshot_before_exclusion ... ok
+test plain_changed_and_retired_refs_cannot_create_authority_but_a_current_ref_can_be_copied ... FAILED
+test prefix_deletion_uses_actual_removed_keys_and_nul_string_keys_remain_indexable ... FAILED
+test preparing_one_asset_key_returns_no_unrelated_rows_or_non_asset_payload ... FAILED
+test reinserted_collection_completion_is_not_counted_as_done_and_preserves_applied_ack ... FAILED
+test the_final_session_clock_fence_runs_after_blocking_keep_on_the_same_single_connection ... FAILED
+test suppressed_collection_completion_leaves_a_retryable_job_and_never_refuses_the_applied_command ... FAILED
+test two_genuine_cleanup_jobs_obey_zero_one_and_two_limits_and_complete_only_captured_jobs ... FAILED
+
+failures:
+
+---- actual_reference_counts_are_verified_before_keep stdout ----
+
+thread 'actual_reference_counts_are_verified_before_keep' (3031288) panicked at runtime/pw-table-postgres/tests/asset_rows.rs:440:5:
+count rewrite (late=false) must not commit inconsistent rows/registry: Ok(Committed { written: {"Assets": 1}, outbox: [] })
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- a_fresh_unknown_commit_keeps_its_bytes_and_durable_record_without_guessing_rollback stdout ----
+
+thread 'a_fresh_unknown_commit_keeps_its_bytes_and_durable_record_without_guessing_rollback' (3031219) panicked at runtime/pw-table-postgres/tests/asset_rows.rs:1149:5:
+assertion `left == right` failed
+  left: ["tombstone"]
+ right: ["live"]
+
+---- actual_upload_receipt_is_verified_after_deferred_hooks_before_commit stdout ----
+
+thread 'actual_upload_receipt_is_verified_after_deferred_hooks_before_commit' (3031356) panicked at runtime/pw-table-postgres/tests/asset_rows.rs:1680:5:
+assertion `left == right` failed: immediate receipt/outbox hooks refuse before keep; deferred hooks refuse after keep and before COMMIT
+  left: 0
+ right: 1
+
+---- authoritative_reads_require_current_own_refs_and_distinguish_missing_live_storage_from_no_ref stdout ----
+
+thread 'authoritative_reads_require_current_own_refs_and_distinguish_missing_live_storage_from_no_ref' (3031441) panicked at runtime/pw-table-postgres/tests/asset_rows.rs:1281:5:
+assertion `left == right` failed
+  left: None
+ right: Some((Descriptor { reference: Reference { key: "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", generation: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", kind: "png", width: 6, height: 4 }, bytes: 3 }, [97, 98, 99]))
+
+---- backend_death_after_committed_no_ref_check_cannot_make_old_collection_remove_new_same_hash_bytes stdout ----
+
+thread 'backend_death_after_committed_no_ref_check_cannot_make_old_collection_remove_new_same_hash_bytes' (3031446) panicked at runtime/pw-table-postgres/tests/../../pw-table-memory/tests/support/assert_result.rs:12:9:
+A prepared
+
+---- changing_one_generation_preserves_unrelated_live_descriptors_counts_and_bytes stdout ----
+
+thread 'changing_one_generation_preserves_unrelated_live_descriptors_counts_and_bytes' (3031453) panicked at runtime/pw-table-postgres/tests/../../pw-table-memory/tests/support/assert_result.rs:12:9:
+commit one last removal
+
+---- declarations_share_live_bytes_only_after_independent_publication_and_keep_current_counts_separate stdout ----
+
+thread 'declarations_share_live_bytes_only_after_independent_publication_and_keep_current_counts_separate' (3031458) panicked at runtime/pw-table-postgres/tests/asset_rows.rs:943:5:
+assertion `left == right` failed
+  left: Reference { key: "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", generation: "cccccccccccccccccccccccccccccccc", kind: "png", width: 6, height: 4 }
+ right: Reference { key: "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", generation: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", kind: "png", width: 6, height: 4 }
+
+---- deferred_receipt_hooks_finish_before_final_registry_verification_and_commit stdout ----
+
+thread 'deferred_receipt_hooks_finish_before_final_registry_verification_and_commit' (3031463) panicked at runtime/pw-table-postgres/tests/asset_rows.rs:440:5:
+deferred-count rewrite (late=true) must not commit inconsistent rows/registry: Ok(Committed { written: {"Assets": 1}, outbox: [] })
+
+---- final_moves_and_repeated_replacement_do_not_retire_live_bytes_or_use_transient_publications stdout ----
+
+thread 'final_moves_and_repeated_replacement_do_not_retire_live_bytes_or_use_transient_publications' (3031470) panicked at runtime/pw-table-postgres/tests/../../pw-table-memory/tests/support/assert_result.rs:12:9:
+final net move
+
+---- fresh_publication_keeps_bytes_and_commits_registry_rows_and_actual_receipt_together stdout ----
+
+thread 'fresh_publication_keeps_bytes_and_commits_registry_rows_and_actual_receipt_together' (3031498) panicked at runtime/pw-table-postgres/tests/asset_rows.rs:175:5:
+assertion `left == right` failed
+  left: 0
+ right: 1
+
+---- ignored_publication_and_rejected_row_do_not_keep_or_settle_untouched_old_uses stdout ----
+
+thread 'ignored_publication_and_rejected_row_do_not_keep_or_settle_untouched_old_uses' (3031503) panicked at runtime/pw-table-postgres/tests/asset_rows.rs:300:5:
+assertion `left == right` failed
+  left: Reference { key: "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", generation: "dddddddddddddddddddddddddddddddd", kind: "png", width: 6, height: 4 }
+ right: Reference { key: "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", generation: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", kind: "png", width: 6, height: 4 }
+
+---- keep_failure_rolls_back_and_collection_failure_preserves_applied_ack_and_a_durable_job stdout ----
+
+thread 'keep_failure_rolls_back_and_collection_failure_preserves_applied_ack_and_a_durable_job' (3031510) panicked at runtime/pw-table-postgres/tests/asset_rows.rs:337:5:
+assertion failed: c.prepare().assert_ok("prepare").publish_with(record("failed")).is_err()
+
+---- an_actual_applied_commit_with_a_lost_answer_reports_unknown_and_does_no_collection stdout ----
+
+thread 'an_actual_applied_commit_with_a_lost_answer_reports_unknown_and_does_no_collection' (3031406) panicked at runtime/pw-table-postgres/tests/../../pw-table-memory/tests/support/assert_result.rs:12:9:
+prepared removal
+
+---- late_receipt_hooks_cannot_change_registry_counts_after_prepare stdout ----
+
+thread 'late_receipt_hooks_cannot_change_registry_counts_after_prepare' (3031521) panicked at runtime/pw-table-postgres/tests/asset_rows.rs:440:5:
+count rewrite (late=true) must not commit inconsistent rows/registry: Ok(Committed { written: {"Assets": 1}, outbox: [] })
+
+---- plain_changed_and_retired_refs_cannot_create_authority_but_a_current_ref_can_be_copied stdout ----
+
+thread 'plain_changed_and_retired_refs_cannot_create_authority_but_a_current_ref_can_be_copied' (3031556) panicked at runtime/pw-table-postgres/tests/asset_rows.rs:255:5:
+assertion `left == right` failed
+  left: []
+ right: ["2"]
+
+---- prefix_deletion_uses_actual_removed_keys_and_nul_string_keys_remain_indexable stdout ----
+
+thread 'prefix_deletion_uses_actual_removed_keys_and_nul_string_keys_remain_indexable' (3031561) panicked at runtime/pw-table-postgres/tests/../../pw-table-memory/tests/support/assert_result.rs:12:9:
+prepare prefix
+
+---- preparing_one_asset_key_returns_no_unrelated_rows_or_non_asset_payload stdout ----
+
+thread 'preparing_one_asset_key_returns_no_unrelated_rows_or_non_asset_payload' (3031572) panicked at runtime/pw-table-postgres/tests/../../pw-table-memory/tests/support/assert_result.rs:12:9:
+prepare only scoped metadata
+
+---- reinserted_collection_completion_is_not_counted_as_done_and_preserves_applied_ack stdout ----
+
+thread 'reinserted_collection_completion_is_not_counted_as_done_and_preserves_applied_ack' (3031573) panicked at runtime/pw-table-postgres/tests/../../pw-table-memory/tests/support/assert_result.rs:12:9:
+prepare
+
+---- the_final_session_clock_fence_runs_after_blocking_keep_on_the_same_single_connection stdout ----
+
+thread 'the_final_session_clock_fence_runs_after_blocking_keep_on_the_same_single_connection' (3031592) panicked at runtime/pw-table-postgres/tests/asset_rows.rs:1224:5:
+expired session cannot commit after a slow physical keep: Ok(Committed { written: {"Assets": 1}, outbox: [] })
+
+---- suppressed_collection_completion_leaves_a_retryable_job_and_never_refuses_the_applied_command stdout ----
+
+thread 'suppressed_collection_completion_leaves_a_retryable_job_and_never_refuses_the_applied_command' (3031591) panicked at runtime/pw-table-postgres/tests/../../pw-table-memory/tests/support/assert_result.rs:12:9:
+prepare
+
+---- two_genuine_cleanup_jobs_obey_zero_one_and_two_limits_and_complete_only_captured_jobs stdout ----
+
+thread 'two_genuine_cleanup_jobs_obey_zero_one_and_two_limits_and_complete_only_captured_jobs' (3031605) panicked at runtime/pw-table-postgres/tests/../../pw-table-memory/tests/support/assert_result.rs:12:9:
+both tombstones/jobs commit despite cleanup failure
+
+
+failures:
+    a_fresh_unknown_commit_keeps_its_bytes_and_durable_record_without_guessing_rollback
+    actual_reference_counts_are_verified_before_keep
+    actual_upload_receipt_is_verified_after_deferred_hooks_before_commit
+    an_actual_applied_commit_with_a_lost_answer_reports_unknown_and_does_no_collection
+    authoritative_reads_require_current_own_refs_and_distinguish_missing_live_storage_from_no_ref
+    backend_death_after_committed_no_ref_check_cannot_make_old_collection_remove_new_same_hash_bytes
+    changing_one_generation_preserves_unrelated_live_descriptors_counts_and_bytes
+    declarations_share_live_bytes_only_after_independent_publication_and_keep_current_counts_separate
+    deferred_receipt_hooks_finish_before_final_registry_verification_and_commit
+    final_moves_and_repeated_replacement_do_not_retire_live_bytes_or_use_transient_publications
+    fresh_publication_keeps_bytes_and_commits_registry_rows_and_actual_receipt_together
+    ignored_publication_and_rejected_row_do_not_keep_or_settle_untouched_old_uses
+    keep_failure_rolls_back_and_collection_failure_preserves_applied_ack_and_a_durable_job
+    late_receipt_hooks_cannot_change_registry_counts_after_prepare
+    plain_changed_and_retired_refs_cannot_create_authority_but_a_current_ref_can_be_copied
+    prefix_deletion_uses_actual_removed_keys_and_nul_string_keys_remain_indexable
+    preparing_one_asset_key_returns_no_unrelated_rows_or_non_asset_payload
+    reinserted_collection_completion_is_not_counted_as_done_and_preserves_applied_ack
+    suppressed_collection_completion_leaves_a_retryable_job_and_never_refuses_the_applied_command
+    the_final_session_clock_fence_runs_after_blocking_keep_on_the_same_single_connection
+    two_genuine_cleanup_jobs_obey_zero_one_and_two_limits_and_complete_only_captured_jobs
+
+test result: FAILED. 13 passed; 21 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.89s
+
+error: test failed, to rerun pass `-p pw-table-postgres --test asset_rows`

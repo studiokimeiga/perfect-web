@@ -1,0 +1,19 @@
+
+running 1 test
+test reinserted_collection_completion_is_not_counted_as_done_and_preserves_applied_ack ... FAILED
+
+failures:
+
+---- reinserted_collection_completion_is_not_counted_as_done_and_preserves_applied_ack stdout ----
+
+thread 'reinserted_collection_completion_is_not_counted_as_done_and_preserves_applied_ack' (2987115) panicked at runtime/pw-table-postgres/tests/asset_rows.rs:1556:5:
+returned DELETE row alone cannot acknowledge a completion whose captured job remains
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    reinserted_collection_completion_is_not_counted_as_done_and_preserves_applied_ack
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 33 filtered out; finished in 0.28s
+
+error: test failed, to rerun pass `-p pw-table-postgres --test asset_rows`

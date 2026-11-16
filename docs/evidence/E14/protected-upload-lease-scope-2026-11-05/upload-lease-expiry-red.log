@@ -1,0 +1,48 @@
+
+running 10 tests
+test uploads::generic_lease_tests::claim_debug_never_prints_the_cookie_private_lease_id_or_private_image_key ... ok
+test uploads::generic_lease_tests::claimed_lease_survives_expiry_and_sweep_until_an_explicit_outcome ... FAILED
+test uploads::generic_lease_tests::expired_unclaimed_attachment_metadata_is_hidden_before_periodic_sweep ... FAILED
+test uploads::generic_lease_tests::expired_unclaimed_lease_cannot_be_acquired_before_periodic_sweep ... FAILED
+test uploads::generic_lease_tests::expired_unclaimed_private_preview_is_404_before_periodic_sweep ... FAILED
+test uploads::generic_lease_tests::explicit_attachment_and_claim_lookups_use_declaration_and_captured_reader_without_recapture ... ok
+test uploads::generic_lease_tests::identical_bytes_hold_one_staged_blob_until_both_declarations_release_their_own_lease ... ok
+test uploads::generic_lease_tests::explicit_claims_block_only_their_own_declarations_replacement_and_release ... ok
+test uploads::generic_lease_tests::private_preview_route_cannot_borrow_another_declarations_lease ... ok
+test uploads::generic_lease_tests::two_declarations_stage_and_replace_independently_for_one_session ... ok
+
+failures:
+
+---- uploads::generic_lease_tests::claimed_lease_survives_expiry_and_sweep_until_an_explicit_outcome stdout ----
+
+thread 'uploads::generic_lease_tests::claimed_lease_survives_expiry_and_sweep_until_an_explicit_outcome' (3061238) panicked at spikes/own-renderer/server/src/uploads/generic_lease_tests.rs:302:5:
+returned but expired lease is no longer shown
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- uploads::generic_lease_tests::expired_unclaimed_attachment_metadata_is_hidden_before_periodic_sweep stdout ----
+
+thread 'uploads::generic_lease_tests::expired_unclaimed_attachment_metadata_is_hidden_before_periodic_sweep' (3061242) panicked at spikes/own-renderer/server/src/uploads/generic_lease_tests.rs:241:5:
+elapsed lease is no private attachment authority
+
+---- uploads::generic_lease_tests::expired_unclaimed_lease_cannot_be_acquired_before_periodic_sweep stdout ----
+
+thread 'uploads::generic_lease_tests::expired_unclaimed_lease_cannot_be_acquired_before_periodic_sweep' (3061243) panicked at spikes/own-renderer/server/src/uploads/generic_lease_tests.rs:255:5:
+elapsed unclaimed lease cannot become a held claim
+
+---- uploads::generic_lease_tests::expired_unclaimed_private_preview_is_404_before_periodic_sweep stdout ----
+
+thread 'uploads::generic_lease_tests::expired_unclaimed_private_preview_is_404_before_periodic_sweep' (3061244) panicked at spikes/own-renderer/server/src/uploads/generic_lease_tests.rs:269:5:
+assertion `left == right` failed: expired bytes remain private even before physical sweep
+  left: 200
+ right: 404
+
+
+failures:
+    uploads::generic_lease_tests::claimed_lease_survives_expiry_and_sweep_until_an_explicit_outcome
+    uploads::generic_lease_tests::expired_unclaimed_attachment_metadata_is_hidden_before_periodic_sweep
+    uploads::generic_lease_tests::expired_unclaimed_lease_cannot_be_acquired_before_periodic_sweep
+    uploads::generic_lease_tests::expired_unclaimed_private_preview_is_404_before_periodic_sweep
+
+test result: FAILED. 6 passed; 4 failed; 0 ignored; 0 measured; 1015 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`

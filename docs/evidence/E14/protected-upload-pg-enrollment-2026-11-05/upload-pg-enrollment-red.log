@@ -1,0 +1,73 @@
+   Compiling pw-table-postgres v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-postgres)
+    Finished `test` profile [unoptimized] target(s) in 4.04s
+     Running tests/asset_enrollment.rs (target/debug/deps/asset_enrollment-df1910337ba18a10)
+
+running 8 tests
+test adding_an_optional_non_asset_field_and_a_wholly_new_asset_table_preserves_enrollment ... FAILED
+test adding_an_asset_clause_to_an_existing_table_even_on_a_new_optional_field_refuses ... FAILED
+test an_unbound_manifest_cannot_remove_prior_asset_associations ... FAILED
+test changed_base_declaration_refuses_before_an_additive_application_column_is_applied ... FAILED
+test fresh_namespace_and_immutable_metadata_commit_then_reopen_uses_the_recorded_namespace ... FAILED
+test failed_application_ddl_rolls_back_namespace_rows_but_keeps_the_storage_reservation ... FAILED
+test missing_existing_marker_or_a_different_storage_root_refuses_without_schema_changes ... FAILED
+test old_structural_reference_data_is_not_implicitly_enrolled_as_public_upload_authority ... FAILED
+
+failures:
+
+---- adding_an_optional_non_asset_field_and_a_wholly_new_asset_table_preserves_enrollment stdout ----
+
+thread 'adding_an_optional_non_asset_field_and_a_wholly_new_asset_table_preserves_enrollment' (2765921) panicked at runtime/pw-table-postgres/tests/../../pw-table-memory/tests/support/assert_result.rs:12:9:
+fresh
+
+---- adding_an_asset_clause_to_an_existing_table_even_on_a_new_optional_field_refuses stdout ----
+
+thread 'adding_an_asset_clause_to_an_existing_table_even_on_a_new_optional_field_refuses' (2765920) panicked at runtime/pw-table-postgres/tests/../../pw-table-memory/tests/support/assert_result.rs:12:9:
+fresh
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- an_unbound_manifest_cannot_remove_prior_asset_associations stdout ----
+
+thread 'an_unbound_manifest_cannot_remove_prior_asset_associations' (2765926) panicked at runtime/pw-table-postgres/tests/../../pw-table-memory/tests/support/assert_result.rs:12:9:
+fresh
+
+---- changed_base_declaration_refuses_before_an_additive_application_column_is_applied stdout ----
+
+thread 'changed_base_declaration_refuses_before_an_additive_application_column_is_applied' (2765927) panicked at runtime/pw-table-postgres/tests/../../pw-table-memory/tests/support/assert_result.rs:12:9:
+fresh
+
+---- fresh_namespace_and_immutable_metadata_commit_then_reopen_uses_the_recorded_namespace stdout ----
+
+thread 'fresh_namespace_and_immutable_metadata_commit_then_reopen_uses_the_recorded_namespace' (2765935) panicked at runtime/pw-table-postgres/tests/../../pw-table-memory/tests/support/assert_result.rs:12:9:
+fresh enrollment
+
+---- failed_application_ddl_rolls_back_namespace_rows_but_keeps_the_storage_reservation stdout ----
+
+thread 'failed_application_ddl_rolls_back_namespace_rows_but_keeps_the_storage_reservation' (2765932) panicked at runtime/pw-table-postgres/tests/asset_enrollment.rs:305:5:
+storage enrollment precedes application DDL/commit
+
+---- missing_existing_marker_or_a_different_storage_root_refuses_without_schema_changes stdout ----
+
+thread 'missing_existing_marker_or_a_different_storage_root_refuses_without_schema_changes' (2765940) panicked at runtime/pw-table-postgres/tests/../../pw-table-memory/tests/support/assert_result.rs:12:9:
+fresh
+
+---- old_structural_reference_data_is_not_implicitly_enrolled_as_public_upload_authority stdout ----
+
+thread 'old_structural_reference_data_is_not_implicitly_enrolled_as_public_upload_authority' (2765941) panicked at runtime/pw-table-postgres/tests/asset_enrollment.rs:286:5:
+assertion `left == right` failed
+  left: ["error: db error"]
+ right: ["0"]
+
+
+failures:
+    adding_an_asset_clause_to_an_existing_table_even_on_a_new_optional_field_refuses
+    adding_an_optional_non_asset_field_and_a_wholly_new_asset_table_preserves_enrollment
+    an_unbound_manifest_cannot_remove_prior_asset_associations
+    changed_base_declaration_refuses_before_an_additive_application_column_is_applied
+    failed_application_ddl_rolls_back_namespace_rows_but_keeps_the_storage_reservation
+    fresh_namespace_and_immutable_metadata_commit_then_reopen_uses_the_recorded_namespace
+    missing_existing_marker_or_a_different_storage_root_refuses_without_schema_changes
+    old_structural_reference_data_is_not_implicitly_enrolled_as_public_upload_authority
+
+test result: FAILED. 0 passed; 8 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.85s
+
+error: test failed, to rerun pass `-p pw-table-postgres --test asset_enrollment`

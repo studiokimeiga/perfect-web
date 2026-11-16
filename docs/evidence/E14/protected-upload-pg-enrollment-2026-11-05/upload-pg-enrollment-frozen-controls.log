@@ -1,0 +1,15 @@
+baseline 22 native assertions, complete inventories
+KILLED 1/13: upload enrollment verifies metadata before deferred schema hooks finish; 20 pass/1 fail
+KILLED 2/13: upload enrollment erases asset history after metadata loss; 19 pass/2 fail
+KILLED 3/13: upload enrollment accepts rewritten persisted metadata after schema recording; 14 pass/7 fail
+KILLED 4/13: upload enrollment skips final metadata verification for unbound manifests; 20 pass/1 fail
+KILLED 5/13: upload enrollment accepts changed immutable base declarations; 20 pass/1 fail
+KILLED 6/13: upload enrollment accepts changed immutable field associations; 20 pass/1 fail
+KILLED 7/13: upload enrollment enrolls structural references on existing tables; 19 pass/2 fail
+KILLED 8/13: upload enrollment does not verify existing namespace markers; 20 pass/1 fail
+KILLED 9/13: upload enrollment commits fresh namespace rows without storage enrollment; 13 pass/8 fail
+KILLED 10/13: upload enrollment accepts suppressed metadata inserts; 20 pass/1 fail
+KILLED 11/13: upload enrollment allows collisions with asset platform relation names; 20 pass/1 fail
+KILLED 12/13: upload enrollment enables unfinished command lifetimes after enrollment alone; 20 pass/1 fail
+KILLED 13/13: closed cases PostgreSQL serves assets without a binding; 0 pass/1 fail
+13/13 killed; no invalid or stopped producer

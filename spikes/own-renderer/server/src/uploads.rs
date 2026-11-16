@@ -34,6 +34,8 @@
 //! key, with the type sniffed from its bytes, `nosniff`, a sandbox, and kept
 //! forever by any cache, since what a key names never changes.
 
+#[cfg(test)]
+mod generic_lease_tests;
 pub(crate) mod icc;
 pub(crate) mod multipart;
 mod png_state;
@@ -107,18 +109,34 @@ struct Lease {
     claimed: bool,
 }
 
+impl Lease {
+    fn live(&self, lease_for: Duration) -> bool {
+        self.claimed || self.made.elapsed() < lease_for
+    }
+}
+
 /// **A lease a command claimed**: what its post keeps of it. Not `Clone`:
 /// a claim is ended once, by [`Shared::committed`], [`Shared::discarded`]
 /// or [`Shared::unclaim`], each taking it.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(PartialEq, Eq)]
 #[must_use = "a claim is committed, discarded or given back"]
 pub(crate) struct Claimed {
+    pub declaration: String,
+    pub reader: crate::identity::ReaderIdentity,
     pub session: String,
     pub id: String,
     pub key: BlobKey,
     pub kind: Kind,
     pub width: u32,
     pub height: u32,
+}
+
+impl std::fmt::Debug for Claimed {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Claimed")
+            .field("declaration", &self.declaration)
+            .finish_non_exhaustive()
+    }
 }
 
 /// A prepared blob owns one provisional reference and capacity charge while
@@ -150,10 +168,15 @@ pub(crate) struct Shown {
     pub height: u32,
 }
 
+type LeaseKey = (String, String);
+fn lease_key(session: &str, declaration: &str) -> LeaseKey {
+    (session.to_string(), declaration.to_string())
+}
+
 #[derive(Default)]
 struct State {
-    /// One lease a session.
-    leases: BTreeMap<String, Lease>,
+    /// One independent lease per session and actual declaration.
+    leases: BTreeMap<LeaseKey, Lease>,
     /// How many leases hold each staged blob: the same bytes from two
     /// sessions are one blob.
     holds: BTreeMap<BlobKey, u32>,
@@ -188,6 +211,9 @@ pub(crate) struct Shared {
     /// layer's answer, handed once: a blob is served only while one does.
     /// None handed, none is served.
     named: std::sync::OnceLock<Named>,
+    /// The bound generic adapter resolves same-declaration LIVE authority and
+    /// verifies all bytes under its storage lifetime before returning them.
+    generations: std::sync::OnceLock<Generations>,
 }
 
 /// **The leases, as the feed's data layer holds them.**
@@ -196,6 +222,11 @@ pub(crate) type Leases = Arc<Shared>;
 /// **Whether a committed row names the blob with this key** (ADR-0261), as
 /// the data layer answers it.
 pub(crate) type Named = Box<dyn Fn(&str) -> Result<bool, String> + Send + Sync>;
+pub(crate) type Generations = Box<
+    dyn Fn(&str, &str, &str) -> Result<Option<(pw_host::assets::Descriptor, Vec<u8>)>, String>
+        + Send
+        + Sync,
+>;
 
 impl std::fmt::Debug for Shared {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -318,6 +349,7 @@ impl Uploads {
                 lease_for,
                 principals: std::sync::OnceLock::new(),
                 named: std::sync::OnceLock::new(),
+                generations: std::sync::OnceLock::new(),
             })),
         }
     }
@@ -367,6 +399,17 @@ impl Uploads {
         if let Some(shared) = &self.shared {
             let _ = shared.named.set(named);
         }
+    }
+
+    /// Supply the bound adapter's authoritative public-asset reader once,
+    /// before serving any request. Every response, including 304, uses it.
+    pub(crate) fn generations_by(&self, read: Generations) -> Result<(), String> {
+        self.shared
+            .as_ref()
+            .ok_or("no uploads are declared")?
+            .generations
+            .set(read)
+            .map_err(|_| "upload generation reader is already bound".into())
     }
 
     pub(crate) fn leases(&self) -> Option<Leases> {
@@ -613,10 +656,10 @@ impl Shared {
         }
         for d in &self.declared {
             if let Some(name) = under(route, &d.serves) {
-                return self.serve(name, headers);
+                return self.serve(d, name, headers);
             }
             if let Some(id) = under(route, &d.route) {
-                return self.preview(id, session);
+                return self.preview(d, id, session);
             }
         }
         Answer::text(404, "not found")
@@ -776,6 +819,7 @@ impl Shared {
     ) -> Result<(), LeaseRefusal> {
         // Body reads and rewriting hold no gate. Local publication shares the
         // existing gate-before-state order with open/close and command claims.
+        let lease_key = lease_key(session, &declared.name);
         let local = self.principals.get().is_none_or(|p| p.kept().is_none());
         let gate = self
             .principals
@@ -797,7 +841,7 @@ impl Shared {
         let (key, previous) = {
             let mut state = self.state.lock().expect("uploads");
             self.sweep(&mut state);
-            if state.leases.get(session).is_some_and(|l| l.claimed) {
+            if state.leases.get(&lease_key).is_some_and(|l| l.claimed) {
                 return Err((409, "The image attached before is being posted.", None));
             }
             Self::budget(&mut state, &user, size, declared)?;
@@ -810,7 +854,7 @@ impl Shared {
                     None,
                 ));
             }
-            let previous = state.leases.get(session).map(|lease| lease.id.clone());
+            let previous = state.leases.get(&lease_key).map(|lease| lease.id.clone());
             let key = self
                 .staged
                 .put(bytes)
@@ -839,8 +883,11 @@ impl Shared {
         if local && !self.reader_current(session, reader) {
             return Err((403, "Your session changed. Open the page again.", None));
         }
-        if state.leases.get(session).map(|lease| &lease.id) != previous.as_ref()
-            || state.leases.get(session).is_some_and(|lease| lease.claimed)
+        if state.leases.get(&lease_key).map(|lease| &lease.id) != previous.as_ref()
+            || state
+                .leases
+                .get(&lease_key)
+                .is_some_and(|lease| lease.claimed)
         {
             return Err((
                 409,
@@ -849,7 +896,7 @@ impl Shared {
             ));
         }
         Self::budget(&mut state, &user, size, declared)?;
-        if let Some(old) = state.leases.remove(session) {
+        if let Some(old) = state.leases.remove(&lease_key) {
             self.end(&mut state, old);
         }
         state.next += 1;
@@ -860,7 +907,7 @@ impl Shared {
             .or_default()
             .push_back((Instant::now(), size));
         state.leases.insert(
-            session.to_string(),
+            lease_key,
             Lease {
                 reader: reader.clone(),
                 id,
@@ -927,7 +974,7 @@ impl Shared {
     /// Every lease whose time is up and that nothing claims, ended.
     fn sweep(&self, state: &mut State) {
         let now = Instant::now();
-        let over: Vec<String> = state
+        let over: Vec<LeaseKey> = state
             .leases
             .iter()
             .filter(|(_, l)| !l.claimed && now.duration_since(l.made) >= self.lease_for)
@@ -942,13 +989,43 @@ impl Shared {
 
     /// **A committed image**, `<key>.<kind>`, from the deployment's blob
     /// storage, its type sniffed from its bytes again as it is served.
-    fn serve(&self, name: &str, headers: &str) -> Answer {
+    fn serve(&self, declared: &Declared, name: &str, headers: &str) -> Answer {
         let Some((key, ext)) = name
             .split_once('.')
             .and_then(|(hex, ext)| Some((BlobKey::parse(hex)?, ext)))
         else {
             return Answer::text(404, "not found");
         };
+        if let Some(read) = self.generations.get() {
+            let (descriptor, bytes) = match read(&declared.name, key.hex(), ext) {
+                Ok(Some(asset)) => asset,
+                Ok(None) => return Answer::text(404, "not found"),
+                Err(why) => {
+                    eprintln!("pw dev server: reading a current upload generation: {why}");
+                    return Answer::text(503, "unavailable");
+                }
+            };
+            // Freeze and check every returned byte before consulting a cache
+            // validator. A LIVE descriptor with missing/corrupt bytes is 503.
+            let measured = sniff::measure(&bytes);
+            let valid = descriptor.reference.key == key.hex()
+                && descriptor.reference.kind == ext
+                && bytes.len() as u64 == descriptor.bytes
+                && BlobKey::of(&bytes) == key
+                && measured.as_ref().is_ok_and(|m| {
+                    m.kind.word() == ext
+                        && m.width == descriptor.reference.width
+                        && m.height == descriptor.reference.height
+                });
+            if !valid {
+                return Answer::text(503, "unavailable");
+            }
+            let measured = match measured {
+                Ok(m) => m,
+                Err(_) => unreachable!(),
+            };
+            return Self::image_answer(key, measured.kind, bytes, headers);
+        }
         // **Served while a committed row names it** (ADR-0261): a deleted
         // post's image is not, whether or not its bytes are collected yet,
         // and a layer that cannot say is not taken to say yes.
@@ -967,6 +1044,10 @@ impl Shared {
         let Some((kind, bytes)) = found else {
             return Answer::text(404, "not found");
         };
+        Self::image_answer(key, kind, bytes, headers)
+    }
+
+    fn image_answer(key: BlobKey, kind: Kind, bytes: Vec<u8>, headers: &str) -> Answer {
         let etag = format!("\"{}\"", key.hex());
         let not_modified = header(headers, "if-none-match")
             .is_some_and(|v| v.split(',').any(|t| t.trim() == etag || t.trim() == "*"));
@@ -992,14 +1073,15 @@ impl Shared {
 
     /// **A session's own lease**, shown to it before it posts: kept by no
     /// cache, and to no other session.
-    fn preview(&self, id: &str, session: &str) -> Answer {
+    fn preview(&self, declared: &Declared, id: &str, session: &str) -> Answer {
         let reader = self.reader(session);
         let lease = {
             let state = self.state.lock().expect("uploads");
             state
                 .leases
-                .get(session)
+                .get(&lease_key(session, &declared.name))
                 .filter(|l| l.id == id && l.reader == reader)
+                .filter(|l| l.live(self.lease_for))
                 .map(|l| (l.key.clone(), l.kind))
         };
         let Some((key, kind)) = lease else {
@@ -1017,34 +1099,62 @@ impl Shared {
 
     // ---- What a command's transaction asks of the leases. ----
 
-    /// **What `session` has leased**, as its page shows it.
+    /// Legacy callers select the program's first declaration. Generic resource
+    /// callbacks select an admitted actual declaration explicitly below.
     pub(crate) fn shown(&self, session: &str) -> Option<Shown> {
-        let reader = self.reader(session);
+        self.shown_for(session, &self.declared.first()?.name, &self.reader(session))
+    }
+
+    /// Offline immutable-reader lookup. The caller retains its invocation's
+    /// authority/final fence; this acquires no second database connection.
+    pub(crate) fn shown_for(
+        &self,
+        session: &str,
+        declaration: &str,
+        reader: &crate::identity::ReaderIdentity,
+    ) -> Option<Shown> {
+        let declared = self.declared.iter().find(|d| d.name == declaration)?;
         let state = self.state.lock().expect("uploads");
         let lease = state
             .leases
-            .get(session)
-            .filter(|lease| lease.reader == reader)?;
-        let route = &self.declared.first()?.route;
+            .get(&lease_key(session, declaration))
+            .filter(|lease| lease.reader == *reader)?;
+        if !lease.live(self.lease_for) {
+            return None;
+        }
         Some(Shown {
-            src: format!("{route}/{}", lease.id),
+            src: format!("{}/{}", declared.route, lease.id),
             width: lease.width,
             height: lease.height,
         })
     }
 
-    /// **A command claims `session`'s lease** until its transaction ends: no
-    /// other command can, and no upload or sweep ends it.
     pub(crate) fn claim(&self, session: &str) -> Option<Claimed> {
-        let reader = self.reader(session);
+        self.claim_for(session, &self.declared.first()?.name, &self.reader(session))
+    }
+
+    /// Hold only this declaration's lease of the captured immutable reader.
+    /// Actual resource admission/session handles are checked by the bridge.
+    pub(crate) fn claim_for(
+        &self,
+        session: &str,
+        declaration: &str,
+        reader: &crate::identity::ReaderIdentity,
+    ) -> Option<Claimed> {
+        self.declared.iter().find(|d| d.name == declaration)?;
         let mut state = self.state.lock().expect("uploads");
         let lease = state
             .leases
-            .get_mut(session)
-            .filter(|l| !l.claimed && l.reader == reader)?;
+            .get_mut(&lease_key(session, declaration))
+            .filter(|l| !l.claimed && l.reader == *reader)?;
+        if !lease.live(self.lease_for) {
+            return None;
+        }
         lease.claimed = true;
         Some(Claimed {
-            session: session.to_string(),
+            declaration: declaration.into(),
+            reader: reader.clone(),
+            session: session.into(),
             id: lease.id.clone(),
             key: lease.key.clone(),
             kind: lease.kind,
@@ -1084,9 +1194,13 @@ impl Shared {
         let mut state = self.state.lock().expect("uploads");
         let ours = state
             .leases
-            .get(&claimed.session)
-            .is_some_and(|l| l.id == claimed.id && l.claimed);
-        if ours && let Some(lease) = state.leases.remove(&claimed.session) {
+            .get(&lease_key(&claimed.session, &claimed.declaration))
+            .is_some_and(|l| l.id == claimed.id && l.claimed && l.reader == claimed.reader);
+        if ours
+            && let Some(lease) = state
+                .leases
+                .remove(&lease_key(&claimed.session, &claimed.declaration))
+        {
             self.end(&mut state, lease);
         }
     }
@@ -1097,8 +1211,8 @@ impl Shared {
         let mut state = self.state.lock().expect("uploads");
         if let Some(lease) = state
             .leases
-            .get_mut(&claimed.session)
-            .filter(|l| l.id == claimed.id)
+            .get_mut(&lease_key(&claimed.session, &claimed.declaration))
+            .filter(|l| l.id == claimed.id && l.reader == claimed.reader)
         {
             lease.claimed = false;
         }
@@ -1874,19 +1988,37 @@ pub(crate) mod tests {
     #[test]
     fn a_lease_nothing_claims_ends_when_its_time_does() {
         let d = dir();
-        let u = uploads(d.path(), declared(), Duration::ZERO);
+        let u = uploads(d.path(), declared(), LEASE);
         let s = shared(&u);
         assert_eq!(
             post(&u, "s-1", &png(2, 2), "a.png", "image/png").status,
             303
         );
-        let claimed = s.claim("s-1").expect("claimed before the sweep");
+        let claimed = s.claim("s-1").expect("claimed before its lifetime ends");
+        s.state
+            .lock()
+            .unwrap()
+            .leases
+            .get_mut(&lease_key("s-1", "PostImage"))
+            .unwrap()
+            .made = Instant::now()
+            .checked_sub(LEASE + Duration::from_secs(1))
+            .unwrap();
         assert_eq!(
             post(&u, "s-2", &png(3, 3), "b.png", "image/png").status,
             303
         );
         assert!(s.shown("s-1").is_some(), "a claimed lease is not swept");
         s.unclaim(claimed);
+        s.state
+            .lock()
+            .unwrap()
+            .leases
+            .get_mut(&lease_key("s-2", "PostImage"))
+            .unwrap()
+            .made = Instant::now()
+            .checked_sub(LEASE + Duration::from_secs(1))
+            .unwrap();
         assert_eq!(
             post(&u, "s-3", &png(4, 4), "c.png", "image/png").status,
             303
@@ -2093,7 +2225,7 @@ pub(crate) mod tests {
         );
         let state = shared.state.lock().unwrap();
         assert_eq!(state.staged_bytes, occupied);
-        assert!(!state.leases.contains_key("growth"));
+        assert!(!state.leases.contains_key(&lease_key("growth", "PostImage")));
         assert!(state.spent[&crate::identity::guest_user("growth")].is_empty());
     }
 

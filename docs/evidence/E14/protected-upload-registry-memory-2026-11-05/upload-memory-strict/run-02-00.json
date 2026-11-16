@@ -1,0 +1,20 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "--quiet",
+    "--locked",
+    "-p",
+    "pw-table-memory",
+    "--test",
+    "asset_rows",
+    "--",
+    "--format=pretty",
+    "--test-threads=2"
+  ],
+  "exit": 101,
+  "valid": true,
+  "passed": 9,
+  "failed": 1,
+  "sha256": "3e56d3b565e31e02b00e5824023a4ebdb945d3fdb0d113377887f9f8c51c8225"
+}

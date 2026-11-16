@@ -23,9 +23,9 @@ RESOLVE = ROOT / "compiler/pw-core/src/resolve.rs"
 MUTANTS = [
     ("lowering gives no table functions", LOWER,
      "    crate::tables::generate(&mut lo.hir);\n", ""),
-    ("table imports belong to the app instead of the platform", BACKEND,
-     "    let binding = match [PLATFORM_PACKAGE, TABLES_PACKAGE]\n",
-     "    let binding = match [PLATFORM_PACKAGE]\n"),
+    ('table imports belong to the app instead of the platform', BACKEND,
+     '    let binding = match [PLATFORM_PACKAGE, TABLES_PACKAGE, UPLOADS_PACKAGE]\n',
+     '    let binding = match [PLATFORM_PACKAGE, UPLOADS_PACKAGE]\n'),
     ("an empty Result case is emitted as an invalid empty tuple", WIT,
      "            Builtin::Result => match (unit(0), unit(1)) {\n",
      "            Builtin::Result => match (unit(0) && false, unit(1) && false) {\n"),

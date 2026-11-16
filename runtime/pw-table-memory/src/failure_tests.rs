@@ -10,6 +10,7 @@ const FAULT: &str = "injected D2 storage/observer fault";
 
 fn database() -> Arc<MemoryTables> {
     let schema = TableSchema {
+        assets: Vec::new(),
         name: "Users".into(),
         source: None,
         fields: vec![FieldSchema {

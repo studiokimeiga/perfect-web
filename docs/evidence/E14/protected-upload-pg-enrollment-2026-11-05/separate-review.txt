@@ -1,0 +1,11 @@
+Separate immutable review /root/review_cached_refusals, 2026-11-05.
+Initial3477 review found RETURNING1 rewrite acceptance and lost-metadata unbound
+downgrade; db904 follow-up found deferred-trigger timing and bound full/partial
+history bypass. All reproduced natively before repair. Final a79727d4 clear:
+common recorded-binding comparison precedes every config/enrollment branch;
+deferred flush precedes outer exact reread even after equal-hash returns;
+error propagation rolls back. No remaining source finding. Some changed/suppressed
+metadata controls pin EARLY refusal before app DDL; the final verifier remains a
+second safeguard, so these are not unsafe-commit acceptance claims.
+Reviewer ran no tests, edits or mutations. Lifecycle/physical integration/claims/
+HTTP/uncertain commits remain outside acceptance.

@@ -19,7 +19,7 @@ fn scalar(stored: &Stored) -> bool {
     matches!(
         stored,
         Stored::Int { .. } | Stored::String { .. } | Stored::Bool
-    ) || matches!(stored,Stored::Cases(cases) if cases.iter().all(|case|case.carries.is_empty()))
+    ) || matches!(stored,Stored::Cases(cases) if case_tags(cases).is_some())
 }
 
 fn eligible(source: &Table, window: &Window, by: &[String]) -> bool {

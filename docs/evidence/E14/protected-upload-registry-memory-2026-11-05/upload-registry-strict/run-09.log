@@ -1,0 +1,55 @@
+
+running 19 tests
+test a_foreign_draft_cannot_propose_into_another_registry ... ok
+test a_declarations_last_reference_ends_its_adoption_and_serving_even_if_another_keeps_bytes_live ... FAILED
+test a_fresh_other_declaration_can_replace_the_last_old_reference_in_one_final_state ... FAILED
+test a_fresh_publication_requires_a_final_row_use_to_become_live ... ok
+test candidate_identity_and_canonical_descriptors_refuse_collisions_before_mutation ... ok
+test captured_collection_completion_cannot_clear_a_new_same_hash_generation ... ok
+test committed_liveness_is_declaration_specific_and_ignored_proposals_never_enroll ... ok
+test current_same_declaration_references_allow_copy_but_another_declaration_does_not ... ok
+test contradictory_counts_overflow_unknown_declarations_and_descriptors_refuse_whole ... ok
+test even_empty_foreign_drafts_cannot_be_prepared ... ok
+test final_net_moves_do_not_transiently_retire_a_generation_and_unchanged_refs_are_validated ... FAILED
+test foreign_patches_cannot_cross_registry_instances_at_the_same_revision ... ok
+test generation_ids_are_not_reused_after_ignored_publication_or_collection ... ok
+test ignored_publications_do_not_enroll_a_declaration_or_count_untouched_rows_as_usage ... ok
+test plain_reference_data_is_not_authority_to_create_a_generation ... ok
+test last_removal_captures_only_the_old_generation_and_same_bytes_require_a_new_identity ... ok
+test shared_generation_proposals_cannot_cross_sources_or_change_descriptor_bytes ... ok
+test stale_or_refused_patches_leave_all_indexes_unchanged ... ok
+test the_index_shares_candidates_in_one_command_and_publishes_only_at_apply ... ok
+
+failures:
+
+---- a_declarations_last_reference_ends_its_adoption_and_serving_even_if_another_keeps_bytes_live stdout ----
+
+thread 'a_declarations_last_reference_ends_its_adoption_and_serving_even_if_another_keeps_bytes_live' (2710221) panicked at runtime/pw-host/tests/asset_registry.rs:115:5:
+assertion `left == right` failed
+  left: Generation { descriptor: Descriptor { reference: Reference { key: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", generation: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", kind: "png", width: 6, height: 4 }, bytes: 17 }, state: Tombstone, references: {"Photo": 1} }
+ right: Generation { descriptor: Descriptor { reference: Reference { key: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", generation: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", kind: "png", width: 6, height: 4 }, bytes: 17 }, state: Live, references: {"Photo": 1} }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- a_fresh_other_declaration_can_replace_the_last_old_reference_in_one_final_state stdout ----
+
+thread 'a_fresh_other_declaration_can_replace_the_last_old_reference_in_one_final_state' (2710223) panicked at runtime/pw-host/tests/asset_registry.rs:269:5:
+assertion `left == right` failed
+  left: Generation { descriptor: Descriptor { reference: Reference { key: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", generation: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", kind: "png", width: 6, height: 4 }, bytes: 17 }, state: Tombstone, references: {"Avatar": 1} }
+ right: Generation { descriptor: Descriptor { reference: Reference { key: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", generation: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", kind: "png", width: 6, height: 4 }, bytes: 17 }, state: Live, references: {"Avatar": 1} }
+
+---- final_net_moves_do_not_transiently_retire_a_generation_and_unchanged_refs_are_validated stdout ----
+
+thread 'final_net_moves_do_not_transiently_retire_a_generation_and_unchanged_refs_are_validated' (2710231) panicked at runtime/pw-host/tests/asset_registry.rs:144:9:
+assertion `left == right` failed
+  left: Generation { descriptor: Descriptor { reference: Reference { key: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", generation: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", kind: "png", width: 6, height: 4 }, bytes: 17 }, state: Tombstone, references: {"Photo": 1} }
+ right: Generation { descriptor: Descriptor { reference: Reference { key: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", generation: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", kind: "png", width: 6, height: 4 }, bytes: 17 }, state: Live, references: {"Photo": 1} }
+
+
+failures:
+    a_declarations_last_reference_ends_its_adoption_and_serving_even_if_another_keeps_bytes_live
+    a_fresh_other_declaration_can_replace_the_last_old_reference_in_one_final_state
+    final_net_moves_do_not_transiently_retire_a_generation_and_unchanged_refs_are_validated
+
+test result: FAILED. 16 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p pw-host --test asset_registry`

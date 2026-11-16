@@ -1,0 +1,52 @@
+
+running 34 tests
+test a_missing_real_receipt_refuses_before_keep_and_rolls_back_rows_and_registry ... FAILED
+test a_waiting_namespace_lock_cannot_freeze_the_commands_first_snapshot_before_the_previous_commit ... ok
+test actual_generation_descriptors_are_verified_before_keep ... ok
+test actual_reference_counts_are_verified_before_keep ... ok
+test actual_row_asset_fields_are_verified_before_keep ... ok
+test actual_upload_receipt_answer_cannot_be_rewritten ... ok
+test actual_upload_receipt_cannot_be_removed_by_an_immediate_hook ... ok
+test actual_upload_receipt_instant_cannot_be_rewritten ... ok
+test a_fresh_unknown_commit_keeps_its_bytes_and_durable_record_without_guessing_rollback ... ok
+test actual_upload_receipt_is_verified_after_deferred_hooks_before_commit ... ok
+test actual_upload_receipt_is_verified_after_outbox_hooks_before_keep ... ok
+test actual_upload_receipt_key_cannot_be_rewritten ... ok
+test actual_upload_receipt_sent_cannot_be_rewritten ... ok
+test application_schema_migration_waits_on_the_same_namespace_before_ddl ... ok
+test authoritative_reads_require_current_own_refs_and_distinguish_missing_live_storage_from_no_ref ... ok
+test backend_death_after_committed_no_ref_check_cannot_make_old_collection_remove_new_same_hash_bytes ... ok
+test changing_one_generation_preserves_unrelated_live_descriptors_counts_and_bytes ... ok
+test declarations_share_live_bytes_only_after_independent_publication_and_keep_current_counts_separate ... ok
+test deferred_receipt_hooks_finish_before_final_registry_verification_and_commit ... ok
+test final_moves_and_repeated_replacement_do_not_retire_live_bytes_or_use_transient_publications ... ok
+test fresh_publication_keeps_bytes_and_commits_registry_rows_and_actual_receipt_together ... ok
+test ignored_publication_and_rejected_row_do_not_keep_or_settle_untouched_old_uses ... ok
+test an_actual_applied_commit_with_a_lost_answer_reports_unknown_and_does_no_collection ... ok
+test keep_failure_rolls_back_and_collection_failure_preserves_applied_ack_and_a_durable_job ... ok
+test late_receipt_hooks_cannot_change_registry_counts_after_prepare ... ok
+test namespace_waiters_hold_no_host_turn_and_begin_no_command_snapshot_before_exclusion ... ok
+test late_receipt_hooks_cannot_change_row_asset_fields_after_prepare ... ok
+test prefix_deletion_uses_actual_removed_keys_and_nul_string_keys_remain_indexable ... ok
+test plain_changed_and_retired_refs_cannot_create_authority_but_a_current_ref_can_be_copied ... ok
+test preparing_one_asset_key_returns_no_unrelated_rows_or_non_asset_payload ... ok
+test reinserted_collection_completion_is_not_counted_as_done_and_preserves_applied_ack ... ok
+test suppressed_collection_completion_leaves_a_retryable_job_and_never_refuses_the_applied_command ... ok
+test the_final_session_clock_fence_runs_after_blocking_keep_on_the_same_single_connection ... ok
+test two_genuine_cleanup_jobs_obey_zero_one_and_two_limits_and_complete_only_captured_jobs ... ok
+
+failures:
+
+---- a_missing_real_receipt_refuses_before_keep_and_rolls_back_rows_and_registry stdout ----
+
+thread 'a_missing_real_receipt_refuses_before_keep_and_rolls_back_rows_and_registry' (3024444) panicked at runtime/pw-table-postgres/tests/asset_rows.rs:224:5:
+discarded/held claims also need a receipt even without publication
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    a_missing_real_receipt_refuses_before_keep_and_rolls_back_rows_and_registry
+
+test result: FAILED. 33 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 13.43s
+
+error: test failed, to rerun pass `-p pw-table-postgres --test asset_rows`

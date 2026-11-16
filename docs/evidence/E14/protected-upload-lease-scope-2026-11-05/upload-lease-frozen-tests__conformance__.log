@@ -1,0 +1,17 @@
+
+running 12 tests
+test tests::conformance::closed_case_oracle_pins_wire_tags_without_constructor_order ... ok
+test tests::conformance::each_idempotent_command_sent_again_is_answered_once ... ok
+test tests::conformance::the_count_oracle_keeps_zero_distinct_keys_and_scalar_tuple_order ... ok
+test tests::conformance::the_range_oracle_keeps_marks_ties_missing_zeros_and_canonical_pair_order ... ok
+test tests::conformance::the_relation_oracle_uses_global_targets_and_keeps_overlapping_empty_groups ... ok
+test tests::conformance::the_suite_holds_for_closed_case_keys_indexes_windows_and_ranges_on_memory ... ok
+test tests::conformance::each_query_reads_its_tables_a_fixed_number_of_times_at_two_sizes ... ok
+test tests::conformance::the_suite_holds_for_fixed_relation_windows_on_memory ... ok
+test tests::conformance::the_suite_holds_for_the_guestbooks_tables ... ok
+test tests::conformance::the_window_oracle_limits_each_distinct_group_and_reverses_order_ties ... ok
+test tests::conformance::warm_relation_selections_are_private_to_each_reader_on_memory ... ok
+test tests::conformance::the_suite_holds_for_the_lists_apps_tables ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 1013 filtered out; finished in 0.96s
+

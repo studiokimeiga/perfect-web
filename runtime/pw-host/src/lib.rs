@@ -60,6 +60,9 @@ pub mod plan;
 /// (ADR-0338 D2).
 pub mod tables;
 
+/// Declared generic upload references and admission.
+pub mod assets;
+
 // --- the compiler's artifact, mirrored --------------------------------------
 //
 // ADR-0018/ADR-0020: field-name mirrors of `pw_core::contract`. This crate does
@@ -918,6 +921,8 @@ pub mod engine {
     /// each of its answers when it is given.
     pub mod table_link;
 
+    mod upload_link;
+
     /// An owned table's function is its caller's (track `row-ownership`,
     /// ADR-0384 H1): its handle held to the call's reader, an owned row to
     /// its writer, a sharer answered the seen row.
@@ -1667,7 +1672,8 @@ pub mod engine {
             D: FnMut(&str, &[&Val]) -> Result<bool, String>,
         {
             let left = self.authorize_with_tables_as(
-                contract, limits, platform, tables, predicates, caller, export, args, deployment,
+                contract, granted, limits, platform, tables, predicates, caller, export, args,
+                deployment,
             )?;
             let mut host = platform.clone();
             host.extend(tables.functions(contract, granted)?);
@@ -1686,6 +1692,44 @@ pub mod engine {
             .map_err(InvocationError::from)
         }
 
+        /// Root declaration, actual grant and imported ABI admission, without
+        /// body callbacks or data work. Cached queries with no predicate need
+        /// this check too; predicate authorization remains invocation-specific.
+        pub fn admit_with_tables_as(
+            &self,
+            contract: &crate::ComponentContract,
+            granted: &crate::Granted,
+            tables: &crate::tables::Manifest,
+            caller: &crate::tables::Caller,
+            export: &[&str],
+            args: &[Val],
+        ) -> Result<(), InvocationError> {
+            identity_caller(contract, caller, export)?;
+            self.hold_arguments(contract, export, args)?;
+            let command = export_kind(contract, export) == Some("command");
+            for (key, access) in
+                crate::tables::gate_links(contract, granted, Some(tables), command)?
+            {
+                let (interface, name) = key
+                    .split_once('#')
+                    .ok_or_else(|| String::from("table import has no operation"))?;
+                let ty = imported_func(&self.engine, &self.component, interface, name)
+                    .ok_or_else(|| format!("{key} is no actual imported function"))?;
+                table_link::check_import(&access, &ty)?;
+            }
+            for (key, access) in
+                crate::assets::gate_links(contract, granted, tables.uploads(), command)?
+            {
+                let (interface, name) = key
+                    .split_once('#')
+                    .ok_or_else(|| String::from("upload import has no operation"))?;
+                let ty = imported_func(&self.engine, &self.component, interface, name)
+                    .ok_or_else(|| format!("{key} is no actual imported function"))?;
+                upload_link::check_import(&access, &ty)?;
+            }
+            Ok(())
+        }
+
         /// Check this invocation's requirements without running its body,
         /// for a host about to reuse a cached value. Predicate evaluation is
         /// identical to a fresh execution and bounded by the supplied fuel.
@@ -1694,6 +1738,7 @@ pub mod engine {
         pub fn authorize_with_tables_as<D>(
             &self,
             contract: &crate::ComponentContract,
+            granted: &crate::Granted,
             limits: &crate::Limits,
             platform: &std::collections::BTreeMap<String, HostFn>,
             tables: &dyn CallTables,
@@ -1706,9 +1751,7 @@ pub mod engine {
         where
             D: FnMut(&str, &[&Val]) -> Result<bool, String>,
         {
-            identity_caller(contract, caller, export)?;
-            // Its arguments decoded before a predicate reads them.
-            self.hold_arguments(contract, export, args)?;
+            self.admit_with_tables_as(contract, granted, tables.manifest(), caller, export, args)?;
             // A table's function is the call's tables', which the gate
             // admits for each component it links; never the platform's.
             if let Some(key) = platform
@@ -3077,6 +3120,12 @@ pub mod engine {
         // table's write only into a command (ADR-0386).
         let command = export_kind(contract, export) == Some("command");
         let table_functions = crate::tables::gate_links(contract, granted, tables, command)?;
+        let upload_functions = crate::assets::gate_links(
+            contract,
+            granted,
+            tables.and_then(crate::tables::Manifest::uploads),
+            command,
+        )?;
         let functions = imported_functions(&engine, &component);
         let wanted: BTreeSet<&str> = supplied.iter().map(String::as_str).collect();
 
@@ -3110,6 +3159,12 @@ pub mod engine {
                         .ok_or_else(|| format!("`{key}` is no function the component imports"))?;
                     table_link::check_import(function, &ty)?;
                 }
+                let upload = upload_functions.get(&key).cloned();
+                if let Some(upload) = &upload {
+                    let ty = imported_func(&engine, &component, interface, func)
+                        .ok_or_else(|| format!("`{key}` is no function the component imports"))?;
+                    upload_link::check_import(upload, &ty)?;
+                }
                 let named = key.clone();
                 let caller = caller.clone();
                 // What its answer must hold (ADR-0179), as the contract states.
@@ -3139,7 +3194,15 @@ pub mod engine {
                                 .map_err(wasmtime::Error::msg)?,
                             None => args,
                         };
+                        if let Some(upload) = &upload {
+                            upload_link::check_arguments(upload, &args)
+                                .map_err(wasmtime::Error::msg)?;
+                        }
                         let out = implementation(&args).map_err(wasmtime::Error::msg)?;
+                        if let Some(upload) = &upload {
+                            upload_link::check_answer(upload, &out)
+                                .map_err(wasmtime::Error::msg)?;
+                        }
                         // A table function's answer is its function's,
                         // exactly, or the call fails: never projected, never
                         // passed on (the integrator's rulings 7 and 8 of
@@ -3315,6 +3378,7 @@ pub mod engine {
         // table a contract claims (ADR-0338 D2; the integrator's ruling 2 of
         // 2026-10-25). `call_with_tables` links one through the gate.
         crate::tables::gate_links(contract, granted, None, false)?;
+        crate::assets::gate_links(contract, granted, None, false)?;
 
         // **Grouped by interface, and only the FUNCTIONS.**
         //

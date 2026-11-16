@@ -20,8 +20,11 @@ owner. What stays open, in order:
 
 1. **L4's record**: the full verify at its head, every recipe and the three
    browser suites, then `evidence-fetch`; it lands after L3 (#110).
-2. **L5, declared uploads** (ADR-0440's fourth prerequisite; `018fad14`):
-   generic upload claims, publication and reference lifetime. Keep the
+2. **L5, declared uploads** (ADR-0440's fourth prerequisite), in two parts.
+   L5a, the integration branch's forty-two commits to `64f03ec9`, merged
+   on L4 (`wip/l5-uploads`), its record the full verify at its head; then
+   L5b, the claim bridge `018fad14` finished: generic upload claims,
+   publication and reference lifetime. Keep the
    mixed-layer and upload startup refusals until their replacements are
    real; the design must address cross-host last-reference races, database
    disconnects during physical cleanup, immutable storage generations,

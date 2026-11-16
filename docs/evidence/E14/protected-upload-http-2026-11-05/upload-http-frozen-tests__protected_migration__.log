@@ -1,0 +1,28 @@
+
+running 23 tests
+test tests::protected_migration::a_guest_became_an_account_before_authority_keeps_no_memory_write ... ok
+test tests::protected_migration::a_compiled_join_reaches_only_the_targets_private_page_on_another_generic_host ... ok
+test tests::protected_migration::a_guest_became_an_account_on_another_host_keeps_no_postgresql_write ... ok
+test tests::protected_migration::a_memory_lifecycle_publication_refusal_keeps_guest_and_target_rows ... ok
+test tests::protected_migration::a_table_free_identity_lifecycle_is_refused_at_startup ... ok
+test tests::protected_migration::a_trapping_lifecycle_discards_its_staged_memory_merge ... ok
+test tests::protected_migration::a_postgresql_lifecycle_commit_refusal_keeps_guest_target_and_records_atomic ... ok
+test tests::protected_migration::a_verified_identity_transition_merges_owned_rows_in_memory ... ok
+test tests::protected_migration::a_trapping_lifecycle_discards_its_staged_postgresql_merge ... ok
+test tests::protected_migration::accounts_mode_guests_use_their_own_rows_in_memory ... ok
+test tests::protected_migration::a_verified_identity_transition_merges_owned_rows_on_postgresql ... ok
+test tests::protected_migration::accounts_mode_guests_use_their_own_rows_on_postgresql ... ok
+test tests::protected_migration::anonymous_row_authority_is_explicit_scoped_and_immutable ... ok
+test tests::protected_migration::an_identity_lifecycle_keeps_the_exact_new_session_epoch_fence ... ok
+test tests::protected_migration::identity_eligibility_does_not_follow_cache_changes_during_provider_exchange ... ok
+test tests::protected_migration::lifecycle_postcommit_revocation_preserves_committed_memory_merge_and_receipt ... ok
+test tests::protected_migration::lifecycle_postcommit_revocation_preserves_committed_postgresql_merge_and_receipt ... ok
+test tests::protected_migration::lifecycle_receipt_replay_keeps_target_authority_checks_in_memory ... ok
+test tests::protected_migration::identity_eligibility_is_frozen_with_postgresql_authority ... ok
+test tests::protected_migration::reused_queries_without_predicates_still_admit_unused_root_imports ... ok
+test tests::protected_migration::the_clock_reads_and_writes_the_scheduling_owners_rows_after_logout_in_memory ... ok
+test tests::protected_migration::lifecycle_receipt_replay_keeps_target_authority_checks_on_postgresql ... ok
+test tests::protected_migration::the_clock_reads_and_writes_the_scheduling_owners_rows_after_logout_on_postgresql ... ok
+
+test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 992 filtered out; finished in 3.40s
+

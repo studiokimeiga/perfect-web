@@ -1,0 +1,22 @@
+   Compiling pw-table-postgres v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-postgres)
+    Finished `test` profile [unoptimized] target(s) in 1.17s
+     Running tests/asset_enrollment.rs (target/debug/deps/asset_enrollment-df1910337ba18a10)
+
+running 1 test
+test missing_enrollment_rows_cannot_erase_recorded_asset_history_for_an_unbound_open ... FAILED
+
+failures:
+
+---- missing_enrollment_rows_cannot_erase_recorded_asset_history_for_an_unbound_open stdout ----
+
+thread 'missing_enrollment_rows_cannot_erase_recorded_asset_history_for_an_unbound_open' (2827620) panicked at runtime/pw-table-postgres/tests/asset_enrollment.rs:539:5:
+recorded asset associations survive missing authority metadata
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    missing_enrollment_rows_cannot_erase_recorded_asset_history_for_an_unbound_open
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 16 filtered out; finished in 0.34s
+
+error: test failed, to rerun pass `-p pw-table-postgres --test asset_enrollment`

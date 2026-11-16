@@ -1,0 +1,13 @@
+baseline 15 native assertions, complete inventory
+KILLED 1/11: upload storage reads unbounded bytes after metadata validation; 14 pass/1 fail
+KILLED 2/11: upload storage ignores namespace markers; 14 pass/1 fail
+KILLED 3/11: upload storage reuses incomplete generation reservations; 14 pass/1 fail
+KILLED 4/11: upload storage forgets generation reservations after local collection; 13 pass/2 fail
+KILLED 5/11: upload storage keeps collected local payloads; 14 pass/1 fail
+KILLED 6/11: upload storage ignores canonical hashes; 13 pass/2 fail
+KILLED 7/11: upload storage ignores canonical byte counts; 14 pass/1 fail
+KILLED 8/11: upload storage ignores immutable descriptor markers; 12 pass/3 fail
+KILLED 9/11: upload storage forgets memory reservations after collection; 14 pass/1 fail
+KILLED 10/11: upload storage accepts unsafe reference path components; 14 pass/1 fail
+KILLED 11/11: upload storage shares a memory namespace with unrelated storage; 14 pass/1 fail
+11/11 killed; no invalid or stopped producer

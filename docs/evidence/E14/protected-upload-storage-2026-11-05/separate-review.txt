@@ -1,0 +1,8 @@
+Separate immutable source review /root/review_cached_refusals, 2026-11-05.
+No remaining source finding at20511c86. Namespace isolation, exclusive generation
+reservation, immutable markers and captured-path cleanup coherent for trusted
+liveness caller. Extracted bounded-read helper is the production path after
+metadata validation; counting-reader native witness with valid neighbor and
+cap-relaxation control distinguishes bounded consumption from read-then-reject.
+Physical bytes only: no power-loss durability/HTTP/claims/PG/uncertain acceptance.
+Reviewer ran no tests, edits or mutations.

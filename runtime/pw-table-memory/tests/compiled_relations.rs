@@ -757,6 +757,7 @@ fn an_unchosen_relation_import_and_authorization_only_predicate_keep_both_grants
         let before = watched.asked.load(Ordering::SeqCst);
         let reused = prepared.authorize_with_tables_as(
             &body.contract,
+            &body.granted(),
             &pw_host::Limits::unbounded(),
             &program.platform(ALICE),
             &watched,
@@ -786,6 +787,7 @@ fn an_unchosen_relation_import_and_authorization_only_predicate_keep_both_grants
     }
     let denied = prepared.authorize_with_tables_as(
         &body.contract,
+        &body.granted(),
         &pw_host::Limits::unbounded(),
         &program.platform(ALICE),
         &watched,

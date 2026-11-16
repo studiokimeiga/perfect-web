@@ -38,6 +38,7 @@ fn manifest() -> TablesJson {
         max_length: Some(3),
     };
     let table = TableSchema {
+        assets: Vec::new(),
         name: "Likes".into(),
         source: None,
         fields: vec![

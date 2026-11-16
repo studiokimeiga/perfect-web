@@ -46,6 +46,8 @@ use crate::{ComponentContract, Granted, ImportKind};
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct Manifest {
     tables: Vec<Table>,
+    #[serde(skip)]
+    uploads: Option<crate::assets::Manifest>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -84,6 +86,14 @@ struct Table {
     #[serde(default)]
     references: Vec<Reference>,
     functions: Vec<Function>,
+    #[serde(default)]
+    assets: Vec<Asset>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+struct Asset {
+    field: String,
+    upload: String,
 }
 
 /// A fixed public-target relation declared by the source table.
@@ -154,6 +164,40 @@ pub struct Case {
     pub name: String,
     #[serde(default)]
     pub carries: Vec<Stored>,
+}
+
+/// Canonical scalar variant tags, shared by the host and database adapters.
+/// A payload or a normalized identity collision has no lossless closed-tag ABI.
+pub fn closed_case_tags<'a>(
+    cases: impl IntoIterator<Item = (&'a str, usize)>,
+) -> Option<Vec<String>> {
+    let mut tags = Vec::new();
+    let mut seen = BTreeSet::new();
+    for (name, payloads) in cases {
+        if payloads != 0 || !name.chars().any(|c| c.is_ascii_alphanumeric()) {
+            return None;
+        }
+        let tag = wit_name(name);
+        if !seen.insert(tag.clone()) {
+            return None;
+        }
+        tags.push(tag);
+    }
+    (!tags.is_empty()).then_some(tags)
+}
+
+pub(crate) fn case_tags(cases: &[Case]) -> Option<Vec<String>> {
+    closed_case_tags(cases.iter().map(|c| (c.name.as_str(), c.carries.len())))
+}
+
+fn case_shapes(stored: &Stored) -> bool {
+    match stored {
+        Stored::Cases(cases) => case_tags(cases).is_some(),
+        Stored::Option(inner) | Stored::List(inner) | Stored::Set(inner) => case_shapes(inner),
+        Stored::Map(key, value) => case_shapes(key) && case_shapes(value),
+        Stored::Record(fields) => fields.iter().all(|f| case_shapes(&f.stored)),
+        _ => true,
+    }
 }
 
 /// **The primitive a table's function is bound to** (ADR-0338, 1.3;
@@ -885,6 +929,47 @@ impl Table {
 }
 
 impl Manifest {
+    /// Bind uploads.json explicitly; a closure's key cannot create a declaration.
+    pub fn with_uploads(mut self, text: &str) -> Result<Self, String> {
+        let uploads = crate::assets::Manifest::from_json(text)?;
+        let mut sources = BTreeSet::new();
+        for declaration in uploads.declarations() {
+            sources.insert(Some(declaration.source().to_string()));
+        }
+        for table in &self.tables {
+            sources.insert(table.source.clone());
+            let mut fields = BTreeSet::new();
+            for asset in &table.assets {
+                if table.owner.is_some() || !table.shares.is_empty() || !table.private.is_empty() {
+                    return Err("upload binding: asset tables must be public".into());
+                }
+                if !fields.insert(&asset.field) {
+                    return Err("upload binding: field associated twice".into());
+                }
+                let declaration = uploads
+                    .declaration(&asset.upload)
+                    .ok_or("upload binding: undeclared upload")?;
+                let field = table
+                    .fields
+                    .iter()
+                    .find(|f| f.name == asset.field)
+                    .ok_or("upload binding: missing asset field")?;
+                if !crate::assets::reference_shape(&field.stored, declaration) {
+                    return Err(
+                        "upload binding: field has no exact generated reference shape".into(),
+                    );
+                }
+            }
+        }
+        if sources.len() > 1 {
+            return Err("upload binding: multiple sources require separate adapters".into());
+        }
+        self.uploads = Some(uploads);
+        Ok(self)
+    }
+    pub fn uploads(&self) -> Option<&crate::assets::Manifest> {
+        self.uploads.as_ref()
+    }
     /// **`tables.json`, read and held whole** (see the module): a manifest
     /// that is not is refused here, not read past.
     pub fn from_json(text: &str) -> Result<Manifest, String> {
@@ -912,6 +997,11 @@ impl Manifest {
             let fields: BTreeSet<&str> = table.fields.iter().map(|f| f.name.as_str()).collect();
             if fields.len() != table.fields.len() {
                 return Err(format!("tables.json: {name} repeats a field"));
+            }
+            if !table.fields.iter().all(|field| case_shapes(&field.stored)) {
+                return Err(format!(
+                    "tables.json: {name} has no supported closed-case encoding"
+                ));
             }
             let known = |field: &String| fields.contains(field.as_str());
             if table.key.is_empty() || !table.key.iter().all(known) {
@@ -1236,6 +1326,16 @@ impl Manifest {
                     access.table()
                 )));
             }
+            if target.is_none()
+                && !contract
+                    .required_capabilities
+                    .iter()
+                    .any(|cap| cap.name() == capability)
+            {
+                return Err(refused(format!(
+                    "table operation requires `{capability}` in the contract"
+                )));
+            }
             if !linkable.contains(&key) {
                 return Err(refused(format!("`{capability}` is not granted here")));
             }
@@ -1247,11 +1347,11 @@ impl Manifest {
 
 /// **The table functions a call links, and no other way to link one** (the
 /// integrator's ruling 2 of 2026-10-25; ADR-0386 for a command's writes).
-/// `linkable` trusts each import's own claim of its capability, which is
-/// right for a capability and wrong for a table: an import may claim
-/// `database.read<Other>` on `pw:tables/likes#get`. So where a grant would
-/// link any `pw:tables/…` import, the engine links it only through the gate,
-/// with the program's manifest, and with none it links nothing. A `command`
+/// Every declared table import is admitted, even with no actual table handle:
+/// authorization-only reuse has no later linker to catch a missing import.
+/// A declaration's capability claim cannot define a table operation's meaning.
+/// Every import needs its exact contract capability and an actual handle, held
+/// to the program's manifest, before any body runs or a cached value is reused. A `command`
 /// call's gate admits its writes; any other call's refuses one. Each function
 /// the gate admits is keyed by its import; a table import the grant links is
 /// always one of them, since the gate refuses any it does not admit.
@@ -1261,8 +1361,12 @@ pub fn gate_links(
     tables: Option<&Manifest>,
     command: bool,
 ) -> Result<BTreeMap<String, Access>, String> {
-    let supplied = crate::linkable(contract, granted);
-    let Some(first) = supplied.iter().find(|key| is_table_import(key)) else {
+    let Some(first) = contract
+        .imports
+        .iter()
+        .find(|import| is_table_interface(&import.interface))
+        .map(|import| import.key())
+    else {
         return Ok(BTreeMap::new());
     };
     match tables {

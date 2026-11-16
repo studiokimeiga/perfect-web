@@ -204,6 +204,17 @@ pub(crate) trait DataLayer: Send + Sync {
         Ok(false)
     }
 
+    /// Current same-declaration generic authority and verified physical bytes.
+    /// A bound generic layer must implement this before it serves images.
+    fn read_asset(
+        &self,
+        _declaration: &str,
+        _key: &str,
+        _kind: &str,
+    ) -> Result<Option<(pw_host::assets::Descriptor, Vec<u8>)>, String> {
+        Err("this data layer supplies no generic upload generation reader".into())
+    }
+
     /// **Whether it keeps a command's interactions in its own transactions**
     /// (ADR-0325): a layer whose writes outlive the host, which a restarted
     /// host or a second one reads, keeps their records beside them. By

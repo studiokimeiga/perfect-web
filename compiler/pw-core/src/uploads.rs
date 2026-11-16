@@ -27,6 +27,9 @@
 //!   a form posting to an upload's route is such a form. A form is checked
 //!   as a link is (PW5009): against what the program declares.
 
+mod declared;
+pub(crate) use declared::check_generated;
+pub use declared::{Generated, GeneratedKind, Operation, generate};
 use std::collections::BTreeMap;
 
 use crate::codes;
@@ -52,6 +55,10 @@ pub const MOST_BYTES: u64 = 100_000_000;
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct UploadClauses {
     pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub module: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
     pub route: String,
     pub serves: String,
     pub max_bytes: u64,
@@ -97,6 +104,8 @@ fn read(decl: &crate::hir::Decl) -> Option<UploadClauses> {
             .all(|t| crate::policy::UPLOAD_TYPES.contains(&t.as_str()));
     ok.then_some(UploadClauses {
         name: decl.name.clone(),
+        module: None,
+        source: None,
         route: route.to_string(),
         serves: serves.to_string(),
         max_bytes: bytes,
@@ -110,9 +119,23 @@ fn read(decl: &crate::hir::Decl) -> Option<UploadClauses> {
 /// them. A malformed one is PW5601's, and is not written.
 pub fn upload_clauses(hirs: &[&Hir]) -> Vec<UploadClauses> {
     hirs.iter()
-        .flat_map(|hir| hir.all_decls())
-        .filter(|(_, d)| d.kind == DeclKind::Upload)
-        .filter_map(|(_, d)| read(d))
+        .flat_map(|hir| {
+            hir.all_decls()
+                .filter(|(_, d)| d.kind == DeclKind::Upload)
+                .filter_map(move |(_, d)| {
+                    let mut upload = read(d)?;
+                    if hir
+                        .modules
+                        .iter()
+                        .next()
+                        .is_some_and(|(_, m, _)| m.name == d.name)
+                    {
+                        upload.module = Some(d.name.clone());
+                        upload.source = crate::tables::source_of(hirs, &d.name);
+                    }
+                    Some(upload)
+                })
+        })
         .collect()
 }
 

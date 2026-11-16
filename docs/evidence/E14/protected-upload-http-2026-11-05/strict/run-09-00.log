@@ -1,0 +1,32 @@
+
+running 6 tests
+test tests::upload_generations::current_generation_http_validates_real_png_and_jpeg_files_before_304_and_head ... ok
+test tests::upload_generations::backend_death_stale_local_unlink_preserves_new_same_hash_generation_and_http ... FAILED
+test tests::upload_generations::generation_http_rejects_actual_file_dimensions_differing_from_the_descriptor ... ok
+test tests::upload_generations::generation_http_rejects_actual_file_kind_differing_from_the_descriptor ... ok
+test tests::upload_generations::generation_http_uses_each_routes_current_same_declaration_reference_counts ... ok
+test tests::upload_generations::retired_generation_http_is_404_before_304_even_while_actual_payload_waits_for_collection ... FAILED
+
+failures:
+
+---- tests::upload_generations::backend_death_stale_local_unlink_preserves_new_same_hash_generation_and_http stdout ----
+
+thread 'tests::upload_generations::backend_death_stale_local_unlink_preserves_new_same_hash_generation_and_http' (3058543) panicked at spikes/own-renderer/server/src/tests/upload_generations.rs:455:5:
+assertion `left == right` failed
+  left: Some([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 6, 0, 0, 0, 4, 8, 6, 0, 0, 0, 173, 4, 78, 67, 0, 0, 0, 21, 73, 68, 65, 84, 120, 156, 181, 192, 129, 0, 0, 0, 0, 128, 160, 252, 169, 167, 56, 126, 1, 0, 100, 0, 1, 4, 238, 78, 107, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130])
+ right: None
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- tests::upload_generations::retired_generation_http_is_404_before_304_even_while_actual_payload_waits_for_collection stdout ----
+
+thread 'tests::upload_generations::retired_generation_http_is_404_before_304_even_while_actual_payload_waits_for_collection' (3058575) panicked at spikes/own-renderer/server/src/tests/tables.rs:21:9:
+real bounded cleanup: Some(Refused("upload collection: missing or changed storage marker"))
+
+
+failures:
+    tests::upload_generations::backend_death_stale_local_unlink_preserves_new_same_hash_generation_and_http
+    tests::upload_generations::retired_generation_http_is_404_before_304_even_while_actual_payload_waits_for_collection
+
+test result: FAILED. 4 passed; 2 failed; 0 ignored; 0 measured; 1009 filtered out; finished in 0.69s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`

@@ -591,7 +591,7 @@ mod session_authority_tests {
             1,
             "failed replacement leaves just the original lease"
         );
-        assert_eq!(state.leases[COOKIE].id, "up-1");
+        assert_eq!(state.leases[&lease_key(COOKIE,"PostImage")].id, "up-1");
         assert_eq!(state.staged_bytes, png(9, 7).len() as u64);
         assert_eq!(state.holds.get(&BlobKey::of(&png(9, 7))), Some(&1));
         drop(state);
@@ -655,10 +655,10 @@ mod session_authority_tests {
         {
             let state = leases.state.lock().expect("state");
             assert_eq!(
-                state.leases[COOKIE].id, "up-1",
+                state.leases[&lease_key(COOKIE,"PostImage")].id, "up-1",
                 "claimed original lease is unchanged"
             );
-            assert!(state.leases[COOKIE].claimed);
+            assert!(state.leases[&lease_key(COOKIE,"PostImage")].claimed);
             assert_eq!(
                 state.staged_bytes,
                 png(9, 7).len() as u64,

@@ -55,6 +55,11 @@ fn encode(stored: &Stored, value: &Value) -> Result<Val, String> {
             Val::S64(n.as_i64().ok_or_else(|| format!("{n} is not a WIT s64"))?)
         }
         (Stored::String { .. }, Value::String(s)) => Val::String(s.clone()),
+        (Stored::Cases(cases), Value::String(tag))
+            if crate::tables::case_tags(cases).is_some_and(|tags| tags.contains(tag)) =>
+        {
+            Val::Variant(tag.clone(), None)
+        }
         (Stored::Bool, Value::Bool(b)) => Val::Bool(*b),
         (Stored::Float, Value::Number(n)) => {
             Val::Float64(n.as_f64().ok_or_else(|| format!("{n} is not a WIT f64"))?)

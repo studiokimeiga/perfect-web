@@ -1,0 +1,22 @@
+   Compiling pw-host v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-host)
+    Finished `test` profile [unoptimized] target(s) in 0.68s
+     Running tests/asset_registry.rs (target/debug/deps/asset_registry-45ef335d1edc6df3)
+
+running 1 test
+test foreign_drafts_and_patches_cannot_cross_registry_instances_at_the_same_revision ... FAILED
+
+failures:
+
+---- foreign_drafts_and_patches_cannot_cross_registry_instances_at_the_same_revision stdout ----
+
+thread 'foreign_drafts_and_patches_cannot_cross_registry_instances_at_the_same_revision' (2618303) panicked at runtime/pw-host/tests/asset_registry.rs:526:5:
+drafts belong to their registry
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    foreign_drafts_and_patches_cannot_cross_registry_instances_at_the_same_revision
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 16 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p pw-host --test asset_registry`

@@ -1,0 +1,22 @@
+
+running 1 test
+test uploads::tests::a_lease_is_claimed_once_and_ended_once ... FAILED
+
+failures:
+
+---- uploads::tests::a_lease_is_claimed_once_and_ended_once stdout ----
+pw dev server: whether a post names b66280038ac31008663934943becb1ef2bba97cd38f821e65f21c207a86fe110: the layer cannot say
+
+thread 'uploads::tests::a_lease_is_claimed_once_and_ended_once' (3058881) panicked at spikes/own-renderer/server/src/uploads.rs:2024:9:
+assertion `left == right` failed
+  left: 200
+ right: 503
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    uploads::tests::a_lease_is_claimed_once_and_ended_once
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1014 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`

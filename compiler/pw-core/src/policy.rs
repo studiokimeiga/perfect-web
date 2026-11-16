@@ -444,7 +444,7 @@ pub fn domain_of(head: &str) -> Option<Domain> {
         "row" => Domain::RowType,
         "order" => Domain::Fields,
         "index" | "unique" => Domain::Index,
-        "refers" | "window" => Domain::Reference,
+        "refers" | "window" | "asset" => Domain::Reference,
         "bounded" => Domain::Count,
         "migrate" => Domain::Migration,
         // Track `row-ownership` (ADR-0384, H1): whose a table's rows are, who
@@ -714,7 +714,7 @@ pub fn declared_by(head: &str) -> Option<(&'static [crate::hir::DeclKind], &'sta
         // A keyed read's set form (4c): a function's.
         "set" => (&[K::Fn], "a function"),
         // A table's (track `tables`, ADR-0338).
-        "row" | "order" | "index" | "unique" | "refers" | "window" | "bounded" => {
+        "row" | "order" | "index" | "unique" | "refers" | "window" | "asset" | "bounded" => {
             (&[K::Table], "a table")
         }
         // Whose its rows are (track `row-ownership`, ADR-0384 H1).
@@ -1308,6 +1308,7 @@ mod tests {
         "unique",
         "refers",
         "window",
+        "asset",
         "bounded",
         "migrate",
         "owned",

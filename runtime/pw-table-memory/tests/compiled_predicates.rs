@@ -252,6 +252,7 @@ fn authorization_alone_reads_the_predicate_and_never_runs_the_export() {
     let left = prepared
         .authorize_with_tables_as(
             &query.contract,
+            &query.granted(),
             &fuel(50_000_000),
             &program.platform(ALICE),
             &watched,
@@ -271,6 +272,7 @@ fn authorization_alone_reads_the_predicate_and_never_runs_the_export() {
     let refused = prepared
         .authorize_with_tables_as(
             &query.contract,
+            &query.granted(),
             &fuel(50_000_000),
             &program.platform(BOB),
             &watched,
