@@ -18,10 +18,18 @@ stopped from outside does not always restore its source, and such a mutant
 leaves the anchor matching once (2026-10-03, ADR-0161: a run killed while
 its mutant hung). A mutant that replaces its anchor, left applied, takes
 the anchor away, which the count above reports.
+
+And it fails on a test the strict validator cannot read (2026-11-16): a
+script whose `TESTS` filters the server's tests by module (`tests::owned_clock::`)
+must list that module's file in its `SOURCES`, since a failure is accepted
+only at an assertion of a file it lists. #116 added the filter alone, and its
+verify found three mutants INVALID (40 minutes of CI) where this finds it at
+once.
 """
 
 import importlib.util
 import pathlib
+import re
 import sys
 
 sys.dont_write_bytecode = True
@@ -64,7 +72,57 @@ def problems_in(script):
             problems.append(
                 f"{script.name}: {what}: applied in {path.relative_to(ROOT)}, and not restored"
             )
+    problems.extend(unread_tests(script, module))
     return len(mutants), problems
+
+
+SERVER = ROOT / "spikes/own-renderer/server/src"
+MODULE_FILTER = re.compile(r"^[a-z_][a-z0-9_]*(::[a-z_][a-z0-9_]*)*::$")
+
+
+def module_file(filter_text):
+    """The file of the server's module a test filter names (`a::b::`):
+    the deepest of `src/a/b.rs`, `src/a/b/mod.rs`, `src/a.rs` that is
+    there, as Rust finds a module; none where no such file is."""
+    parts = filter_text.rstrip(":").split("::")
+    for depth in range(len(parts), 0, -1):
+        stem = SERVER.joinpath(*parts[:depth])
+        for candidate in (stem.with_suffix(".rs"), stem / "mod.rs"):
+            if candidate.is_file():
+                return candidate
+    return None
+
+
+def flat(value):
+    """Every leaf of nested lists and tuples, in order."""
+    if isinstance(value, (list, tuple)):
+        return [leaf for item in value for leaf in flat(item)]
+    return [value]
+
+
+def unread_tests(script, module):
+    """A server test module a script runs by name whose file its `SOURCES`
+    does not list: its failures would be INVALID, never kills."""
+    tests = getattr(module, "TESTS", None)
+    sources = getattr(module, "SOURCES", None)
+    if not tests or not sources:
+        return []
+    listed = {pathlib.Path(s).resolve() for s in flat(sources) if isinstance(s, (str, pathlib.Path))}
+    problems = []
+    for entry in tests if isinstance(tests, (list, tuple)) else [tests]:
+        words = [w for w in flat(entry) if isinstance(w, str)]
+        if "pw-dev-server" not in words:
+            continue
+        for word in words:
+            if not MODULE_FILTER.match(word):
+                continue
+            found = module_file(word)
+            if found is not None and found.resolve() not in listed:
+                problems.append(
+                    f"{script.name}: TESTS runs `{word}`, and SOURCES lists not "
+                    f"{found.relative_to(ROOT)}: its failures would be INVALID"
+                )
+    return problems
 
 
 def main():

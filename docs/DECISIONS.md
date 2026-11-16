@@ -2152,6 +2152,10 @@ deployment's (track `identity`, W1; merged by the integrator).
   Argon2id passwords, starts only in development on loopback. The feed's
   posts, replies and likes are their principal's, and its author may delete
   a post.
+- Amended 2026-11-16: a request's session is its one `Cookie` header
+  cookie of the session's name, nothing else of the request's (a `Referer`
+  had chosen it); and where cookies are `Secure`, the session's and the
+  sign-in's cookies are `__Host-` cookies at `Path=/`.
 [ADR-0259](DECISIONS/ADR-0259-a-map-or-set-from-outside-is-sorted-on-arrival.md):
 a map or set from outside is sorted on arrival (ruling 0057-c).
 - A query's map or set, or a host's answer, given out of order is sorted
@@ -3214,6 +3218,7 @@ Dependency audits require a complete, internally consistent producer result (lan
 [ADR-0372](DECISIONS/ADR-0372-ci-test-reach.md):
 Changed test witnesses reach their verification recipes (landed with train-12 at `e7664d2e`, 2026-10-21).
 - Root Rust tests reach package-wide commands, Python unittest selectors retain their tests, and evidence counts only scripts actually executed by a recipe.
+- Amended 2026-11-16: a whole test module declared out of line under `#[cfg(test)]` (`failure_tests.rs`) reaches what an inline one does, its filters and, from a crate's root, its package; its change had planned nothing.
 
 [ADR-0373](DECISIONS/ADR-0373-component-namespaces.md):
 Component identities preserve declaration namespaces (landed with train-12 at `e7664d2e`, 2026-10-21).
@@ -3448,3 +3453,4 @@ A list's own code finds its rows where they were: a row whose item is the very o
 
 [ADR-0440](DECISIONS/ADR-0440-protected-feed-store.md):
 Protected feed and store data use the declared-table gate, accepted in part, the platform's three prerequisites landed: a generic PostgreSQL host retains the outbox rows it delivers for every host sharing the database until the shared retention age, tails them, and trims by age with a watermark a reader that missed rows sees, which every removal of an outbox row moves, by the database's own triggers (platform 0004); an `invoked_by Identity` command runs only on a checked transition of the reader's session, reading and deleting the previous guest's owner-keyed rows and writing the account's in one transaction with its record and outbox, and an unconfirmed outcome claims no rollback; admitted anonymous callers keep their guest-owned rows; owned Clock actions keep the authority of the run that scheduled them. Bounded reads (L4) landed: a declared selector's rows counted, windowed by a limit per distinct selector, counted after a typed order mark, and read through a fixed public-target relation window, on memory and PostgreSQL, each under the read's own grant and owner. Uploads (L5) and the apps' port (L7) stay proposed.
+- Amended 2026-11-16: a lifecycle the database could not serialize (SQLSTATE 40001 or 40P01 at any statement of it or its commit, the account's own write on another host) runs again, at most four times, while its proof holds; the interaction's reserved outcome is let go between attempts.

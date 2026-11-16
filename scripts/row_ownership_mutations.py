@@ -215,8 +215,8 @@ MUTANTS = [
      '            || (self.invoked_by_platform(component_id) && !lifecycle)\n',
      '            || self.invoked_by_platform(component_id)\n'),
     ("identity lifecycle receipt replay skips target authority", SERVER,
-     '        self.command_answer(component, session, &[], Some("identity-joined"))\n',
-     '        self.command_answer_bound(component, session, &[], Some("identity-joined"))\n'),
+     '            let answer = self.command_answer(component, session, &[], Some("identity-joined"));\n',
+     '            let answer = self.command_answer_bound(component, session, &[], Some("identity-joined"));\n'),
     ("identity lifecycle treats an authenticated admission as a guest", IDENTITY,
      '            && matches!(admitted, ReaderIdentity::Guest | ReaderIdentity::Anonymous);\n',
      '            && (matches!(admitted, ReaderIdentity::Guest | ReaderIdentity::Anonymous) || true);\n'),
@@ -548,6 +548,9 @@ TESTS = [
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server", "identity::transition_tests::"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "invoked_by"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server", "tests::protected_migration::"],
+    # The owned Clock's witness, kept in `tests::owned_clock` alone since its
+    # copy in `tests::protected_migration` went (NEXT after L3, item 4).
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server", "tests::owned_clock::"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server", "required_queries"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "table_owners"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "predicate_bodies"],
@@ -574,6 +577,7 @@ SOURCES = [
     IDENTITY,
     ROOT / "compiler/pw-core/tests/invoked_by.rs",
     ROOT / "spikes/own-renderer/server/src/tests/protected_migration.rs",
+    ROOT / "spikes/own-renderer/server/src/tests/owned_clock.rs",
     ROOT / "spikes/own-renderer/server/src/tests/required_queries.rs",
     ROOT / "spikes/own-renderer/server/src/tests/tables.rs",
     ROOT / "compiler/pw-core/tests/table_owners.rs",

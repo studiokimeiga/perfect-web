@@ -128,24 +128,77 @@ impl Deployment {
     }
 }
 
-/// Whether this process's cookies are `Secure`, set once by `main` from the
-/// deployment ([`configure_cookies`]). A test's server never sets it, and is
-/// a loopback one.
-static SECURE_COOKIES: OnceLock<bool> = OnceLock::new();
-
-/// **Set this process's cookie attributes from its deployment.** Once.
-pub fn configure_cookies(deployment: &Deployment) {
-    let _ = SECURE_COOKIES.set(deployment.secure_cookies());
-}
-
 // ---------------------------------------------------------------------------
 // Cookies and ids
 // ---------------------------------------------------------------------------
 
-/// The session cookie's name.
+/// The session cookie's name where cookies are not `Secure` ([`Cookies`]).
 pub const SESSION_COOKIE: &str = "pw-session";
-/// The cookie binding a sign-in in flight to the browser that started it.
+/// The cookie binding a sign-in in flight to the browser that started it,
+/// where cookies are not `Secure`.
 const SIGN_IN_COOKIE: &str = "pw-sign-in";
+
+/// **The names and attributes of this process's cookies** (NEXT after L3,
+/// item 2). Where they are `Secure`, each name is `__Host-` prefixed, and
+/// each is set with `Path=/` and no `Domain`: a browser keeps a `__Host-`
+/// cookie only where it was set so, by a secure origin, on this host
+/// (RFC 6265bis-22 §4.1.3.2). No other origin can then set one this host
+/// reads: not a sibling under the same site, whose `Domain` cookie a
+/// browser sends this host too, nor a network attacker on plain HTTP; a
+/// session or a sign-in's state such an origin chose would fix the
+/// victim's session, its guest's rows, or whom a sign-in signs in. On a
+/// plain-HTTP origin on this machine, where no cookie is `Secure`, browsers
+/// refuse a `__Host-` cookie (Chromium and WebKit; Firefox takes one: the
+/// HTTP working group's issue 2605, 2023 to 2024), and the names are plain.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Cookies {
+    /// Whether each is `Secure`.
+    pub secure: bool,
+    /// The session's cookie.
+    pub session: &'static str,
+    /// The cookie binding a sign-in in flight to the browser that started
+    /// it.
+    sign_in: &'static str,
+    /// The sign-in cookie's path: `/` where it is `__Host-`, which a
+    /// `__Host-` cookie must be.
+    sign_in_path: &'static str,
+}
+
+impl Cookies {
+    /// The cookies of a process whose cookies are `secure`, or not.
+    pub const fn of(secure: bool) -> Cookies {
+        if secure {
+            Cookies {
+                secure,
+                session: "__Host-pw-session",
+                sign_in: "__Host-pw-sign-in",
+                sign_in_path: "/",
+            }
+        } else {
+            Cookies {
+                secure,
+                session: SESSION_COOKIE,
+                sign_in: SIGN_IN_COOKIE,
+                sign_in_path: "/sign-in",
+            }
+        }
+    }
+}
+
+impl Default for Cookies {
+    /// Plain: a server no deployment configured is a loopback one.
+    fn default() -> Cookies {
+        Cookies::of(false)
+    }
+}
+
+impl Cookies {
+    /// **The cookie that names `session`**, as every response that issues
+    /// one sends it (`main.rs`'s seams).
+    pub fn session_line(&self, session: &str) -> String {
+        cookie_line(self.session, session, "/", None, self.secure)
+    }
+}
 
 /// **A `Set-Cookie` line**: `HttpOnly`, so no script reads it; `SameSite=Lax`,
 /// so a cross-site request carries it only on a top-level navigation by a
@@ -169,16 +222,16 @@ pub fn cookie_line(
     line
 }
 
-/// **The cookie that names `session`**, as every response that issues one
-/// sends it (`main.rs`'s seams).
-pub fn session_cookie(session: &str) -> String {
-    cookie_line(
-        SESSION_COOKIE,
-        session,
-        "/",
-        None,
-        *SECURE_COOKIES.get().unwrap_or(&false),
-    )
+/// **The session a request names**: its one cookie of the session's name
+/// in `cookies`, read as [`cookie`] reads one, and nothing else of the
+/// request's. An empty one names none. Until 2026-11-16 the host took the
+/// text after the first `pw-session=` anywhere in the request's headers: a
+/// `Referer` naming a page of this origin whose query wrote it, sent before
+/// the `Cookie` header as browsers send it, chose the session a request ran
+/// as, and so did a cookie whose name ends in it (`xpw-session`), which a
+/// sibling origin may set.
+pub fn session_in(headers: &str, cookies: Cookies) -> Option<String> {
+    cookie(headers, cookies.session).filter(|id| !id.is_empty())
 }
 
 /// `n` bytes from the operating system's random source.
@@ -1523,6 +1576,11 @@ struct Pending {
 pub struct Identity {
     principals: Principals,
     mode: RwLock<Mode>,
+    /// **Its cookies' names and attributes** ([`Cookies`]), its deployment's
+    /// (`configure`), or a test's (`use_cookies`). Until 2026-11-16 they were
+    /// the process's, set once by `main`, and no test could run a server
+    /// whose cookies are `Secure` (the session cookie's review).
+    cookies: RwLock<Cookies>,
 }
 
 impl Default for Identity {
@@ -1530,6 +1588,7 @@ impl Default for Identity {
         Identity {
             principals: Principals::default(),
             mode: RwLock::new(Mode::Guest),
+            cookies: RwLock::new(Cookies::default()),
         }
     }
 }
@@ -1559,6 +1618,7 @@ impl Identity {
     /// development deployment on this machine: a production deployment
     /// supplies a [`Provider`] of its own.
     pub fn configure(&self, deployment: &Deployment, choice: Option<&str>) -> Result<(), String> {
+        self.use_cookies(Cookies::of(deployment.secure_cookies()));
         match choice.unwrap_or("guest") {
             "" | "guest" => {
                 if !deployment.development || !deployment.loopback() {
@@ -1595,6 +1655,17 @@ impl Identity {
 
     /// **Sign-in through `provider`**, sent back to `redirect_uri`: the
     /// accounts model. Every session signed in before is signed out.
+    /// **This identity's cookies** ([`Cookies`]): its deployment's.
+    pub fn cookies(&self) -> Cookies {
+        *self.cookies.read().expect("cookies")
+    }
+
+    /// **Name and attribute its cookies as `cookies` say**: its
+    /// deployment's (`configure` does it), or a test's.
+    pub fn use_cookies(&self, cookies: Cookies) {
+        *self.cookies.write().expect("cookies") = cookies;
+    }
+
     pub fn use_provider(&self, provider: Arc<dyn Provider>, redirect_uri: &str) {
         *self.mode.write().expect("mode") = Mode::Accounts(Accounts {
             provider,
@@ -1680,7 +1751,7 @@ impl Identity {
         on_sign_in: &dyn Fn(SignedIn<'_>),
     ) -> bool {
         if let Err(why) = same_origin(method, headers) {
-            Reply::text(403, &why).write(stream, session, fresh);
+            Reply::text(403, &why).write(stream, session, fresh, self.cookies());
             return true;
         }
         let reply = match (method, route) {
@@ -1697,7 +1768,7 @@ impl Identity {
         };
         match reply {
             Some(reply) => {
-                reply.write(stream, session, fresh);
+                reply.write(stream, session, fresh, self.cookies());
                 true
             }
             None => false,
@@ -1759,14 +1830,15 @@ impl Identity {
             &challenge,
             sign_up,
         );
+        let cookies = self.cookies();
         Some(Reply::redirect(
             &url,
             vec![cookie_line(
-                SIGN_IN_COOKIE,
+                cookies.sign_in,
                 &state,
-                "/sign-in",
+                cookies.sign_in_path,
                 Some(SIGN_IN_LIFETIME.as_secs()),
-                *SECURE_COOKIES.get().unwrap_or(&false),
+                cookies.secure,
             )],
         ))
     }
@@ -1811,7 +1883,7 @@ impl Identity {
             return Some(refused(&format!("the provider answered `{error}`")));
         }
         let state = fields.get("state").cloned().unwrap_or_default();
-        let bound = cookie(headers, SIGN_IN_COOKIE).unwrap_or_default();
+        let bound = cookie(headers, self.cookies().sign_in).unwrap_or_default();
         if state.is_empty() || !same(&state, &bound) {
             return Some(refused("it was not started by this browser"));
         }
@@ -1889,12 +1961,18 @@ impl Identity {
                 principals: self.principals.clone(),
             });
         }
-        let secure = *SECURE_COOKIES.get().unwrap_or(&false);
+        let cookies = self.cookies();
         Some(Reply::redirect(
             "/",
             vec![
-                cookie_line(SESSION_COOKIE, &rotated, "/", None, secure),
-                cookie_line(SIGN_IN_COOKIE, "", "/sign-in", Some(0), secure),
+                cookies.session_line(&rotated),
+                cookie_line(
+                    cookies.sign_in,
+                    "",
+                    cookies.sign_in_path,
+                    Some(0),
+                    cookies.secure,
+                ),
             ],
         ))
     }
@@ -1916,16 +1994,7 @@ impl Identity {
             );
         }
         let rotated = new_session_id();
-        Reply::redirect(
-            "/",
-            vec![cookie_line(
-                SESSION_COOKIE,
-                &rotated,
-                "/",
-                None,
-                *SECURE_COOKIES.get().unwrap_or(&false),
-            )],
-        )
+        Reply::redirect("/", vec![self.cookies().session_line(&rotated)])
     }
 
     /// **What `requires predicate` is told for `session`** (ADR-0115):
@@ -2126,19 +2195,32 @@ pub fn header<'a>(headers: &'a str, name: &str) -> Option<&'a str> {
     })
 }
 
-/// A cookie's value, by its name.
+/// **A cookie's value, by its name**: the one cookie of that name, exactly,
+/// in the request's `Cookie` headers. Two of one name are none: a browser
+/// keeps one cookie of each name, path and domain, and this host sets each
+/// of its own at one path and no domain, so a second was set by another
+/// origin (a sibling's `Domain` cookie, which a browser sends this host
+/// too) or at another path, and which of them is this host's the request
+/// does not say (RFC 6265bis-22 §5.8.3 orders them by path and creation,
+/// neither of which tells).
 pub fn cookie(headers: &str, name: &str) -> Option<String> {
-    headers
+    let mut named = headers
         .lines()
         .filter_map(|l| {
             let (k, v) = l.split_once(':')?;
             k.trim().eq_ignore_ascii_case("cookie").then_some(v)
         })
         .flat_map(|v| v.split(';'))
-        .find_map(|pair| {
-            let (k, v) = pair.trim().split_once('=')?;
-            (k == name).then(|| v.to_string())
-        })
+        .filter_map(|pair| {
+            // Only SP and HTAB, the `Cookie` header's own whitespace: a
+            // Unicode trim took `\u{2000}__Host-pw-session`, a name no
+            // browser holds to the prefix's rules and a sibling may set,
+            // for this host's own (PortSwigger, "Cookie Chaos", 2025).
+            let (k, v) = pair.trim_matches([' ', '\t']).split_once('=')?;
+            (k == name).then_some(v)
+        });
+    let value = named.next()?;
+    named.next().is_none().then(|| value.to_string())
 }
 
 /// `application/x-www-form-urlencoded`, or a query string, as pairs.
@@ -2262,7 +2344,7 @@ impl Reply {
 
     /// The response as bytes. A fresh session's cookie goes with it unless
     /// the reply sets the session itself.
-    pub(crate) fn bytes(&self, session: &str, fresh: bool) -> Vec<u8> {
+    pub(crate) fn bytes(&self, session: &str, fresh: bool, cookies: Cookies) -> Vec<u8> {
         let reason = match self.status {
             200 => "OK",
             303 => "See Other",
@@ -2291,12 +2373,10 @@ impl Reply {
                 crate::csp::BARE
             ));
         }
-        let sets_session = self
-            .cookies
-            .iter()
-            .any(|c| c.starts_with(&format!("set-cookie: {SESSION_COOKIE}=")));
+        let named = format!("set-cookie: {}=", cookies.session);
+        let sets_session = self.cookies.iter().any(|c| c.starts_with(&named));
         if fresh && !sets_session {
-            head.push_str(&session_cookie(session));
+            head.push_str(&cookies.session_line(session));
         }
         for c in &self.cookies {
             head.push_str(c);
@@ -2307,8 +2387,8 @@ impl Reply {
         out
     }
 
-    fn write(&self, stream: &mut TcpStream, session: &str, fresh: bool) {
-        let _ = stream.write_all(&self.bytes(session, fresh));
+    fn write(&self, stream: &mut TcpStream, session: &str, fresh: bool, cookies: Cookies) {
+        let _ = stream.write_all(&self.bytes(session, fresh, cookies));
     }
 }
 
@@ -2848,6 +2928,140 @@ pub(crate) mod tests {
         ] {
             assert!(!at(public).loopback(), "{public}");
             assert!(at(public).secure_cookies(), "{public}");
+        }
+    }
+
+    /// **Where cookies are `Secure`, each is a `__Host-` cookie** (NEXT
+    /// after L3, item 2): its name `__Host-` prefixed, set `Secure`, at
+    /// `Path=/` and with no `Domain`, as RFC 6265bis-22 §4.1.3.2 asks of
+    /// one, or a browser drops it. Where they are not, on plain HTTP on this
+    /// machine, whose browsers refuse a `__Host-` cookie, the plain names at
+    /// their own paths; a test's server's are those.
+    #[test]
+    fn a_secure_processs_cookies_are_host_cookies() {
+        let secure = Cookies::of(true);
+        for (name, path) in [(secure.session, "/"), (secure.sign_in, secure.sign_in_path)] {
+            assert!(name.starts_with("__Host-pw-"), "{name}");
+            let line = cookie_line(name, "v", path, Some(1), secure.secure);
+            assert!(line.contains("; Path=/;"), "{line}");
+            assert!(line.contains("; Secure"), "{line}");
+            assert!(!line.to_ascii_lowercase().contains("domain"), "{line}");
+        }
+        assert_eq!(
+            Cookies::of(false),
+            Cookies {
+                secure: false,
+                session: "pw-session",
+                sign_in: "pw-sign-in",
+                sign_in_path: "/sign-in",
+            }
+        );
+        assert_eq!(
+            Identity::default().cookies(),
+            Cookies::of(false),
+            "a test's server's"
+        );
+    }
+
+    /// **An identity's cookies are its deployment's**: `configure` names
+    /// them `__Host-` where the deployment's cookies are `Secure` (here a
+    /// development deployment on this machine over HTTPS, which the guest
+    /// model may run in), and plain on plain HTTP on this machine.
+    #[test]
+    fn an_identitys_cookies_are_its_deployments() {
+        for (origin, secure) in [
+            ("https://localhost:8443", true),
+            ("http://127.0.0.1:3143", false),
+        ] {
+            let identity = Identity::default();
+            let deployment = Deployment {
+                development: true,
+                origin: origin.to_string(),
+            };
+            identity
+                .configure(&deployment, None)
+                .expect("the guest model, here");
+            assert_eq!(identity.cookies(), Cookies::of(secure), "{origin}");
+        }
+    }
+
+    /// **A request's session is its one session cookie, and nothing else of
+    /// the request's**: not a header that writes the cookie's name in its
+    /// value, as a `Referer` naming a page of this origin whose query wrote
+    /// it, which browsers send before the `Cookie` header; not a cookie
+    /// whose name ends in the session's, which a sibling origin may set, nor
+    /// one whose value holds it; not two of its name; not an empty one; and,
+    /// where cookies are `Secure`, not the plain name, which any origin of
+    /// the site may set. Until 2026-11-16 the host took the text after the
+    /// first `pw-session=` in the request's headers, and the third, fifth
+    /// and sixth cases below named theirs.
+    #[test]
+    fn a_requests_session_is_its_one_session_cookie() {
+        let (plain, secure) = (Cookies::of(false), Cookies::of(true));
+        let ours = Some("s-ours");
+        for (headers, cookies, named) in [
+            ("Cookie: pw-session=s-ours\r\n", plain, ours),
+            ("cookie: a=1; pw-session=s-ours; b=2\r\n", plain, ours),
+            (
+                "Referer: http://t/?pw-session=s-theirs\r\nCookie: pw-session=s-ours\r\n",
+                plain,
+                ours,
+            ),
+            ("Referer: http://t/?pw-session=s-theirs\r\n", plain, None),
+            (
+                "Cookie: xpw-session=s-theirs; pw-session=s-ours\r\n",
+                plain,
+                ours,
+            ),
+            (
+                "Cookie: note=pw-session=s-theirs; pw-session=s-ours\r\n",
+                plain,
+                ours,
+            ),
+            (
+                "Cookie: pw-session=s-theirs; pw-session=s-ours\r\n",
+                plain,
+                None,
+            ),
+            (
+                "Cookie: pw-session=s-theirs\r\nCookie: pw-session=s-ours\r\n",
+                plain,
+                None,
+            ),
+            ("Cookie: pw-session=\r\n", plain, None),
+            ("Cookie: __Host-pw-session=s-ours\r\n", secure, ours),
+            (
+                "Cookie: pw-session=s-theirs; __Host-pw-session=s-ours\r\n",
+                secure,
+                ours,
+            ),
+            ("Cookie: pw-session=s-theirs\r\n", secure, None),
+            ("Cookie: __Host-pw-session=s-theirs\r\n", plain, None),
+            // Whitespace a browser keeps in a name, which a Unicode trim
+            // took away: a sibling may set such a cookie with `Domain`.
+            (
+                "Cookie: \u{2000}__Host-pw-session=s-theirs\r\n",
+                secure,
+                None,
+            ),
+            ("Cookie: \u{a0}__Host-pw-session=s-theirs\r\n", secure, None),
+            ("Cookie: \u{85}__Host-pw-session=s-theirs\r\n", secure, None),
+            (
+                "Cookie: \u{2000}pw-session=s-theirs; pw-session=s-ours\r\n",
+                plain,
+                ours,
+            ),
+            // And a name in another case, which a browser that checks the
+            // prefix by its exact case lets a sibling set.
+            ("Cookie: __HOST-pw-session=s-theirs\r\n", secure, None),
+            ("Cookie: PW-SESSION=s-theirs\r\n", plain, None),
+            ("Cookie:\tpw-session=s-ours\t\r\n", plain, ours),
+        ] {
+            assert_eq!(
+                session_in(headers, cookies).as_deref(),
+                named,
+                "{headers:?}"
+            );
         }
     }
 
