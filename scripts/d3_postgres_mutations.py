@@ -45,14 +45,17 @@ They need a database: `PW_TABLES_DATABASE_URL` (or `PW_STORE_DATABASE_URL`,
 of its own. Without it every test passes doing nothing, and no mutant could
 be killed, so this refuses to run.
 
-Run whole from the repository root (`just e14-d3-postgres`). Every source is
-restored in finally; the unmutated baseline must pass before any mutant
-means anything. Words given as arguments run only the mutants whose
-description holds one of them, for a quick look while working; the record is
-a whole run.
+Run from the repository root: `just e14-d3-postgres` records part 1 of
+`PARTS` (D3's own mutants), `just e14-d3-postgres-2` part 2 (the uploads'),
+each `--part i/2`; with no part, every mutant runs. Every source is restored
+in finally; the unmutated baseline, every test binary, must pass before any
+mutant means anything, and each part runs it. Words given as arguments run
+only the mutants whose description holds one of them, for a quick look while
+working; the record is a whole part.
 """
 import os
 import pathlib
+import re
 import subprocess
 import sys
 
@@ -71,7 +74,10 @@ POOL = CRATE / "src/pool.rs"
 # The workspace's manifest: serde_json's `float_roundtrip` (the review of 2026-11-02).
 CARGO = ROOT / "Cargo.toml"
 
-MUTANTS = [
+# **The uploads' mutants** (ADR-0440's L5): the namespace, its generations,
+# its receipts and its enrollment on PostgreSQL. Part 2 of `PARTS`, run by
+# `just e14-d3-postgres-2`.
+UPLOADS = [
     ('upload lifecycle keeps without verifying exact receipt after immediate hooks', ROOT / 'runtime/pw-table-postgres/src/lib.rs',
      '                assets::verify_receipt(\n                    &inner,\n                    conn,\n                    prepared_assets.receipt_required,\n                    records.interaction,\n                )?;', '                let _ = records.interaction;'),
     ('upload lifecycle commits without verifying exact receipt after deferred hooks', ROOT / 'runtime/pw-table-postgres/src/lib.rs',
@@ -146,6 +152,11 @@ MUTANTS = [
      ' || name.starts_with("pw_asset_")', ' || false && name.starts_with("pw_asset_")'),
     ('upload lifecycle skips namespace exclusion before the host turn', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
      'pub(crate) fn lock_lifetime(inner: &Inner, lease: &mut Lease) -> Result<Option<i64>, Error> {\n    let Some(binding) = &inner.uploads else {\n        return Ok(None);\n    };\n    let conn = lease.conn()?;\n    conn.batch(&inner.counters, "BEGIN").map_err(database)?;\n    let key = acquire_namespace(conn, &inner.counters, &binding.namespace)?;\n    conn.batch(&inner.counters, "COMMIT").map_err(database)?;\n    binding\n        .store\n        .enroll(&binding.namespace, false)\n        .map_err(|e| Error::Refused(format!("upload storage namespace: {e}")))?;\n    Ok(Some(key))\n}\n', 'pub(crate) fn lock_lifetime(inner: &Inner, lease: &mut Lease) -> Result<Option<i64>, Error> {\n    let Some(binding) = &inner.uploads else {\n        return Ok(None);\n    };\n    let conn = lease.conn()?;\n    conn.batch(&inner.counters, "BEGIN").map_err(database)?;\n    let key = acquire_namespace(conn, &inner.counters, &binding.namespace)?;\n    release_namespace(conn, &inner.counters, key)?;\n    conn.batch(&inner.counters, "COMMIT").map_err(database)?;\n    binding\n        .store\n        .enroll(&binding.namespace, false)\n        .map_err(|e| Error::Refused(format!("upload storage namespace: {e}")))?;\n    Ok(None)\n}\n'),
+]
+
+# **D3's own mutants** (ADR-0338, ADR-0393): the declared tables. Part 1 of
+# `PARTS`, run by `just e14-d3-postgres`.
+DECLARED = [
     ('closed cases PostgreSQL additive columns use a different encoding', MIGRATE,
      '    let (kind, nullable) = crate::shape::column_of(&field.stored);', '    let (kind, nullable) = match &field.stored {\n        Stored::Option(inner) if matches!(**inner, Stored::Cases(_)) => (crate::shape::Kind::Json, true),\n        _ => crate::shape::column_of(&field.stored),\n    };'),
     ('closed cases PostgreSQL accepts unknown stored tags', ROOT / 'runtime/pw-table-postgres/src/shape.rs',
@@ -466,6 +477,17 @@ MUTANTS = [
      "                SET through = through;\n"),
 ]
 
+# **Two recipes, each a part** (ADR-0393, amended 2026-11-17, after the
+# integrator's ruling 2 of 2026-10-17): the whole no longer fits a CI job.
+# L5a's verify 43860567064 ran its 133 mutants and baseline in 16,275 s,
+# 122 s a run, on a runner that took its shard's other recipes 1.6 to 2.2
+# times as long as L4's verify had: a runner that slow ends the whole past
+# the 20,700 s a job runs. Ranges of `MUTANTS`, half open: part 1 D3's own,
+# part 2 the uploads'; `evidence_counts.py` holds the two to every mutant
+# once. A run with no part runs every mutant.
+MUTANTS = DECLARED + UPLOADS
+PARTS = [(0, len(DECLARED)), (len(DECLARED), len(MUTANTS))]
+
 # Each test binary apart: names can repeat between binaries, and the native
 # assertion validator expects one complete inventory each.
 TESTS = [
@@ -524,8 +546,26 @@ def run_tests():
     return True, passed, failed
 
 
+def chosen(argv: list[str]) -> tuple[list, str]:
+    """The mutants a run asks for, and how its output says which: `--part
+    i/n`, the i-th of `PARTS`, where n is how many there are; those whose
+    description holds one of the words given; every mutant where nothing is
+    asked."""
+    if argv[:1] == ["--part"]:
+        asked = re.fullmatch(r"(\d+)/(\d+)", argv[1]) if len(argv) == 2 else None
+        if asked is None or int(asked.group(2)) != len(PARTS) or not 1 <= int(asked.group(1)) <= len(PARTS):
+            raise SystemExit(f"d3_postgres_mutations.py: ask for every mutant, words, or --part i/{len(PARTS)}")
+        i = int(asked.group(1))
+        start, end = PARTS[i - 1]
+        return MUTANTS[start:end], f"part {i} of {len(PARTS)}: mutants {start + 1} to {end} of {len(MUTANTS)}"
+    return [m for m in MUTANTS if not argv or any(w in m[0] for w in argv)], ""
+
+
 def main():
     import mutation_baseline  # keeps every command and reports a red baseline
+    picked, which = chosen(sys.argv[1:])
+    if which:
+        print(which, flush=True)
     if not database():
         print("FAIL: no database is named (PW_TABLES_DATABASE_URL, PW_STORE_DATABASE_URL or")
         print("PW_FEED_DATABASE_URL); without one every test passes doing nothing, and no")
@@ -537,9 +577,8 @@ def main():
         print("FAIL: the unmutated baseline is not green; no mutant can mean anything")
         mutation_baseline.explain()
         return 1
-    chosen = [m for m in MUTANTS if not sys.argv[1:] or any(w in m[0] for w in sys.argv[1:])]
     survivors = 0
-    for what, path, anchor, replacement in chosen:
+    for what, path, anchor, replacement in picked:
         original = path.read_text()
         if original.count(anchor) != 1:
             print(f"{what}: ANCHOR NOT FOUND EXACTLY ONCE in {path.name}", flush=True)
@@ -556,7 +595,7 @@ def main():
             verdict = "SURVIVED"
             survivors += 1
         print(f"{what}: {verdict}", flush=True)
-    print(f"{len(chosen) - survivors} of {len(chosen)} mutants killed")
+    print(f"{len(picked) - survivors} of {len(picked)} mutants killed")
     return 1 if survivors else 0
 
 

@@ -169,6 +169,21 @@ class Plan(unittest.TestCase):
         self.assertGreaterEqual(len(skips), 10, skips)
         self.assertEqual(sorted(set(skips) - set(plan.NEEDS_DATABASE)), [])
 
+    def test_a_recipe_that_reads_a_database_is_dealt_beside_one(self) -> None:
+        # Found before L5's full verify (2026-11-17): `e14-generic-upload-claims`
+        # is refused without a database ("refused, it needs
+        # PW_TABLES_DATABASE_URL"), words the test above does not read, and
+        # NEEDS_DATABASE did not hold it: the run would have dealt it where
+        # there is none, and failed it. And `e14-every-entry` and
+        # `e14-follows`, which only said whether one is named, ran tests that
+        # said "skipped" and passed without one. A recipe that names a
+        # database's URL at all is dealt beside one.
+        named = ("PW_TABLES_DATABASE_URL", "PW_STORE_DATABASE_URL", "PW_FEED_DATABASE_URL")
+        reads = sorted(name for name, body in plan.bodies().items() if any(v in body for v in named))
+        for name in ("e14-generic-upload-claims", "e14-d3-postgres-2", "e14-every-entry", "e14-follows"):
+            self.assertIn(name, reads)
+        self.assertEqual(sorted(set(reads) - set(plan.NEEDS_DATABASE)), [])
+
     def test_a_measurement_of_the_machine_is_not_planned(self) -> None:
         self.assertIn("e10-close-bench", plan.LOCAL_ONLY)
         self.assertTrue(plan.EVIDENCE_RECIPE.match("e14-feed"))
