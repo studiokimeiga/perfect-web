@@ -21,10 +21,13 @@ owner. What stays open, in order:
 1. **L4's record**: the full verify at its head, every recipe and the three
    browser suites, then `evidence-fetch`; it lands after L3 (#110).
 2. **L5, declared uploads** (ADR-0440's fourth prerequisite), in two parts.
-   L5a, the integration branch's forty-two commits to `64f03ec9`, merged
-   on L4 (`wip/l5-uploads`), its record the full verify at its head; then
-   L5b, the claim bridge `018fad14` finished: generic upload claims,
-   publication and reference lifetime. Keep the
+   L5a, the integration branch's forty-two commits to `64f03ec9` and the
+   claim ledger `018fad14`, merged on L4 (`wip/l5-uploads`), its record
+   the full verify at its head; then L5b, the server's claim bridge:
+   compiled upload imports bound to an invocation's ledger, the attempt's
+   nonce in the commit's record, its outcome applied or refused, an
+   unknown one reconciled from the raw receipt, and the startup refusal
+   opened only with those gates. Keep the
    mixed-layer and upload startup refusals until their replacements are
    real; the design must address cross-host last-reference races, database
    disconnects during physical cleanup, immutable storage generations,

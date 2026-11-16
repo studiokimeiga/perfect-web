@@ -2,11 +2,12 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
-**L5a, declared uploads to their claim bridge, 2026-11-16:** on L4
+**L5a, declared uploads to their claim ledger, 2026-11-16:** on L4
 (`7b8fb7cc`), the fifth train of the declared data layer's landing, its
 first part (`wip/l5-uploads`): the integration branch's forty-two commits
-after `ff57edc7`, to `64f03ec9`, ADR-0440's fourth prerequisite short of its
-claim bridge. An upload is declared in a module of its name (`upload
+after `ff57edc7`, to `64f03ec9`, and the claim ledger its worktree held
+uncommitted (`018fad14`), ADR-0440's fourth prerequisite short of the
+server's claim bridge. An upload is declared in a module of its name (`upload
 PostImage`, its route, kinds and bounds), a table that keeps one says so
 (`asset image from PostImage`), and its reference is a closed, payload-free
 case on the canonical column encoding; the runtime binds each compiled
@@ -18,9 +19,14 @@ platform's migration 0005) and commits references and storage under
 lifetime exclusion; and the generic handler serves a current generation
 through a verified read (404 with no current reference, 503 for a live one
 missing, before 304). Staging keeps one lease per session and declaration,
-bound to its reader. A compiled program's upload imports stay unbound, so
-one that claims an upload is refused before any callback: the claim bridge
-(`018fad14`, L5b) binds them. The merge's five conflicts: the platform's
+bound to its reader. One invocation's claims are held in a ledger
+(`uploads::generic`): an attempt nonce kept in the interaction's answer,
+pending entries capped at 1,024 and 16 MiB, applied only on this attempt's
+own receipt and never released by elapsed time; built and tested on L5a
+(61 server tests, 48 of asset rows), it was never built where it was
+written. A compiled program's upload imports stay unbound, so one that
+claims an upload is refused before any callback: the server's claim bridge
+(L5b) binds them to the ledger. The merge's five conflicts: the platform's
 migrations (L3's `0004_outbox_removals_marked` landed first, so L5's
 `0004_upload_generations` is `0005_upload_generations`, and the three tests
 that list or count the platform's migrations say five), their test, the
