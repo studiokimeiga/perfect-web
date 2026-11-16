@@ -279,6 +279,61 @@ class Plan(unittest.TestCase):
                         self.assertEqual(plan.recipes_for(changed, 0, list(bodies)), ["direct", "script", "workspace"])
                         self.assertEqual(plan.touched_scripts({path: [(1, 1)]}, 0), set())
 
+    def test_an_out_of_line_test_module_reaches_what_runs_it(self) -> None:
+        # The nightly of 2026-11-15's finding: `pw-table-memory`'s
+        # `failure_tests.rs` is a whole test module, declared out of line
+        # (`#[cfg(test)] mod failure_tests;` in `lib.rs`), neither under a
+        # `tests/` directory nor an inline `mod tests {`, and a change to it
+        # planned nothing: the fix to its one test that the nightly found
+        # INVALID would have run no `e14-d2-writes`, whose script runs it.
+        failure = "runtime/pw-table-memory/src/failure_tests.rs"
+        self.assertIn("d2_writes_mutations.py", plan.touched_scripts({failure: [(1, 1)]}, 30))
+        self.assertIn("e14-d2-writes", plan.recipes_for({failure: [(1, 1)]}, 30, plan.recipes()))
+        with tempfile.TemporaryDirectory() as temp:
+            root = pathlib.Path(temp)
+            (root / "sample/src/inner").mkdir(parents=True)
+            (root / "scripts").mkdir()
+            (root / "sample/Cargo.toml").write_text('[package]\nname = "sample-crate"\n')
+            (root / "sample/src/lib.rs").write_text(
+                "pub mod inner;\nmod helpers;\n#[cfg(test)]\nmod probe_tests;\n"
+                "#[cfg(test)]\npub(crate) mod tests;\n"
+            )
+            (root / "sample/src/inner.rs").write_text("#[cfg(test)]\n#[allow(dead_code)]\nmod inner_tests;\n")
+            for module in ("probe_tests", "tests", "helpers", "inner/inner_tests"):
+                (root / f"sample/src/{module}.rs").write_text("#[test]\nfn witness() {}\n")
+            (root / "scripts/root_mutations.py").write_text(
+                'COMMAND = ["cargo", "test", "-p", "sample-crate", "--lib"]\nMUTANTS = []\n'
+            )
+            bodies = {
+                "package": "cargo test --locked -p sample-crate",
+                "probe": "cargo test -- probe_tests::witness",
+                "inner": "cargo test -- inner::",
+                "inner-tests": "cargo test -- inner_tests::witness",
+                "script": "python3 scripts/root_mutations.py",
+                "other": "cargo test -p other-crate -- tests::elsewhere::",
+            }
+            with mock.patch.object(plan, "ROOT", root), mock.patch.object(plan, "bodies", return_value=bodies), mock.patch.object(plan, "justfile_parts", return_value=[]):
+                for module, modules, packages, scripts, planned in (
+                    # Declared by the crate root: its package's tests, and its
+                    # own filter.
+                    ("probe_tests", {"probe_tests"}, {"sample-crate"}, {"root_mutations.py"},
+                     ["package", "probe", "script"]),
+                    # `tests` as a filter would be every crate's: its package.
+                    ("tests", set(), {"sample-crate"}, {"root_mutations.py"}, ["package", "script"]),
+                    # Declared by another module: its filter and its parent's,
+                    # as an inline `mod tests` is its file's.
+                    ("inner/inner_tests", {"inner_tests", "inner"}, set(), set(), ["inner", "inner-tests"]),
+                    # The control: a module no `#[cfg(test)]` declares is no
+                    # test module, whatever it holds.
+                    ("helpers", set(), set(), set(), []),
+                ):
+                    changed = {f"sample/src/{module}.rs": [(1, 1)]}
+                    with self.subTest(module=module):
+                        self.assertEqual(plan.test_modules(changed), modules)
+                        self.assertEqual(plan.root_test_packages(changed), packages)
+                        self.assertEqual(plan.touched_scripts(changed, 0), scripts)
+                        self.assertEqual(plan.recipes_for(changed, 0, list(bodies)), planned)
+
     def test_python_test_changes_reach_scripts_and_direct_recipes(self) -> None:
         path = "scripts/tests/test_ci_scripts.py"
         changed = {path: [(1, 1)]}

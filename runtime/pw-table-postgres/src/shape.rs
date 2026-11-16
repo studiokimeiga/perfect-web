@@ -611,47 +611,58 @@ pub(crate) fn row_key(
         .collect()
 }
 
-fn selector(by: &[usize], args: &[Value]) -> Result<Key, Error> {
-    if args.len() != by.len() {
-        return Err(Error::Input(format!(
-            "expected {} selector values, got {}",
-            by.len(),
-            args.len()
-        )));
-    }
-    args.iter().map(Atom::parse).collect()
-}
-
 fn selections(
     table: &TableShape,
     by: &[usize],
     args: &[Value],
     many: bool,
 ) -> Result<BTreeSet<Key>, Error> {
+    let names = by
+        .iter()
+        .map(|&f| table.columns[f].name.as_str())
+        .collect::<Vec<_>>();
+    named_selections(&names, args, many)
+}
+
+/// **The memory adapter's `selections`, word for word**: one selector of
+/// `names`' values, or a set of them (each a scalar where there is one
+/// field, a record of exactly these fields where there are more), each value
+/// a scalar. A range request's fields are its selectors and its mark.
+fn named_selections(names: &[&str], args: &[Value], many: bool) -> Result<BTreeSet<Key>, Error> {
     if !many {
-        return Ok(BTreeSet::from([selector(by, args)?]));
+        if args.len() != names.len() {
+            return Err(Error::Input(format!(
+                "expected {} selector values, got {}",
+                names.len(),
+                args.len()
+            )));
+        }
+        return Ok(BTreeSet::from([args
+            .iter()
+            .map(Atom::parse)
+            .collect::<Result<Key, _>>()?]));
     }
     let [Value::Array(values)] = args else {
         return Err(Error::Input("a set selector needs one array".into()));
     };
     let mut out = BTreeSet::new();
     for value in values {
-        let key = if by.len() == 1 {
+        let key = if names.len() == 1 {
             vec![Atom::parse(value)?]
         } else {
             let obj = value
                 .as_object()
                 .ok_or_else(|| Error::Input("composite set selectors are records".into()))?;
-            if obj.len() != by.len() {
+            if obj.len() != names.len() {
                 return Err(Error::Input(
                     "composite set selector fields do not match".into(),
                 ));
             }
-            by.iter()
-                .map(|&f| {
-                    let name = &table.columns[f].name;
+            names
+                .iter()
+                .map(|name| {
                     Atom::parse(
-                        obj.get(name)
+                        obj.get(*name)
                             .ok_or_else(|| Error::Input(format!("set selector lacks {name}")))?,
                     )
                 })
@@ -741,7 +752,7 @@ pub(crate) fn range_columns(
 ) -> Result<Vec<Column>, Error> {
     let order = table
         .order
-        .ok_or_else(|| Error::Schema("range count requires declared order".into()))?;
+        .ok_or_else(|| Error::Schema("a range count requires declared order".into()))?;
     let mut columns = function
         .by
         .iter()
@@ -754,61 +765,29 @@ pub(crate) fn range_columns(
 }
 
 /// The cutoff participates in dedup/order, never in the equality-selector inventory.
+///
+/// The memory adapter's `typed_ranges`, word for word (the L4 review of
+/// 2026-11-16): each request read as one selector of the equality fields and
+/// the mark ([`named_selections`]), then each value held to its field's type
+/// and bound, in the canonical order, so that a request failing two ways is
+/// refused for the same one on both.
 pub(crate) fn typed_ranges(
     table: &TableShape,
     function: &FunctionShape,
     args: &[Value],
 ) -> Result<(Vec<Column>, Vec<Key>), Error> {
     let columns = range_columns(table, function)?;
-    let supplied = if function.primitive.many() {
-        let [Value::Array(requests)] = args else {
-            return Err(Error::Input(
-                "set range count takes one array of selector-and-mark records".into(),
-            ));
-        };
-        requests
-            .iter()
-            .map(|request| {
-                let record = request
-                    .as_object()
-                    .ok_or_else(|| Error::Input("range request is a record".into()))?;
-                if record.len() != columns.len() {
-                    return Err(Error::Input("range request fields differ".into()));
-                }
-                columns
-                    .iter()
-                    .map(|column| {
-                        record.get(&column.name).ok_or_else(|| {
-                            Error::Input(format!("range request lacks {}", column.name))
-                        })
-                    })
-                    .collect::<Result<Vec<_>, Error>>()
-            })
-            .collect::<Result<Vec<_>, Error>>()?
-    } else {
-        if args.len() != columns.len() {
-            return Err(Error::Input(
-                "range count takes equality selectors and an order mark".into(),
-            ));
+    let names = columns.iter().map(|c| c.name.as_str()).collect::<Vec<_>>();
+    let keys = named_selections(&names, args, function.primitive.many())?;
+    for key in &keys {
+        for (column, atom) in columns.iter().zip(key) {
+            if !validates(&atom.value(), &column.stored) {
+                return Err(Error::Input(format!(
+                    "range field {} fails its declared type or bound",
+                    column.name
+                )));
+            }
         }
-        vec![args.iter().collect()]
-    };
-    let mut keys = BTreeSet::new();
-    for request in supplied {
-        let key = columns
-            .iter()
-            .zip(request)
-            .map(|(column, value)| {
-                if !validates(value, &column.stored) {
-                    return Err(Error::Input(format!(
-                        "range field {} fails its declared type or bound",
-                        column.name
-                    )));
-                }
-                Atom::parse(value)
-            })
-            .collect::<Result<Key, Error>>()?;
-        keys.insert(key);
     }
     Ok((columns, keys.into_iter().collect()))
 }

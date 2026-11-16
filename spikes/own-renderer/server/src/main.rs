@@ -279,6 +279,11 @@ impl Subscriber {
     }
 }
 
+/// **How many times an identity's lifecycle is run, at most, where the
+/// database could not serialize it** (`Server::identity_answer`): as many
+/// as the data layer runs a transaction of its own (`pw_table_postgres::ATTEMPTS`).
+const LIFECYCLE_ATTEMPTS: u32 = pw_table_postgres::ATTEMPTS;
+
 /// How long the kitchen takes to answer (E14, T02): long enough that pages
 /// opened together are asking at once.
 const KITCHEN_MS: u64 = 300;
@@ -1329,12 +1334,22 @@ struct Server {
     before_commit: Mutex<Option<KeyedFetched>>,
     #[cfg(test)]
     before_command_authority: Mutex<Option<KeyedFetched>>,
+    /// A test's: told a command's component and session once its
+    /// transaction has begun, fenced on its reader's session.
+    #[cfg(test)]
+    after_command_authority: Mutex<Option<CommandObserved>>,
     #[cfg(test)]
     before_command_delivery: Mutex<Option<KeyedFetched>>,
     #[cfg(test)]
     after_page_admission: Mutex<Option<KeyedFetched>>,
     #[cfg(test)]
     after_identity_lifecycle: Mutex<Option<LifecycleObserved>>,
+    /// **Each attempt of an identity's lifecycle, as it ended** (NEXT after
+    /// L3, item 3), which a test reads: whether it conflicted, and its
+    /// answer (one refused is answered, uncommitted, with why; one whose
+    /// outcome is unknown is an error).
+    #[cfg(test)]
+    lifecycle_attempts: Mutex<Vec<(bool, Result<Answered, String>)>>,
     #[cfg(test)]
     before_actor_inspection: Mutex<Option<CommandObserved>>,
     /// **The admissions this server refused, as its log says them**
@@ -2361,11 +2376,15 @@ impl Server {
             #[cfg(test)]
             before_command_authority: Mutex::new(None),
             #[cfg(test)]
+            after_command_authority: Mutex::new(None),
+            #[cfg(test)]
             before_command_delivery: Mutex::new(None),
             #[cfg(test)]
             after_page_admission: Mutex::new(None),
             #[cfg(test)]
             after_identity_lifecycle: Mutex::new(None),
+            #[cfg(test)]
+            lifecycle_attempts: Mutex::new(Vec::new()),
             #[cfg(test)]
             before_actor_inspection: Mutex::new(None),
             #[cfg(test)]
@@ -2651,10 +2670,71 @@ impl Server {
         }
     }
 
+    /// **An identity's lifecycle, answered** (ADR-0440), and **run again
+    /// where the database could not serialize it** (NEXT after L3, item 3):
+    /// no client sends it again, as a browser's client does a refused press,
+    /// and the proof it runs under ends with the sign-in's request, so a
+    /// lifecycle that met the account's own write on another device (a
+    /// serialization failure, SQLSTATE 40001) left the guest's rows where
+    /// nothing would read them again. Run again in a transaction of its own
+    /// while its proof holds, under the same interaction, whose record
+    /// answers it where an attempt committed; at most
+    /// [`LIFECYCLE_ATTEMPTS`] times, as the data layer runs its own
+    /// (`pw_table_postgres::ATTEMPTS`). Any other end is its answer.
     fn identity_answer(&self, component: &str, session: &str) -> Result<Answered, String> {
-        // Keep the immutable target actor checks around fresh execution and
-        // receipt replay alike; proof presence alone is not current authority.
-        self.command_answer(component, session, &[], Some("identity-joined"))
+        let mut attempt = 1;
+        loop {
+            // Whatever another command left noted is not this attempt's:
+            // only its own failure, noted for its component, is.
+            data::take_conflicted(component);
+            // Keep the immutable target actor checks around fresh execution and
+            // receipt replay alike; proof presence alone is not current authority.
+            let answer = self.command_answer(component, session, &[], Some("identity-joined"));
+            let conflicted = data::take_conflicted(component);
+            #[cfg(test)]
+            self.lifecycle_attempts
+                .lock()
+                .expect("lifecycle attempts")
+                .push((conflicted, answer.clone()));
+            if answer.as_ref().is_ok_and(|answer| answer.committed) || !conflicted {
+                return answer;
+            }
+            if attempt >= LIFECYCLE_ATTEMPTS {
+                eprintln!(
+                    "pw dev server: identity lifecycle {component} could not be serialized in \
+                     {attempt} attempts; the guest's rows stay where they were"
+                );
+                return answer;
+            }
+            eprintln!(
+                "pw dev server: identity lifecycle {component} could not be serialized \
+                 (attempt {attempt} of {LIFECYCLE_ATTEMPTS}); running it again"
+            );
+            // The attempt kept nothing, so it has no outcome to share: what
+            // the host reserved of it for its interaction (ADR-0121) is let
+            // go, or the next attempt is handed it and nothing runs. Its
+            // record, which a commit writes, still answers any attempt that
+            // committed.
+            self.forget_reserved(session, component, "identity-joined", &[]);
+            attempt += 1;
+        }
+    }
+
+    /// **Let go of what the host reserved of an interaction's outcome**
+    /// (ADR-0121), its shared result, so that the interaction, sent again,
+    /// runs. Only for an outcome known to have kept nothing. Its place in the
+    /// session's queue stays: sent again with the arguments it was first
+    /// sent with, the interaction is admitted by it as before.
+    fn forget_reserved(
+        &self,
+        session: &str,
+        component: &str,
+        id: &str,
+        args: &[serde_json::Value],
+    ) {
+        let (_, cache_key, _) = self.receipt_keys(session, component, id, args);
+        // A finished outcome it was: the attempt ended before this.
+        let _ = self.commands.forget_command(&cache_key);
     }
 
     /// How many items the data layer holds for the session: the tests' view
@@ -3339,6 +3419,17 @@ impl Server {
             if let Some(actor) = &actor {
                 staging.authorize(actor)?;
             }
+            // A test's: the command's transaction begun, as its reader's
+            // session fenced it, and nothing of it read or written yet.
+            #[cfg(test)]
+            if let Some(hook) = self
+                .after_command_authority
+                .lock()
+                .expect("authorized hook")
+                .take()
+            {
+                hook(self, component_id, session);
+            }
             let mut host = staging.ops();
             // The host's own operations are its routes', never a
             // component's (track `store-pg`).
@@ -3387,7 +3478,16 @@ impl Server {
             // TRACK SEAM (tables): its tables' reads and writes, staged in
             // this command's transaction, as the gate admits them.
             let tables = StagedTables(&*staging);
-            let out = self.run(component_id, session, &host, &tables, args)?;
+            let out = match self.run(component_id, session, &host, &tables, args) {
+                Ok(out) => out,
+                // A statement the database could not serialize failed it:
+                // said, for the one caller that runs it again (NEXT after
+                // L3, item 3).
+                Err(why) => {
+                    data::note_conflicted(component_id, staging.conflicted());
+                    return Err(why);
+                }
+            };
             let result = out.first().map(answer_json);
             if let [Val::Result(Err(_))] = out.as_slice() {
                 staging.revalidate()?;
@@ -3486,12 +3586,14 @@ impl Server {
                     // it never reached its COMMIT) is answered refused, at
                     // once: there is nothing to reconcile.
                     let refused = staging.definitely_refused();
+                    let conflicted = staging.conflicted();
                     drop(out);
                     drop(host);
                     drop(staged_events);
                     drop(staging);
                     drop(memory_hold.take());
                     if refused {
+                        data::note_conflicted(component_id, conflicted);
                         return Err(why);
                     }
                     self.refresh_uncertain_browser(session, &invalidated, &emitted);
@@ -8726,7 +8828,7 @@ impl Server {
         let cookie = if fresh {
             // TRACK SEAM (identity): the session cookie, HttpOnly and Secure
             // outside this machine.
-            identity::session_cookie(session)
+            stream.session_cookie(session)
         } else {
             String::new()
         };
@@ -10398,7 +10500,6 @@ fn main() {
     // states it, refused at start where it may not run.
     let deployment = identity::Deployment::from_env(port)
         .and_then(|d| {
-            identity::configure_cookies(&d);
             let choice = std::env::var("PW_IDENTITY").ok();
             server.identity.configure(&d, choice.as_deref()).map(|_| d)
         })
@@ -10618,6 +10719,9 @@ struct Keeping {
     /// The session the request is answered for, its cookie's or the one made
     /// for it (ADR-0423).
     session: Mutex<String>,
+    /// **The cookies it is answered with**: its server's identity's, so a
+    /// fresh session's cookie is the deployment's (`identity::Cookies`).
+    cookies: Mutex<identity::Cookies>,
 }
 
 impl Conn {
@@ -10649,6 +10753,21 @@ impl Conn {
     /// The session this request is answered for.
     fn answering_for(&self, session: &str) {
         session.clone_into(&mut self.keeping.session.lock().expect("session"));
+    }
+
+    /// Answered with `cookies`, its server's identity's.
+    fn answering_with(&self, cookies: identity::Cookies) {
+        *self.keeping.cookies.lock().expect("cookies") = cookies;
+    }
+
+    /// **The cookie that names a fresh `session`**, as this connection's
+    /// server names it.
+    fn session_cookie(&self, session: &str) -> String {
+        self.keeping
+            .cookies
+            .lock()
+            .expect("cookies")
+            .session_line(session)
     }
 
     /// The session the last request was answered for.
@@ -11073,7 +11192,9 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
             return;
         }
     };
-    let (session, fresh) = session_of(&headers);
+    let cookies = server.identity.cookies();
+    let (session, fresh) = session_of(&headers, cookies);
+    stream.answering_with(cookies);
     stream.answering_for(&session);
     // Kept for the next request where HTTP/1.1 keeps it, the request did not
     // ask to close, the host has room, and no dropped command is armed for
@@ -12705,7 +12826,7 @@ fn stream_held(
     let cookie = if fresh {
         // TRACK SEAM (identity): the session cookie, HttpOnly and Secure
         // outside this machine.
-        identity::session_cookie(session)
+        stream.session_cookie(session)
     } else {
         String::new()
     };
@@ -13291,7 +13412,7 @@ fn moved(
         pw_render::escape::attribute(&location)
     );
     let cookie = if fresh {
-        identity::session_cookie(session)
+        stream.session_cookie(session)
     } else {
         String::new()
     };
@@ -14755,18 +14876,15 @@ fn speculation_manifests(dist: &std::path::Path) -> BTreeMap<String, serde_json:
         .collect()
 }
 
-/// **The request's session, and whether it is new**: its cookie's, or a
-/// new one where it carries none. A cookie naming a session the platform
-/// opens on a reader's behalf (NEXT 6c, `identity::ON_BEHALF`) is a new
-/// session too: those are never a browser's to present, though their names
-/// are no secret.
-fn session_of(headers: &str) -> (String, bool) {
-    match headers
-        .split("pw-session=")
-        .nth(1)
-        .and_then(|rest| rest.split([';', '\r', '\n']).next())
-    {
-        Some(id) if !id.starts_with(identity::ON_BEHALF) => (id.to_string(), false),
+/// **The request's session, and whether it is new**: its session cookie's
+/// (`identity::session_in`, by its server's names, `cookies`), or a new one
+/// where it carries none. A cookie naming a session the platform opens on a
+/// reader's behalf (NEXT 6c, `identity::ON_BEHALF`) is a new session too:
+/// those are never a browser's to present, though their names are no
+/// secret.
+fn session_of(headers: &str, cookies: identity::Cookies) -> (String, bool) {
+    match identity::session_in(headers, cookies) {
+        Some(id) if !id.starts_with(identity::ON_BEHALF) => (id, false),
         // TRACK SEAM (identity): a fresh session's id, 128 random bits.
         _ => (identity::new_session_id(), true),
     }
@@ -14800,7 +14918,7 @@ fn respond_json(stream: &mut Conn, code: u16, session: &str, fresh: bool, body: 
 /// `content-length` promises the whole body, and the body's first half.
 fn respond_in_part(stream: &mut Conn, code: u16, session: &str, fresh: bool, body: &str) {
     let cookie = if fresh {
-        identity::session_cookie(session)
+        stream.session_cookie(session)
     } else {
         String::new()
     };
@@ -14871,7 +14989,7 @@ fn respond(stream: &mut Conn, code: u16, mime: &str, session: &str, fresh: bool,
     let cookie = if fresh {
         // TRACK SEAM (identity): the session cookie, HttpOnly and Secure
         // outside this machine.
-        identity::session_cookie(session)
+        stream.session_cookie(session)
     } else {
         String::new()
     };

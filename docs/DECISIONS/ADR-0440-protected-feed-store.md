@@ -1320,3 +1320,166 @@ scheduled (38 of 38); at `dbbd8e65`, platform 0004's two controls
 durable-tables (57 of 57), store-accounts (37 of 37) and second-host at
 four test threads (50 of 50). The full verify at the branch's head is the
 record.
+
+## Amended 2026-11-16: a lifecycle the database could not serialize runs again
+
+The integrator's, under the owner's delegation of 2026-10-02: NEXT after L3,
+item 3 (the L3 review's third finding).
+
+**Found.** A lifecycle that did not commit left the guest's rows where
+nothing reads them: its proof ends with the sign-in's request, the session
+is the account's, and no client sends a lifecycle again. The review named
+a serialization failure against the account's own write on another device.
+It reproduces: with the account's other device served by a second host on
+the same database (ADR-0369), the account keeps its quantity after the
+lifecycle's transaction has taken its snapshot (at the session's fence) and
+before it reads; the lifecycle's `put` then fails with PostgreSQL's 40001
+("could not serialize access due to concurrent update"), the sign-in
+completes, and the guest's 3 stay in their partition beside the account's
+10, unread.
+
+Running the command again was not enough by itself: an idempotent command's
+outcome is reserved by its interaction (ADR-0121), and a second attempt
+under `identity-joined` was handed the first's refusal, and nothing ran.
+
+**Decided.**
+
+1. **A layer says when a command failed as the database could not
+   serialize it** (`data::Staged::conflicted`): the PostgreSQL layer, where a
+   statement met SQLSTATE 40001 or 40P01 (the adapter's
+   `Command::conflicted`, from what the failed statement left) or the commit
+   did, each of the commit's statements (the run it takes, the runs it
+   schedules, its prepare, its `COMMIT`) answering through one place
+   (`refused_by`). Such a command's transaction kept nothing. The memory
+   layer runs one command at a time and never conflicts. The host notes it,
+   for the command's component, where the run or the commit failed
+   (`data::note_conflicted`), as its error is a `String` from there on, read
+   by the caller that runs it again, as the refusal's predicate is
+   (`identity::take_refusal`); another command run on the thread meanwhile
+   is never taken for the lifecycle's.
+2. **The platform runs an identity's lifecycle again where it conflicted**
+   (`Server::identity_answer`): in a transaction of its own, while its proof
+   holds, under the same interaction, at most four times
+   (`pw_table_postgres::ATTEMPTS`, as the layer runs its own transactions).
+   Before each rerun it lets go of the outcome it reserved for the
+   interaction (`Server::forget_reserved`, its shared result; its place in
+   the session's queue admits the same interaction sent again as before):
+   the attempt kept nothing, so it has no outcome to share. A refusal, a
+   trap, an unconfirmed commit and any other end are the answer, as before;
+   "sign-in and row merge are separate outcomes" stands for them. Each rerun
+   is logged, and so are four conflicts in a row, after which the guest's
+   rows stay where they were (sustained contention stays open).
+
+The proof's one use is the lifecycle's outcome: an attempt rolled back by a
+conflict is no outcome, and the reruns are inside the same use, the same
+component, the same transition. A browser's command that conflicts is
+answered refused as before; its client presses again (L1's open item, a
+command run again after a serialization failure for every layer and every
+command, stays open).
+
+**Not chosen.** *Keeping the guest's rows reachable to a later merge* (a
+pending merge recorded beside the rows, completed by a later request or a
+sweep): it would cover a lifecycle that never ran at all (a host that died
+between the account's opening and its lifecycle), but it needs the
+transition proof kept durable, which ADR-0440's authority model keeps
+host-private and one-use on purpose; the conflict the review named is
+closed without it. *A fresh interaction per attempt*: the reservation would
+let it run, but the record that answers a replayed lifecycle is keyed by
+`identity-joined`.
+
+**Held by** tests of `tests::protected_migration`, on PostgreSQL, each
+reading the host's record of every attempt (`Server::lifecycle_attempts`,
+a test's): `a_lifecycle_that_met_the_accounts_own_write_runs_again_on_
+postgresql` (the two-host race: the first attempt conflicted and the second
+committed, the account holds 10 + 3, the guest nothing, one record; before,
+10 and the guest's 3 stranded), `a_lifecycle_that_conflicts_each_time_is_
+run_four_times_on_postgresql` and `a_lifecycle_that_deadlocks_each_time_
+is_run_four_times_on_postgresql` (a deferred trigger answering 40001, or
+40P01, at every commit: four attempts, each refused by the database, the
+guest's rows kept), `a_lifecycle_whose_scheduling_conflicts_is_run_four_
+times_on_postgresql` (a lifecycle that schedules a run, its scheduling
+answered 40001: four attempts), `a_lifecycle_whose_statement_fails_
+otherwise_runs_once_on_postgresql` (a write a trigger refuses with an
+exception of its own: one attempt), the refusal test (one attempt: a
+refusal is no conflict), and `a_conflict_noted_for_one_command_is_not_
+anothers`. Twelve mutants in `durable_tables_mutations.py`, one for each
+rule above.
+
+**Reviewed** (2026-11-16, a reviewer given the diff, not this account): no
+attempt runs again after one that committed, no conflict mark reaches a
+lifecycle from another request, the outcome let go is only the
+lifecycle's own, and each attempt takes its authority again. It found the
+commit's scheduling statements refused unmarked (a lifecycle that
+schedules a run met a conflict there and ran once), the race test unable
+to show that it retried, no control for a statement failing otherwise, for
+a deadlock or for the outcome let go, a queue step nothing observed, the
+mark kept for the thread rather than for the command, and the row-ownership
+script left without the Clock's witness. Each is repaired above, the
+witness's test added back to `row_ownership_mutations.py`, with a test or
+a mutant for each; the commit's taking of a run marks a conflict the same
+way, but no lifecycle completes a run, so no test reaches it.
+
+**And the owned Clock witness is one** (the landing's fourth finding, NEXT
+after L3, item 4): `tests::owned_clock` is kept and
+`tests::protected_migration`'s copy of it, with its `clock.pw`, removed; the
+two were the same scenario under two programs' names.
+
+## Landing (L4, 2026-11-16)
+
+L4 merges the integration branch's seventeen commits after `2e2ef45b` (to
+`ff57edc7`: 67 files of code and 1,370 receipts) onto L3 (`f375b92d`) in
+`7b8fb7cc`, branch `wip/l4-bounded`: the fifth prerequisite above, counts
+over declared selectors, ordered selector windows, counts after an order
+mark and fixed relation windows, through the compiler, the host and both
+adapters. Six files conflicted: `tables.rs` four times (L4's count, window
+and relation readers beside L2's `public` tables and the PW0370 numbering,
+which master kept; the table manifest's `public` and `windows` both kept),
+`head-only-allow.txt` (PW0370 again, and L4's own entry), the row-ownership
+script's test list (both sides', nineteen commands, none twice), and the
+docs (the integration branch's 454 lines added to the unnumbered decision
+moved here, before L3's landing). Nothing else needed a hand: at the merge
+the workspace's 4,274 tests pass on PostgreSQL 18.6 (26 ignored), and every
+mutation anchor matches once (6,104). The full verify 43809526375 at
+`7b8fb7cc` passed every job; its summary found two of 357 recipes failing,
+each repaired at the branch's head and run again there:
+`e14-row-ownership` (141 of 142, one kill INVALID: its failing test
+panicked at an `unwrap` of `table_ranges.rs`, which the strict validator
+does not read as an assertion; the test now fails only through assertions)
+and `e14-check-is-build` (the program census covered no assembly of
+`examples/relations/`, L4's relation fixture; it is one now). The other 355
+recipes' evidence (646 files, `bddbcf54`) is the merge's record.
+
+**Reviewed** (2026-11-16, a reviewer given the diff and this ADR's
+sections, not the account of the merge): no high or medium finding in
+authority, privacy, adapter parity or bounds. Each new read goes through
+the existing gate, owner check, answer check and shared-row projection;
+strings order byte by byte on both adapters (PostgreSQL's `bytea`); every
+limit applies inside the database. It found two low ones, each repaired
+with a test that failed before and a mutant:
+
+1. **An owned `public table`'s relation was refused by the host** through
+   an index its owner does not lead, where the compiler reads a public
+   table by any key or index (L2) and made the read: the build failed at
+   startup instead of answering. The host admits a public source's every
+   path (`window_target`), as it admits an unowned one's; a public table
+   keeps no private field (the compiler refuses one), so no match field is
+   revealed. `a_public_owned_membership_is_read_through_any_index_by_anyone`,
+   on both adapters.
+2. **PostgreSQL refused malformed direct range and relation requests in
+   other words than the memory adapter's**, which `shape.rs` promises word
+   for word: its range parsing had messages of its own, and a relation's
+   refusal named "relation window" where the memory adapter names the
+   import. It reads a range request as the memory adapter does
+   (`named_selections`, then each value held to its field's type and bound
+   in the canonical order, so that a request failing two ways is refused
+   for the same one) and names the import. The parity workload now reads
+   twelve malformed range requests after every command, and
+   `a_malformed_relation_request_is_refused_alike_on_both_adapters`
+   compares five. Compiled calls were never affected: the host checks
+   their arguments before either adapter sees them.
+
+**Left for the apps' port (L7)**, by design: the memory adapter's relation
+read scans the target for each selector it is given, which this decision
+allows, and no server-side cap bounds a window's or a relation's limit. The
+primitive is bounded by its argument; an app that passes a browser's limit
+through (`examples/relations/app.pw`'s `Following`) clamps it when ported.

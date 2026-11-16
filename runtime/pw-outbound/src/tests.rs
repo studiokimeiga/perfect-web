@@ -4,7 +4,10 @@
 //! passes.
 
 use std::fmt::Debug;
-use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpStream};
+#[cfg(target_os = "linux")]
+use std::net::SocketAddr;
+use std::net::{IpAddr, Ipv4Addr, TcpStream};
+#[cfg(target_os = "linux")]
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, OnceLock};
 use std::time::{Duration, Instant};
@@ -300,13 +303,18 @@ fn every_address_is_checked_before_any_is_reached() {
 }
 
 /// **A resolver whose answer changes after its first lookup** (a name
-/// rebound between a check and a connection), counting its lookups.
+/// rebound between a check and a connection), counting its lookups. Linux's
+/// alone, as the one test that uses it is (its second loopback address):
+/// built elsewhere it was dead code, and `just lint` failed on macOS
+/// (2026-11-16).
+#[cfg(target_os = "linux")]
 struct Rebinding {
     first: IpAddr,
     later: IpAddr,
     lookups: AtomicUsize,
 }
 
+#[cfg(target_os = "linux")]
 impl Resolve for Rebinding {
     fn resolve(&self, _host: &str, _port: u16, _within: Duration) -> Result<Vec<IpAddr>, Error> {
         let before = self.lookups.fetch_add(1, Ordering::SeqCst);

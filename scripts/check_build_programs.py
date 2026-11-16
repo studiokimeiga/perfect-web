@@ -45,6 +45,9 @@ def programs():
         # Track `row-ownership` (ADR-0384's H1 and H2): the owned table's
         # fixture, the program its tests build from the platform's packages.
         ('owned', std + paths('examples/owned/*.pw')),
+        # L4 (ADR-0440's bounded reads): the relation window fixture, the
+        # program its tests build from the platform's packages.
+        ('relations', std + paths('examples/relations/*.pw')),
         ('rules (the program of rule_fixtures.rs)', base + paths('examples/rules/**/*.pw'))]
     for group in ['counter', 'guestbook', 'hello-static', 'koka', 'render', 'streamed']:
         out.append((group, base + paths(f'examples/{group}/*.pw')))

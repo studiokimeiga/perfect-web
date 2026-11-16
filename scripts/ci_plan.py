@@ -535,6 +535,61 @@ def test_modules(changed: dict[str, list[tuple[int, int]]]) -> set[str]:
         )
         if start is not None and any(last >= start for _, last in hunks):
             out.add(pathlib.Path(p).stem)
+    # And a whole test module, declared out of line: its own name, as a
+    # filter, and its declaring module's, as an inline `mod tests` is its
+    # file's; `tests` alone names every crate's, and its package reaches it
+    # (`root_test_packages`).
+    for p, declarer in test_module_files(changed).items():
+        for name in (module_name(p), module_name(declarer)):
+            if name is not None and name != "tests":
+                out.add(name)
+    return out
+
+
+def module_name(path: str) -> str | None:
+    """The name of the module a Rust file is: its stem, or its directory's
+    for a `mod.rs`; none for a crate's root, `lib.rs` or `main.rs`."""
+    p = pathlib.Path(path)
+    if p.name in {"lib.rs", "main.rs"}:
+        return None
+    return p.parent.name if p.name == "mod.rs" else p.stem
+
+
+def test_module_files(changed: dict[str, list[tuple[int, int]]]) -> dict[str, str]:
+    """**Each changed Rust file that is a whole test module**, declared out
+    of line under `#[cfg(test)]` by the module above it, mapped to the file
+    that declares it: `pw-table-memory`'s `failure_tests.rs`, by
+    `#[cfg(test)] mod failure_tests;` in its `lib.rs`. Until 2026-11-16 a
+    change to one planned nothing: it is under no `tests/` directory and
+    holds no inline `mod tests {`, and the nightly of 2026-11-15 found one
+    of its tests INVALID, whose fix would have planned no `e14-d2-writes`.
+    The declaring file is where Rust looks for a module's file: `lib.rs`,
+    `main.rs` or `mod.rs` beside it, or the file named for its directory."""
+    out = {}
+    for path in changed:
+        p = pathlib.Path(path)
+        if p.suffix != ".rs" or "/tests/" in path or not (ROOT / p).is_file():
+            continue
+        name = module_name(path)
+        if name is None:
+            continue
+        directory = p.parent.parent if p.name == "mod.rs" else p.parent
+        declared = re.compile(
+            rf"^[ \t]*#\[cfg\(test\)\][ \t]*\n(?:[ \t]*#\[[^\n]*\][ \t]*\n)*"
+            rf"[ \t]*(?:pub(?:\([\w: ]+\))?[ \t]+)?mod[ \t]+{re.escape(name)}[ \t]*;",
+            re.M,
+        )
+        for declarer in (
+            directory / "lib.rs",
+            directory / "main.rs",
+            directory / "mod.rs",
+            directory.parent / f"{directory.name}.rs",
+        ):
+            if declarer == p or not (ROOT / declarer).is_file():
+                continue
+            if declared.search((ROOT / declarer).read_text()):
+                out[path] = str(declarer)
+                break
     return out
 
 
@@ -546,11 +601,21 @@ def names_module(text: str, module: str) -> bool:
 
 def root_test_packages(changed: dict[str, list[tuple[int, int]]]) -> set[str]:
     """Crate-root test modules have no `main::` or `lib::` namespace.
-    Reach every consumer of their package's tests, including bare filters."""
+    Reach every consumer of their package's tests, including bare filters.
+    A whole test module the crate's root declares out of line is one too
+    (`test_module_files`): its package's tests, run whole, run it."""
     packages = set()
-    for path, lines in changed.items():
-        if pathlib.Path(path).name not in {"main.rs", "lib.rs"} or not test_modules({path: lines}):
-            continue
+    roots = [
+        path
+        for path, lines in changed.items()
+        if pathlib.Path(path).name in {"main.rs", "lib.rs"} and test_modules({path: lines})
+    ]
+    roots += [
+        declarer
+        for declarer in test_module_files(changed).values()
+        if pathlib.Path(declarer).name in {"main.rs", "lib.rs"}
+    ]
+    for path in roots:
         for directory in (ROOT / path).parents:
             manifest = directory / "Cargo.toml"
             if manifest.is_file():

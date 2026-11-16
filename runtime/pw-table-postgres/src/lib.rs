@@ -1099,6 +1099,7 @@ fn read_related(
     conn: &mut Conn,
     source: &shape::TableShape,
     function: &shape::FunctionShape,
+    import: &str,
     sql: &str,
     args: &[Value],
 ) -> Result<Value, Error> {
@@ -1110,7 +1111,7 @@ fn read_related(
     let bound = bound
         .as_i64()
         .ok_or_else(|| Error::Input("a relation limit must be an Int".into()))?;
-    let keys = typed_selections(source, function, "relation window", selectors)?
+    let keys = typed_selections(source, function, import, selectors)?
         .into_iter()
         .collect::<Vec<_>>();
     let relation = function
@@ -1272,7 +1273,7 @@ fn read(inner: &Inner, conn: &mut Conn, import: &str, args: &[Value]) -> Result<
         .get(import)
         .ok_or_else(|| Error::Input(format!("undeclared table operation {import}")))?;
     if function.primitive.related() {
-        return read_related(inner, conn, table, function, sql, args);
+        return read_related(inner, conn, table, function, import, sql, args);
     }
     if function.primitive.range() {
         return read_ranges(inner, conn, table, function, sql, args);
@@ -1425,6 +1426,17 @@ pub struct Command {
 }
 
 impl Command {
+    /// **Whether a statement of this command failed as the database could not
+    /// serialize it** ([`Error::Serialization`]): its transaction keeps
+    /// nothing, and the whole command may run again from its beginning. A
+    /// read or a write that met it answered it, and the command failed with
+    /// it; this says so after its caller turned that answer into its own.
+    pub fn conflicted(&self) -> bool {
+        self.state
+            .lock()
+            .is_ok_and(|open| matches!(open.failed, Some(Error::Serialization(_))))
+    }
+
     /// Read through a compiler-emitted import, as [`PgTables::read`] does,
     /// in this command's transaction: its own writes seen.
     pub fn read(&self, import: &str, args: &[Value]) -> Result<Value, Error> {

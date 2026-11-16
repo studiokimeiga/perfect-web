@@ -104,7 +104,11 @@ impl Manifest {
                 && at > 0
             {
                 let by = &path[..at];
+                // An unowned source, or a `public table` (read by anyone, by
+                // any key or index, as the compiler reads one, L2), or a
+                // path led by the owner or a field it shares with.
                 if source.owner.is_none()
+                    || source.public
                     || by.first() == source.owner.as_ref()
                     || by
                         .first()
