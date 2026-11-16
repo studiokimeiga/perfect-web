@@ -420,8 +420,11 @@ any deletion, an operator's statement among them
 (`any_deletion_from_the_outbox_moves_the_trim_watermark`). Its test keeps
 the trimming it also held, now with the limit's batches, first ids first
 (`the_outboxs_rows_are_trimmed_once_older_than_an_age`). The mutant deletes
-through `trim_outbox` at age zero instead, every row at once, and is killed
-(8 of the script's 85 tests fail).
+through `trim_outbox` at age zero instead, every row at once, and is killed:
+7 of the script's 89 tests fail in the run of record
+(`docs/evidence/E14/durable-tables.txt`, verify 43877665544 at `06038e66`,
+71 of 71 mutants killed). The local run while it was written saw 8 of 85,
+before the review's test and the branch's base were in the count.
 
 **Reviewed** (independently, 2026-11-16): sound. One low finding is repaired
 here. The test could not tell the trim's `ORDER BY id` from the order its rows
