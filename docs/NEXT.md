@@ -47,10 +47,11 @@ owner. What stays open, in order:
    - the bare `is_err()` refusals in the asset tests held to their reasons:
      done there, all 85, each reason observed before it was written;
    - corpus cases for each upload and asset rule, as the architect's ruling
-     of 2026-08-06 asks of an invariant: an `examples/rejected` fixture, its
-     generality pair (`caught.pw`, `neighbour.pw`) and its `docs/CORPUS.md`
-     entry, for PW5601 to PW5605 and the table assets' rules, which have
-     none;
+     of 2026-08-06 asks of an invariant: done there (2026-11-17, corpus C34),
+     R-119 to R-124 for PW5601 to PW5605 and PW0371, A-061 and A-062 their
+     controls, six generality pairs, generality 82/82. Writing them found
+     eight refusals of four of those rules that named no boundary (charter
+     §16.3), each now pointing at its rule's other side (ADR-0440, amended);
    - one contract suite for assets over memory and PostgreSQL alike.
 
    Keep the

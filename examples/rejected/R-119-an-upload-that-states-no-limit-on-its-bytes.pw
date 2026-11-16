@@ -1,0 +1,22 @@
+// @corpus: rejected
+// @id: R-119
+// @category: an upload that states no limit on its bytes
+// @rule: PW5601
+// @invariant: upload_malformed
+// @charter: §9.2
+// @milestone: 14
+// @expect-error: `Avatar` states no `max_bytes`
+//
+// Track `uploads` (ADR-0260): an upload states each limit a host holds a
+// reader's file to before it keeps a byte, its bytes among them. `Avatar`
+// states its kinds, its width and its height, and no bytes, so nothing
+// bounds a file posted to `/uploads/avatar`. A-061 states each.
+
+module Avatar
+
+upload Avatar
+    route      "/uploads/avatar"
+    serves     "/avatars"
+    types      png, jpeg
+    max_width  512
+    max_height 512

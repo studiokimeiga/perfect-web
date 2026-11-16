@@ -394,6 +394,71 @@ fn an_uploads_paths_are_apart_from_each_other_as_the_host_holds_them() {
     assert_eq!(uploads(&apart), Vec::<String>::new());
 }
 
+/// **Each refusal names the boundary it is held to** (charter §16.3): a
+/// clause left out, where the upload takes a reader's file; a limit past a
+/// host's, the upload; a path another holds, the page or upload holding it.
+/// The L5 corpus (2026-11-17) found these with no related note at all.
+#[test]
+fn each_upload_refusal_names_the_boundary_it_is_held_to() {
+    let notes = |src: &str, says: &str| -> Vec<String> {
+        let found: Vec<_> = check_sources(&program(src))
+            .into_iter()
+            .filter(|(path, _)| path == "m.pw")
+            .flat_map(|(_, ds)| ds)
+            .filter(|d| d.message.contains(says))
+            .collect();
+        assert!(!found.is_empty(), "no refusal saying {says:?}");
+        found
+            .into_iter()
+            .flat_map(|d| d.related.into_iter().map(|r| r.label))
+            .collect()
+    };
+    let second = |route: &str, serves: &str| {
+        format!(
+            "{PROGRAM}\nupload Avatar\n    route      \"{route}\"\n    serves     \"{serves}\"\n    \
+             max_bytes  1000\n    types      png\n    max_width  64\n    max_height 64\n"
+        )
+    };
+    for (src, says, note) in [
+        (
+            PROGRAM.replace("    max_bytes  5_000_000\n", ""),
+            "states no `max_bytes`",
+            "`PostImage` takes a reader's file at `/uploads/post-image`",
+        ),
+        (
+            PROGRAM.replace("5_000_000", "100_000_001"),
+            "the most a host reads whole",
+            "the upload `PostImage`",
+        ),
+        (
+            PROGRAM.replace("max_width  4096", "max_width  4294967296"),
+            "is more than any image's",
+            "the upload `PostImage`",
+        ),
+        (
+            PROGRAM.replace("\"/about\"", "\"/uploads/post-image\""),
+            "and so does the page `About`",
+            "the page `About` is served at `/uploads/post-image`",
+        ),
+        (
+            second("/uploads/post-image", "/avatars"),
+            "and so does the upload `PostImage`",
+            "the upload `PostImage` answers `/uploads/post-image`",
+        ),
+        (
+            second("/uploads/avatar", "/images/avatar"),
+            "under `/images`, where `PostImage` serves",
+            "`PostImage` serves at `/images`",
+        ),
+    ] {
+        let got = notes(&src, says);
+        assert!(
+            got.iter().any(|label| label == note),
+            "a refusal saying {says:?} with the note {note:?}, where its notes were {got:?}"
+        );
+    }
+}
+
 #[test]
 fn a_type_named_twice_is_told_at_its_upload_once() {
     // L5a's review (2026-11-16): `types png, png` was told only as the

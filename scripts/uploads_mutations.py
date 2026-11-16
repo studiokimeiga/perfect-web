@@ -282,6 +282,36 @@ MUTANTS = [
         "        && bytes <= MOST_BYTES\n",
         "        && bytes > 0\n",
     ),
+    # Charter §16.3's boundary of each refusal (the L5 corpus, 2026-11-17:
+    # these named none): its note dropped.
+    (
+        "PW5601: a clause left out names no boundary",
+        RUST,
+        CHECK,
+        "                    vec![takes.clone()],\n",
+        "                    vec![takes.clone()][..0].to_vec(),\n",
+    ),
+    (
+        "PW5601: a limit past a host's names no upload",
+        RUST,
+        CHECK,
+        "                )],\n                \"A development host reads an upload's form whole",
+        "                )][..0].to_vec(),\n                \"A development host reads an upload's form whole",
+    ),
+    (
+        "PW5602: a path a page or upload holds names no holder",
+        RUST,
+        CHECK,
+        "                        vec![Related::in_unit(holder.unit, holder.span.clone(), holds)],\n",
+        "                        vec![Related::in_unit(holder.unit, holder.span.clone(), holds)][..0].to_vec(),\n",
+    ),
+    (
+        "PW5602: a path under another's names no other",
+        RUST,
+        CHECK,
+        "                            format!(\"`{other}` {} at `{old}`\", does(*old_route)),\n                        )],\n",
+        "                            format!(\"`{other}` {} at `{old}`\", does(*old_route)),\n                        )][..0].to_vec(),\n",
+    ),
     (
         "an image's width and height are left out of the timeline's markup",
         BROWSER,

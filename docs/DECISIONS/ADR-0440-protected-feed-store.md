@@ -1730,3 +1730,46 @@ Held by `tests/table_assets.rs` (each refusal by its code and its words;
 `a_command_claiming_an_upload_without_idempotent_by_is_pw5605`, new), and four
 mutants in `row_ownership_mutations.py`, each telling one of the three new
 codes' refusals as its old code again.
+
+## Amended 2026-11-17: the corpus's upload and asset cases, and each refusal's boundary (L5's follow-up)
+
+The integrator's, under the owner's delegation, from L5a's review (a low
+finding: no corpus case held an upload or asset rule) and the architect's
+ruling of 2026-08-06 (an invariant the compiler enforces has its canonical
+accepted and rejected specification, and survives a program its fixture did
+not anticipate). Corpus C34 (`docs/CORPUS.md`):
+
+- **Six rejected fixtures**, each its own defect alone: R-119 (an upload that
+  states no limit on its bytes, PW5601), R-120 (an upload's route that is a
+  page's, PW5602), R-121 (a form that sends a file where no upload takes it,
+  PW5603), R-122 (a declaration that emits a name an upload generates,
+  PW5604), R-123 (a command that claims an upload with no idempotency key,
+  PW5605) and R-124 (an asset held in a field that is not its upload's
+  reference, PW0371).
+- **Two accepted controls**: A-061, an upload in the module of its name and
+  a form that posts a file to it; A-062, a public table that keeps that
+  upload's reference as its asset, written by a command that claims it and
+  declares `idempotent_by`, and read by any reader.
+- **Six generality pairs** (`examples/generality/<symbol>/`), each a shape
+  its fixture does not have, and a valid neighbour: a limit past a host's;
+  a serving path under another module's upload's; a file form posting to an
+  upload's route without multipart; a type taking a generated operation's
+  emitted name; a claim in a helper, and one on a branch, beside a command
+  that only reads what its reader attached; an asset table whose source does
+  not hold its upload, and an owned one, beside a table with no asset.
+  Generality is 82/82.
+
+Writing them found **eight refusals, of four rules, that named no
+boundary**, which charter §16.3 asks of every rejection and the corpus asks
+of each refusal a fixture reaches (`every_diagnostic_carries_what_charter_16_3_requires`):
+PW5601's clause left out, bytes past what a host reads whole, and width or
+height past any image's; PW5602's path a page or another upload holds, and
+path under another's; PW5604's two collisions; and PW5605's. Each now points
+at the declaration on the rule's other side: the route at which the upload
+takes a reader's file, the upload, the page or upload holding the path, the
+other upload emitting the interface, the program's declaration taking a
+generated name, and the upload whose claim the command takes. Held by
+`each_upload_refusal_names_the_boundary_it_is_held_to` (`tests/uploads.rs`),
+three tests of `tests/table_assets.rs` (`bounded`), the corpus's §16.3 test,
+and seven mutants, four in `uploads_mutations.py` and three in
+`row_ownership_mutations.py`, each dropping one refusal's note.

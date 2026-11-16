@@ -1,0 +1,17 @@
+// @status: NEIGHBOUR
+// @invariant: upload_identity_taken
+//
+// A function of the program's beside its upload, emitting `kind-of`, a
+// name no generated declaration has.
+
+module Banner
+
+upload Banner
+    route      "/uploads/banner"
+    serves     "/banners"
+    max_bytes  1_000_000
+    types      png
+    max_width  2048
+    max_height 512
+
+fn kind_of(name: String) -> String { name }

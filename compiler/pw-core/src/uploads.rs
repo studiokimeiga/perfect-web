@@ -215,6 +215,28 @@ fn malformed(hir: &Hir, out: &mut Vec<Diagnostic>) {
             continue;
         }
         let at = hir.decl_span(id);
+        // Charter §16.3's boundary for a clause left out (the L5 corpus,
+        // 2026-11-17: it named none): where the upload takes a reader's
+        // file, which the clause bounds, or its name where it states no
+        // route either.
+        let takes = decl.policy("route").map_or_else(
+            || {
+                Related::new(
+                    decl.name_span.clone(),
+                    format!("the upload `{}`", decl.name),
+                )
+            },
+            |p| {
+                Related::new(
+                    p.span.clone(),
+                    format!(
+                        "`{}` takes a reader's file at `{}`",
+                        decl.name,
+                        unquoted(&p.value)
+                    ),
+                )
+            },
+        );
         for head in CLAUSES {
             if decl.policy(head).is_none() {
                 out.push(diagnostic(
@@ -222,7 +244,7 @@ fn malformed(hir: &Hir, out: &mut Vec<Diagnostic>) {
                     "upload_clause_missing",
                     format!("`{}` states no `{head}`", decl.name),
                     at.clone(),
-                    Vec::new(),
+                    vec![takes.clone()],
                     MALFORMED_WHY,
                     format!("write `{head}` in `{}`", decl.name),
                 ));
@@ -259,7 +281,10 @@ fn malformed(hir: &Hir, out: &mut Vec<Diagnostic>) {
                     p.value.trim()
                 ),
                 p.span.clone(),
-                Vec::new(),
+                vec![Related::new(
+                    at.clone(),
+                    format!("the upload `{}`", decl.name),
+                )],
                 "A development host reads an upload's form whole before it keeps it, so its \
                  limit is an allocation anyone may ask for.",
                 format!("write `max_bytes` at most `{MOST_BYTES}`"),
@@ -296,7 +321,10 @@ fn malformed(hir: &Hir, out: &mut Vec<Diagnostic>) {
                     "upload_too_large",
                     format!("`{head} {}` is more than any image's", p.value.trim()),
                     p.span.clone(),
-                    Vec::new(),
+                    vec![Related::new(
+                        at.clone(),
+                        format!("the upload `{}`", decl.name),
+                    )],
                     "An image's width and height are each at most 2³²−1 in every format \
                      an upload may be.",
                     format!("write `{head}` at most `{}`", u32::MAX),
@@ -312,8 +340,10 @@ fn malformed(hir: &Hir, out: &mut Vec<Diagnostic>) {
 /// the build at its start. What the exact paths below already tell (one
 /// route, or one serving path, of two uploads) is not told twice.
 fn overlapping(hirs: &[&Hir], unit: usize, out: &mut Vec<Diagnostic>) {
-    // Each path held so far: the path, its upload, and whether it is a route.
-    let mut held: Vec<(String, String, bool)> = Vec::new();
+    // Each path held so far: the path, its upload, whether it is a route,
+    // and the unit and clause it is written in, charter §16.3's boundary
+    // (the L5 corpus, 2026-11-17: it named none).
+    let mut held: Vec<(String, String, bool, usize, crate::hir::Span)> = Vec::new();
     let does = |route: bool| if route { "takes its forms" } else { "serves" };
     for (u, hir) in hirs.iter().enumerate() {
         for (id, decl) in hir.all_decls() {
@@ -324,7 +354,7 @@ fn overlapping(hirs: &[&Hir], unit: usize, out: &mut Vec<Diagnostic>) {
                 continue;
             };
             for (path, route) in [(c.route.clone(), true), (c.serves.clone(), false)] {
-                let over = held.iter().find(|(old, other, old_route)| {
+                let over = held.iter().find(|(old, other, old_route, _, _)| {
                     let equal = *old == path;
                     let nested = path.starts_with(&format!("{old}/"))
                         || old.starts_with(&format!("{path}/"));
@@ -333,7 +363,7 @@ fn overlapping(hirs: &[&Hir], unit: usize, out: &mut Vec<Diagnostic>) {
                     let told = equal && *other != decl.name && *old_route == route;
                     (equal || nested) && !told
                 });
-                if let (Some((old, other, old_route)), true) = (over, u == unit) {
+                if let (Some((old, other, old_route, old_unit, old_at)), true) = (over, u == unit) {
                     let who = if *other == decl.name {
                         "it".to_string()
                     } else {
@@ -355,7 +385,11 @@ fn overlapping(hirs: &[&Hir], unit: usize, out: &mut Vec<Diagnostic>) {
                         "upload_paths_overlap",
                         message,
                         hir.decl_span(id),
-                        Vec::new(),
+                        vec![Related::in_unit(
+                            *old_unit,
+                            old_at.clone(),
+                            format!("`{other}` {} at `{old}`", does(*old_route)),
+                        )],
                         "A host answers an upload by the path asked: a form posted to its \
                          route, a file under what it serves. Where one path is another, or \
                          under it, the host cannot tell which is asked, and refuses the build.",
@@ -363,25 +397,47 @@ fn overlapping(hirs: &[&Hir], unit: usize, out: &mut Vec<Diagnostic>) {
                             .to_string(),
                     ));
                 }
-                held.push((path, decl.name.clone(), route));
+                let written = decl
+                    .policy(if route { "route" } else { "serves" })
+                    .map_or_else(|| decl.name_span.clone(), |p| p.span.clone());
+                held.push((path, decl.name.clone(), route, u, written));
             }
         }
     }
 }
 
+/// **What holds a path**, a page or an upload: its name, and the unit and
+/// span it is written at, charter §16.3's boundary for an upload that
+/// answers it too (the L5 corpus, 2026-11-17: it named none).
+struct Holder {
+    name: String,
+    unit: usize,
+    span: crate::hir::Span,
+}
+
 fn taken(hirs: &[&Hir], unit: usize, out: &mut Vec<Diagnostic>) {
     // Every page's route, and every upload's paths before this unit's.
-    let mut pages: Vec<(String, String)> = Vec::new();
-    for hir in hirs {
+    let mut pages: Vec<(String, Holder)> = Vec::new();
+    for (u, hir) in hirs.iter().enumerate() {
         for (_, decl) in hir.all_decls() {
             if decl.kind == DeclKind::Page
                 && let Some(route) = crate::routes::declared_route(hir, decl)
             {
-                pages.push((route, decl.name.clone()));
+                let span = decl
+                    .policy("route")
+                    .map_or_else(|| decl.name_span.clone(), |p| p.span.clone());
+                pages.push((
+                    route,
+                    Holder {
+                        name: decl.name.clone(),
+                        unit: u,
+                        span,
+                    },
+                ));
             }
         }
     }
-    let mut claimed: BTreeMap<String, String> = BTreeMap::new();
+    let mut claimed: BTreeMap<String, Holder> = BTreeMap::new();
     for (u, hir) in hirs.iter().enumerate() {
         for (id, decl) in hir.all_decls() {
             if decl.kind != DeclKind::Upload {
@@ -403,10 +459,18 @@ fn taken(hirs: &[&Hir], unit: usize, out: &mut Vec<Diagnostic>) {
                 let page = pages
                     .iter()
                     .find(|(r, _)| route_matches(crate::routes::route_parts(r).0, &path));
-                let upload = claimed.get(&path).filter(|other| **other != decl.name);
-                let by = match (page, upload) {
-                    (Some((route, name)), _) => format!("the page `{name}`, at `{route}`"),
-                    (None, Some(other)) => format!("the upload `{other}`"),
+                let upload = claimed.get(&path).filter(|other| other.name != decl.name);
+                let (by, holder, holds) = match (page, upload) {
+                    (Some((route, page)), _) => (
+                        format!("the page `{}`, at `{route}`", page.name),
+                        page,
+                        format!("the page `{}` is served at `{route}`", page.name),
+                    ),
+                    (None, Some(other)) => (
+                        format!("the upload `{}`", other.name),
+                        other,
+                        format!("the upload `{}` answers `{path}`", other.name),
+                    ),
                     (None, None) => continue,
                 };
                 if u == unit {
@@ -415,7 +479,7 @@ fn taken(hirs: &[&Hir], unit: usize, out: &mut Vec<Diagnostic>) {
                         "upload_route_taken",
                         format!("`{}` answers `{path}`, {what}, and so does {by}", decl.name),
                         hir.decl_span(id),
-                        Vec::new(),
+                        vec![Related::in_unit(holder.unit, holder.span.clone(), holds)],
                         "A host answers an upload's paths before any page's (ADR-0253's \
                          seam), so a page there would never be served, and two uploads \
                          at one path leave it to whichever is found first.",
@@ -423,12 +487,20 @@ fn taken(hirs: &[&Hir], unit: usize, out: &mut Vec<Diagnostic>) {
                     ));
                 }
             }
-            for path in [
-                u_clauses.route.clone(),
-                format!("{}/{{lease}}", u_clauses.route),
-                format!("{}/{{key}}", u_clauses.serves),
+            let clause = |head: &str| {
+                decl.policy(head)
+                    .map_or_else(|| decl.name_span.clone(), |p| p.span.clone())
+            };
+            for (path, head) in [
+                (u_clauses.route.clone(), "route"),
+                (format!("{}/{{lease}}", u_clauses.route), "route"),
+                (format!("{}/{{key}}", u_clauses.serves), "serves"),
             ] {
-                claimed.entry(path).or_insert_with(|| decl.name.clone());
+                claimed.entry(path).or_insert_with(|| Holder {
+                    name: decl.name.clone(),
+                    unit: u,
+                    span: clause(head),
+                });
             }
         }
     }

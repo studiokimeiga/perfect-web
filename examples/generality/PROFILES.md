@@ -74,6 +74,8 @@ ownership, control flow, higher-order functions, or cross-module contracts.
 | `dead_internal_link` | arity variation, neighbour | 2 | — |
 | `read_per_element` | generic callback with a match arm's key, helper extraction (a function named as the callback), cross-module (another module's read, pair and source), neighbour (a key no element's; a callback applied once) | 3 | — |
 | `set_pair_shape` | a reader passed along (a parameter the set form drops), cross-module (another module's set form, of another source), neighbour (the shapes a set form may take: a reader passed along, an answer that holds its key, another module's set form of the same source) | 3 | — |
+| `upload_claim_not_idempotent` | helper extraction (a helper's claim), a branch (a claim one path takes), neighbour (a command that reads what its reader attached); the fixture's upload is already another module's (corpus C34) | 3 | — |
+| `table_asset_malformed` | cross-module (the upload's source another module's), ownership (an owned table), neighbour (a table with no asset) (corpus C34) | 3 | — |
 
 **Tier 2 complete.** Filling it found three defects, all of the "reads a name
 rather than follows a value" family plus one parser bug: `privacy_flow` had
@@ -97,6 +99,14 @@ Track `tables` (ADR-0338, D1): `table_malformed`, `data_not_declared`,
 over one declaration or one call, its challenge a shape the fixture does not
 have (a reference's key, a write by hand, a bare `all()`, a referring table in
 no source, a type changed) and its neighbour the same shape, valid.
+
+Track `uploads` (ADR-0260) and L5 (ADR-0440), corpus C34: `upload_malformed`,
+`upload_route_taken`, `file_form_posts_to_no_upload` and
+`upload_identity_taken`, each a rule over one declaration or one form, its
+challenge a shape the fixture does not have (a limit stated past a host's, a
+path under another module's upload's, a form posting to an upload without
+multipart, a type taking a generated operation's name) and its neighbour the
+same shape, valid.
 
 All complete at 2 files each. `constructor_arity` is tier 3 with a targeted
 generator, because malformed structure there **did** crash a later phase.

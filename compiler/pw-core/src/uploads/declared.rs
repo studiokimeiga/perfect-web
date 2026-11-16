@@ -282,11 +282,25 @@ pub(crate) fn check_generated(
         .filter(|(id, d)| d.kind == DeclKind::Upload && hir.module_of(*id) == Some(d.name.as_str()))
     {
         let identity = crate::wit::ident(&d.name);
-        if upload_clauses(hirs).iter().any(|other| {
+        if let Some(other) = upload_clauses(hirs).iter().find(|other| {
             other.module.is_some()
                 && other.name != d.name
                 && crate::wit::ident(&other.name) == identity
         }) {
+            // Charter §16.3's boundary: the other upload, which emits the
+            // same interface (the L5 corpus, 2026-11-17: it named none).
+            let mut related = Vec::new();
+            for (u, h) in hirs.iter().enumerate() {
+                for (_, o) in h.all_decls() {
+                    if o.kind == DeclKind::Upload && o.name == other.name {
+                        related.push(Related::in_unit(
+                            u,
+                            o.name_span.clone(),
+                            format!("`{}` emits the interface `{identity}` too", o.name),
+                        ));
+                    }
+                }
+            }
             out.push(diagnostic(
                 codes::UPLOAD_IDENTITY_TAKEN,
                 "upload_interface_collision",
@@ -295,7 +309,7 @@ pub(crate) fn check_generated(
                     d.name
                 ),
                 hir.decl_span(id),
-                vec![],
+                related,
                 "Each resource operation has one emitted identity and declared meaning.",
                 "give each upload a distinct emitted module name".into(),
             ));
@@ -304,23 +318,37 @@ pub(crate) fn check_generated(
     for (id, g) in &hir.generated_uploads {
         let d = hir.decl(*id);
         let identity = crate::wit::ident(&d.name);
-        if hir.all_decls().any(|(other, decl)| {
+        if let Some((_, decl)) = hir.all_decls().find(|&(other, decl)| {
             !hir.generated_uploads.contains_key(&other) && crate::wit::ident(&decl.name) == identity
         }) {
-            out.push(diagnostic(codes::UPLOAD_IDENTITY_TAKEN,"upload_generated_collision",format!("`{}` is a generated upload declaration and the program declares its emitted identity",d.name),hir.decl_span(g.upload),vec![],"Generated resource types and operations have one declared meaning.","rename the program's declaration".into()));
+            // Charter §16.3's boundary: the program's declaration, which
+            // emits the generated one's name (the L5 corpus, 2026-11-17).
+            let related = vec![Related::new(
+                decl.name_span.clone(),
+                format!("`{}` is declared here, and emits `{identity}`", decl.name),
+            )];
+            out.push(diagnostic(codes::UPLOAD_IDENTITY_TAKEN,"upload_generated_collision",format!("`{}` is a generated upload declaration and the program declares its emitted identity",d.name),hir.decl_span(g.upload),related,"Generated resource types and operations have one declared meaning.","rename the program's declaration".into()));
         }
     }
+    // Each generated claim's resource, and the upload whose claim it is:
+    // charter §16.3's boundary for a command that takes one (the L5 corpus,
+    // 2026-11-17: it named none).
     let resources = hirs
         .iter()
-        .flat_map(|h| {
+        .enumerate()
+        .flat_map(|(u, h)| {
             h.generated_uploads
                 .iter()
                 .filter(|&(_id, g)| g.what == GeneratedKind::Claim)
-                .map(|(id, _g)| {
-                    format!(
-                        "{}.{}",
-                        h.module_of(*id).unwrap_or_default(),
-                        h.decl(*id).name
+                .map(move |(id, g)| {
+                    let upload = h.decl(g.upload);
+                    (
+                        format!(
+                            "{}.{}",
+                            h.module_of(*id).unwrap_or_default(),
+                            h.decl(*id).name
+                        ),
+                        (u, upload.name_span.clone(), upload.name.clone()),
                     )
                 })
         })
@@ -329,11 +357,17 @@ pub(crate) fn check_generated(
         .all_decls()
         .filter(|(_, d)| d.kind == DeclKind::Command && d.policy("idempotent_by").is_none())
     {
-        if inference.effective_effects(unit, hir, id).iter().any(|e| {
-            resources.iter().any(|r| {
+        let effects = inference.effective_effects(unit, hir, id);
+        if let Some((_, (u, at, upload))) = resources.iter().find(|(r, _)| {
+            effects.iter().any(|e| {
                 e == &format!("resource.acquire<{r}>") || e == &format!("resource.release<{r}>")
             })
         }) {
+            let related = vec![Related::in_unit(
+                *u,
+                at.clone(),
+                format!("`{upload}` is the upload whose claim `{}` takes", d.name),
+            )];
             out.push(diagnostic(
                 codes::UPLOAD_CLAIM_NOT_IDEMPOTENT,
                 "upload_without_idempotency",
@@ -342,7 +376,7 @@ pub(crate) fn check_generated(
                     d.name
                 ),
                 hir.decl_span(id),
-                vec![],
+                related,
                 "An uncertain upload commit is reconciled using the command's durable record.",
                 "declare idempotent_by for this command".into(),
             ));

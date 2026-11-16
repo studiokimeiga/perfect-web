@@ -2,6 +2,15 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**L5's follow-up, 2026-11-17 (built, not landed):** on L5
+(`wip/l5-followups`). Each upload and asset refusal is told by a rule of its
+own (PW5604, PW5605, PW0371), and each asset test's refusal by its reason.
+Corpus C34 holds each upload and asset rule: R-119 to R-124, beside A-061 and
+A-062 (52 accepted programs, 112 rejected, every charter category covered),
+and six generality pairs (generality 82 / 82). Writing it found eight
+refusals of four rules that named no boundary (charter §16.3); each now
+points at its rule's other side (ADR-0440, amended).
+
 **L5b, the server's claim bridge, 2026-11-16 (built, not landed):** on L5a
 (`wip/l5b-claims`). A compiled command claims, publishes and commits a
 declared upload through the server, on memory and on PostgreSQL: its

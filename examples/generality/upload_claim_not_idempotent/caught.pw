@@ -1,0 +1,24 @@
+// @status: GENERAL
+// @invariant: upload_claim_not_idempotent
+//
+// Structurally different from R-123: the claim is a helper function's,
+// and the command that calls it acquires the claim all the same.
+
+module generality.claim_in_a_helper
+
+import PostImage
+import Photos.{ Attached }
+import context.{ current_session }
+
+fn take() -> Result<PostImage.Claim, PostImage.Error> {
+    PostImage.claim(current_session())
+}
+
+command attach() -> Result<PostImage.Ref, PostImage.Error>
+    requires    Anyone
+    invalidates Attached(current_session())
+    transaction serializable
+{
+    let claim = take()?
+    PostImage.publish(current_session(), claim)
+}

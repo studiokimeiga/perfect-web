@@ -1,0 +1,25 @@
+// @status: GENERAL
+// @invariant: upload_claim_not_idempotent
+//
+// The claim on one branch of a condition: a command that may claim is
+// one that claims.
+
+module generality.claim_in_a_branch
+
+import PostImage
+import Photos.{ Attached }
+import context.{ current_session }
+
+command attach(keep: Bool) -> Result<Int, PostImage.Error>
+    requires    Anyone
+    invalidates Attached(current_session())
+    transaction serializable
+{
+    if keep {
+        let claim = PostImage.claim(current_session())?
+        let image = PostImage.publish(current_session(), claim)?
+        Ok(1)
+    } else {
+        Ok(0)
+    }
+}

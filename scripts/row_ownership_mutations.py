@@ -231,6 +231,14 @@ MUTANTS = [
      '        codes::TABLE_ASSET_MALFORMED,\n        "table_asset_malformed",', '        codes::TABLE_MALFORMED,\n        "table_asset_malformed",'),
     ('upload claim without idempotency told as a malformed upload', ROOT / 'compiler/pw-core/src/uploads/declared.rs',
      '                codes::UPLOAD_CLAIM_NOT_IDEMPOTENT,\n                "upload_without_idempotency",', '                codes::UPLOAD_MALFORMED,\n                "upload_without_idempotency",'),
+    # Charter §16.3's boundary of each refusal (the L5 corpus, 2026-11-17:
+    # these named none): its note dropped.
+    ('upload interface collision names no other upload', ROOT / 'compiler/pw-core/src/uploads/declared.rs',
+     '                    if o.kind == DeclKind::Upload && o.name == other.name {', '                    if o.kind == DeclKind::Upload && o.name == other.name && false {'),
+    ('upload generated identity collision names no declaration of the program', ROOT / 'compiler/pw-core/src/uploads/declared.rs',
+     '                format!("`{}` is declared here, and emits `{identity}`", decl.name),\n            )];', '                format!("`{}` is declared here, and emits `{identity}`", decl.name),\n            )][..0].to_vec();'),
+    ('upload claim without idempotency names no upload', ROOT / 'compiler/pw-core/src/uploads/declared.rs',
+     '                format!("`{upload}` is the upload whose claim `{}` takes", d.name),\n            )];', '                format!("`{upload}` is the upload whose claim `{}` takes", d.name),\n            )][..0].to_vec();'),
     ('upload claim consuming command lacks receipt', ROOT / 'compiler/pw-core/src/uploads/declared.rs',
      'd.kind == DeclKind::Command && d.policy("idempotent_by").is_none()', 'd.kind == DeclKind::Command && false && d.policy("idempotent_by").is_none()'),
     ('asset source mismatch silent', ROOT / 'compiler/pw-core/src/tables/assets.rs',

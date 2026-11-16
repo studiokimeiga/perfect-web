@@ -123,6 +123,33 @@ fn diagnostics(posts: &str, image: &str, source: &str, app: &str) -> Vec<(String
         .map(|d| (d.code.to_string(), d.message))
         .collect()
 }
+/// **A refusal names the boundary it is held to** (charter §16.3; the L5
+/// corpus, 2026-11-17: PW5604's and PW5605's named none): some refusal of
+/// `code` whose message holds `says` has a related note in `file` saying
+/// `note`.
+fn bounded(
+    got: &[(String, Vec<pw_core::diagnostics::Diagnostic>)],
+    code: &str,
+    says: &str,
+    file: &str,
+    note: &str,
+) {
+    let refusals: Vec<_> = got
+        .iter()
+        .flat_map(|(path, ds)| ds.iter().map(move |d| (path, d)))
+        .filter(|(_, d)| d.code == code && d.message.contains(says))
+        .collect();
+    assert!(
+        refusals.iter().any(|(path, d)| d.related.iter().any(|r| {
+            r.label.contains(note) && r.file.as_deref().unwrap_or(path.as_str()) == file
+        })),
+        "a {code} saying {says:?} with a note in {file} saying {note:?}, where there were {:#?}",
+        refusals
+            .iter()
+            .map(|(path, d)| (path, &d.message, &d.related))
+            .collect::<Vec<_>>()
+    );
+}
 /// **A refusal by its rule and its words**: a diagnostic of `code` whose
 /// message holds `says` (the follow-up's review, L4: words alone, as short
 /// as "claim", matched another rule's refusal).
@@ -573,15 +600,29 @@ fn distinct_upload_names_cannot_emit_one_resource_interface() {
     assert!(
         got.iter()
             .flat_map(|(_, ds)| ds)
-            .any(|d| d.code.to_string() == "PW5604"
-                && d.message.contains("generated upload interface")),
+            .any(|d| d.code == "PW5604" && d.message.contains("generated upload interface")),
         "two names emit one upload interface, told PW5604: {got:#?}"
     );
     assert!(
         got.iter()
             .flat_map(|(_, ds)| ds)
-            .all(|d| d.code.to_string() != "PW5601"),
+            .all(|d| d.code != "PW5601"),
         "{got:#?}"
+    );
+    // Each at the other, which emits the same interface (charter §16.3).
+    bounded(
+        &got,
+        "PW5604",
+        "`PostImage` emits a generated upload interface",
+        "alias.pw",
+        "`Post_Image` emits the interface `post-image` too",
+    );
+    bounded(
+        &got,
+        "PW5604",
+        "`Post_Image` emits a generated upload interface",
+        "PostImage.pw",
+        "`PostImage` emits the interface `post-image` too",
     );
 }
 
@@ -598,6 +639,14 @@ fn a_declaration_emitting_a_generated_upload_identity_is_pw5604() {
         "a declaration named as a generated one, told PW5604: {got:#?}"
     );
     assert!(got.iter().all(|(code, _)| code != "PW5601"), "{got:#?}");
+    // At the program's declaration, which takes the generated one's name.
+    bounded(
+        &check_sources(&files(POSTS, &taken, SOURCE, APP)),
+        "PW5604",
+        "`Kind` is a generated upload declaration",
+        "PostImage.pw",
+        "`KIND` is declared here, and emits `kind`",
+    );
 }
 
 /// **A command that claims or releases an upload declares `idempotent_by`**
@@ -616,6 +665,22 @@ fn a_command_claiming_an_upload_without_idempotent_by_is_pw5605() {
         "a claiming command without idempotent_by, told PW5605: {got:#?}"
     );
     assert!(got.iter().all(|(code, _)| code != "PW5601"), "{got:#?}");
+    // At the upload whose claim each command takes, in its own module.
+    let checked = check_sources(&files(
+        POSTS,
+        IMAGE,
+        SOURCE,
+        &APP.replace("    idempotent_by InteractionId\n", ""),
+    ));
+    for command in ["keep", "discard"] {
+        bounded(
+            &checked,
+            "PW5605",
+            &format!("`{command}` acquires or releases"),
+            "PostImage.pw",
+            &format!("`PostImage` is the upload whose claim `{command}` takes"),
+        );
+    }
 }
 
 #[test]

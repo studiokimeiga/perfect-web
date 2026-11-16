@@ -1,0 +1,16 @@
+// @status: GENERAL
+// @invariant: upload_route_taken
+//
+// Structurally different from R-120: no page, and the path that matters
+// is another module's. `Banner` serves under `/images`, where A-061's
+// `PostImage` serves, so a host could not tell whose a file there is.
+
+module Banner
+
+upload Banner
+    route      "/uploads/banner"
+    serves     "/images/banners"
+    max_bytes  1_000_000
+    types      png
+    max_width  2048
+    max_height 512

@@ -1,0 +1,17 @@
+// @status: NEIGHBOUR
+// @invariant: upload_claim_not_idempotent
+//
+// A command that reads what the reader attached claims nothing, and
+// declares no key.
+
+module generality.attached_read
+
+import PostImage
+import context.{ current_session }
+
+command attached() -> List<PostImage.Attached>
+    requires    Anyone
+    transaction serializable
+{
+    PostImage.attached(current_session())
+}
