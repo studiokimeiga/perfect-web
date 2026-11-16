@@ -802,9 +802,33 @@ fn a_postgresql_lifecycle_commit_refusal_keeps_guest_target_and_records_atomic()
         ["1"],
         "a refused lifecycle is not run again"
     );
+    assert!(
+        matches!(
+            lifecycle_attempts(&server).as_slice(),
+            [(false, Ok(answer))] if refused_with(answer, "fixture refuses commit")
+        ),
+        "one attempt, refused by the database, no conflict: {:?}",
+        lifecycle_attempts(&server)
+    );
     assert_eq!(schema.count("pw_interactions"), "0");
     assert_eq!(schema.count("pw_outbox"), events);
     assert_eq!(schema.count("\"JoinCarts\""), "2");
+}
+
+/// Each attempt of a sign-in's lifecycle: whether it conflicted, and its
+/// answer.
+type Attempts = Vec<(bool, Result<crate::Answered, String>)>;
+
+/// What each attempt of a sign-in's lifecycle ended as, as the host
+/// recorded it: whether it conflicted, and its answer.
+fn lifecycle_attempts(server: &Server) -> Attempts {
+    server.lifecycle_attempts.lock().unwrap().clone()
+}
+
+/// Refused, as the database answered: uncommitted, and why naming `cause`,
+/// never an outcome unknown (which is an error, not an answer).
+fn refused_with(answer: &crate::Answered, cause: &str) -> bool {
+    !answer.committed && answer.why.as_deref().is_some_and(|why| why.contains(cause))
 }
 
 /// **A lifecycle that met the account's own write is run again, and the
@@ -875,6 +899,18 @@ fn a_lifecycle_that_met_the_accounts_own_write_runs_again_on_postgresql() {
         "1",
         "the lifecycle's one record"
     );
+    // The retry itself, not only its end: had the lifecycle's snapshot been
+    // taken after the other device's write, one attempt would commit the
+    // same 13 (the review of 2026-11-16).
+    assert!(
+        matches!(
+            lifecycle_attempts(&server).as_slice(),
+            [(true, Ok(first)), (false, Ok(second))]
+                if refused_with(first, "Serialization") && second.committed
+        ),
+        "the first attempt met the account's write, the second committed: {:?}",
+        lifecycle_attempts(&server)
+    );
 }
 
 /// **And at most as many times as the data layer runs its own**: a
@@ -884,10 +920,36 @@ fn a_lifecycle_that_met_the_accounts_own_write_runs_again_on_postgresql() {
 /// were, as a definite rollback keeps them.
 #[test]
 fn a_lifecycle_that_conflicts_each_time_is_run_four_times_on_postgresql() {
-    let Some(url) = super::tables_pg::database() else {
+    let Some((counted, attempts)) =
+        conflicting_each_time("join_conflicts", "serialization_failure")
+    else {
         return;
     };
-    let schema = super::tables_pg::Schema::new(&url, "join_conflicts");
+    assert_eq!(
+        counted, "4",
+        "run as many times as the data layer runs its own transactions"
+    );
+    each_refused_in_conflict(&attempts);
+}
+
+/// **A deadlock is such a conflict too** (SQLSTATE 40P01), as the data layer
+/// takes it for its own transactions: run four times, then refused.
+#[test]
+fn a_lifecycle_that_deadlocks_each_time_is_run_four_times_on_postgresql() {
+    let Some((counted, attempts)) = conflicting_each_time("join_deadlocks", "deadlock_detected")
+    else {
+        return;
+    };
+    assert_eq!(counted, "4", "a deadlock is run again as a conflict is");
+    each_refused_in_conflict(&attempts);
+}
+
+/// A lifecycle whose commit a deferred trigger answers with `errcode` each
+/// time: how many times it ran, as the trigger counted, and its attempts,
+/// as the host recorded them.
+fn conflicting_each_time(name: &str, errcode: &str) -> Option<(String, Attempts)> {
+    let url = super::tables_pg::database()?;
+    let schema = super::tables_pg::Schema::new(&url, name);
     let (_dir, out) = built_join(JOIN);
     let server = super::tables_pg::serve(&out, &schema);
     let provider = Arc::new(super::sign_in::TestProvider::default());
@@ -895,16 +957,120 @@ fn a_lifecycle_that_conflicts_each_time_is_run_four_times_on_postgresql() {
         .identity
         .use_provider(provider.clone(), super::sign_in::REDIRECT);
     seed_join(&server);
-    schema.sql("CREATE SEQUENCE join_attempts; CREATE FUNCTION conflict_join() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN PERFORM nextval(quote_ident(TG_TABLE_SCHEMA) || '.join_attempts'); RAISE EXCEPTION 'fixture conflict' USING ERRCODE = 'serialization_failure'; END $$; CREATE CONSTRAINT TRIGGER conflict_join AFTER UPDATE ON \"JoinCarts\" DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION conflict_join()").asserted("deferred conflict installed");
+    schema.sql(&format!("CREATE SEQUENCE join_attempts; CREATE FUNCTION conflict_join() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN PERFORM nextval(quote_ident(TG_TABLE_SCHEMA) || '.join_attempts'); RAISE EXCEPTION 'fixture conflict' USING ERRCODE = '{errcode}'; END $$; CREATE CONSTRAINT TRIGGER conflict_join AFTER UPDATE ON \"JoinCarts\" DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION conflict_join()")).asserted("deferred conflict installed");
+    a_failed_join_keeps_both_partitions(&server, &provider);
+    assert_eq!(schema.count("pw_interactions"), "0");
+    let counted = schema
+        .texts("SELECT (CASE WHEN is_called THEN last_value ELSE 0 END)::text FROM join_attempts")
+        .concat();
+    Some((counted, lifecycle_attempts(&server)))
+}
+
+/// Four attempts, each refused by the database in a conflict.
+fn each_refused_in_conflict(attempts: &[(bool, Result<crate::Answered, String>)]) {
+    assert_eq!(attempts.len(), 4, "{attempts:?}");
+    assert!(
+        attempts.iter().all(|(conflicted, answer)| *conflicted
+            && answer
+                .as_ref()
+                .is_ok_and(|answer| refused_with(answer, "fixture conflict"))),
+        "each attempt refused in a conflict, the last answered so: {attempts:?}"
+    );
+}
+
+/// **A lifecycle whose statement fails otherwise is run once** (the review
+/// of 2026-11-16): a write the database refuses for another reason than a
+/// conflict (a trigger raising an exception of its own, SQLSTATE P0001)
+/// fails the lifecycle where it ran, and it is not run again.
+#[test]
+fn a_lifecycle_whose_statement_fails_otherwise_runs_once_on_postgresql() {
+    let Some(url) = super::tables_pg::database() else {
+        return;
+    };
+    let schema = super::tables_pg::Schema::new(&url, "join_fails");
+    let (_dir, out) = built_join(JOIN);
+    let server = super::tables_pg::serve(&out, &schema);
+    let provider = Arc::new(super::sign_in::TestProvider::default());
+    server
+        .identity
+        .use_provider(provider.clone(), super::sign_in::REDIRECT);
+    seed_join(&server);
+    schema.sql("CREATE SEQUENCE join_attempts; CREATE FUNCTION fail_join() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN PERFORM nextval(quote_ident(TG_TABLE_SCHEMA) || '.join_attempts'); RAISE EXCEPTION 'fixture refuses statement'; END $$; CREATE TRIGGER fail_join BEFORE UPDATE ON \"JoinCarts\" FOR EACH ROW EXECUTE FUNCTION fail_join()").asserted("statement refusal installed");
+    a_failed_join_keeps_both_partitions(&server, &provider);
+    assert_eq!(
+        schema.texts(
+            "SELECT (CASE WHEN is_called THEN last_value ELSE 0 END)::text FROM join_attempts"
+        ),
+        ["1"],
+        "a statement that failed for itself is not run again"
+    );
+    assert!(
+        matches!(lifecycle_attempts(&server).as_slice(), [(false, Ok(answer))] if !answer.committed),
+        "one attempt, no conflict: {:?}",
+        lifecycle_attempts(&server)
+    );
+    assert_eq!(schema.count("pw_interactions"), "0");
+}
+
+/// **A lifecycle whose runs' scheduling meets a conflict is run again**
+/// (the review of 2026-11-16): a lifecycle that schedules a run for the
+/// account, whose scheduling statement the database cannot serialize (a
+/// trigger on the platform's runs answering SQLSTATE 40001), is a conflict
+/// as one of its own writes is: run four times, then refused. Until the
+/// review, the commit's scheduling was refused unmarked, and run once.
+#[test]
+fn a_lifecycle_whose_scheduling_conflicts_is_run_four_times_on_postgresql() {
+    let Some(url) = super::tables_pg::database() else {
+        return;
+    };
+    let schema = super::tables_pg::Schema::new(&url, "join_schedules");
+    let scheduling = JOIN
+        .replace(
+            "import context.{ current_user, previous_user }",
+            "import context.{ current_user, previous_user }\nimport clock.{ minutes }",
+        )
+        .replace(
+            "        None => (),\n    }\n}\nuser page JoinPage",
+            "        None => (),\n    }\n    schedule remind() after minutes(30)\n}\n\
+             command remind() -> ()\n    invoked_by    Clock\n    idempotent_by InteractionId\n{\n    ()\n}\n\
+             user page JoinPage",
+        );
+    assert!(scheduling.contains("schedule remind()"), "{scheduling}");
+    let (_dir, out) = built_join(&scheduling);
+    let server = super::tables_pg::serve(&out, &schema);
+    let provider = Arc::new(super::sign_in::TestProvider::default());
+    server
+        .identity
+        .use_provider(provider.clone(), super::sign_in::REDIRECT);
+    seed_join(&server);
+    schema.sql("CREATE SEQUENCE join_attempts; CREATE FUNCTION conflict_run() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN PERFORM nextval(quote_ident(TG_TABLE_SCHEMA) || '.join_attempts'); RAISE EXCEPTION 'fixture conflict' USING ERRCODE = 'serialization_failure'; END $$; CREATE TRIGGER conflict_run BEFORE INSERT ON pw_runs FOR EACH ROW EXECUTE FUNCTION conflict_run()").asserted("scheduling conflict installed");
     a_failed_join_keeps_both_partitions(&server, &provider);
     assert_eq!(
         schema.texts(
             "SELECT (CASE WHEN is_called THEN last_value ELSE 0 END)::text FROM join_attempts"
         ),
         ["4"],
-        "run as many times as the data layer runs its own transactions"
+        "the scheduling's conflict runs the lifecycle again, as its writes' would"
     );
+    each_refused_in_conflict(&lifecycle_attempts(&server));
+    assert_eq!(schema.count("pw_runs"), "0");
     assert_eq!(schema.count("pw_interactions"), "0");
+}
+
+/// **A conflict is the lifecycle's only where its own command noted it**
+/// (the review of 2026-11-16): another command run on the thread meanwhile
+/// (a second host's, nested in a test's hook) that conflicted is not taken
+/// for it, and one that did not conflict forgets what was noted before.
+#[test]
+fn a_conflict_noted_for_one_command_is_not_anothers() {
+    crate::data::note_conflicted("other.command", true);
+    assert!(!crate::data::take_conflicted("protected.join.joined"));
+    assert!(!crate::data::take_conflicted("other.command"), "taken once");
+    crate::data::note_conflicted("protected.join.joined", true);
+    assert!(crate::data::take_conflicted("protected.join.joined"));
+    crate::data::note_conflicted("protected.join.joined", true);
+    crate::data::note_conflicted("protected.join.joined", false);
+    assert!(!crate::data::take_conflicted("protected.join.joined"));
 }
 
 #[test]

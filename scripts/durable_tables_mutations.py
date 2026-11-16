@@ -78,6 +78,7 @@ LIB = ADAPTER / "src/lib.rs"
 SERVER = ROOT / "spikes/own-renderer/server"
 LAYER = SERVER / "src/tables_pg.rs"
 MAIN = SERVER / "src/main.rs"
+DATA = SERVER / "src/data.rs"
 
 MUTANTS = [
     # 1. the routing
@@ -114,10 +115,7 @@ MUTANTS = [
      "                Ok(false) => return Ok(Commit::NotCurrent),\n",
      "                Ok(false) => {}\n"),
     ("a commit the database refused is answered committed", LAYER,
-     "            Err(e) => {\n"
-     "                self.conflicted = matches!(e, pw_table_postgres::Error::Serialization(_));\n"
-     "                return self.refuse(format!(\"the tables did not commit: {e:?}\"));\n"
-     "            }\n",
+     "            Err(e) => return self.refused_by(&e, format!(\"the tables did not commit: {e:?}\")),\n",
      "            Err(_) => pw_table_postgres::Committed {\n"
      "                written: Default::default(),\n"
      "                outbox: Vec::new(),\n"
@@ -261,8 +259,8 @@ MUTANTS = [
      "    fn definitely_refused(&self) -> bool {\n        self.refused\n    }\n",
      "    fn definitely_refused(&self) -> bool {\n        self.refused && false\n    }\n"),
     ("the host answers a refused commit as unknown", MAIN,
-     "                    if refused {\n                        data::note_conflicted(conflicted);\n                        return Err(why);\n                    }\n",
-     "                    if refused && false {\n                        data::note_conflicted(conflicted);\n                        return Err(why);\n                    }\n"),
+     "                    if refused {\n                        data::note_conflicted(component_id, conflicted);\n                        return Err(why);\n                    }\n",
+     "                    if refused && false {\n                        data::note_conflicted(component_id, conflicted);\n                        return Err(why);\n                    }\n"),
     ("a commit never answered is answered refused", LAYER,
      "            ) => return Err(format!(\"the tables did not commit: {e:?}\")),\n",
      "            ) => return self.refuse(format!(\"the tables did not commit: {e:?}\")),\n"),
@@ -298,30 +296,45 @@ MUTANTS = [
     # An identity's lifecycle the database could not serialize is run again,
     # at most as many times as the layer runs its own (NEXT after L3, item 3).
     ("a lifecycle that conflicted is not run again", MAIN,
-     "                || !conflicted\n",
-     "                || true\n"),
+     "            if answer.as_ref().is_ok_and(|answer| answer.committed) || !conflicted {\n",
+     "            if answer.as_ref().is_ok_and(|answer| answer.committed) || true {\n"),
     ("a lifecycle is run again whatever ended it", MAIN,
-     "                || !conflicted\n",
-     "                || false\n"),
+     "            if answer.as_ref().is_ok_and(|answer| answer.committed) || !conflicted {\n",
+     "            if answer.as_ref().is_ok_and(|answer| answer.committed) || false {\n"),
     ("a lifecycle is run once more than the layer's attempts", MAIN,
-     "                || attempt >= LIFECYCLE_ATTEMPTS\n",
-     "                || attempt > LIFECYCLE_ATTEMPTS\n"),
+     "            if attempt >= LIFECYCLE_ATTEMPTS {\n",
+     "            if attempt > LIFECYCLE_ATTEMPTS {\n"),
     ("a statement's conflict is not noted for the lifecycle", MAIN,
-     "                    data::note_conflicted(staging.conflicted());\n",
-     "                    data::note_conflicted(false);\n"),
+     "                    data::note_conflicted(component_id, staging.conflicted());\n",
+     "                    data::note_conflicted(component_id, false);\n"),
     ("a commit's conflict is not noted for the lifecycle", MAIN,
-     "                        data::note_conflicted(conflicted);\n",
-     "                        data::note_conflicted(false);\n"),
+     "                        data::note_conflicted(component_id, conflicted);\n",
+     "                        data::note_conflicted(component_id, false);\n"),
     ("a statement that met a serialization failure leaves no conflict", LIB,
      "            .is_ok_and(|open| matches!(open.failed, Some(Error::Serialization(_))))\n",
      "            .is_ok_and(|_| false)\n"),
+    ("a command conflicts whatever failed it", LIB,
+     "            .is_ok_and(|open| matches!(open.failed, Some(Error::Serialization(_))))\n",
+     "            .is_ok_and(|open| open.failed.is_some())\n"),
+    ("a deadlock is not a conflict", LIB,
+     "        *code == SqlState::T_R_SERIALIZATION_FAILURE || *code == SqlState::T_R_DEADLOCK_DETECTED\n",
+     "        *code == SqlState::T_R_SERIALIZATION_FAILURE\n"),
     ("a commit the database could not serialize leaves no conflict", LAYER,
-     "            Err(e) => {\n"
-     "                self.conflicted = matches!(e, pw_table_postgres::Error::Serialization(_));\n"
-     "                return self.refuse(format!(\"the tables did not commit: {e:?}\"));\n",
-     "            Err(e) => {\n"
-     "                self.conflicted = false;\n"
-     "                return self.refuse(format!(\"the tables did not commit: {e:?}\"));\n"),
+     "        self.conflicted = matches!(e, pw_table_postgres::Error::Serialization(_));\n"
+     "        self.refuse(why)\n",
+     "        self.conflicted = false;\n"
+     "        self.refuse(why)\n"),
+    ("the runs' scheduling that could not be serialized leaves no conflict", LAYER,
+     "            return self.refused_by(&e, format!(\"the runs were not scheduled: {e:?}\"));\n",
+     "            return self.refuse(format!(\"the runs were not scheduled: {e:?}\"));\n"),
+    ("a conflicted lifecycle's reserved outcome is kept", MAIN,
+     "        // A finished outcome it was: the attempt ended before this.\n"
+     "        let _ = self.commands.forget_command(&cache_key);\n",
+     "        // A finished outcome it was: the attempt ended before this.\n"
+     "        let _ = &cache_key;\n"),
+    ("a conflict another command noted is taken for the lifecycle's", DATA,
+     "    CONFLICTED.with(|noted| noted.borrow_mut().take().as_deref() == Some(component))\n",
+     "    CONFLICTED.with(|noted| noted.borrow_mut().take().is_some())\n"),
 ]
 
 # Each Cargo test binary apart: names can repeat between binaries, and the

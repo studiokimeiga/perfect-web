@@ -1344,6 +1344,12 @@ struct Server {
     after_page_admission: Mutex<Option<KeyedFetched>>,
     #[cfg(test)]
     after_identity_lifecycle: Mutex<Option<LifecycleObserved>>,
+    /// **Each attempt of an identity's lifecycle, as it ended** (NEXT after
+    /// L3, item 3), which a test reads: whether it conflicted, and its
+    /// answer (one refused is answered, uncommitted, with why; one whose
+    /// outcome is unknown is an error).
+    #[cfg(test)]
+    lifecycle_attempts: Mutex<Vec<(bool, Result<Answered, String>)>>,
     #[cfg(test)]
     before_actor_inspection: Mutex<Option<CommandObserved>>,
     /// **The admissions this server refused, as its log says them**
@@ -2367,6 +2373,8 @@ impl Server {
             #[cfg(test)]
             after_identity_lifecycle: Mutex::new(None),
             #[cfg(test)]
+            lifecycle_attempts: Mutex::new(Vec::new()),
+            #[cfg(test)]
             before_actor_inspection: Mutex::new(None),
             #[cfg(test)]
             refusals: Mutex::new(Vec::new()),
@@ -2665,17 +2673,32 @@ impl Server {
     fn identity_answer(&self, component: &str, session: &str) -> Result<Answered, String> {
         let mut attempt = 1;
         loop {
-            data::take_conflicted();
+            // Whatever another command left noted is not this attempt's:
+            // only its own failure, noted for its component, is.
+            data::take_conflicted(component);
             // Keep the immutable target actor checks around fresh execution and
             // receipt replay alike; proof presence alone is not current authority.
             let answer = self.command_answer(component, session, &[], Some("identity-joined"));
-            let conflicted = data::take_conflicted();
-            if answer.as_ref().is_ok_and(|answer| answer.committed)
-                || !conflicted
-                || attempt >= LIFECYCLE_ATTEMPTS
-            {
+            let conflicted = data::take_conflicted(component);
+            #[cfg(test)]
+            self.lifecycle_attempts
+                .lock()
+                .expect("lifecycle attempts")
+                .push((conflicted, answer.clone()));
+            if answer.as_ref().is_ok_and(|answer| answer.committed) || !conflicted {
                 return answer;
             }
+            if attempt >= LIFECYCLE_ATTEMPTS {
+                eprintln!(
+                    "pw dev server: identity lifecycle {component} could not be serialized in \
+                     {attempt} attempts; the guest's rows stay where they were"
+                );
+                return answer;
+            }
+            eprintln!(
+                "pw dev server: identity lifecycle {component} could not be serialized \
+                 (attempt {attempt} of {LIFECYCLE_ATTEMPTS}); running it again"
+            );
             // The attempt kept nothing, so it has no outcome to share: what
             // the host reserved of it for its interaction (ADR-0121) is let
             // go, or the next attempt is handed it and nothing runs. Its
@@ -2687,9 +2710,10 @@ impl Server {
     }
 
     /// **Let go of what the host reserved of an interaction's outcome**
-    /// (ADR-0121): its shared result and its place in the session's queue,
-    /// so that the interaction, sent again, runs. Only for an outcome known to
-    /// have kept nothing.
+    /// (ADR-0121), its shared result, so that the interaction, sent again,
+    /// runs. Only for an outcome known to have kept nothing. Its place in the
+    /// session's queue stays: sent again with the arguments it was first
+    /// sent with, the interaction is admitted by it as before.
     fn forget_reserved(
         &self,
         session: &str,
@@ -2700,14 +2724,6 @@ impl Server {
         let (_, cache_key, _) = self.receipt_keys(session, component, id, args);
         // A finished outcome it was: the attempt ended before this.
         let _ = self.commands.forget_command(&cache_key);
-        if let Some(queue) = self
-            .interactions
-            .lock()
-            .expect("interactions")
-            .get_mut(session)
-        {
-            queue.retain(|(key, _)| *key != cache_key);
-        }
     }
 
     /// How many items the data layer holds for the session: the tests' view
@@ -3457,7 +3473,7 @@ impl Server {
                 // said, for the one caller that runs it again (NEXT after
                 // L3, item 3).
                 Err(why) => {
-                    data::note_conflicted(staging.conflicted());
+                    data::note_conflicted(component_id, staging.conflicted());
                     return Err(why);
                 }
             };
@@ -3566,7 +3582,7 @@ impl Server {
                     drop(staging);
                     drop(memory_hold.take());
                     if refused {
-                        data::note_conflicted(conflicted);
+                        data::note_conflicted(component_id, conflicted);
                         return Err(why);
                     }
                     self.refresh_uncertain_browser(session, &invalidated, &emitted);

@@ -411,23 +411,27 @@ pub(crate) trait Staged {
 }
 
 thread_local! {
-    /// What [`Staged::conflicted`] said of the last command this thread ran,
-    /// as its failure left it: its error is a `String` from there on, as it
-    /// is answered, and the one caller that runs such a command again
-    /// (`Server::identity_answer`) reads it here, as the refusal's predicate
-    /// is read (`identity::take_refusal`).
-    static CONFLICTED: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    /// The component of the last command this thread ran that failed in a
+    /// conflict, as [`Staged::conflicted`] said of it: its error is a
+    /// `String` from there on, as it is answered, and the one caller that
+    /// runs such a command again (`Server::identity_answer`) reads it here,
+    /// as the refusal's predicate is read (`identity::take_refusal`). Kept
+    /// by component, so that another command run on the thread meanwhile (a
+    /// second host's, nested in a test's hook) is never taken for the
+    /// lifecycle's own (the review of 2026-11-16).
+    static CONFLICTED: std::cell::RefCell<Option<String>> = const { std::cell::RefCell::new(None) };
 }
 
-/// Note what the failed command's staging said of a conflict.
-pub(crate) fn note_conflicted(conflicted: bool) {
-    CONFLICTED.with(|noted| noted.set(conflicted));
+/// Note what the failed command of `component` said of a conflict: one that
+/// conflicted is noted, one that did not forgets any noted before it.
+pub(crate) fn note_conflicted(component: &str, conflicted: bool) {
+    CONFLICTED.with(|noted| *noted.borrow_mut() = conflicted.then(|| component.to_string()));
 }
 
-/// **Whether the last command this thread ran failed in a conflict**, and
-/// forget it.
-pub(crate) fn take_conflicted() -> bool {
-    CONFLICTED.with(|noted| noted.replace(false))
+/// **Whether the last command this thread ran failed in a conflict, and was
+/// `component`'s**; either way, forget it.
+pub(crate) fn take_conflicted(component: &str) -> bool {
+    CONFLICTED.with(|noted| noted.borrow_mut().take().as_deref() == Some(component))
 }
 
 /// **The guard of a layer's writes** (ADR-0218, ADR-0352): one command of

@@ -31,15 +31,18 @@ lifecycle and owned Clock actions. What stays open, in order:
 3. **A lifecycle that does not commit strands the guest's rows** (the
    review's third). Its named case is done (ADR-0440, amended 2026-11-16):
    a lifecycle the database could not serialize against the account's own
-   write runs again, at most four times, while its proof holds, raced by a
-   second host in the test. Open: a lifecycle that never ran (a host gone
-   between the account's opening and its lifecycle), which a merge
-   recorded beside the guest's rows would cover, and a browser command's
-   conflict run again by the platform (L1's item 5).
+   write (at any statement of it or its commit) runs again, at most four
+   times, while its proof holds, raced by a second host in the test.
+   Open: four conflicts in a row (sustained contention), after which the
+   guest's rows stay where they were, logged; a lifecycle that never ran
+   (a host gone between the account's opening and its lifecycle), which a
+   merge recorded beside the guest's rows would cover; and a browser
+   command's conflict run again by the platform (L1's item 5).
 4. **The owned Clock witness stands twice**: done (2026-11-16, with item 3's
    change): `tests::owned_clock` (L2's) is kept, which `e14-durable-tables`
    names, and `tests::protected_migration`'s copy (L3's, `4f80e543`) is gone
-   with its program; `durable_tables_mutations.py` runs both modules, so its
+   with its program; `durable_tables_mutations.py` runs both modules, and
+   `row_ownership_mutations.py` now runs `tests::owned_clock` too, so their
    controls hold to the one kept.
 5. **L4, bounded reads** (ADR-0440's fifth prerequisite): merge `ff57edc7`,
    its CI records only (1,370 receipts).

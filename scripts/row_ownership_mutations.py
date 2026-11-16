@@ -418,6 +418,9 @@ TESTS = [
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server", "identity::transition_tests::"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "invoked_by"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server", "tests::protected_migration::"],
+    # The owned Clock's witness, kept in `tests::owned_clock` alone since its
+    # copy in `tests::protected_migration` went (NEXT after L3, item 4).
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server", "tests::owned_clock::"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server", "required_queries"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "table_owners"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "predicate_bodies"],
