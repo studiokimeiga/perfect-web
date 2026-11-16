@@ -1,8 +1,8 @@
 ADR-0240 - a clause is read once
 
 produced by: just e14-clauses-read-once
-commit: 726b5e725d7ebdef23b7e2a8fa08a4538d13f37e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43434914007 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 7b8fb7cc8cbc9601e49df15c750d1eeaf6cabdd2
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43809526375 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the checker (compiler/pw-core/tests/clauses_read_once.rs)
@@ -10,8 +10,8 @@ rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 test an_interfaces_clause_is_parsed_with_its_terms ... ok
 test a_parenthesis_in_a_keys_string_ends_nothing ... ok
 test an_interfaces_keys_are_bound_and_typed ... ok
-test an_interfaces_terms_are_checked_as_any_declarations ... ok
 test the_graph_reads_the_keys_lowering_made ... ok
+test an_interfaces_terms_are_checked_as_any_declarations ... ok
 test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.45s
 
 == the committed store graph (pw-cli)
@@ -33,7 +33,7 @@ accepted: 49/49 charter §16 categories covered
 rejected: 106 files
 rejected: 106/106 charter §16 categories covered
 corpus-check: OK
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 101.60s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 106.70s
 
 == mutation controls (scripts/clauses_read_once_mutations.py)
 

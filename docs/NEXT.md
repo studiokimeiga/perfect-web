@@ -6,6 +6,39 @@
 
 # Next
 
+## After L4, bounded reads, 2026-11-16
+
+L4, the fourth train of the declared data layer's landing (ADR-0440's
+fifth prerequisite, bounded reads), on L3: the integration branch's
+seventeen commits after `2e2ef45b`, to `ff57edc7`. A declared selector's
+rows are counted (`count_by_<fields>`, and its `_many` form, one grouped
+aggregate a set), windowed (`first_by_<fields>`, `last_by_<fields>`, a
+limit per distinct selector, applied before the rows leave the database),
+counted by a typed order range, and read through a fixed public-target
+relation window, on memory and PostgreSQL, under the read's own grant and
+owner. What stays open, in order:
+
+1. **L4's record**: the full verify 43809526375 at `7b8fb7cc`, fetched
+   (`bddbcf54`, 355 of 357 recipes); its two failures and the review's two
+   findings repaired at the head, and what they reach verified again there
+   (`ci_plan.py --changed 7b8fb7cc HEAD`) before the PR merges.
+2. **L5, declared uploads** (ADR-0440's fourth prerequisite; `018fad14`):
+   generic upload claims, publication and reference lifetime. Keep the
+   mixed-layer and upload startup refusals until their replacements are
+   real; the design must address cross-host last-reference races, database
+   disconnects during physical cleanup, immutable storage generations,
+   declaration and namespace identity, and uncertain commits.
+3. **Public initialization, stable ids and private child deletion**, as the
+   ports need them.
+4. **L7, the canonical feed and store on tables**: their rows, projections,
+   transitions and predicates in `.pw`, guest and account carts, payments
+   and scheduling, uploads and private cross-host delivery preserved,
+   verified on the PostgreSQL adapter and its persisted rows. No remote or
+   production conversion is authorized. A window's or a relation's limit is the
+   app's to clamp (no server-side cap bounds it: `examples/relations/app.pw`
+   passes a browser's limit through), and the memory adapter's relation read
+   scans its target for each selector, as ADR-0440 allows.
+
 ## After L3, the platform's prerequisites, 2026-11-13
 
 L3, the third train of the declared data layer's landing (ADR-0440,

@@ -184,6 +184,109 @@ fn every_read() -> Vec<(String, Vec<Value>)> {
         thing("by-owner-rank-many"),
         vec![json!([{"owner": "a", "rank": 0}, {"owner": "b", "rank": 10}, {"owner": "a", "rank": 0}])],
     ));
+    // Every corresponding count, over the identical valid/invalid selectors,
+    // before/after each staged write, commit and rollback in the workload.
+    let counts: Vec<_> = reads
+        .iter()
+        .filter_map(|(import, args)| {
+            let (table, function) = import.split_once('#')?;
+            let fields = match function {
+                "all" => return None,
+                "get" if table == "pw:tables/owners" => "by-id",
+                "get-many" if table == "pw:tables/owners" => "by-id-many",
+                "get" => "by-owner-n",
+                "get-many" => "by-owner-n-many",
+                "of-owner" => "by-owner",
+                "of-owner-many" => "by-owner-many",
+                other => other,
+            };
+            Some((format!("{table}#count-{fields}"), args.clone()))
+        })
+        .collect();
+    let windows = counts
+        .iter()
+        .flat_map(|(import, args)| {
+            ["first", "last"].map(|word| {
+                let mut args = args.clone();
+                args.push(json!(2));
+                (import.replace("#count-", &format!("#{word}-")), args)
+            })
+        })
+        .collect::<Vec<_>>();
+    // Every range request carries its own mark; same key/different mark is
+    // retained through staged writes, commit and rollback in both adapters.
+    let mut ranges = Vec::new();
+    for (import, args) in counts
+        .iter()
+        .filter(|(import, _)| import.starts_with("pw:tables/things#"))
+    {
+        let after = import.replace("#count-", "#count-after-");
+        if import.ends_with("-many") {
+            let fields = match import.split('#').nth(1).unwrap() {
+                "count-by-owner-many" => vec!["owner"],
+                "count-by-flag-many" => vec!["flag"],
+                "count-by-slug-many" => vec!["slug"],
+                "count-by-owner-n-many" => vec!["owner", "n"],
+                _ => vec!["owner", "rank"],
+            };
+            let requests = args[0]
+                .as_array()
+                .unwrap()
+                .iter()
+                .flat_map(|key| {
+                    [0, 10]
+                        .into_iter()
+                        .map(|mark| {
+                            let mut record = if fields.len() == 1 {
+                                [(fields[0].to_string(), key.clone())]
+                                    .into_iter()
+                                    .collect::<serde_json::Map<String, Value>>()
+                            } else {
+                                key.as_object().unwrap().clone()
+                            };
+                            record.insert("after".into(), json!(mark));
+                            Value::Object(record)
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .collect();
+            ranges.push((after, vec![Value::Array(requests)]));
+        } else {
+            for mark in [0, 10] {
+                let mut args = args.clone();
+                args.push(json!(mark));
+                ranges.push((after.clone(), args));
+            }
+        }
+    }
+    reads.extend(ranges);
+    // Malformed range requests, refused alike, word for word (the L4 review
+    // of 2026-11-16): the wrong number of values, a value no selector holds
+    // (a float, a null, a list), a field of the wrong type, a set given no
+    // array, a request no record, of other fields or lacking one, and two
+    // requests failing apart, refused for the one first in canonical order.
+    for args in [
+        vec![json!("a")],
+        vec![json!("a"), json!(0), json!(1)],
+        vec![json!("a"), json!(1.5)],
+        vec![json!("a"), Value::Null],
+        vec![json!(7), json!(0)],
+        vec![json!("a"), json!("late")],
+    ] {
+        reads.push((thing("count-after-by-owner"), args));
+    }
+    for args in [
+        vec![json!({"owner": "a", "after": 0})],
+        vec![json!([1])],
+        vec![json!([{"owner": "a", "after": 0, "extra": 1}])],
+        vec![json!([{"owner": "a", "later": 0}])],
+        vec![json!([{"owner": [1], "after": 0}])],
+        vec![json!([{"owner": "a", "after": "late"}, {"owner": 7, "after": 0}])],
+    ] {
+        reads.push((thing("count-after-by-owner-many"), args));
+    }
+    reads.extend(windows);
+    reads.extend(counts);
     reads
 }
 

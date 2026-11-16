@@ -93,6 +93,45 @@ LAST = (
 )
 
 MUTANTS = [
+    ('relations memory ignores membership selection', MEMORY,
+     '                if !member {\n                    continue;\n                }',
+     '                if false && !member {\n                    continue;\n                }'),
+    ('relations memory uses another readers memberships', MEMORY,
+     '                let mut lookup = selected.clone();\n                lookup.push(Atom::parse(value)?);',
+     '                let mut lookup = selected.clone();\n                if matches!(lookup.first(),Some(Atom::Str(_))) { lookup[0] = Atom::Str("u-bob".into()); }\n                lookup.push(Atom::parse(value)?);'),
+    ('relations memory retains every matching target row', MEMORY,
+     '                best.insert(place(row, &function.sorted_by, &target.key), row);\n                if best.len() as u64 > bound as u64 {',
+     '                best.insert(place(row, &function.sorted_by, &target.key), row);\n                if false && best.len() as u64 > bound as u64 {'),
+    ('relations memory chooses first rows for a last window', MEMORY,
+     '                best.insert(place(row, &function.sorted_by, &target.key), row);\n                if best.len() as u64 > bound as u64 {\n                    if function.primitive.descending() {\n                        best.pop_first();',
+     '                best.insert(place(row, &function.sorted_by, &target.key), row);\n                if best.len() as u64 > bound as u64 {\n                    if function.primitive.descending() {\n                        best.pop_last();'),
+    ('relations memory omits empty source groups', MEMORY,
+     '        groups.push(serde_json::json!({"key":key,"rows":rows}));',
+     '        if !rows.is_empty() { groups.push(serde_json::json!({"key":key,"rows":rows})); }'),
+    ('ranges memory ignores its mark', MEMORY,
+     'if strictly_after(value, mark)? {',
+     'if true || strictly_after(value, mark)? {'),
+    ('ranges memory includes equal integer marks', MEMORY,
+     '.map(|value| value > *mark)',
+     '.map(|value| value >= *mark)'),
+    ('ranges memory coalesces different marks for the same selector', MEMORY,
+     '    Ok((fields, keys))\n}\n\n/// Compare borrowed order values;',
+     '    let mut by = BTreeMap::new();\n    for key in keys { by.entry(key[..function.by.len()].to_vec()).or_insert(key); }\n    Ok((fields, by.into_values().collect()))\n}\n\n/// Compare borrowed order values;'),
+    ('ranges memory count is wrong for every generated table', MEMORY,
+     '                return Ok(Value::from(count));\n            }\n            let key = Value::Object(',
+     '                return Ok(Value::from(count + 1));\n            }\n            let key = Value::Object('),
+    ('windows memory retains every matching row', MEMORY,
+     '                best.insert(place(row, &function.sorted_by, &table.key), row);\n                if best.len() as u64 > bound as u64 {',
+     '                best.insert(place(row, &function.sorted_by, &table.key), row);\n                if false && best.len() as u64 > bound as u64 {'),
+    ('windows memory chooses first rows for last windows', MEMORY,
+     '                best.insert(place(row, &function.sorted_by, &table.key), row);\n                if best.len() as u64 > bound as u64 {\n                    if function.primitive.descending() {\n                        best.pop_first();',
+     '                best.insert(place(row, &function.sorted_by, &table.key), row);\n                if best.len() as u64 > bound as u64 {\n                    if function.primitive.descending() {\n                        best.pop_last();'),
+    ('count aggregate scalar answer is wrong for every generated table', MEMORY,
+     '                return Ok(Value::from(count));\n            }\n            let key = match selected.as_slice() {',
+     '                return Ok(Value::from(count + 1));\n            }\n            let key = match selected.as_slice() {'),
+    ('count aggregate set answer is wrong for every generated table', MEMORY,
+     'counts.push(serde_json::json!({"key":key, "count":count}));',
+     'counts.push(serde_json::json!({"key":key, "count":count + 1}));'),
     ("a render reuses closed tables' remembered operations", MAIN,
      "        self.read_checked(|| self.answer_open(component_id, session, args, stopped))\n",
      "        self.answer_open(component_id, session, args, stopped)\n"),
@@ -201,16 +240,8 @@ MUTANTS = [
      "            .take_while(move |(key, _)| key.starts_with(&prefix))\n",
      "            .take_while(move |_| !prefix.is_empty())\n"),
     ("a primitive answers another table's rows", MEMORY,
-     "    let data = tables\n"
-     "        .get(at)\n"
-     "        .map(AsRef::as_ref)\n"
-     "        .ok_or_else(|| Error::Schema(\"missing table state\".into()))?;\n"
-     "    let mut found: Vec<&Row> = Vec::new();\n",
-     "    let data = tables\n"
-     "        .get((at + 1) % tables.len())\n"
-     "        .map(AsRef::as_ref)\n"
-     "        .ok_or_else(|| Error::Schema(\"missing table state\".into()))?;\n"
-     "    let mut found: Vec<&Row> = Vec::new();\n"),
+     '    let data = tables\n        .get(at)\n        .map(AsRef::as_ref)\n        .ok_or_else(|| Error::Schema("missing table state".into()))?;\n',
+     '    let data = tables\n        .get((at + 1) % tables.len())\n        .map(AsRef::as_ref)\n        .ok_or_else(|| Error::Schema("missing table state".into()))?;\n'),
     ("an index is not kept on a write", MEMORY,
      "                index.insert((values, key.clone()));\n",
      "                let _ = (index, values);\n"),
@@ -341,6 +372,9 @@ MUTANTS = [
 # Each Cargo test binary apart: names can repeat between binaries, and the
 # shared native assertion validator expects one complete inventory each.
 TESTS = [
+    (["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", "compiled_relations"], []),
+    (["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", "compiled_ranges"], []),
+    (["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", "compiled_windows"], []),
     (["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server"],
      ["tests::tables::", "tests::guestbook::", "tests::conformance::",
       "notifications::tests::", "tables::tests::",
@@ -363,6 +397,13 @@ TESTS = [
 ]
 
 SOURCES = [
+    ROOT / "runtime/pw-table-memory/tests/compiled_relations.rs",
+    ROOT / "runtime/pw-table-memory/tests/support/relations.rs",
+    ROOT / "runtime/pw-table-memory/tests/compiled_ranges.rs",
+    ROOT / "runtime/pw-table-memory/tests/support/ranges.rs",
+    ROOT / "runtime/pw-table-memory/tests/compiled_windows.rs",
+    ROOT / "runtime/pw-table-memory/tests/support/windows.rs",
+    ROOT / "runtime/pw-table-memory/tests/support/owned.rs",
     SERVER / "tests/tables.rs",
     SERVER / "tests/guestbook.rs",
     SERVER / "tests/conformance.rs",

@@ -1,0 +1,16 @@
+   Compiling pw-dev-server v0.0.0 (/home/haki/code/pw-wt/data-path/spikes/own-renderer/server)
+    Finished `test` profile [unoptimized] target(s) in 2.92s
+     Running unittests src/main.rs (target/debug/deps/pw_dev_server-5b40cf4be58c25d1)
+
+running 2 tests
+test tests::conformance::warm_relation_selections_are_private_to_each_reader_on_memory ... ok
+test tests::tables_pg::warm_relation_selections_are_private_to_each_reader_on_postgresql ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 993 filtered out; finished in 0.28s
+
+     Running tests/durable_tables.rs (target/debug/deps/durable_tables-1a99032f16abfcb6)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+

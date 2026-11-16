@@ -27,6 +27,7 @@ fn database() -> Arc<MemoryTables> {
     };
     let hash = Schema::of(vec![schema.clone()]).hash;
     let function = |name: &str, primitive: Primitive, by: Vec<String>| FunctionJson {
+        relation: None,
         reader: None,
         name: name.into(),
         import: format!("pw:tables/users#{name}"),
@@ -41,6 +42,7 @@ fn database() -> Arc<MemoryTables> {
         MemoryTables::new(TablesJson {
             hash: hash.clone(),
             tables: vec![TableJson {
+                windows: Vec::new(),
                 owner: None,
                 shares: Vec::new(),
                 private: Vec::new(),

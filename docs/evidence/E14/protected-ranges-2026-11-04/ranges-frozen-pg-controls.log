@@ -1,0 +1,14 @@
+mutant_incremental: the incremental caches held 6234 MiB, past 6144; removed
+baseline: 89 passed, 0 failed
+ranges scalar ignores the order mark: KILLED (5 of 89 tests fail)
+ranges set includes equal order marks: KILLED (5 of 89 tests fail)
+ranges set omits zero ranges with an inner join: KILLED (5 of 89 tests fail)
+ranges different marks collapse to the same equality key: KILLED (5 of 89 tests fail)
+ranges correct set answers run one SQL query per pair: KILLED (2 of 89 tests fail)
+ranges correct scalar answer materializes every SQL row first: KILLED (2 of 89 tests fail)
+counts row accounting is not observed: KILLED (5 of 89 tests fail)
+counts byte accounting is not observed: KILLED (5 of 89 tests fail)
+postgres operation accounting hides a data statement: KILLED (7 of 89 tests fail)
+postgres operation accounting counts a transaction boundary as data: KILLED (5 of 89 tests fail)
+10 of 10 mutants killed
+memory bound: no process was stopped

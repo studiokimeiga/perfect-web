@@ -1,0 +1,6 @@
+baseline: 153 passed, 0 failed
+a get-many may answer a key not asked for: KILLED (5 of 80 tests fail)
+a get-many may answer a key twice: KILLED (4 of 117 tests fail)
+a get-many may answer out of order: KILLED (4 of 105 tests fail)
+3 of 3 mutants killed
+memory bound: no process was stopped

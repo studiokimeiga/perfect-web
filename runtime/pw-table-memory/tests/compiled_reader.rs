@@ -293,6 +293,25 @@ fn a_table_import_typed_otherwise_than_tables_json_is_refused_when_linking() {
                 if ["get", "get_many", "delete"].contains(&name.as_str()) {
                     function["by"] = json!(["id", "slug"]);
                 }
+                let primitive = function["primitive"].as_str().unwrap_or_default();
+                if ["first", "first-many", "last", "last-many"].contains(&primitive) {
+                    let mut sorted = if primitive.ends_with("-many") {
+                        function["by"]
+                            .as_array()
+                            .unwrap()
+                            .iter()
+                            .map(|f| f.as_str().unwrap().to_string())
+                            .collect::<Vec<_>>()
+                    } else {
+                        Vec::new()
+                    };
+                    for field in ["added", "id", "slug"] {
+                        if !sorted.iter().any(|f| f == field) {
+                            sorted.push(field.into());
+                        }
+                    }
+                    function["sorted_by"] = json!(sorted);
+                }
                 match name.as_str() {
                     "get_many" => function["sorted_by"] = json!(["id", "slug", "added"]),
                     "by_slug_many" => function["sorted_by"] = json!(["slug", "added", "id"]),

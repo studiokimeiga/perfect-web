@@ -1,0 +1,18 @@
+baseline: 189 passed, 0 failed
+windows answer more rows than a selector allows: KILLED (1 of 189 tests fail)
+windows last answers are checked as ascending: KILLED (2 of 189 tests fail)
+windows set group order is reversed with rows: KILLED (1 of 189 tests fail)
+windows ignore malformed selectors at zero: KILLED (1 of 189 tests fail)
+windows reader and list parameter names alias: KILLED (1 of 189 tests fail)
+windows owner and written row parameter names alias: KILLED (1 of 189 tests fail)
+windows bound parameter aliases a selector: KILLED (2 of 189 tests fail)
+counts scalar and set function names silently alias: KILLED (1 of 189 tests fail)
+counts manifest admits a set with no selector after its reader: KILLED (1 of 189 tests fail)
+counts generated record aliases are accepted: KILLED (1 of 189 tests fail)
+counts negative scalar answers are accepted: KILLED (1 of 189 tests fail)
+counts missing result keys are accepted: KILLED (1 of 189 tests fail)
+counts reversed selector order is accepted: KILLED (1 of 189 tests fail)
+counts selector results are projected as stored shared rows: KILLED (2 of 189 tests fail)
+a set form's handle is not given back to its keys: KILLED (3 of 189 tests fail)
+15 of 15 mutants killed
+memory bound: no process was stopped

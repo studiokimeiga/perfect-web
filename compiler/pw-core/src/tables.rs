@@ -38,6 +38,8 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
+mod relations;
+
 use crate::codes;
 use crate::diagnostics::{Detector, Diagnostic, Related, Repair, Severity};
 use crate::hir::{Decl, DeclId, DeclKind, DeclaredType, EffectRef, Hir, Param, Policy, Span};
@@ -67,6 +69,27 @@ pub enum Primitive {
     Index,
     /// The rows of each value of a list's.
     IndexMany,
+    /// The cardinality of a declared key/prefix/index selector.
+    Count,
+    /// One count for each distinct requested selector, including zero.
+    CountMany,
+    /// Rows of a declared selector strictly after its declared order mark.
+    CountAfter,
+    /// A count per distinct selector-and-mark request, including zero.
+    CountAfterMany,
+    /// The first rows of one declared selector, within its supplied limit.
+    First,
+    /// The first rows of each distinct selector, within the shared limit.
+    FirstMany,
+    /// The last rows of one declared selector, in descending order.
+    Last,
+    /// The last rows of each distinct selector, within the shared limit.
+    LastMany,
+    /// Global target rows selected through one declared membership relation.
+    RelatedFirst,
+    RelatedFirstMany,
+    RelatedLast,
+    RelatedLastMany,
     /// Every row, of a bounded table.
     All,
     /// A new row, refused where its key or a unique value is held.
@@ -89,12 +112,69 @@ impl Primitive {
             Primitive::PrefixMany => "prefix-many",
             Primitive::Index => "index",
             Primitive::IndexMany => "index-many",
+            Primitive::Count => "count",
+            Primitive::CountMany => "count-many",
+            Primitive::CountAfter => "count-after",
+            Primitive::CountAfterMany => "count-after-many",
+            Primitive::First => "first",
+            Primitive::FirstMany => "first-many",
+            Primitive::Last => "last",
+            Primitive::LastMany => "last-many",
+            Primitive::RelatedFirst => "related-first",
+            Primitive::RelatedFirstMany => "related-first-many",
+            Primitive::RelatedLast => "related-last",
+            Primitive::RelatedLastMany => "related-last-many",
             Primitive::All => "all",
             Primitive::Insert => "insert",
             Primitive::Put => "put",
             Primitive::Delete => "delete",
             Primitive::DeletePrefix => "delete-prefix",
         }
+    }
+
+    pub fn counts(self) -> bool {
+        matches!(
+            self,
+            Primitive::Count
+                | Primitive::CountMany
+                | Primitive::CountAfter
+                | Primitive::CountAfterMany
+        )
+    }
+
+    pub fn range(self) -> bool {
+        matches!(self, Primitive::CountAfter | Primitive::CountAfterMany)
+    }
+
+    pub fn related(self) -> bool {
+        matches!(
+            self,
+            Self::RelatedFirst | Self::RelatedFirstMany | Self::RelatedLast | Self::RelatedLastMany
+        )
+    }
+
+    pub fn window(self) -> bool {
+        matches!(
+            self,
+            Primitive::First
+                | Primitive::FirstMany
+                | Primitive::Last
+                | Primitive::LastMany
+                | Primitive::RelatedFirst
+                | Primitive::RelatedFirstMany
+                | Primitive::RelatedLast
+                | Primitive::RelatedLastMany
+        )
+    }
+
+    pub fn descending(self) -> bool {
+        matches!(
+            self,
+            Primitive::Last
+                | Primitive::LastMany
+                | Primitive::RelatedLast
+                | Primitive::RelatedLastMany
+        )
     }
 
     /// Does it write the table?
@@ -109,7 +189,15 @@ impl Primitive {
     pub fn many(self) -> bool {
         matches!(
             self,
-            Primitive::GetMany | Primitive::PrefixMany | Primitive::IndexMany
+            Primitive::GetMany
+                | Primitive::PrefixMany
+                | Primitive::IndexMany
+                | Primitive::CountMany
+                | Primitive::CountAfterMany
+                | Primitive::FirstMany
+                | Primitive::LastMany
+                | Primitive::RelatedFirstMany
+                | Primitive::RelatedLastMany
         )
     }
 }
@@ -134,6 +222,17 @@ pub enum Wrote {
     /// The record a set form's list holds for a tuple of `fields`: a key, a
     /// prefix or an index of more than one field.
     Tuple { fields: Vec<String> },
+    /// A set aggregate's selector and count, never a stored row.
+    Counted { fields: Vec<String> },
+    /// Selector fields plus a distinct typed order mark, never a stored row.
+    Range { fields: Vec<String>, mark: String },
+    /// Counts keyed by the complete selector and order mark.
+    RangeCounted { fields: Vec<String> },
+    /// A full source selector and bounded public target rows.
+    RelatedGroup {
+        fields: Vec<String>,
+        window: WindowClause,
+    },
     /// **The seen row** (track `row-ownership`, ADR-0384 H1): the record a
     /// reader the table shares with is answered, its row's `fields` without
     /// the private ones, so a value only its owner reads has no field to
@@ -156,6 +255,16 @@ pub struct IndexClause {
     pub name: String,
     pub fields: Vec<String>,
     pub unique: bool,
+}
+
+/// One fixed equality relation; its row annotation is checked against the target.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct WindowClause {
+    pub name: String,
+    pub target: String,
+    pub row_type: String,
+    pub source_field: String,
+    pub target_field: String,
 }
 
 /// `refers owner to Users`.
@@ -218,6 +327,7 @@ pub struct Table {
     pub order: Option<Clause<String>>,
     pub indexes: Vec<Clause<IndexClause>>,
     pub references: Vec<Clause<Reference>>,
+    pub windows: Vec<Clause<WindowClause>>,
     pub bounded: Option<Clause<u64>>,
     pub migrations: Vec<Clause<Migration>>,
     /// **Whose its rows are** (track `row-ownership`, ADR-0384 H1): `owned by
@@ -453,6 +563,7 @@ fn read(id: DeclId, d: &Decl) -> Table {
         order: None,
         indexes: Vec::new(),
         references: Vec::new(),
+        windows: Vec::new(),
         bounded: None,
         migrations: Vec::new(),
         owner: None,
@@ -499,6 +610,16 @@ fn read(id: DeclId, d: &Decl) -> Table {
                 Ok(i) => {
                     t.indexes.push(Clause {
                         value: i,
+                        span: span.clone(),
+                    });
+                    None
+                }
+                Err(why) => Some(why),
+            },
+            "window" => match relations::clause(v) {
+                Ok(window) => {
+                    t.windows.push(Clause {
+                        value: window,
                         span: span.clone(),
                     });
                     None
@@ -609,6 +730,19 @@ pub fn tuple_name(table: &str, fields: &[String]) -> String {
     )
 }
 
+/// A mark is distinct from every stored field, including its emitted identity.
+pub fn after_field<'a>(fields: impl IntoIterator<Item = &'a str>) -> String {
+    let fields = fields
+        .into_iter()
+        .map(crate::wit::ident)
+        .collect::<BTreeSet<_>>();
+    let mut name = "after".to_string();
+    while fields.contains(&crate::wit::ident(&name)) {
+        name.push_str("_mark");
+    }
+    name
+}
+
 /// **The read of a prefix of the key**: `of_owner`, `of_owner_store`.
 pub fn prefix_read(fields: &[String]) -> String {
     format!("of_{}", fields.join("_"))
@@ -713,7 +847,7 @@ fn planned(
     t: &Table,
     row: &str,
     fields: &[(String, DeclaredType)],
-) -> (Vec<Planned>, Vec<Decl>, Option<Decl>) {
+) -> (Vec<Planned>, Vec<(Decl, Wrote)>, Option<Decl>) {
     let ty = |f: &str| fields.iter().find(|(n, _)| n == f).map(|(_, t)| t.clone());
     let all_in_row = |fs: &[String]| fs.iter().all(|f| ty(f).is_some());
     let row_ty = DeclaredType::new(row, Vec::new());
@@ -762,14 +896,19 @@ fn planned(
             _ => params(by),
         }
     };
-    let mut records: Vec<Decl> = Vec::new();
+    let mut records: Vec<(Decl, Wrote)> = Vec::new();
     let mut tuple = |fs: &[String], span: &Span| -> DeclaredType {
         if let [one] = fs {
             return ty(one).unwrap_or_else(unit);
         }
         let name = tuple_name(&t.name, fs);
-        if !records.iter().any(|r| r.name == name) {
-            records.push(record(&name, &params(fs), span));
+        if !records.iter().any(|(r, _)| r.name == name) {
+            records.push((
+                record(&name, &params(fs), span),
+                Wrote::Tuple {
+                    fields: fs.to_vec(),
+                },
+            ));
         }
         DeclaredType::new(name, Vec::new())
     };
@@ -778,15 +917,28 @@ fn planned(
     // follows the reader, whose one value the keyed read is given already.
     let mut many = |r: Reading, by: &[String], list_name: &str, span: &Span| match r {
         Reading::Plain => Some(vec![(list_name.to_string(), list(tuple(by, span)))]),
-        Reading::Owner | Reading::Sharer if by.len() > 1 => Some(vec![
-            (by[0].clone(), handle(&by[0])),
-            (list_name.to_string(), list(tuple(&by[1..], span))),
-        ]),
+        Reading::Owner | Reading::Sharer if by.len() > 1 => {
+            let name = if crate::wit::ident(&by[0]) == crate::wit::ident(list_name) {
+                format!("{list_name}_keys")
+            } else {
+                list_name.to_string()
+            };
+            Some(vec![
+                (by[0].clone(), handle(&by[0])),
+                (name, list(tuple(&by[1..], span))),
+            ])
+        }
         _ => None,
     };
     let mut out: Vec<Planned> = Vec::new();
     let mut push = |p: Planned| {
-        if !out.iter().any(|o| o.name == p.name) {
+        // Coalesce only the same operation, never two meanings that happen
+        // to spell the same name (for example scalar a_many vs set a).
+        // Keep aliases so distinct_imports emits the named table refusal.
+        if !out
+            .iter()
+            .any(|o| o.name == p.name && o.primitive == p.primitive && o.by == p.by)
+        {
             out.push(p);
         }
     };
@@ -875,6 +1027,187 @@ fn planned(
             });
         }
     }
+    // Counts use only the selectors the declaration already gives. A set
+    // count includes a zero for every absent distinct selector and carries
+    // that selector beside its scalar count.
+    let mut selectors: Vec<(Vec<String>, Span)> = Vec::new();
+    if let Some(k) = key {
+        selectors.extend((1..=k.value.len()).map(|n| (k.value[..n].to_vec(), k.span.clone())));
+    }
+    selectors.extend(
+        t.indexes
+            .iter()
+            .filter(|i| !i.value.fields.is_empty() && all_in_row(&i.value.fields))
+            .map(|i| (i.value.fields.clone(), i.span.clone())),
+    );
+    // The bound's parameter cannot alias a selector's parameter, including
+    // after WIT normalization. Its position, not its spelling, is the ABI.
+    let limited = |mut given: Vec<(String, DeclaredType)>| {
+        let mut name = "limit".to_string();
+        while given
+            .iter()
+            .any(|(field, _)| crate::wit::ident(field) == crate::wit::ident(&name))
+        {
+            name.push_str("_rows");
+        }
+        given.push((name, DeclaredType::new("Int", Vec::new())));
+        given
+    };
+    let mut counted_records: Vec<(Decl, Wrote)> = Vec::new();
+    let mut range_records: Vec<(Decl, Wrote)> = Vec::new();
+    let mark_name = after_field(fields.iter().map(|(name, _)| name.as_str()));
+    let mark_ty = t.order.as_ref().and_then(|order| ty(&order.value));
+    let mut counted = BTreeSet::new();
+    for (by, span) in selectors {
+        let r = reading(t, &by);
+        if r == Reading::Refused || !counted.insert(by.clone()) {
+            continue;
+        }
+        // Ordered windows have the same declared selectors and reader as
+        // ordinary rows. Each set group keeps its own limit; it is never a
+        // global truncation that changes the scalar-to-set meaning.
+        for (word, primitive, set) in [
+            ("first", Primitive::First, Primitive::FirstMany),
+            ("last", Primitive::Last, Primitive::LastMany),
+        ] {
+            let name = format!("{word}_by_{}", by.join("_"));
+            push(Planned {
+                name: name.clone(),
+                params: limited(keyed(r, &by)),
+                ret: list(answer(r)),
+                primitive,
+                by: by.clone(),
+                span: span.clone(),
+            });
+            if let Some(given) = many(r, &by, "values", &span) {
+                push(Planned {
+                    name: format!("{name}_many"),
+                    params: limited(given),
+                    ret: list(answer(r)),
+                    primitive: set,
+                    by: by.clone(),
+                    span: span.clone(),
+                });
+            }
+        }
+        if let Some(mark_ty) = &mark_ty {
+            let name = format!("count_after_by_{}", by.join("_"));
+            let mut given = keyed(r, &by);
+            given.push((mark_name.clone(), mark_ty.clone()));
+            push(Planned {
+                name: name.clone(),
+                params: given,
+                ret: DeclaredType::new("Int", Vec::new()),
+                primitive: Primitive::CountAfter,
+                by: by.clone(),
+                span: span.clone(),
+            });
+            let held = match r {
+                Reading::Owner | Reading::Sharer => &by[1..],
+                _ => by.as_slice(),
+            };
+            let input_name = format!("{}After", tuple_name(&t.name, held));
+            let full_name = format!("{}After", tuple_name(&t.name, &by));
+            for (record_name, selected) in [(&input_name, held), (&full_name, by.as_slice())] {
+                let mut columns = params(selected);
+                columns.push((mark_name.clone(), mark_ty.clone()));
+                range_records.push((
+                    record(record_name, &columns, &span),
+                    Wrote::Range {
+                        fields: selected.to_vec(),
+                        mark: mark_name.clone(),
+                    },
+                ));
+            }
+            let count_name = format!("{full_name}Count");
+            range_records.push((
+                record(
+                    &count_name,
+                    &[
+                        ("key".into(), DeclaredType::new(full_name, Vec::new())),
+                        ("count".into(), DeclaredType::new("Int", Vec::new())),
+                    ],
+                    &span,
+                ),
+                Wrote::RangeCounted { fields: by.clone() },
+            ));
+            let input = (
+                "values".to_string(),
+                list(DeclaredType::new(input_name, Vec::new())),
+            );
+            let given = match r {
+                Reading::Owner | Reading::Sharer => {
+                    let list_name = if crate::wit::ident(&by[0]) == "values" {
+                        "values_keys"
+                    } else {
+                        "values"
+                    };
+                    vec![
+                        (by[0].clone(), handle(&by[0])),
+                        (list_name.to_string(), input.1),
+                    ]
+                }
+                _ => vec![input],
+            };
+            push(Planned {
+                name: format!("{name}_many"),
+                params: given,
+                ret: list(DeclaredType::new(count_name, Vec::new())),
+                primitive: Primitive::CountAfterMany,
+                by: by.clone(),
+                span: span.clone(),
+            });
+        }
+        let name = format!("count_by_{}", by.join("_"));
+        push(Planned {
+            name: name.clone(),
+            params: keyed(r, &by),
+            ret: DeclaredType::new("Int", Vec::new()),
+            primitive: Primitive::Count,
+            by: by.clone(),
+            span: span.clone(),
+        });
+        if let Some(given) = many(r, &by, "values", &span) {
+            let key_ty = if let [one] = by.as_slice() {
+                ty(one).unwrap_or_else(unit)
+            } else {
+                let name = tuple_name(&t.name, &by);
+                counted_records.push((
+                    record(&name, &params(&by), &span),
+                    Wrote::Tuple { fields: by.clone() },
+                ));
+                DeclaredType::new(name, Vec::new())
+            };
+            let count_name = format!("{}Count", tuple_name(&t.name, &by));
+            counted_records.push((
+                record(
+                    &count_name,
+                    &[
+                        ("key".into(), key_ty),
+                        ("count".into(), DeclaredType::new("Int", Vec::new())),
+                    ],
+                    &span,
+                ),
+                Wrote::Counted { fields: by.clone() },
+            ));
+            push(Planned {
+                name: format!("{name}_many"),
+                params: given,
+                ret: list(DeclaredType::new(count_name, Vec::new())),
+                primitive: Primitive::CountMany,
+                by,
+                span,
+            });
+        }
+    }
+    for (record, what) in counted_records.into_iter().chain(range_records) {
+        if !records
+            .iter()
+            .any(|(r, existing)| r.name == record.name && existing == &what)
+        {
+            records.push((record, what));
+        }
+    }
     // Whole, only where bounded (PW0364), and never a table read by its
     // reader alone: `all` would read every owner's rows (PW0368). A
     // `public` one's rows are every reader's.
@@ -901,7 +1234,14 @@ fn planned(
             .any(|i| i.value.unique && all_in_row(&i.value.fields));
         let given = |row: DeclaredType| -> Vec<(String, DeclaredType)> {
             match owner {
-                Some(o) => vec![(o.to_string(), handle(o)), ("row".to_string(), row)],
+                Some(o) => {
+                    let name = if crate::wit::ident(o) == "row" {
+                        "stored_row"
+                    } else {
+                        "row"
+                    };
+                    vec![(o.to_string(), handle(o)), (name.to_string(), row)]
+                }
                 None => vec![("row".to_string(), row)],
             }
         };
@@ -948,6 +1288,18 @@ fn planned(
                     span: k.span.clone(),
                 });
             }
+        }
+    }
+    // Relation meanings are never coalesced by only primitive/by. Their
+    // declaration/name/target is retained; duplicate declarations are refused.
+    let (related, groups) = relations::planned(t, fields);
+    out.extend(related);
+    for (decl, what) in groups {
+        if !records
+            .iter()
+            .any(|(old, kind)| old.name == decl.name && *kind == what)
+        {
+            records.push((decl, what));
         }
     }
     (out, records, seen)
@@ -1083,10 +1435,9 @@ pub fn generate(hir: &mut Hir) {
     };
     let (functions, records, seen) = planned(&t, &row, &fields);
     let mut wrote: Vec<(Decl, Span, Wrote)> = Vec::new();
-    for r in records {
-        let fields = r.fields.iter().flatten().map(|f| f.name.clone()).collect();
+    for (r, what) in records {
         let span = r.name_span.clone();
-        wrote.push((r, span, Wrote::Tuple { fields }));
+        wrote.push((r, span, what));
     }
     // A reader the table shares with is answered its seen row (track
     // `row-ownership`), declared beside the row as a tuple is.
@@ -1097,7 +1448,21 @@ pub fn generate(hir: &mut Hir) {
     }
     for p in &functions {
         wrote.push((
-            function(&t.name, p),
+            {
+                let mut decl = function(&t.name, p);
+                if let Some(window) = relations::of_function(&t, &p.name, p.primitive, &p.by) {
+                    decl.declared_effects
+                        .as_mut()
+                        .expect("table effects")
+                        .push(EffectRef {
+                            path: "database.read".into(),
+                            written: format!("database.read<{}>", window.target),
+                            args: vec![window.target.clone()],
+                            span: p.span.clone(),
+                        });
+                }
+                decl
+            },
             p.span.clone(),
             Wrote::Function {
                 primitive: p.primitive,
@@ -1221,6 +1586,7 @@ fn unambiguous_sources(hirs: &[&Hir], unit: usize, ws: &Workspace, t: &Table) ->
     };
     for (table, span) in std::iter::once((&t.name, &t.span))
         .chain(t.references.iter().map(|r| (&r.value.table, &r.span)))
+        .chain(t.windows.iter().map(|r| (&r.value.target, &r.span)))
     {
         let Some(name) = source_of(hirs, table) else {
             continue;
@@ -1286,7 +1652,7 @@ fn distinct_imports(hirs: &[&Hir], unit: usize, t: &Table) -> Vec<Diagnostic> {
                 format!("`{first}` and `{}` emit the same import `{import}`", d.name),
                 d.name_span.clone(),
                 vec![Related::new(span, "the first function is generated here")],
-                "rename an index so the generated functions' emitted WIT import identities differ"
+                "rename a field or index so the generated functions' emitted WIT import identities differ"
                     .into(),
             ));
         }
@@ -1389,6 +1755,7 @@ pub fn check(hirs: &[&Hir], unit: usize, ws: &Workspace, sigs: &Signatures) -> V
     for (i, t) in tables.iter().enumerate() {
         let mut found = shape(hirs, unit, ws, sigs, &module, t, i > 0);
         found.extend(unambiguous_sources(hirs, unit, ws, t));
+        found.extend(relations::check(hirs, unit, ws, sigs, t));
         found.extend(distinct_imports(hirs, unit, t));
         if found.is_empty() {
             found.extend(across_sources(hirs, unit, ws, t));
@@ -1643,6 +2010,50 @@ fn shape(
             ));
         }
         shapes.insert(name, fields.to_vec());
+    }
+    // Count results introduce full reader-bearing selector tuples and the
+    // Count suffix. Check all emitted record meanings, including collisions
+    // with ordinary selector/seen records, by their actual WIT identities.
+    let hir = hirs[unit];
+    let mut generated_shapes: BTreeMap<String, (&Wrote, Span)> = BTreeMap::new();
+    for (id, generated) in &hir.generated {
+        if generated.table != t.decl
+            || !matches!(
+                generated.what,
+                Wrote::Tuple { .. }
+                    | Wrote::Counted { .. }
+                    | Wrote::Range { .. }
+                    | Wrote::RangeCounted { .. }
+                    | Wrote::RelatedGroup { .. }
+                    | Wrote::Seen { .. }
+            )
+        {
+            continue;
+        }
+        let decl = hir.decl(*id);
+        let identity = crate::wit::ident(&decl.name);
+        if !t.windows.is_empty()
+            && let Some((other, _)) = hir.all_decls().find(|(id, d)| {
+                !hir.generated.contains_key(id) && crate::wit::ident(&d.name) == identity
+            })
+        {
+            out.push(malformed(
+                format!("`{}` is a generated selector or relation group record of `{}`, and the program declares it",decl.name,t.name),
+                decl.name_span.clone(),vec![Related::new(hir.decl_span(other),"the program's declaration")],
+                "rename the program's declaration so the generated record is distinct".into(),
+            ));
+        }
+        if let Some((first, span)) = generated_shapes.get(&identity)
+            && *first != &generated.what
+        {
+            out.push(malformed(
+                format!("generated records of `{}` emit the same type `{identity}` for different shapes", t.name),
+                decl.name_span.clone(),
+                vec![Related::new(span.clone(), "the first record is generated here")],
+                "rename a field so selector and count record names are distinct".into(),
+            ));
+        }
+        generated_shapes.insert(identity, (&generated.what, decl.name_span.clone()));
     }
     // Whose its rows are (track `row-ownership`): PW0368 to PW0370.
     out.extend(ownership(
@@ -2832,7 +3243,12 @@ pub fn functions_of(hir: &Hir, table: DeclId) -> Vec<(DeclId, Primitive, Vec<Str
         .filter(|(_, g)| g.table == table)
         .filter_map(|(id, g)| match &g.what {
             Wrote::Function { primitive, by } => Some((*id, *primitive, by.clone())),
-            Wrote::Tuple { .. } | Wrote::Seen { .. } => None,
+            Wrote::Tuple { .. }
+            | Wrote::Counted { .. }
+            | Wrote::Range { .. }
+            | Wrote::RangeCounted { .. }
+            | Wrote::RelatedGroup { .. }
+            | Wrote::Seen { .. } => None,
         })
         .collect()
 }
@@ -3784,6 +4200,8 @@ pub struct FunctionJson {
     /// What it is given, by name, each type as written.
     pub params: Vec<ParamJson>,
     pub returns: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub relation: Option<String>,
     /// **The order of the rows it answers**: each field ascending, the first
     /// first (an `Int` by value, a `String` by code point, `false` before
     /// `true`, a case by its name). Empty for what answers one row or none.
@@ -3835,6 +4253,8 @@ pub struct TableJson {
     /// their owner's.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub public: bool,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub windows: Vec<WindowClause>,
     pub functions: Vec<FunctionJson>,
 }
 
@@ -3851,6 +4271,15 @@ pub struct TablesJson {
 /// The order a read's rows come in: grouped by what a set form was given,
 /// then by `order`, then by the key; each field once.
 fn sorted_by(t: &TableSchema, primitive: Primitive, by: &[String]) -> Vec<String> {
+    if primitive.range() {
+        return Vec::new();
+    }
+    if primitive == Primitive::Count {
+        return Vec::new();
+    }
+    if primitive == Primitive::CountMany {
+        return by.to_vec();
+    }
     let one_row = matches!(primitive, Primitive::Get)
         || (primitive == Primitive::Index
             && t.indexes
@@ -3860,7 +4289,11 @@ fn sorted_by(t: &TableSchema, primitive: Primitive, by: &[String]) -> Vec<String
         return Vec::new();
     }
     let grouped: &[String] = match primitive {
-        Primitive::GetMany | Primitive::PrefixMany | Primitive::IndexMany => by,
+        Primitive::GetMany
+        | Primitive::PrefixMany
+        | Primitive::IndexMany
+        | Primitive::FirstMany
+        | Primitive::LastMany => by,
         _ => &[],
     };
     let mut out: Vec<String> = Vec::new();
@@ -3915,7 +4348,16 @@ pub fn tables_json(
                             false => "read",
                         }
                         .to_string(),
-                        sorted_by: sorted_by(schema, primitive, &by),
+                        relation: relations::of_function(t, &d.name, primitive, &by)
+                            .map(|r| r.name.clone()),
+                        sorted_by: match relations::of_function(t, &d.name, primitive, &by) {
+                            Some(r) => now
+                                .iter()
+                                .find(|(_, _, s)| s.name == r.target)
+                                .map(|(_, _, s)| sorted_by(s, Primitive::First, &[]))
+                                .unwrap_or_default(),
+                            None => sorted_by(schema, primitive, &by),
+                        },
                         by,
                         params: d
                             .params
@@ -3944,6 +4386,7 @@ pub fn tables_json(
                 shares: t.sharers().to_vec(),
                 private: t.private_fields().to_vec(),
                 public: t.public,
+                windows: t.windows.iter().map(|w| w.value.clone()).collect(),
                 functions,
             }
         })
@@ -4026,6 +4469,21 @@ mod tests {
             type CartLinesOwnerStoreItem = CartLinesOwnerStoreItem { owner: Owner, store: StoreId, item: ItemId }\n\
             type CartLinesOwnerStore = CartLinesOwnerStore { owner: Owner, store: StoreId }\n\
             type CartLinesOwnerItem = CartLinesOwnerItem { owner: Owner, item: ItemId }\n\
+            type CartLinesOwnerCount = CartLinesOwnerCount { key: Owner, count: Int }\n\
+            type CartLinesOwnerStoreCount = CartLinesOwnerStoreCount { key: CartLinesOwnerStore, count: Int }\n\
+            type CartLinesOwnerStoreItemCount = CartLinesOwnerStoreItemCount { key: CartLinesOwnerStoreItem, count: Int }\n\
+            type CartLinesStoreCount = CartLinesStoreCount { key: StoreId, count: Int }\n\
+            type CartLinesOwnerItemCount = CartLinesOwnerItemCount { key: CartLinesOwnerItem, count: Int }\n\
+            type CartLinesOwnerAfter = CartLinesOwnerAfter { owner: Owner, after: Int }\n\
+            type CartLinesOwnerAfterCount = CartLinesOwnerAfterCount { key: CartLinesOwnerAfter, count: Int }\n\
+            type CartLinesOwnerStoreAfter = CartLinesOwnerStoreAfter { owner: Owner, store: StoreId, after: Int }\n\
+            type CartLinesOwnerStoreAfterCount = CartLinesOwnerStoreAfterCount { key: CartLinesOwnerStoreAfter, count: Int }\n\
+            type CartLinesOwnerStoreItemAfter = CartLinesOwnerStoreItemAfter { owner: Owner, store: StoreId, item: ItemId, after: Int }\n\
+            type CartLinesOwnerStoreItemAfterCount = CartLinesOwnerStoreItemAfterCount { key: CartLinesOwnerStoreItemAfter, count: Int }\n\
+            type CartLinesStoreAfter = CartLinesStoreAfter { store: StoreId, after: Int }\n\
+            type CartLinesStoreAfterCount = CartLinesStoreAfterCount { key: CartLinesStoreAfter, count: Int }\n\
+            type CartLinesOwnerItemAfter = CartLinesOwnerItemAfter { owner: Owner, item: ItemId, after: Int }\n\
+            type CartLinesOwnerItemAfterCount = CartLinesOwnerItemAfterCount { key: CartLinesOwnerItemAfter, count: Int }\n\
             fn get(owner: Owner, store: StoreId, item: ItemId) -> Option<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#get\"\n\
             fn get_many(keys: List<CartLinesOwnerStoreItem>) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#get-many\"\n\
             fn of_owner(owner: Owner) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#of-owner\"\n\
@@ -4036,6 +4494,46 @@ mod tests {
             fn by_store_many(values: List<StoreId>) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#by-store-many\"\n\
             fn by_owner_item(owner: Owner, item: ItemId) -> Option<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#by-owner-item\"\n\
             fn by_owner_item_many(values: List<CartLinesOwnerItem>) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#by-owner-item-many\"\n\
+            fn first_by_owner(owner: Owner, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#first-by-owner\"\n\
+            fn first_by_owner_many(values: List<Owner>, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#first-by-owner-many\"\n\
+            fn last_by_owner(owner: Owner, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#last-by-owner\"\n\
+            fn last_by_owner_many(values: List<Owner>, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#last-by-owner-many\"\n\
+            fn count_after_by_owner(owner: Owner, after: Int) -> Int !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-after-by-owner\"\n\
+            fn count_after_by_owner_many(values: List<CartLinesOwnerAfter>) -> List<CartLinesOwnerAfterCount> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-after-by-owner-many\"\n\
+            fn count_by_owner(owner: Owner) -> Int !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-by-owner\"\n\
+            fn count_by_owner_many(values: List<Owner>) -> List<CartLinesOwnerCount> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-by-owner-many\"\n\
+            fn first_by_owner_store(owner: Owner, store: StoreId, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#first-by-owner-store\"\n\
+            fn first_by_owner_store_many(values: List<CartLinesOwnerStore>, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#first-by-owner-store-many\"\n\
+            fn last_by_owner_store(owner: Owner, store: StoreId, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#last-by-owner-store\"\n\
+            fn last_by_owner_store_many(values: List<CartLinesOwnerStore>, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#last-by-owner-store-many\"\n\
+            fn count_after_by_owner_store(owner: Owner, store: StoreId, after: Int) -> Int !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-after-by-owner-store\"\n\
+            fn count_after_by_owner_store_many(values: List<CartLinesOwnerStoreAfter>) -> List<CartLinesOwnerStoreAfterCount> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-after-by-owner-store-many\"\n\
+            fn count_by_owner_store(owner: Owner, store: StoreId) -> Int !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-by-owner-store\"\n\
+            fn count_by_owner_store_many(values: List<CartLinesOwnerStore>) -> List<CartLinesOwnerStoreCount> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-by-owner-store-many\"\n\
+            fn first_by_owner_store_item(owner: Owner, store: StoreId, item: ItemId, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#first-by-owner-store-item\"\n\
+            fn first_by_owner_store_item_many(values: List<CartLinesOwnerStoreItem>, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#first-by-owner-store-item-many\"\n\
+            fn last_by_owner_store_item(owner: Owner, store: StoreId, item: ItemId, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#last-by-owner-store-item\"\n\
+            fn last_by_owner_store_item_many(values: List<CartLinesOwnerStoreItem>, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#last-by-owner-store-item-many\"\n\
+            fn count_after_by_owner_store_item(owner: Owner, store: StoreId, item: ItemId, after: Int) -> Int !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-after-by-owner-store-item\"\n\
+            fn count_after_by_owner_store_item_many(values: List<CartLinesOwnerStoreItemAfter>) -> List<CartLinesOwnerStoreItemAfterCount> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-after-by-owner-store-item-many\"\n\
+            fn count_by_owner_store_item(owner: Owner, store: StoreId, item: ItemId) -> Int !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-by-owner-store-item\"\n\
+            fn count_by_owner_store_item_many(values: List<CartLinesOwnerStoreItem>) -> List<CartLinesOwnerStoreItemCount> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-by-owner-store-item-many\"\n\
+            fn first_by_store(store: StoreId, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#first-by-store\"\n\
+            fn first_by_store_many(values: List<StoreId>, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#first-by-store-many\"\n\
+            fn last_by_store(store: StoreId, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#last-by-store\"\n\
+            fn last_by_store_many(values: List<StoreId>, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#last-by-store-many\"\n\
+            fn count_after_by_store(store: StoreId, after: Int) -> Int !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-after-by-store\"\n\
+            fn count_after_by_store_many(values: List<CartLinesStoreAfter>) -> List<CartLinesStoreAfterCount> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-after-by-store-many\"\n\
+            fn count_by_store(store: StoreId) -> Int !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-by-store\"\n\
+            fn count_by_store_many(values: List<StoreId>) -> List<CartLinesStoreCount> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-by-store-many\"\n\
+            fn first_by_owner_item(owner: Owner, item: ItemId, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#first-by-owner-item\"\n\
+            fn first_by_owner_item_many(values: List<CartLinesOwnerItem>, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#first-by-owner-item-many\"\n\
+            fn last_by_owner_item(owner: Owner, item: ItemId, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#last-by-owner-item\"\n\
+            fn last_by_owner_item_many(values: List<CartLinesOwnerItem>, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#last-by-owner-item-many\"\n\
+            fn count_after_by_owner_item(owner: Owner, item: ItemId, after: Int) -> Int !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-after-by-owner-item\"\n\
+            fn count_after_by_owner_item_many(values: List<CartLinesOwnerItemAfter>) -> List<CartLinesOwnerItemAfterCount> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-after-by-owner-item-many\"\n\
+            fn count_by_owner_item(owner: Owner, item: ItemId) -> Int !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-by-owner-item\"\n\
+            fn count_by_owner_item_many(values: List<CartLinesOwnerItem>) -> List<CartLinesOwnerItemCount> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-by-owner-item-many\"\n\
             fn all() -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#all\"\n\
             fn insert(row: CartLine) -> Result<(), CartLine> !{ database.write<CartLines> }\n    host \"pw:tables/cart-lines#insert\"\n\
             fn put(row: CartLine) -> Result<(), CartLine> !{ database.write<CartLines> }\n    host \"pw:tables/cart-lines#put\"\n\

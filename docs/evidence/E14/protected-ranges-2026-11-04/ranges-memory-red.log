@@ -1,0 +1,35 @@
+   Compiling pw-core v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-core)
+   Compiling pw-host v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-host)
+   Compiling pw-table-memory v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-memory)
+    Finished `test` profile [unoptimized] target(s) in 5.54s
+     Running tests/compiled_ranges.rs (target/debug/deps/compiled_ranges-ed4f193faed0d79d)
+
+running 2 tests
+test ranges_count_strict_order_marks_and_keep_full_heterogeneous_request_identity ... FAILED
+test range_predicates_read_staged_rows_and_the_pinned_query_keeps_predicate_and_body ... FAILED
+
+failures:
+
+---- ranges_count_strict_order_marks_and_keep_full_heterogeneous_request_identity stdout ----
+
+thread 'ranges_count_strict_order_marks_and_keep_full_heterogeneous_request_identity' (1319834) panicked at runtime/pw-table-memory/tests/compiled_ranges.rs:19:9:
+assertion `left == right` failed
+  left: Err("error while executing at wasm backtrace:\n    0:    0x3d1 - <unknown>!<wasm function 0>\n    1:    0x227 - <unknown>!<wasm function 2>: `pw:tables/notes#count-after-by-author`: Input(\"expected 1 selector values, got 2\")")
+ right: Ok([S64(3)])
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- range_predicates_read_staged_rows_and_the_pinned_query_keeps_predicate_and_body stdout ----
+
+thread 'range_predicates_read_staged_rows_and_the_pinned_query_keeps_predicate_and_body' (1319832) panicked at runtime/pw-table-memory/tests/compiled_ranges.rs:182:5:
+assertion `left == right` failed
+  left: Err("authorization predicate `Wrote` could not be evaluated: error while executing at wasm backtrace:\n    0:    0x5ce - <unknown>!<wasm function 2>\n    1:    0x3d8 - <unknown>!<wasm function 4>: `pw:tables/notes#count-after-by-author`: Input(\"expected 1 selector values, got 2\")")
+ right: Ok([])
+
+
+failures:
+    range_predicates_read_staged_rows_and_the_pinned_query_keeps_predicate_and_body
+    ranges_count_strict_order_marks_and_keep_full_heterogeneous_request_identity
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s
+
+error: test failed, to rerun pass `-p pw-table-memory --test compiled_ranges`

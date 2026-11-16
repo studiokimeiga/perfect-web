@@ -165,6 +165,461 @@ The target actor wrapper checks current authority for recalled lifecycle
 receipts as well as fresh execution. Private source/session fields, not public
 presentation fields, drive the proof binding.
 
+### Counts over declared selectors
+
+The next prerequisite adds `count_by_<fields>` and its `_many` form over the
+table's existing key prefixes (including its whole key) and indexes. This is
+an aggregate of an already declared read, with the same table grant, selector
+validation, owner/sharer handle and transaction/snapshot; it is not a query
+language, arbitrary filter, or expanded row authority. No unqualified whole-
+table count is generated. Owned set forms still omit a form with nothing
+after the single reader handle, as existing row reads do.
+
+A single count returns a nonnegative Int. A set count returns one generated
+`{ key, count }` record for each distinct requested selector, including zero
+for absent selectors, in the selectors' canonical order. The key is the plain
+selector value or tuple, never a returned authority handle. The gate checks
+the entire result shape, key membership/order/uniqueness, and nonnegative
+counts before the component sees it. A SQL adapter executes one grouped
+aggregate for the set, not a loop or a fetch of every row followed by length.
+Memory is the answer oracle; SQL preserves the same zero/duplicate semantics.
+
+Acceptance includes plain/owned/shared selectors, staged and snapshot reads,
+forged owner/key/answer refusals, and large-cardinality SQL returned rows/bytes
+and compiled fuel bounds in addition to call counts. Database aggregate scan
+work is not a constant-work claim; per-owner quotas, ranges/windows, relation
+fusion and broader H4 remain separate. Limits elsewhere must still execute
+before unrestricted row materialization; adding counts does not complete the
+canonical apps' bounded-read prerequisite or authorize relaxing startup guards.
+
+PostgreSQL uses multi-array `unnest` with ordinality and a left join, counting
+a non-null primary-key column; this retains one zero per absent requested key.
+The client pairs validated one-based slots with its canonical typed input keys.
+These semantics are documented by PostgreSQL's
+[array functions](https://www.postgresql.org/docs/18/functions-array.html),
+[table functions](https://www.postgresql.org/docs/18/queries-table-expressions.html#QUERIES-TABLEFUNCTIONS)
+and [aggregates](https://www.postgresql.org/docs/18/functions-aggregate.html).
+No dependency or stored-schema migration is introduced by the new read forms.
+
+Adapter counters now measure actual prepared-statement result rows and binary
+field payload bytes before decoding, without retaining data. They exclude NULL
+markers, protocol/row framing, simple-query results and the dedicated Tail
+connection. Prepared startup catalog/schema reads are included; measure deltas
+around application operations. A count may scan many database rows; those
+internal scans are not these result counters. A compiled count is tested under
+the same 1,000-fuel ceiling at 5 and 1,500 rows, with a one-fuel failing neighbor;
+this is a ceiling test, not an exact fuel-used or constant database-work claim.
+The set-count witness uses a 3,000-fuel ceiling for two distinct requested keys.
+
+Generated full selector/count records are checked by emitted type identity,
+including Count-suffix and owned full-key collisions. Host manifest admission
+also refuses an owned set count with no selector after its reader. Per-element
+count loops retain PW0405 and the generated set-form repair. The existing
+table, owned-row and PostgreSQL recipes include the new witnesses and controls.
+Frozen-source verification and review are recorded separately; the migration
+and its final browser/whole-campaign/CI acceptance remain open.
+
+Independent review of the first counts checkpoint found a function-name alias:
+scalar selector `a_many` and set selector `a` both spell `count_by_a_many`.
+Planning now coalesces only the same name/primitive/selector; distinct meanings
+remain visible to the existing named duplicate-import refusal. Both key/index
+orders and renamed-field neighbors have a native regression. Review also found
+that the new result counters included startup prepared reads; their contract
+now says so, with open/reopen witnesses and unchanged per-operation delta tests.
+The interrupted broad check at the first checkpoint receives no complete-suite
+credit. Successor frozen checks and review remain required.
+
+The first successor server run exposed the generic conformance suite's old
+row-only assumption (166 passed, two PostgreSQL conformance failures). The
+oracle now computes scalar counts and canonical distinct key/count results
+from its own generated rows at both sizes, outside and inside a render. It
+does not call an adapter or the production result codec. A small independent
+oracle witness includes scalar, absent, duplicate, empty and tuple selectors;
+the whole generated guestbook/lists suite runs on memory and PostgreSQL.
+Those two failed results are retained as diagnostics, not passing credit.
+
+Counts code/test source `15f3c9df` passed its frozen affected native checks,
+test-compile/preflight and focused strict controls, with independent review
+clear. The [counts record](../diagnostics/protected-feed-store-counts-2026-11-04.md)
+links the exact-source receipts. This closes counts only, not the apps or their
+whole-campaign/browser/CI acceptance.
+
+### Next bounded read: ordered selector windows
+
+The next slice generates `first_by_<fields>` and `last_by_<fields>` over the
+same existing nonempty key prefixes/full keys and indexes. Each takes its
+usual selectors and an Int limit, returning a list of full/seen rows under
+the same grant and owner/sharer authority. The `_many` form gives the existing
+typed selector list and one shared limit, returning at most that many rows
+**per distinct selector**. It preserves scalar-to-set meaning for PW0405;
+it is not a global window across all selectors. Owned forms with nothing
+after the reader still have no `_many`. Generated bound-parameter names must
+remain distinct from app selector names, including their emitted identities.
+
+First orders by the table's declared order then full primary key ascending;
+last reverses that complete within-selector order, including key tie-breaks.
+Set results group by canonical selector ascending, then the within-group
+direction. Validate every selector before an empty/nonpositive bound answers
+empty. Negative limits clamp to zero as the feed does today. Do not reserve
+memory directly from an untrusted maximum Int. Gate answers for exact rows,
+membership, uniqueness, order/direction and per-selector cardinality; refuse
+invalid results whole rather than silently truncating them.
+
+PostgreSQL applies ORDER BY/LIMIT before returning rows: one prepared statement
+for a scalar window or one unnest/ordinality/LATERAL statement with a bounded
+subquery per distinct key. Memory may scan matching row references while
+keeping bounded top-N metadata, cloning only selected rows. No new query
+language, arbitrary filters, optimizer, implicit index/schema migration,
+constant database-scan work or H4 closure is introduced. Ordered prefix reads
+may need a matching declared index for efficient internal database work.
+
+Acceptance includes compiled owned/shared callers, no/forged-caller refusals,
+zero/negative/maximum limits, missing/duplicate/tuple/typed keys, order ties,
+staged/snapshot/reopen behavior, malformed excessive/foreign/reversed results,
+generated-name collisions, PW0405 repairs, generic conformance and strict
+controls. Measure SQL result rows/payload bytes and compiled fuel at substantial
+cardinality with growing unbounded neighbors. Following-feed selection still
+needs fixed relation/global-window support without first materializing every
+followed principal or per-author window. This slice cannot claim that behavior
+proved; unread/range and upload lifetime remain separate pending work.
+
+The local window implementation uses those fixed forms. At 12 and 1,500 rows,
+the compiled scalar window returns two SQL result rows and the shared set
+window returns four, using the same 10,000-fuel ceiling; payloads are bounded
+for the fixture's fixed-size text fields. An unrestricted row-read neighbor
+grows with cardinality, and a one-fuel neighbor fails. A strict fault fetches
+all scalar-window rows and clips the correct answer afterward; only the real
+result-size oracle detects that hidden materialization. These are result-work
+measurements, not a claim about internal database scans or unbounded row sizes.
+Raw adapter calls for invalid/empty windows run no SQL. A compiled snapshot
+can still open/end its transaction; those boundaries remain separate from
+operation-statement and returned-payload counters.
+
+A compiled latest-row predicate sees its command's staged insert, rejects an
+existing non-newest row before the body, and shares a held query snapshot
+with the body after another writer commits a newer row. The same fixture
+runs on memory and PostgreSQL. Generic conformance covers five limits, missing
+and duplicate selectors, direction and key ties, for every table of the
+guestbook/lists builds in both render modes and sizes. Original row/count
+oracles and statement-cost assertions remain in force.
+
+Parameter-name tests exposed pre-existing generated-formal collisions under
+legal owner fields: `values` collided with a set's list, and `row` with a
+write's record. Only colliding generated formals are renamed, preserving
+argument positions, field names and permissions. Reader/list/bound names are
+also checked by emitted identity and by real compiled components for owner
+fields values/keys/row/limit. A fixture that mutates a table key now adjusts
+new window metadata to keep its old type-refusal oracle otherwise whole.
+The initial implementation was frozen for the checks recorded below; later paragraphs track review fixes and final evidence.
+
+
+Review of immutable window source `79de0dd0` found two diagnostic defects,
+reproduced by native regressions (five existing tests passed, two new tests
+failed). PW0405 described an owned set's first parameter, User<UserId>, as
+the list's record and included the reader in every selector. Guidance now
+locates the top-level List parameter by constructor, preserves its complete
+element type, and describes the reader separately. Owned/shared scalar and
+composite cases and the existing unowned neighbors are checked. A loop whose
+window bound varies previously offered the single-shared-bound set as a
+replacement. Direct/wrapped varying-bound cases now get common-bound and
+pure-selection guidance, while an invariant-bound selector loop still names
+its matching set form. The refusal and generated ABI are unchanged.
+
+The new window snapshot fixture now changes the pinned row's body as well as
+inserting a newer predicate row. A held query must retain both its eligibility
+and original body; a fresh query is denied. Both adapters execute the compiled
+fixture. The initial follow-up preflight exposed one moved bounded-checker
+mutation anchor; it is re-anchored to the same scalar/composite decision and
+must still be killed. These local review fixes require their own frozen checks
+and independent delta review; earlier source results are not transferred.
+
+
+Combined selector-and-bound dependencies now have direct/wrapped native
+neighbors: the suggested set read is explicitly one common bound followed by
+pure per-request selection. The shared helper's older count output guidance
+also now describes key/count entries and a zero for a missing key, rather than
+rows and absence. Its new regression failed at the former wording before the
+repair (seven passed, one failed). Existing unowned row-output guidance remains
+unchanged. The moved flat-batch mutation anchor retains the same wrong repair;
+a new count-guidance fault must be caught at a native assertion. No admission,
+ABI, runtime or stored-schema behavior changes in this follow-up.
+
+
+The [window execution record](../diagnostics/protected-feed-store-windows-2026-11-04.md)
+records the frozen 79de implementation checks, d417 snapshot/diagnostic proofs
+and final 5b7 guidance checks, with raw logs, exact source guards and hashes.
+Independent review is clear. This closes ordered selector windows locally;
+the canonical apps and their final whole-campaign/browser/CI acceptance remain open.
+
+
+### Next bounded read: counts after an order mark
+
+Notification rows disappear with deleted posts. Subtracting an historical read
+count from the current total becomes wrong when old read rows disappear. A
+recipient-owned last-read sequence plus a count of current rows strictly after
+that mark preserves the intended unread total. Message totals may instead use
+their append-only history and separately owned read totals; that app model is
+not established by this primitive. Stable sequence allocation across deletion
+is an independent application/platform obligation: MAX(current rows) must not
+permit a new notification to reuse a mark already read.
+
+Generate `count_after_by_<fields>(selectors..., after)` only where the table
+declares `order`, over the same nonempty key prefixes/full keys and indexes.
+The trailing argument has the order field's complete declared type, including
+nominal identity and refinements. It is a strict comparison of that one field:
+order > mark. Equal-order rows are excluded regardless of primary-key ties.
+This is not an order-plus-key cursor, arbitrary filter or query language. No
+global count, new row authority, dependency or stored-schema migration is added.
+Use ordinary count for an absent initial mark where the order's refinement has
+no representable before-all sentinel. Never bypass the refinement for a mark.
+
+ADR-0338 section1.2 requires a set form for every keyed read. Generate a
+heterogeneous `_many` form now, not a shared-mark substitute. Each input is a
+generated record of the ordinary selector fields plus a mark field. For an
+owned/shared read, pass the reader handle separately and omit its field from
+each input record. Even a reader-only selector has a meaningful set form: its
+input record holds the mark alone. The old empty-after-reader set prohibition
+does not apply to this new form because the mark varies. Every key/cutoff is
+validated before adapter access; any forged reader or malformed member refuses
+the whole request, including when no range matches.
+
+Choose the generated mark field/formal as `after`, adding `_mark` until its WIT
+identity differs from every stored row field. Use the same chosen mark name for
+all the table's range records. Input range records are named from their held
+selector fields with an After suffix; full returned key records include the
+plain reader id where relevant and the mark. A set returns `{ key, count }`
+entries for distinct full selector-and-mark pairs, including zero for missing
+ranges, in canonical selector-then-mark order. Same selector/different mark
+remains two requests; exact duplicates coalesce. Generated type/import collisions
+must retain the existing named refusal instead of silently aliasing meanings.
+The ordinary equality `by` metadata remains separate from the mark. Range
+aggregates return no stored rows, so their stored-row sorted_by is empty;
+canonical request/result ordering is defined by this primitive's full key.
+
+Use the same table read grant, owner/sharer handle, command staging and query
+snapshot. Existing private-order restrictions for shared tables remain in force.
+The host independently admits the declared order, typed input and exact scalar/
+set answer ABI, request membership/order/uniqueness and nonnegative counts.
+Returned keys are plain values, never authority handles. PW0405 still refuses
+per-element selector, mark or combined dependencies; its repair names this
+heterogeneous set and includes the mark in each record, with the reader passed
+separately. A window's one-common-limit guidance does not apply to range counts.
+
+Memory counts matching row references without copying row payloads. PostgreSQL
+uses one COUNT with equality selectors and order > typed mark, or typed-array
+unnest/ordinality plus a left-join aggregate per distinct selector/mark. Counting
+a non-null primary-key column preserves zero for missing ranges. The mark is
+bound using the declared order column's native kind, including bytea for strings,
+so no text-collation or JSON comparison replaces the existing value order.
+The [comparison documentation](https://www.postgresql.org/docs/18/functions-comparison.html)
+and [binary-string documentation](https://www.postgresql.org/docs/18/functions-binarystring.html)
+were checked. A local PostgreSQL 18.6 synthetic probe confirms Bool and UTF-8-byte
+comparisons, including NUL/prefix strings, and distinguishes strict1 from
+inclusive3 over [1,2,2,3] at mark2. No dependency upgrade is introduced.
+
+Acceptance: native failing regressions and valid neighbors; owned/shared/reader-
+only heterogeneous sets; missing/exact-duplicate/different-mark requests; equality
+ties and deletion before/after a mark; Bool, Unicode/NUL String, refined/nominal
+Int types; generated field/formal/type collisions; no/forged callers and malformed
+whole sets before callback/SQL; actual compiled staged and held-snapshot reads;
+independent conformance at both sizes/render modes; substantial-cardinality SQL
+result rows/bytes and compiled fuel with failing/growing neighbors. Strict faults
+must catch ignored/inclusive/wrong-field marks, lost zeros/marks, per-key SQL and
+unrestricted rows fetched then counted. Freeze exact checks and independent review.
+Database internal scan work, sequences, relation/global windows, upload lifetime,
+initial fixtures, private-child deletion and canonical app ports remain separate.
+
+
+The [range execution record](../diagnostics/protected-feed-store-ranges-2026-11-04.md)
+records frozen implementation f4fc668f and its script-only wrong-field-control
+successor 06a6ad18. Independent review is clear. This closes typed order-range
+counts locally, not global relation windows, upload lifetime or the canonical
+apps and their final whole-campaign/browser/CI acceptance.
+
+
+### Next fixed read: relation windows
+
+Decision made before implementation, 2026-11-04. Independent read-only design
+review accepted the fixed one-hop rewrite with the limits below. Implementation
+and all native/strict/frozen acceptance remain pending. No app port or startup
+guard relaxation follows merely from this decision.
+
+Problem: following timeline is newest root posts globally among own/followed
+authors. Fetching all membership rows or every author's N posts before clipping
+does not meet the result-work bound. ADR0338 permits a fixed declared relation
+rewrite, not an optimizer/query language. Root-only public posts can be modeled
+as a separate declared table maintained in Pleris, avoiding a filter expression.
+Pleris maintains a separate private subscription edge for self; it is distinct
+from visible following counts and follows, and must be tested on first post,
+following before/after another author's posts, unfollow, restart and delete.
+
+Declare a fixed membership relation:
+
+    table Subscriptions
+        row SubscriptionRow
+        key reader, author
+        owned by reader
+        window posts from RootPosts row RootPosts.RootRow on author to author
+
+The explicit row annotation uses ordinary imported type resolution. Generation
+runs in single-file lowering, before a Workspace exists; discovering a target's
+chosen row name would otherwise require a new cross-unit generation/reindex
+phase across checking and executable preparation. Keep the narrower typed
+declaration. Later semantic checking requires the annotation to be the target
+table's exact resolved row type, including nominal identity/arguments, never
+merely matching fields or WIT shape. Runtime row metadata comes from the validated
+target table, not a second annotation authority. Cover structurally identical
+different row types, missing/wrong target, stale/private/nonexported annotation,
+qualified/imported aliases of the same type and reversed file order.
+
+This declares the equality Subscriptions.author=RootPosts.author. RootPosts is
+an ordinary PUBLIC target table with a declared order and an index/key starting
+with the target author field. No private target, projection/filter expression,
+multi-hop relation, arbitrary SQL, aggregate or implicit cascade is introduced.
+Both tables must be in one declared source/adapter/snapshot/transaction. The
+compiler proves the match fields have the same resolved declared type (including
+nominal identity and refinement), and a comparable scalar stored kind. WIT erases
+nominal identities; the host's independent check is complete Stored kind and
+refinement, as at the existing row boundary, not nominal equality inferred from
+unqualified type spellings. Duplicated membership rows must not duplicate
+target rows: EXISTS/semi-join semantics.
+
+Generate fixed first_posts_by_<selector> and last_posts_by_<selector> reads.
+Eligible selectors are nonempty membership key/index prefixes with the
+source match field immediately after them in that key/index. This ensures an
+existing declared lookup for (selector, target-match-value); do not invent an
+index. Ordinary index reads currently expose only complete index field lists;
+this clause explicitly authorizes these relation-only index-prefix selectors,
+without broadening ordinary row reads. Owner/sharer restrictions follow the source selector; private source
+columns never reach the app. The target row is public, exactly its declared row.
+Each generated function requires BOTH table read grants. The host independently
+checks both declarations/source identities and target-public restriction, stored
+match types/refinements/indexes, function metadata and complete ABI before execution.
+Host table admission must retain source identities (it currently drops source),
+require the same nonempty explicit source, and refuse cross-source co-location
+even on memory. Extend the existing compiler ambiguous bare-source-name guard
+to the target. Duplicate relation names are named-refused by emitted identity
+before expansion; plan coalescing includes relation/target meaning, not merely
+name/primitive/by. Generated record/import aliases retain named refusal.
+
+Both read effects must survive generation into signatures/contracts, and the
+engine independently requires BOTH grants at admission/link, including predicate
+reuse and unused imports, before callback. A sharer relation cannot match a
+private source field: existence of the target result would reveal that field.
+Use a named refusal analogous to the existing private-order restriction whenever
+an eligible sharer selector's source match field is not Seen. Owner-only matching
+may use its own private fields; private source values are never returned.
+The selection itself remains private when its source membership is private,
+even though each target row is public. Preserve source-derived privacy/cache
+labels through the verified reader handle; pin PW5001 for a shared-cache attempt,
+its private-cache neighbor and two-reader same-target/key isolation. No H3/H4
+closure is inferred from this narrow prerequisite.
+
+Scalar takes source selectors (including verified reader handle where relevant)
+and Int limit; returns List<TargetRow>. Limit clamps nonpositive to empty AFTER
+validating every selector. First orders by full target order+PK ascending; last
+reverses ALL of it including ties. One global limit per source selector, not per
+matching author. No maxInt reserve. Target-only row ordering metadata must not
+pretend that source fields exist on the target row.
+
+Every eligible keyed read gets its ordinary heterogeneous-selector _many form
+with ONE common limit. Reuse the existing owned reader-only empty-after-reader
+exception (there is no varying remaining selector); it has no meaningful set
+parameter. For owned composite selectors, reader is separate and list contains
+only remaining typed source selectors. Public source selectors get ordinary set
+forms. Unlike range counts, no per-request varying mark/limit is introduced.
+
+A relation set cannot return flat target rows whose fields don't identify their
+source selector. Return a generated List<{key: full plain source selector,
+rows: List<TargetRow>}> instead, exactly one group per distinct canonical input
+key including zero-row groups. Keys contain plain ids, never handles. The gate
+checks exact request coverage/order/membership, no duplicates, each group's bound,
+target row ABI/PK uniqueness/order. It checks the scalar target rows the same way.
+Target PK uniqueness is per group, not global: overlapping topics may each return
+the same post. A duplicate source edge within one topic still yields it once.
+This is an adapter contract: the two generic adapters execute the admitted match.
+As for ordinary adapters, the gate checks shape/authority fields, not independent
+proof that a row exists in the physical database. Target rows are public; this
+first version must not generalize to protected target rows without a new design.
+Public targets do not make foreign private membership public. Distinct Alice/Bob
+membership sets and sentinel posts must catch wrong-source-reader selection and
+authority injection faults, alongside forged group-key refusals.
+
+Memory scans borrowed target row references and tests existence through the
+declared membership key/index for each source selector and target match value,
+retaining only bounded top-N refs; clones only final selected rows. No all-follows
+list or per-author post windows. PostgreSQL scalar is one SELECT of target columns
+WHERE EXISTS (source equality selector AND source-match=target-match) ORDER/LIMIT.
+Set is typed arrays+ordinality and LATERAL, with global target ORDER/LIMIT INSIDE
+each selector subquery. Adapter reconstructs empty output groups from validated
+keys; zero SQL rows need no fake target payload. Result work <=N*distinctKeys,
+not N*author-count. No constant internal database-scan-work claim.
+
+Primary documentation checked: PostgreSQL 18
+[subquery expressions](https://www.postgresql.org/docs/18/functions-subquery.html)
+(EXISTS/correlation) and
+[SELECT](https://www.postgresql.org/docs/18/sql-select.html)
+(ORDER/LIMIT/LATERAL). Require a local synthetic
+probe with duplicate edges, interleaved authors/ties/missing selectors and a
+per-author-window+globalclip fault, plus real compiler/adapters before acceptance.
+
+The global home timeline can use an ordinary constant-partition index in Pleris
+(for example, every root row has lane0) and last_by_lane(0,N). No unqualified
+unbounded target read is added. Public profiles use last_by_author(id,N); a full
+thread's result is inherently all rows of its declared root index, assembled in
+Pleris. These are app modeling proposals requiring their own unchanged assertions.
+
+Native acceptance: failing regression+valid neighbor first; compiler distinct
+nominal types with equal representations AND same local spelling across modules,
+valid aliases of one imported type, complete refined types, host forged Stored
+kind/refinement negatives, name/record/formal collisions, no/forged reader, malformed whole
+sets/limits before callback/SQL, both grants and target/source schema tampering,
+public-target admission, shared source seen/private fields never returned, staged
+membership and target writes, held snapshot changes BOTH membership and body,
+first/last PK ties, zero/missing/duplicates/maxInt, independent conformance.
+At12/1500 authors and substantial posts, fixed SQL result rows/payload bytes and
+compiled fuel; unbounded/per-author neighbors must grow. Strict faults: match
+ignored/wrong field, source reader ignored, join duplicates, global set limit,
+per-author limit, fetchall membership or target then clip, per-key SQL, missing
+dual grant/admission, group result coverage/order/bounds, counters bypassed.
+The per-author-window work fault must return those extra rows across the SQL
+adapter boundary and clip in host while returning the correct final N. Use one
+SQL statement so real result-size counters, not just N+1 call counts, detect it.
+An internal SQL expansion ending in global LIMIT before returning N is internal
+database work and outside the claimed result-work bound.
+
+Additional review witnesses: duplicate relation names with different targets;
+equivalent/different/absent/ambiguous sources and forged memory co-location;
+missing target grant in bodies/predicates/unused imports; private match field
+through sharer rejected and Seen neighbor valid; overlapping groups duplicate
+target PK across groups valid, duplicate edge in one group yields one target;
+reversed/foreign/missing/over-limit nested replies are whole refusals.
+Positive relation-only index-prefix case without a separate prefix index, and
+negative with no declared (selector,match) lookup path.
+
+The [local synthetic probe](../evidence/E14/protected-relations-design-2026-11-04/primary-probe.log) ran against PostgreSQL 18.6: duplicate
+Alice->A edges plus A/B interleaved/tied posts still yield global b3,a3 at N2;
+Bob->C yields c9, absent selector yields no SQL row, overlapping topics each get
+the same A posts independently. All fixture tables were TEMP and rolled back.
+This verifies selected SQL semantics only, not the not-yet-built generic path.
+
+### Local relation prerequisite record
+
+Frozen source `d8c634c9` passes affected compiler 350, CLI 5, host 118 (9 existing
+ignored), memory 132, PostgreSQL 95, selected server 180, test-compile/preflight 5,253
+and strict 36/36 focused controls. The test-only `9451277a` adds actual
+authorization-only reuse proof and passes memory 8/preflight/dual-grant 2/2.
+Separate immutable review is clear, including source-key Identity authority,
+independent contract/actual grants, named schema refusals, private-match paths,
+warm two-reader caches and predicate reuse. Correct-answer all-target and
+per-author postclip controls are caught by real SQL returned-row accounting.
+See the [relation record](../diagnostics/protected-feed-store-relations-2026-11-04.md).
+No canonical application has been ported by this prerequisite.
+
+Remaining after this: generic upload claim/publication/reference/GC lifetime,
+initial public fixtures, stable IDs/private child deletion as required, actual
+canonical feed/store ports, final whole campaigns/browser/CI and frozen review.
+
 ## Landing (L3, 2026-11-13)
 
 L3 merges the integration branch's six commits after `a9a8d79e`
@@ -403,6 +858,66 @@ after L3, item 4): `tests::owned_clock` is kept and
 `tests::protected_migration`'s copy of it, with its `clock.pw`, removed; the
 two were the same scenario under two programs' names.
 
+## Landing (L4, 2026-11-16)
+
+L4 merges the integration branch's seventeen commits after `2e2ef45b` (to
+`ff57edc7`: 67 files of code and 1,370 receipts) onto L3 (`f375b92d`) in
+`7b8fb7cc`, branch `wip/l4-bounded`: the fifth prerequisite above, counts
+over declared selectors, ordered selector windows, counts after an order
+mark and fixed relation windows, through the compiler, the host and both
+adapters. Six files conflicted: `tables.rs` four times (L4's count, window
+and relation readers beside L2's `public` tables and the PW0370 numbering,
+which master kept; the table manifest's `public` and `windows` both kept),
+`head-only-allow.txt` (PW0370 again, and L4's own entry), the row-ownership
+script's test list (both sides', nineteen commands, none twice), and the
+docs (the integration branch's 454 lines added to the unnumbered decision
+moved here, before L3's landing). Nothing else needed a hand: at the merge
+the workspace's 4,274 tests pass on PostgreSQL 18.6 (26 ignored), and every
+mutation anchor matches once (6,104). The full verify 43809526375 at
+`7b8fb7cc` passed every job; its summary found two of 357 recipes failing,
+each repaired at the branch's head and run again there:
+`e14-row-ownership` (141 of 142, one kill INVALID: its failing test
+panicked at an `unwrap` of `table_ranges.rs`, which the strict validator
+does not read as an assertion; the test now fails only through assertions)
+and `e14-check-is-build` (the program census covered no assembly of
+`examples/relations/`, L4's relation fixture; it is one now). The other 355
+recipes' evidence (646 files, `bddbcf54`) is the merge's record.
+
+**Reviewed** (2026-11-16, a reviewer given the diff and this ADR's
+sections, not the account of the merge): no high or medium finding in
+authority, privacy, adapter parity or bounds. Each new read goes through
+the existing gate, owner check, answer check and shared-row projection;
+strings order byte by byte on both adapters (PostgreSQL's `bytea`); every
+limit applies inside the database. It found two low ones, each repaired
+with a test that failed before and a mutant:
+
+1. **An owned `public table`'s relation was refused by the host** through
+   an index its owner does not lead, where the compiler reads a public
+   table by any key or index (L2) and made the read: the build failed at
+   startup instead of answering. The host admits a public source's every
+   path (`window_target`), as it admits an unowned one's; a public table
+   keeps no private field (the compiler refuses one), so no match field is
+   revealed. `a_public_owned_membership_is_read_through_any_index_by_anyone`,
+   on both adapters.
+2. **PostgreSQL refused malformed direct range and relation requests in
+   other words than the memory adapter's**, which `shape.rs` promises word
+   for word: its range parsing had messages of its own, and a relation's
+   refusal named "relation window" where the memory adapter names the
+   import. It reads a range request as the memory adapter does
+   (`named_selections`, then each value held to its field's type and bound
+   in the canonical order, so that a request failing two ways is refused
+   for the same one) and names the import. The parity workload now reads
+   twelve malformed range requests after every command, and
+   `a_malformed_relation_request_is_refused_alike_on_both_adapters`
+   compares five. Compiled calls were never affected: the host checks
+   their arguments before either adapter sees them.
+
+**Left for the apps' port (L7)**, by design: the memory adapter's relation
+read scans the target for each selector it is given, which this decision
+allows, and no server-side cap bounds a window's or a relation's limit. The
+primitive is bounded by its argument; an app that passes a browser's limit
+through (`examples/relations/app.pw`'s `Following`) clamps it when ported.
+
 ## Amended 2026-11-16: an outbox row leaves by age alone
 
 The integrator's, under the owner's delegation of 2026-10-02: NEXT after L3,
@@ -433,4 +948,3 @@ one statement each, so that neither agrees with their ids. Two new mutants
 take the rows as they lie and the oldest by their time; each is killed at the
 test's assertion. ADR-0397 points here, as its decisions 3 and 6 still
 described the outbox L1 forgot.
-
