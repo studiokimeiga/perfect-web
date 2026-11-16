@@ -327,6 +327,99 @@ fn a_callback_another_browser_started_is_refused() {
     assert_eq!(s.identity.principals().signed_in(), 0);
 }
 
+/// **A request runs as its session cookie's session, whatever else it
+/// names** (NEXT after L3, item 2): signed in as Ada, a request whose
+/// `Referer` names a page of this origin with Mallory's session in its
+/// query, sent before its `Cookie` header as browsers order them, or which
+/// carries a cookie whose name ends in the session's, reads Ada's page; and
+/// one with no session cookie is a new session, not Mallory's. Until
+/// 2026-11-16 each of the three read Mallory's.
+#[test]
+fn a_request_runs_as_its_session_cookies_session_alone() {
+    let provider = Arc::new(TestProvider::default());
+    let s = feed_with(provider.clone());
+    let ada = signed_in(&s, &provider, "s-ada-came", "ada");
+    let mallory = signed_in(&s, &provider, "s-mallory-came", "mallory");
+    let home =
+        |headers: &str| exchanged(&s, &format!("GET / HTTP/1.1\r\nHost: t\r\n{headers}\r\n"));
+    for headers in [
+        format!("Referer: http://t/?pw-session={mallory}\r\nCookie: pw-session={ada}\r\n"),
+        format!("Cookie: xpw-session={mallory}; pw-session={ada}\r\n"),
+    ] {
+        let page = text(&home(&headers));
+        assert!(
+            page.contains("Signed in as Name of ada"),
+            "{headers}: {page}"
+        );
+        assert!(!page.contains("Name of mallory"), "{headers}: {page}");
+    }
+    let answer = home(&format!("Referer: http://t/?pw-session={mallory}\r\n"));
+    assert!(set_cookie(&answer, "pw-session").is_some(), "{answer}");
+    assert!(!text(&answer).contains("Name of mallory"), "{answer}");
+}
+
+/// A `__Host-` cookie as RFC 6265bis-22 §4.1.3.2 asks it be set, or a
+/// browser drops it: `Secure`, at `Path=/`, with no `Domain`.
+fn host_cookie(line: &str) {
+    assert!(line.contains("; Path=/;"), "{line}");
+    assert!(line.contains("; Secure"), "{line}");
+    assert!(!line.to_ascii_lowercase().contains("domain"), "{line}");
+}
+
+/// **A deployment whose cookies are `Secure` signs in through `__Host-`
+/// cookies alone** (ADR-0258, amended 2026-11-16; the session cookie's
+/// review, which found no test ran such a server): a first visit is given a
+/// `__Host-pw-session`, a sign-in's state a `__Host-pw-sign-in` at `/`; a
+/// callback whose state is in the plain cookie, which any origin of the site
+/// may set, is refused, and one in the `__Host-` cookie signs in, its
+/// session rotated into a `__Host-` cookie and its state cleared; the page
+/// read with that cookie is the reader's, and read with the plain name, no
+/// one's; signing out gives a `__Host-` session again.
+#[test]
+fn a_secure_deployment_signs_in_through_host_cookies_alone() {
+    let provider = Arc::new(TestProvider::default());
+    let s = feed_with(provider.clone());
+    s.identity.use_cookies(crate::identity::Cookies::of(true));
+    let first = exchanged(&s, "GET / HTTP/1.1\r\nHost: t\r\n\r\n");
+    let (came_with, line) = set_cookie(&first, "__Host-pw-session").expect("a fresh session");
+    host_cookie(&line);
+    assert!(set_cookie(&first, "pw-session").is_none(), "{first}");
+    let came = format!("__Host-pw-session={came_with}");
+    let started = get(&s, "/sign-in", &came);
+    let (state, line) = set_cookie(&started, "__Host-pw-sign-in").expect("the sign-in's cookie");
+    host_cookie(&line);
+    assert!(set_cookie(&started, "pw-sign-in").is_none(), "{started}");
+    let back = provider.authenticate(&location(&started), "ada", "Name of ada");
+    let callback = format!("/sign-in/callback?{back}");
+    let plain = get(&s, &callback, &format!("{came}; pw-sign-in={state}"));
+    assert!(plain.starts_with("HTTP/1.1 400"), "{plain}");
+    let answer = get(&s, &callback, &format!("{came}; __Host-pw-sign-in={state}"));
+    assert!(answer.starts_with("HTTP/1.1 303"), "{answer}");
+    let (session, line) = set_cookie(&answer, "__Host-pw-session").expect("a rotated session");
+    host_cookie(&line);
+    assert_ne!(session, came_with);
+    let (_, cleared) = set_cookie(&answer, "__Host-pw-sign-in").expect("the state cleared");
+    host_cookie(&cleared);
+    assert!(cleared.contains("Max-Age=0"), "{cleared}");
+    let page = text(&get(&s, "/", &format!("__Host-pw-session={session}")));
+    assert!(page.contains("Signed in as Name of ada"), "{page}");
+    let named_plain = get(&s, "/", &format!("pw-session={session}"));
+    assert!(!text(&named_plain).contains("Name of ada"), "{named_plain}");
+    assert!(
+        set_cookie(&named_plain, "__Host-pw-session").is_some(),
+        "{named_plain}"
+    );
+    let out = exchanged(
+        &s,
+        &format!(
+            "POST /sign-out HTTP/1.1\r\nHost: t\r\nCookie: __Host-pw-session={session}\r\n\
+             Sec-Fetch-Site: same-origin\r\ncontent-length: 0\r\n\r\n"
+        ),
+    );
+    let (_, line) = set_cookie(&out, "__Host-pw-session").expect("a new session at sign-out");
+    host_cookie(&line);
+}
+
 /// **An ID token is held to what was sent** (Core §3.1.3.7): its issuer
 /// exactly, this client in its audience, not expired, and this sign-in's
 /// nonce. Each forged, the sign-in is refused and no session opened.

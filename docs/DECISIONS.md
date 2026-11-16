@@ -2152,6 +2152,10 @@ deployment's (track `identity`, W1; merged by the integrator).
   Argon2id passwords, starts only in development on loopback. The feed's
   posts, replies and likes are their principal's, and its author may delete
   a post.
+- Amended 2026-11-16: a request's session is its one `Cookie` header
+  cookie of the session's name, nothing else of the request's (a `Referer`
+  had chosen it); and where cookies are `Secure`, the session's and the
+  sign-in's cookies are `__Host-` cookies at `Path=/`.
 [ADR-0259](DECISIONS/ADR-0259-a-map-or-set-from-outside-is-sorted-on-arrival.md):
 a map or set from outside is sorted on arrival (ruling 0057-c).
 - A query's map or set, or a host's answer, given out of order is sorted

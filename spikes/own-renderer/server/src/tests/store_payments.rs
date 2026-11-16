@@ -350,14 +350,20 @@ fn a_session_opened_on_a_readers_behalf_is_no_browsers_to_present() {
             s.identity
                 .principals()
                 .on_behalf("payments", "payment-pi_dev000001", &s.owner("a"));
-        let (taken, fresh) = session_of(&format!("Cookie: pw-session={}\r\n", behalf.session()));
+        let (taken, fresh) = session_of(
+            &format!("Cookie: pw-session={}\r\n", behalf.session()),
+            crate::identity::Cookies::default(),
+        );
         assert!(fresh, "a platform session cannot be presented by a browser");
         assert!(
             taken != behalf.session(),
             "the browser receives a distinct session"
         );
         assert_eq!(
-            session_of("Cookie: pw-session=a\r\n"),
+            session_of(
+                "Cookie: pw-session=a\r\n",
+                crate::identity::Cookies::default()
+            ),
             ("a".to_string(), false)
         );
         // Through the server: the order's page, asked with that cookie, is
