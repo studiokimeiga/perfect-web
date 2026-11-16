@@ -554,6 +554,97 @@ fn relation_result_work_is_bounded_across_growing_membership_and_target_cardinal
     }
 }
 
+/// **An owned `public table`'s relation is read by anyone, through an index
+/// its owner does not lead** (the L4 review of 2026-11-16): the compiler
+/// reads a public table by any key or index (L2), and until the review the
+/// host refused the manifest it made ("has no declared source
+/// selector/match lookup"). Lane 7 holds two owners' picks.
+#[test]
+fn a_public_owned_membership_is_read_through_any_index_by_anyone() {
+    let program = relation_public_owned_program();
+    let Some(url) = common::database() else {
+        return;
+    };
+    let scratch = common::Scratch::new(&url, "public_owned_relation");
+    let tables =
+        PgTables::open(&url, scratch.schema(), program.tables.clone()).assert_ok("PostgreSQL");
+    tables
+        .transaction(|tx| {
+            for row in relation_roots() {
+                tx.write("pw:tables/roots#insert", &[row])?;
+            }
+            for row in relation_public_owned_picks() {
+                tx.write("pw:tables/picks#insert", &[row])?;
+            }
+            Ok(())
+        })
+        .assert_ok("public owned picks");
+    assert_eq!(
+        q(
+            &program,
+            &tables,
+            "LaneLast",
+            &Caller::Nobody,
+            &[Val::S64(7), Val::S64(2)]
+        ),
+        Ok(vec![Val::List(vec![
+            relation_root_value(4),
+            relation_root_value(3)
+        ])])
+    );
+    assert_eq!(
+        q(
+            &program,
+            &tables,
+            "LaneLast",
+            &Caller::Nobody,
+            &[Val::S64(8), Val::S64(2)]
+        ),
+        Ok(vec![Val::List(vec![
+            relation_root_value(3),
+            relation_root_value(1)
+        ])])
+    );
+}
+
+/// **A malformed relation request is refused alike, word for word**, on
+/// both adapters, the import it read named (the L4 review of 2026-11-16:
+/// PostgreSQL named "relation window"), called on each directly.
+#[test]
+fn a_malformed_relation_request_is_refused_alike_on_both_adapters() {
+    let program = relation_program();
+    let Some(url) = common::database() else {
+        return;
+    };
+    let scratch = common::Scratch::new(&url, "relation_refusals");
+    let on_postgres =
+        PgTables::open(&url, scratch.schema(), program.tables.clone()).assert_ok("PostgreSQL");
+    let on_memory = pw_table_memory::MemoryTables::new(program.tables.clone()).assert_ok("memory");
+    let import = "pw:tables/links#first-posts-by-reader-topic";
+    for args in [
+        vec![json!(ALICE), json!("ten"), json!(2)],
+        vec![json!(ALICE), json!(1.5), json!(2)],
+        vec![json!(ALICE), json!(2)],
+        vec![json!(ALICE), json!(10), json!("two")],
+        vec![],
+    ] {
+        let memory = on_memory.read(import, &args).map_err(|e| match e {
+            pw_table_memory::Error::Input(why) => why,
+            other => format!("not an input refusal: {other:?}"),
+        });
+        let postgres = on_postgres.read(import, &args).map_err(|e| match e {
+            pw_table_postgres::Error::Input(why) => why,
+            other => format!("not an input refusal: {other:?}"),
+        });
+        assert!(memory.is_err(), "{args:?}: {memory:?}");
+        assert_eq!(memory, postgres, "{args:?}");
+    }
+    let named = on_postgres
+        .read(import, &[json!(ALICE), json!("ten"), json!(2)])
+        .expect_err("a String topic");
+    assert!(format!("{named:?}").contains(import), "{named:?}");
+}
+
 #[test]
 fn public_relations_use_scalar_bool_group_keys_and_allow_anonymous_callers() {
     let program = relation_public_program();

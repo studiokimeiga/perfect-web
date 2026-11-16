@@ -260,6 +260,31 @@ fn every_read() -> Vec<(String, Vec<Value>)> {
         }
     }
     reads.extend(ranges);
+    // Malformed range requests, refused alike, word for word (the L4 review
+    // of 2026-11-16): the wrong number of values, a value no selector holds
+    // (a float, a null, a list), a field of the wrong type, a set given no
+    // array, a request no record, of other fields or lacking one, and two
+    // requests failing apart, refused for the one first in canonical order.
+    for args in [
+        vec![json!("a")],
+        vec![json!("a"), json!(0), json!(1)],
+        vec![json!("a"), json!(1.5)],
+        vec![json!("a"), Value::Null],
+        vec![json!(7), json!(0)],
+        vec![json!("a"), json!("late")],
+    ] {
+        reads.push((thing("count-after-by-owner"), args));
+    }
+    for args in [
+        vec![json!({"owner": "a", "after": 0})],
+        vec![json!([1])],
+        vec![json!([{"owner": "a", "after": 0, "extra": 1}])],
+        vec![json!([{"owner": "a", "later": 0}])],
+        vec![json!([{"owner": [1], "after": 0}])],
+        vec![json!([{"owner": "a", "after": "late"}, {"owner": 7, "after": 0}])],
+    ] {
+        reads.push((thing("count-after-by-owner-many"), args));
+    }
     reads.extend(windows);
     reads.extend(counts);
     reads

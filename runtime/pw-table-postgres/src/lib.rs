@@ -1027,6 +1027,7 @@ fn read_related(
     conn: &mut Conn,
     source: &shape::TableShape,
     function: &shape::FunctionShape,
+    import: &str,
     sql: &str,
     args: &[Value],
 ) -> Result<Value, Error> {
@@ -1038,7 +1039,7 @@ fn read_related(
     let bound = bound
         .as_i64()
         .ok_or_else(|| Error::Input("a relation limit must be an Int".into()))?;
-    let keys = typed_selections(source, function, "relation window", selectors)?
+    let keys = typed_selections(source, function, import, selectors)?
         .into_iter()
         .collect::<Vec<_>>();
     let relation = function
@@ -1200,7 +1201,7 @@ fn read(inner: &Inner, conn: &mut Conn, import: &str, args: &[Value]) -> Result<
         .get(import)
         .ok_or_else(|| Error::Input(format!("undeclared table operation {import}")))?;
     if function.primitive.related() {
-        return read_related(inner, conn, table, function, sql, args);
+        return read_related(inner, conn, table, function, import, sql, args);
     }
     if function.primitive.range() {
         return read_ranges(inner, conn, table, function, sql, args);

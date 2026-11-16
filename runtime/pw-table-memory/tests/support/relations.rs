@@ -177,6 +177,67 @@ fn relation_public_group(topic:bool,ids:&[i64])->Val {
 }
 
 
+/// **An owned `public table` membership** (the L4 review of 2026-11-16):
+/// read by anyone, by any key or index (L2), so its relation reads through
+/// an index its owner does not lead; the compiler made the reads, and the
+/// host refused the manifest.
+fn relation_public_owned_program() -> Program {
+    let roots=r#"module Roots
+import capability.{ UserId }
+type Root = Root { id: Int, author: UserId, stamp: Int, text: String }
+table Roots
+    row Root
+    key id
+    order stamp
+    index by_author on author
+"#;
+    let picks=r#"module Picks
+import Roots
+import capability.{ UserId }
+type Pick = Pick { owner: UserId, id: Int, lane: Int, author: UserId }
+public table Picks
+    row Pick
+    key owner, id
+    order id
+    index by_lane_author on lane, author
+    owned by owner
+    window posts from Roots row Roots.Root on author to author
+"#;
+    let source=r#"module PickData
+import Picks
+import Roots
+source PickData
+    holds Picks, Roots
+    transactions serializable
+    reads strong
+    changes none
+    sets one_call
+"#;
+    let app=r#"module owned.app
+import Roots
+import Picks
+public query LaneLast(lane: Int, n: Int) -> List<Roots.Root>
+    freshness 0.seconds
+    consistency snapshot
+    cache shared
+    key lane,n
+    concurrency one_per_key
+    on_key_change cancel
+    timeout 2.seconds
+{
+    Picks.last_posts_by_lane(lane,n)
+}
+"#;
+    built_from(&[("Roots.pw",roots),("Picks.pw",picks),("PickData.pw",source),("app.pw",app)])
+}
+/// Two owners' picks in lane 7 (Bob's posts by Alice, Carol's by Carol),
+/// one in lane 8.
+fn relation_public_owned_picks()->Vec<serde_json::Value> {
+    [(ALICE,1,7,BOB),(CAROL,2,7,CAROL),(BOB,3,8,BOB)].into_iter()
+        .map(|(owner,id,lane,author)|json!({"owner":owner,"id":id,"lane":lane,"author":author})).collect()
+}
+
+
 fn private_match_program() -> Program {
     built_from(&[
         ("Roots.pw",r#"module Roots

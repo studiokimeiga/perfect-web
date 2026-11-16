@@ -400,18 +400,33 @@ fn the_range_mark_name_avoids_every_existing_row_field() {
         "draft: String, after: String, after_mark: Int }",
     );
     let program = units(&source);
-    let build = pw_core::build::build(&program).unwrap();
+    // Each failure an assertion's, which the strict mutation validator reads
+    // (the L4 verify: an `unwrap` here made a kill INVALID).
+    let build = pw_core::build::build(&program);
+    assert!(build.is_ok(), "the range build: {:?}", build.as_ref().err());
+    let Ok(build) = build else { return };
     let scalar = build.tables.tables[0]
         .functions
         .iter()
-        .find(|f| f.name == "count_after_by_owner")
-        .unwrap();
-    assert_eq!(scalar.params.last().unwrap().name, "after_mark_mark");
-    let hir = &program.iter().find(|u| u.path == "Ranges.pw").unwrap().hir;
-    let record = hir
-        .all_decls()
-        .find(|(_, d)| d.name == "RangesAfter")
-        .unwrap()
-        .1;
-    assert_eq!(record.fields.as_ref().unwrap()[0].name, "after_mark_mark");
+        .find(|f| f.name == "count_after_by_owner");
+    assert!(scalar.is_some(), "count_after_by_owner is emitted");
+    let Some(scalar) = scalar else { return };
+    assert_eq!(
+        scalar.params.last().map(|p| p.name.as_str()),
+        Some("after_mark_mark")
+    );
+    let unit = program.iter().find(|u| u.path == "Ranges.pw");
+    assert!(unit.is_some(), "Ranges.pw is a unit");
+    let Some(unit) = unit else { return };
+    let record = unit.hir.all_decls().find(|(_, d)| d.name == "RangesAfter");
+    assert!(record.is_some(), "RangesAfter is declared");
+    let Some((_, record)) = record else { return };
+    assert_eq!(
+        record
+            .fields
+            .as_ref()
+            .and_then(|f| f.first())
+            .map(|f| f.name.as_str()),
+        Some("after_mark_mark")
+    );
 }

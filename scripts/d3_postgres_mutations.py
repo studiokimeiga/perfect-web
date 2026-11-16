@@ -225,8 +225,23 @@ MUTANTS = [
      "        && rows.len() as u64 > bound\n",
      "        && rows.len() as u64 > bound + 1\n"),
     ("a selector is not held to its declared type", SHAPE,
+     "            let column = &table.columns[field];\n"
      "            if !validates(&atom.value(), &column.stored) {\n",
+     "            let column = &table.columns[field];\n"
      "            if false && !validates(&atom.value(), &column.stored) {\n"),
+    # A range request is refused as the memory adapter refuses it, word for
+    # word (the L4 review of 2026-11-16).
+    ("a range request is not held to its fields' types", SHAPE,
+     "        for (column, atom) in columns.iter().zip(key) {\n"
+     "            if !validates(&atom.value(), &column.stored) {\n",
+     "        for (column, atom) in columns.iter().zip(key) {\n"
+     "            if false && !validates(&atom.value(), &column.stored) {\n"),
+    ("a set request that is no record is refused in other words", SHAPE,
+     '                .ok_or_else(|| Error::Input("composite set selectors are records".into()))?;\n',
+     '                .ok_or_else(|| Error::Input("range request is a record".into()))?;\n'),
+    ("a relation's refusal names no import", LIB,
+     "    let keys = typed_selections(source, function, import, selectors)?\n",
+     '    let keys = typed_selections(source, function, "relation window", selectors)?\n'),
     ("a written row is not held to its table", SHAPE,
      "        if !validates(v, &column.stored) {\n",
      "        if false && !validates(v, &column.stored) {\n"),
