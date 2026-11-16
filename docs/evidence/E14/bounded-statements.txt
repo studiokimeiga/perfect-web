@@ -1,8 +1,8 @@
 NEXT 4b - a read is a bounded number of statements on PostgreSQL
 
 produced by: just e14-bounded-statements
-commit: 7b8fb7cc8cbc9601e49df15c750d1eeaf6cabdd2
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43809526375 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 83ad1ab1f92c0bc4377dfc72df28643828771bb5
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43929087203 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 postgres: 18.6 (Debian 18.6-1.pgdg13+2)
 
@@ -90,7 +90,7 @@ test tests::bounded_statements::sweep_cleanup_and_payment_commit_share_the_same_
 statements per page and command:
 test tests::bounded_statements::each_page_and_command_is_a_bounded_number_of_statements ... ok
 test tests::bounded_statements::placing_and_settling_where_payments_are_taken_is_bounded ... ok
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 1121 filtered out; finished in 15.27s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 1217 filtered out; finished in 15.81s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
 
 == mutation controls (scripts/bounded_statements_mutations.py)

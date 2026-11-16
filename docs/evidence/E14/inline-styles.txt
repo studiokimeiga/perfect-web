@@ -1,65 +1,65 @@
 a page's stylesheets, small together, are part of its document
 
 produced by: just e14-inline-styles
-commit: 7b8fb7cc8cbc9601e49df15c750d1eeaf6cabdd2
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43809526375 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 83ad1ab1f92c0bc4377dfc72df28643828771bb5
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43929087203 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
 
 == what the packaging says (optimize-assets.test.mjs)
 
-✔ the production build minifies and compresses only public client assets (37.088195ms)
-✔ a production build compresses its compiled modules beside themselves, unchanged (15.347622ms)
-✔ a production build says its pages warm what their presses need (5.068159ms)
-✔ a production build puts each page's code in one module, and leaves each module as it was (23.219287ms)
-✔ a production build's packaging writes each page's module (10.761088ms)
-✔ what a page's handlers write alike is in its module once (10.181749ms)
-✔ a helper is shared only with each name of a prelude it reads (0.42678ms)
-✔ a paragraph fewer than two handlers import is each one's (0.235863ms)
-✔ a paragraph that declares two names is shared whole (0.282456ms)
-✔ what is not one helper written alike stays each handler's (0.340358ms)
-✔ a page whose handler has no module is a build that did not finish (1.712716ms)
-✔ a build with no pages bundles nothing (0.457639ms)
-✔ a production build writes a runtime for a page that talks to no server (5.58472ms)
-✔ a build with no runtime says nothing of one (1.729678ms)
-✔ the runtime of a page that talks to no server holds none of a server's code (334.633266ms)
-✔ the runtime of a page with a server holds none of what only a page with no server runs (156.885642ms)
-✔ a production build holds none of what the page reports about itself (163.459651ms)
-✔ a build for a suite that reads the page's reports keeps them (167.876087ms)
-✔ each report is a statement labeled REPORT, and does nothing but report (16.137997ms)
-✔ a production build minifies its stylesheets, and keeps what they draw (5.598703ms)
-✔ a graph any file of the build writes counts, and none its packaging wrote (444.974256ms)
-✔ the device's runtime holds what its pages use, and none of what they do not (1458.077067ms)
-✔ a list whose rows change shape has no plan (286.316799ms)
-✔ an autofocus a value decides counts (140.678137ms)
-✔ what a block or a conditional's arm holds counts (434.292335ms)
-✔ a page a reader decides, or one with a layout, keeps out of what is read (426.905397ms)
-✔ a view a page uses is read for what it uses (142.924009ms)
-✔ a build whose pages cannot be read keeps everything (156.065551ms)
-✔ a page alone in its build has its code and the device's runtime in one module (348.731716ms)
-✔ a build of two pages has no module alone: its pages share one runtime (149.482779ms)
-✔ a page a reader decides has no module alone: it is no page of the device's (151.971431ms)
-✔ a page with no code of its own has no module alone (141.65673ms)
-✔ a page's own lists are those its blocks keep whose rows a plan makes (1.933027ms)
-✔ what a list's own code cannot read as the general code does is refused, by what it is (0.444901ms)
-✔ a list's own code says each name of the page its rows read, and none where a handler captures the page (0.573118ms)
-✔ the build reads a row's markup as it is written, element inside element (0.197747ms)
-✔ the walk written to a row's holes reaches the node at each path (0.417333ms)
-✔ the runtime holds one place for a page's own lists, and once what the packaging writes otherwise there (2.654089ms)
-✔ a build of the large list keeps its rows by its own code, and holds none of the general code that would (178.080382ms)
+✔ the production build minifies and compresses only public client assets (37.229654ms)
+✔ a production build compresses its compiled modules beside themselves, unchanged (16.647298ms)
+✔ a production build says its pages warm what their presses need (4.663366ms)
+✔ a production build puts each page's code in one module, and leaves each module as it was (23.823743ms)
+✔ a production build's packaging writes each page's module (11.423469ms)
+✔ what a page's handlers write alike is in its module once (9.961084ms)
+✔ a helper is shared only with each name of a prelude it reads (0.467772ms)
+✔ a paragraph fewer than two handlers import is each one's (0.222051ms)
+✔ a paragraph that declares two names is shared whole (0.306026ms)
+✔ what is not one helper written alike stays each handler's (0.358857ms)
+✔ a page whose handler has no module is a build that did not finish (2.016681ms)
+✔ a build with no pages bundles nothing (0.609398ms)
+✔ a production build writes a runtime for a page that talks to no server (4.817916ms)
+✔ a build with no runtime says nothing of one (2.873406ms)
+✔ the runtime of a page that talks to no server holds none of a server's code (337.989209ms)
+✔ the runtime of a page with a server holds none of what only a page with no server runs (162.458493ms)
+✔ a production build holds none of what the page reports about itself (171.088018ms)
+✔ a build for a suite that reads the page's reports keeps them (174.635101ms)
+✔ each report is a statement labeled REPORT, and does nothing but report (15.489637ms)
+✔ a production build minifies its stylesheets, and keeps what they draw (4.725752ms)
+✔ a graph any file of the build writes counts, and none its packaging wrote (460.891083ms)
+✔ the device's runtime holds what its pages use, and none of what they do not (1500.759379ms)
+✔ a list whose rows change shape has no plan (299.595765ms)
+✔ an autofocus a value decides counts (148.063781ms)
+✔ what a block or a conditional's arm holds counts (450.035155ms)
+✔ a page a reader decides, or one with a layout, keeps out of what is read (443.121073ms)
+✔ a view a page uses is read for what it uses (149.009881ms)
+✔ a build whose pages cannot be read keeps everything (162.494684ms)
+✔ a page alone in its build has its code and the device's runtime in one module (364.413667ms)
+✔ a build of two pages has no module alone: its pages share one runtime (153.671904ms)
+✔ a page a reader decides has no module alone: it is no page of the device's (159.696891ms)
+✔ a page with no code of its own has no module alone (147.210959ms)
+✔ a page's own lists are those its blocks keep whose rows a plan makes (2.108121ms)
+✔ what a list's own code cannot read as the general code does is refused, by what it is (0.450464ms)
+✔ a list's own code says each name of the page its rows read, and none where a handler captures the page (0.561434ms)
+✔ the build reads a row's markup as it is written, element inside element (0.185438ms)
+✔ the walk written to a row's holes reaches the node at each path (0.463605ms)
+✔ the runtime holds one place for a page's own lists, and once what the packaging writes otherwise there (3.135519ms)
+✔ a build of the large list keeps its rows by its own code, and holds none of the general code that would (185.260119ms)
 pw packaging: list 31 of p keeps its rows' comments: it holds text beside its element
 pw packaging: list 31 of p is kept by the general code: it is inside a block that binds n
-✔ a build every list of which is its page's own places each by what its own code found, and holds no general placing (530.264659ms)
-✔ a build none of whose lists is its own code's holds none of that code (318.487595ms)
-✔ a runtime that keeps no list by a page's own code holds none of the lines it has for one (157.496645ms)
-✔ a build none of whose lists is its own code's is packed from the runtime as it was before there was any (484.504864ms)
-✔ a list the packaging does not write is said, by its page and part (153.630333ms)
-✔ a planned row is its own anchor where it is one element a parser keeps whole, and is refused by name where not (0.462112ms)
-✔ the packaging says a planned row of one element is its own anchor in its build's IR, and each other is said (186.442878ms)
-✔ a build whose presses are not heard at its documents says no row is its own anchor, and holds none of the lines for one (476.736587ms)
-✔ a page its server renders, in a build whose other page says its row its own anchor, says none (168.146118ms)
-✔ the runtime marks each line only a row its own anchor needs (2.857376ms)
+✔ a build every list of which is its page's own places each by what its own code found, and holds no general placing (544.837087ms)
+✔ a build none of whose lists is its own code's holds none of that code (327.12761ms)
+✔ a runtime that keeps no list by a page's own code holds none of the lines it has for one (162.666087ms)
+✔ a build none of whose lists is its own code's is packed from the runtime as it was before there was any (508.854972ms)
+✔ a list the packaging does not write is said, by its page and part (160.358237ms)
+✔ a planned row is its own anchor where it is one element a parser keeps whole, and is refused by name where not (0.523339ms)
+✔ the packaging says a planned row of one element is its own anchor in its build's IR, and each other is said (191.700247ms)
+✔ a build whose presses are not heard at its documents says no row is its own anchor, and holds none of the lines for one (495.319892ms)
+✔ a page its server renders, in a build whose other page says its row its own anchor, says none (175.027134ms)
+✔ the runtime marks each line only a row its own anchor needs (2.81399ms)
 ℹ tests 49
 ℹ suites 0
 ℹ pass 49
@@ -67,32 +67,32 @@ pw packaging: list 31 of p is kept by the general code: it is inside a block tha
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 7963.539885
+ℹ duration_ms 8245.585765
 
 == what the host does (tests::inline_styles::)
 
 test tests::inline_styles::a_build_that_does_not_say_so_keeps_its_links ... ok
-test tests::inline_styles::a_link_that_says_more_than_its_address_keeps_them_all ... ok
 test tests::inline_styles::a_link_in_the_head_keeps_its_place_among_the_heads_styles ... ok
+test tests::inline_styles::a_link_that_says_more_than_its_address_keeps_them_all ... ok
 test tests::inline_styles::a_link_written_another_way_keeps_them_all ... ok
 test tests::inline_styles::a_page_with_no_stylesheet_is_as_it_was ... ok
 test tests::inline_styles::a_pages_stylesheets_small_together_are_in_its_head_in_their_order ... ok
-test tests::inline_styles::a_style_of_the_pages_own_after_them_keeps_its_place ... ok
 test tests::inline_styles::a_style_between_two_links_keeps_them_all ... ok
+test tests::inline_styles::a_style_of_the_pages_own_after_them_keeps_its_place ... ok
 test tests::inline_styles::a_style_of_the_pages_own_keeps_them_all_where_the_order_would_change ... ok
 test tests::inline_styles::a_stylesheet_the_build_does_not_hold_keeps_them_all ... ok
 test tests::inline_styles::a_stylesheet_with_nothing_said_of_how_it_is_sent_stays_a_link ... ok
 test tests::inline_styles::an_address_that_means_the_same_from_the_document_can_move ... ok
 test tests::inline_styles::stylesheets_exactly_at_the_bound_are_inlined ... ok
-test tests::inline_styles::stylesheets_too_large_together_stay_links ... ok
 test tests::inline_styles::one_stylesheet_that_cannot_move_keeps_them_all ... ok
+test tests::inline_styles::stylesheets_too_large_together_stay_links ... ok
 test tests::inline_styles::a_page_rendered_for_each_reader_keeps_its_links ... ok
 test tests::inline_styles::a_production_page_holds_its_stylesheets_and_its_policy_allows_them ... ok
-test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 1114 filtered out; finished in 0.41s
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 1210 filtered out; finished in 0.40s
 
 == a production build, in three engines (e2e/todomvc.spec.mjs, e2e/device-runtime.spec.mjs)
 
-  198 passed (1.8m)
+  198 passed (1.4m)
 
 == mutation controls (scripts/inline_styles_mutations.py)
 

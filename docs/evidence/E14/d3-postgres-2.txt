@@ -1,0 +1,53 @@
+D3 - any program's declared tables on PostgreSQL: its mutation controls, part 2 of 2, the uploads'
+
+produced by: just e14-d3-postgres-2
+commit: 83ad1ab1f92c0bc4377dfc72df28643828771bb5
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43929087203 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+postgres: 18.6 (Debian 18.6-1.pgdg13+2)
+
+== mutation controls, part 2 of 2 (scripts/d3_postgres_mutations.py --part 2/2; part 1 is e14-d3-postgres's)
+
+part 2 of 2: mutants 97 to 135 of 135
+baseline: 171 passed, 0 failed
+upload lifecycle keeps without verifying exact receipt after immediate hooks: KILLED (6 of 171 tests fail)
+upload lifecycle commits without verifying exact receipt after deferred hooks: KILLED (1 of 171 tests fail)
+upload lifecycle acknowledges a reinserted captured cleanup job: KILLED (1 of 171 tests fail)
+upload lifecycle keeps the lock transactions old snapshot for the command: KILLED (36 of 171 tests fail)
+upload lifecycle migrates while another command owns the namespace: KILLED (1 of 171 tests fail)
+upload lifecycle commits claims without actual durable receipts: KILLED (1 of 171 tests fail)
+upload lifecycle forgets receipt requirements for held or discarded claims: KILLED (1 of 171 tests fail)
+upload lifecycle keeps before checking actual row asset fields: KILLED (1 of 171 tests fail)
+upload lifecycle keeps before checking actual registry writes: KILLED (3 of 171 tests fail)
+upload lifecycle trusts prepare across receipt hooks: KILLED (4 of 171 tests fail)
+upload lifecycle verifies before deferred receipt hooks finish: KILLED (2 of 171 tests fail)
+upload lifecycle omits original touched reference uses: KILLED (12 of 171 tests fail)
+upload lifecycle omits final touched reference uses: KILLED (23 of 171 tests fail)
+upload lifecycle commits fresh referenced rows without keeping bytes: KILLED (17 of 171 tests fail)
+upload lifecycle deletes reference counts of unrelated generations: KILLED (2 of 171 tests fail)
+upload lifecycle fails to reuse the current live generation: KILLED (3 of 171 tests fail)
+upload lifecycle accepts an already reserved generation proposal: KILLED (1 of 171 tests fail)
+upload lifecycle serves another declarations current bytes: KILLED (1 of 171 tests fail)
+upload lifecycle processes cleanup beyond the requested bound: KILLED (5 of 171 tests fail)
+upload lifecycle acknowledges cleanup without completion verification: KILLED (2 of 171 tests fail)
+upload lifecycle forgets physical captured payload deletion: KILLED (8 of 171 tests fail)
+upload lifecycle refuses an applied command when cleanup fails: KILLED (6 of 171 tests fail)
+upload lifecycle fetches non asset payload during metadata verification: KILLED (34 of 171 tests fail)
+upload lifecycle checks registry cardinality but ignores exact state and counts: KILLED (4 of 171 tests fail)
+upload lifecycle releases namespace before physical collection: KILLED (1 of 171 tests fail)
+upload enrollment verifies metadata before deferred schema hooks finish: KILLED (1 of 171 tests fail)
+upload enrollment erases asset history after metadata loss: KILLED (2 of 171 tests fail)
+upload enrollment accepts rewritten persisted metadata after schema recording: KILLED (7 of 171 tests fail)
+upload enrollment skips final metadata verification for unbound manifests: KILLED (1 of 171 tests fail)
+upload enrollment accepts changed immutable base declarations: KILLED (1 of 171 tests fail)
+upload enrollment accepts changed immutable field associations: KILLED (1 of 171 tests fail)
+upload enrollment enrolls structural references on existing tables: KILLED (2 of 171 tests fail)
+upload enrollment does not verify existing namespace markers: KILLED (1 of 171 tests fail)
+upload enrollment commits fresh namespace rows without storage enrollment: KILLED (47 of 171 tests fail)
+upload enrollment accepts suppressed metadata inserts: KILLED (1 of 171 tests fail)
+upload enrollment allows collisions with asset platform relation names: KILLED (1 of 171 tests fail)
+upload lifecycle adopts a live generation whose descriptor a publication changes: KILLED (1 of 171 tests fail)
+upload lifecycle holds no command to its storage namespace marker: KILLED (1 of 171 tests fail)
+upload lifecycle skips namespace exclusion before the host turn: KILLED (5 of 171 tests fail)
+39 of 39 mutants killed
+memory bound: no process was stopped
