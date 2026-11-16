@@ -49,13 +49,15 @@ lifecycle and owned Clock actions. What stays open, in order:
    a host retains what it delivers. Either a caller that needs a row gone
    at once is named, with a test of it, or it goes with its test (platform
    0004 moves the watermark for any deletion).
-10. **`cargo test` on a many-core machine exhausts a default PostgreSQL**
-    (L3's recipes): at 32 test threads, second host's tests fail
-    `53300: sorry, too many clients already` against PostgreSQL's default
-    100 connections; CI's four cores hide it. Each test host's pool, or
-    the tests' parallelism on PostgreSQL, bounded so that the server's
-    tests pass on any machine against a default database, with a test
-    that fails without the bound.
+10. **`cargo test` on a many-core machine exhausts a default PostgreSQL**:
+    done (2026-11-16). Reproduced at 32 test threads (7 of the feed's, the
+    store's and second-host's 65 tests failed `53300`); a test takes a place
+    when it first opens a layer on the database and gives it back as its
+    thread ends, as many places as the database serves at twelve
+    connections a test (`tests::pg_places`, the budget in ASSUMPTIONS). The
+    server's 1,120 tests pass at the machine's twelve threads on all three
+    databases, and `tests_beyond_the_databases_connections_wait_for_a_place`
+    fails without the places.
 11. **L2's items 2 and 4**, below: one count of a transaction's
     boundaries, and what ADR-0395 leaves.
 

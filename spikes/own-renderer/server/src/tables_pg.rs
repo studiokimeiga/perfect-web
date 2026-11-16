@@ -141,6 +141,8 @@ impl TablesPg {
         contracts: &[ComponentContract],
         database: &Database,
     ) -> Result<TablesPg, String> {
+        #[cfg(test)]
+        crate::tests::pg_places::hold(&database.url);
         tables::servable(build, contracts)?;
         let path = build.join("tables.json");
         let text =

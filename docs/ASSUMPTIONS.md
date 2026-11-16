@@ -13,6 +13,19 @@ Status values: `open` · `validated` · `invalidated` · `superseded`
 
 ---
 
+## A server test holds at most twelve PostgreSQL connections, 2026-11-16
+
+**Status:** `open`. `tests::pg_places` (NEXT after L3, item 10) admits as
+many of the server's tests at once as the database serves at twelve
+connections each (`BUDGET`), so that `cargo test` at one thread per core
+runs against a default database (100 connections). Measured: nine at most,
+one test at a time, over the feed's, the store's, second-host's and the
+tables' tests. A test that opens more hosts or larger pools than these could
+exceed it unseen by the regression test
+(`tests_beyond_the_databases_connections_wait_for_a_place`): a `53300` in a
+run at many threads is the sign. Revalidate when a test opens a third host
+or a pool's bound grows.
+
 ## Renderer lifecycle test loader, 2026-10-29
 
 **Status:** `open`. The test-only held-import ordering seam uses

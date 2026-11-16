@@ -965,6 +965,8 @@ impl FeedPg {
         isolation: Isolation,
         seats: RenderSeats,
     ) -> Result<FeedPg, String> {
+        #[cfg(test)]
+        crate::tests::pg_places::hold(url);
         let pool = Arc::new(Pool {
             url: url.to_string(),
             schema: schema.map(str::to_string),

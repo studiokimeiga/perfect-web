@@ -19109,6 +19109,8 @@ public query Store(",
     // TRACK SEAM (tables): a program's declared tables served durably from
     // PostgreSQL, the suite over that layer too (track `durable-tables`).
     mod tables_pg;
+    // NEXT after L3, item 10: how many tests hold the database at once.
+    pub(crate) mod pg_places;
 
     // The canonical protected-app migration: generic authority seams.
     mod protected_migration;
