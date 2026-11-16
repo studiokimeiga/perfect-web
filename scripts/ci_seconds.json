@@ -1,7 +1,7 @@
 {
   "_lower_bounds": {
     "e14-d3-postgres": "projected 11870 s: part 1 of 2 (96 mutants and the baseline), never run alone: L5a's verify 43860567064 ran the whole script, 132 mutants and its baseline, in 16,275 s, 122 s a run, on a runner that took its shard's other recipes 1.6 to 2.2 times L4's",
-    "e14-d3-postgres-2": "projected 4650 s: part 2 of 2 (37 mutants and the baseline), never run alone: 122 s a run, as 43860567064 ran the whole"
+    "e14-d3-postgres-2": "projected 4895 s: part 2 of 2 (39 mutants and the baseline), never run alone: 122 s a run, as 43860567064 ran the whole"
   },
   "e10-affine": 1749,
   "e10-affine-bindings": 60,
@@ -140,7 +140,7 @@
   "e14-cross-session": 191,
   "e14-d2-writes": 4196,
   "e14-d3-postgres": 11870,
-  "e14-d3-postgres-2": 4650,
+  "e14-d3-postgres-2": 4895,
   "e14-data-path": 3676,
   "e14-data-sources": 212,
   "e14-dealt-by-time": 2332,

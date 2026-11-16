@@ -36,10 +36,11 @@ owner. What stays open, in order:
    there (ADR-0440, "L5a reviewed"). Next: master merged, its full verify,
    the PR.
 
-   Left from the reviews, each low:
-   - mutants for three PostgreSQL rules, each needing a fixture of its
-     own: the descriptor's immutability in `propose_asset`, `persist`'s
-     `ON CONFLICT` guard, and `lock_lifetime`'s marker check;
+   Left from the reviews, each low (the first of L5a's, mutants for three
+   PostgreSQL rules, done before the full verify: `propose_asset`'s
+   descriptor immutability and `lock_lifetime`'s marker check each a test
+   and a mutant, in `e14-d3-postgres-2`; `persist`'s `ON CONFLICT` guard
+   no command reaches, as ADR-0440's L5 landing says):
    - upload refusals with codes of their own, not PW5601's invariant, and
      corpus cases for each upload and asset rule;
    - the bare `is_err()` refusals in the asset tests held to their reasons;

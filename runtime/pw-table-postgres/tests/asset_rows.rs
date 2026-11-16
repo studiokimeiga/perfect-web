@@ -1881,3 +1881,60 @@ fn raw_asset_interaction_waits_on_namespace_before_query_with_one_connection_and
             .assert_ok("inspection released namespace and original connection"),
     );
 }
+
+/// **A publication of a live hash keeps its descriptor** (L5a's review,
+/// finding L4): the same bytes proposed again under another descriptor, here
+/// another width, are refused, not adopted as the live generation's, whose
+/// row, count and bytes stay as they were.
+#[test]
+fn a_publication_of_a_live_hash_under_another_descriptor_is_refused() {
+    let Some(url) = common::database() else {
+        return;
+    };
+    let s = common::Scratch::new(&url, "asset_rows");
+    let store = Arc::new(ByteStore::default());
+    let db = open(&s, &store);
+    let live = seed(&db);
+    let mut other = candidate('c');
+    other.reference.width = live.width + 1;
+    let mut c = db.begin().assert_ok("a second command");
+    let refused = c
+        .propose_asset("PostImage", other, Arc::from(b"abc".as_slice()))
+        .err()
+        .map(|e| format!("{e:?}"));
+    assert!(
+        refused
+            .as_deref()
+            .is_some_and(|e| e.contains("publication changes an immutable descriptor")),
+        "{refused:?}"
+    );
+    drop(c);
+    assert_eq!(
+        s.texts("SELECT generation || ':' || width::text FROM pw_asset_generations"),
+        [format!("{}:{}", live.generation, live.width)]
+    );
+    assert_eq!(store.keeps.load(Ordering::SeqCst), 1);
+}
+
+/// **Each command holds its namespace to the storage's marker** (L5a's
+/// review, finding L4): once the blob root's marker is gone (another root
+/// swapped in, a hand that removed it), the next command is refused before
+/// it takes its turn, and says why.
+#[test]
+fn a_command_is_refused_once_its_storage_namespace_marker_is_gone() {
+    let Some(url) = common::database() else {
+        return;
+    };
+    let s = common::Scratch::new(&url, "asset_rows");
+    let store = Arc::new(ByteStore::default());
+    let db = open(&s, &store);
+    seed(&db);
+    store.names.lock().unwrap().clear();
+    let refused = db.begin().err().map(|e| format!("{e:?}"));
+    assert!(
+        refused
+            .as_deref()
+            .is_some_and(|e| e.contains("upload storage namespace") && e.contains("missing marker")),
+        "{refused:?}"
+    );
+}

@@ -150,6 +150,15 @@ UPLOADS = [
      '    if rows.len() != 1 {', '    if false && rows.len() != 1 {'),
     ('upload enrollment allows collisions with asset platform relation names', ROOT / 'runtime/pw-table-postgres/src/shape.rs',
      ' || name.starts_with("pw_asset_")', ' || false && name.starts_with("pw_asset_")'),
+    # L5a's review, finding L4: two rules of the PostgreSQL lifecycle that
+    # no mutant held (the third it named, `persist`'s ON CONFLICT guard, no
+    # command can reach: ADR-0440's L5 landing says why).
+    ('upload lifecycle adopts a live generation whose descriptor a publication changes', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
+     '            if &same != selected {\n                return Err(Error::Input(\n                    "publication changes an immutable descriptor".into(),',
+     '            if false && &same != selected {\n                return Err(Error::Input(\n                    "publication changes an immutable descriptor".into(),'),
+    ('upload lifecycle holds no command to its storage namespace marker', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
+     '    binding\n        .store\n        .enroll(&binding.namespace, false)\n        .map_err(|e| Error::Refused(format!("upload storage namespace: {e}")))?;\n    Ok(Some(key))',
+     '    let _ = &binding.store;\n    Ok(Some(key))'),
     ('upload lifecycle skips namespace exclusion before the host turn', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
      'pub(crate) fn lock_lifetime(inner: &Inner, lease: &mut Lease) -> Result<Option<i64>, Error> {\n    let Some(binding) = &inner.uploads else {\n        return Ok(None);\n    };\n    let conn = lease.conn()?;\n    conn.batch(&inner.counters, "BEGIN").map_err(database)?;\n    let key = acquire_namespace(conn, &inner.counters, &binding.namespace)?;\n    conn.batch(&inner.counters, "COMMIT").map_err(database)?;\n    binding\n        .store\n        .enroll(&binding.namespace, false)\n        .map_err(|e| Error::Refused(format!("upload storage namespace: {e}")))?;\n    Ok(Some(key))\n}\n', 'pub(crate) fn lock_lifetime(inner: &Inner, lease: &mut Lease) -> Result<Option<i64>, Error> {\n    let Some(binding) = &inner.uploads else {\n        return Ok(None);\n    };\n    let conn = lease.conn()?;\n    conn.batch(&inner.counters, "BEGIN").map_err(database)?;\n    let key = acquire_namespace(conn, &inner.counters, &binding.namespace)?;\n    release_namespace(conn, &inner.counters, key)?;\n    conn.batch(&inner.counters, "COMMIT").map_err(database)?;\n    binding\n        .store\n        .enroll(&binding.namespace, false)\n        .map_err(|e| Error::Refused(format!("upload storage namespace: {e}")))?;\n    Ok(None)\n}\n'),
 ]

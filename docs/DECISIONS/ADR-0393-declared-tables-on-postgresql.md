@@ -422,7 +422,7 @@ native assertion.
 ## Amended (ADR-0440's L5, 2026-11-17): the mutation controls in two recipes
 
 `d3_postgres_mutations.py` no longer fits one CI job. ADR-0440's L5 added
-the uploads' 37 mutants and their test binaries (`asset_rows`,
+the uploads' mutants (39 at its landing) and their test binaries (`asset_rows`,
 `asset_enrollment`, `compiled_assets`) to D3's own, and each mutant runs
 every binary: at L4's merge the script took 4,708 s (88 mutants over 101
 tests); L5a's full verify (43860567064) took 16,275 s (132 mutants over
