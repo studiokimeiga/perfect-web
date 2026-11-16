@@ -1,8 +1,8 @@
 Track ci-diagnostics - a failure's trace is kept, the checker's latency is measured under load, a mutant's build is incremental, and the nightly does not repeat a verified head
 
 produced by: just e14-ci-diagnostics
-commit: 7b8fb7cc8cbc9601e49df15c750d1eeaf6cabdd2
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43809526375 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6407ba55f1a975923518f1e3fe6973fbfefb7d73
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43854756182 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 python: Python 3.12.3
 
@@ -61,28 +61,28 @@ test_a_mutants_browser_run_is_not_kept (scripts.tests.test_mutation_baseline.Kee
 test_a_red_baselines_failed_browser_run_is_kept_apart (scripts.tests.test_mutation_baseline.KeepsABaselinesBrowserRun.test_a_red_baselines_failed_browser_run_is_kept_apart) ... ok
 test_the_benchmark_harness_run_is_kept_under_its_own_directory (scripts.tests.test_mutation_baseline.KeepsABaselinesBrowserRun.test_the_benchmark_harness_run_is_kept_under_its_own_directory) ... ok
 test_what_an_earlier_recipe_left_is_not_kept (scripts.tests.test_mutation_baseline.KeepsABaselinesBrowserRun.test_what_an_earlier_recipe_left_is_not_kept) ... ok
-Ran 53 tests in 6.061s
+Ran 53 tests in 6.679s
 OK
 
 == 2. check_latency's ceiling bounds the fastest of seven or more checks, not their median (compiler/pw-core/tests/check_latency.rs): the statistic on checks that cost what a script says, then the measurement itself
 
-load: 2.14 2.18 1.53 1/285 36417
-test a_loaded_machine_is_waited_on_while_it_may_quiet_down ... ok
+load: 1.69 1.10 0.49 1/270 3639
 test a_clock_that_reads_nothing_is_refused_by_the_control ... ok
-test a_quiet_machine_is_asked_for_seven_checks_and_no_more ... ok
 test a_checker_made_slow_is_not_let_through_by_the_waiting ... ok
+test a_loaded_machine_is_waited_on_while_it_may_quiet_down ... ok
 test producing_diagnostics_is_judged_at_the_fastest_of_both ... ok
+test a_quiet_machine_is_asked_for_seven_checks_and_no_more ... ok
+test the_ceiling_bounds_the_fastest_check_not_the_median ... ok
 test the_ceiling_is_800_ms_a_thousand_lines_and_a_check_is_judged_by_it ... ok
 test the_fastest_is_of_the_threads_cpu_time_not_of_the_wall_clock ... ok
-test the_ceiling_bounds_the_fastest_check_not_the_median ... ok
 test the_waiting_ends_with_the_window_or_the_most_checks ... ok
-check-latency reject 1074.02 ms   (cpu 1073.95 ms; clean 2038.51 ms, cpu 2038.40 ms; the fastest of 7 and 7 checks, which the ratio bounds: cpu 1070.85 ms, clean cpu 2036.78 ms)
+check-latency reject 1243.24 ms   (cpu 1243.17 ms; clean 2328.51 ms, cpu 2328.22 ms; the fastest of 7 and 7 checks, which the ratio bounds: cpu 1220.37 ms, clean cpu 2305.91 ms)
 test a_rejected_program_is_not_measurably_slower_than_a_clean_one ... ok
-check-latency cold   2044.60 ms   (cpu 2044.32 ms; 6659 lines, cpu 307.00 ms a thousand lines; the fastest of 7 checks, which the ceiling bounds: cpu 2037.81 ms, 306.02 ms a thousand lines)
-check-latency edit   2041.30 ms   (cpu 2041.20 ms; 57 files, no query system: an edit costs a full check)
+check-latency cold   2295.55 ms   (cpu 2295.31 ms; 6659 lines, cpu 344.69 ms a thousand lines; the fastest of 7 checks, which the ceiling bounds: cpu 2289.50 ms, 343.82 ms a thousand lines)
+check-latency edit   2288.50 ms   (cpu 2288.41 ms; 57 files, no query system: an edit costs a full check)
 test the_whole_program_and_one_edit_are_both_measured ... ok
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 50.42s
-load: 1.49 2.00 1.50 1/283 36443
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 57.17s
+load: 1.27 1.08 0.53 1/259 3695
 
 == 3. a mutant's builds are incremental where the run asks, and the caches are bounded (scripts/mutant_incremental.py, mutation_baseline.py, ci_recipes.py, verify.yml)
 
@@ -104,7 +104,7 @@ test_every_cache_is_removed_between_recipes_a_triples_among_them (scripts.tests.
 test_no_recipe_line_is_edited_for_it (scripts.tests.test_mutant_incremental.Workflow.test_no_recipe_line_is_edited_for_it) ... ok
 test_the_recipes_step_asks_and_no_other_does (scripts.tests.test_mutant_incremental.Workflow.test_the_recipes_step_asks_and_no_other_does) ... ok
 test_the_workflows_own_zero_stands_for_every_other_build (scripts.tests.test_mutant_incremental.Workflow.test_the_workflows_own_zero_stands_for_every_other_build) ... ok
-Ran 18 tests in 4.199s
+Ran 18 tests in 4.191s
 OK
 
 == 4. the nightly is skipped where master's head has a successful run, never on Sunday's, and the override stands (scripts/nightly_skip.py, verify.yml)
@@ -130,7 +130,7 @@ test_sundays_nightly_is_planned_in_full_though_the_head_was_verified (scripts.te
 test_only_the_nightly_asks (scripts.tests.test_nightly_skip.Workflow.test_only_the_nightly_asks) ... ok
 test_the_plan_step_hands_the_schedule_that_fired_to_the_script (scripts.tests.test_nightly_skip.Workflow.test_the_plan_step_hands_the_schedule_that_fired_to_the_script) ... ok
 test_the_schedules_are_weekdays_and_sunday_and_sunday_is_the_scripts_weekly (scripts.tests.test_nightly_skip.Workflow.test_the_schedules_are_weekdays_and_sunday_and_sunday_is_the_scripts_weekly) ... ok
-Ran 21 tests in 0.359s
+Ran 21 tests in 0.412s
 OK
 
 == mutation controls (scripts/ci_diagnostics_mutations.py)

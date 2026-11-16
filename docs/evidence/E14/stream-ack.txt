@@ -1,8 +1,8 @@
 ADR-0139 - a frame is forgotten when the page says it applied it
 
 produced by: just e14-stream-ack
-commit: 7b8fb7cc8cbc9601e49df15c750d1eeaf6cabdd2
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43809526375 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6407ba55f1a975923518f1e3fe6973fbfefb7d73
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43854756182 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the server (spikes/own-renderer/server)
@@ -27,7 +27,7 @@ test uploads::privacy_tests::png_split_streams_and_both_animation_layouts_remain
 test tests::session_upload_reserved_routes::a_declared_upload_at_stream_path_is_admitted_before_dispatch ... ok
 test tests::longer_holds::a_held_stream_keeps_its_page_live ... ok
 test tests::the_feeds_page_opening_its_stream_is_not_told_to_reload ... ok
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 1111 filtered out; finished in 6.91s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 1120 filtered out; finished in 7.33s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
 
 == mutation controls (scripts/stream_ack_mutations.py)
@@ -41,7 +41,7 @@ memory bound: no process was stopped
 == the keyed-list suite, twenty runs
 
 == run 1 of 20
-  48 passed (1.8m)
+  48 passed (1.9m)
 == run 2 of 20
   48 passed (1.8m)
 == run 3 of 20
@@ -63,13 +63,13 @@ memory bound: no process was stopped
 == run 11 of 20
   48 passed (1.8m)
 == run 12 of 20
-  48 passed (1.8m)
+  48 passed (1.9m)
 == run 13 of 20
   48 passed (1.8m)
 == run 14 of 20
   48 passed (1.8m)
 == run 15 of 20
-  48 passed (1.8m)
+  48 passed (1.9m)
 == run 16 of 20
   48 passed (1.8m)
 == run 17 of 20

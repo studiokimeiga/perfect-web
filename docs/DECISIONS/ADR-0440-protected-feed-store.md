@@ -1664,3 +1664,34 @@ read scans the target for each selector it is given, which this decision
 allows, and no server-side cap bounds a window's or a relation's limit. The
 primitive is bounded by its argument; an app that passes a browser's limit
 through (`examples/relations/app.pw`'s `Following`) clamps it when ported.
+
+## Amended 2026-11-16: an outbox row leaves by age alone
+
+The integrator's, under the owner's delegation of 2026-10-02: NEXT after L3,
+item 9.
+
+**Found.** Since L3 a host retains what it delivers until the shared
+retention age, and `PgTables::forget_outbox`, L1's removal of a commit's own
+rows at once, was left with no caller but its own test; the durable tables'
+mutant "a delivered outbox is deleted before another host can read it"
+called it to put L1's deletion back.
+
+**Decided.** It goes, with its prepared statement: no caller needs a row
+gone before its age, and platform 0004's triggers move the watermark for
+any deletion, an operator's statement among them
+(`any_deletion_from_the_outbox_moves_the_trim_watermark`). Its test keeps
+the trimming it also held, now with the limit's batches, first ids first
+(`the_outboxs_rows_are_trimmed_once_older_than_an_age`). The mutant deletes
+through `trim_outbox` at age zero instead, every row at once, and is killed:
+7 of the script's 91 tests fail in the run of record
+(`docs/evidence/E14/durable-tables.txt`, verify 43893340880 at `148405a7`,
+master's L4 merged in, 71 of 71 mutants killed). The local run while it was
+written saw 8 of 85, before the review's test and L4 were in the count.
+
+**Reviewed** (independently, 2026-11-16): sound. One low finding is repaired
+here. The test could not tell the trim's `ORDER BY id` from the order its rows
+lie in, or from their age, since all three agreed. It now ages its rows apart,
+one statement each, so that neither agrees with their ids. Two new mutants
+take the rows as they lie and the oldest by their time; each is killed at the
+test's assertion. ADR-0397 points here, as its decisions 3 and 6 still
+described the outbox L1 forgot.
