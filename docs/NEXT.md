@@ -90,13 +90,20 @@ lifecycle and owned Clock actions. What stays open, in order:
    amended): it is gone with its statement; its test keeps the trimming,
    with the limit's batches; the durable tables' mutant that put L1's
    deletion back deletes through `trim_outbox` at age zero (killed).
-10. **`cargo test` on a many-core machine exhausts a default PostgreSQL**
-    (L3's recipes): at 32 test threads, second host's tests fail
-    `53300: sorry, too many clients already` against PostgreSQL's default
-    100 connections; CI's four cores hide it. Each test host's pool, or
-    the tests' parallelism on PostgreSQL, bounded so that the server's
-    tests pass on any machine against a default database, with a test
-    that fails without the bound.
+10. **`cargo test` on a many-core machine exhausts a default PostgreSQL**:
+    done (2026-11-16). Reproduced at 32 test threads (7 of the feed's, the
+    store's and second-host's 65 tests failed `53300`); a test takes a place
+    when it first opens a layer on the database and gives it back as its
+    thread ends, as many places as the database serves at twelve
+    connections a test (`tests::pg_places`, the budget in ASSUMPTIONS). The
+    server's tests pass at 32 threads with the store on PostgreSQL and all
+    three databases set (1,122 tests), and
+    `tests_beyond_the_databases_connections_wait_for_a_place` fails without
+    the places. Its review's findings are repaired: a wait for a place ends
+    after ten minutes and says why, a database that cannot be asked is an
+    error, six connections are kept for what no place covers, and each
+    layer's hook is held by a test. Every test but the gate's peaks at ten
+    connections, one at a time.
 11. **L2's items 2 and 4**, below: one count of a transaction's
     boundaries, and what ADR-0395 leaves. The first is done (2026-11-16):
     the PostgreSQL adapter's `operation_statements` is the one count, and

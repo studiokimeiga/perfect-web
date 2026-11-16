@@ -13,6 +13,28 @@ Status values: `open` · `validated` · `invalidated` · `superseded`
 
 ---
 
+## A server test holds at most twelve PostgreSQL connections, 2026-11-16
+
+**Status:** `open`. `tests::pg_places` (NEXT after L3, item 10) admits as
+many of the server's tests at once as the database serves at twelve
+connections each (`BUDGET`), after six kept for what no place covers
+(`HEADROOM`), so that `cargo test` at one thread per core runs against a
+default database (100 connections).
+
+Measured on 2026-11-16, one test at a time, with the store on PostgreSQL
+(`PW_STORE_TEST_LAYER=postgres`) and all three database URLs set, sampling
+`pg_stat_activity` every 30 ms:
+- **Every server test but `tests::pg_places`' own** (1,119 tests, 16,476
+  samples) peaked at ten connections.
+- **Each of the 94 test modules run alone** stayed at twelve or fewer, but
+  for that module: its first test fills every place by design.
+- **The whole suite at 32 threads** passed, 1,122 tests, with no `53300`.
+
+Not measured: one test's connections under load, where pools, seats and a
+signed-in session's connections may grow past what it opens alone. A
+`53300` in a run at many threads is the sign the budget is wrong.
+Revalidate when a test opens a third host or a pool's bound grows.
+
 ## Renderer lifecycle test loader, 2026-10-29
 
 **Status:** `open`. The test-only held-import ordering seam uses
