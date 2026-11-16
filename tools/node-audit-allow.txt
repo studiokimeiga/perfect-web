@@ -159,3 +159,27 @@ GHSA-rqp5-r3wg-vg35
     approves the download (asked 2026-11-16), rerun the three-store contract
     and remove this allowance. Revisit sooner if the baseline sets
     `router.resolution: 'server'`.
+
+GHSA-mfr8-8qww-v76h
+    Next.js 16.3.0 to 16.4.4 — a `'use cache'` function that reads a root
+    param, called both directly while rendering and through
+    `unstable_cache()`, can be given another root param value's cached data,
+    through a deduplication race at a cold process start (moderate;
+    published 2026-11-16, CVE-2026-119790).
+    https://github.com/advisories/GHSA-mfr8-8qww-v76h
+
+    Why accepted temporarily: the only `next` dependency is the undeployed
+    E14 benchmark baseline, `benchmarks/baselines/next-react`, pinned to
+    16.4.1 under ADR-0120 (amended 2026-10-22). It declares no `'use cache'`
+    function, calls no `unstable_cache()` and has no root params: its one
+    layout, `app/layout.tsx`, takes no parameter, its `next.config.mjs` is
+    empty, and its only `next/cache` import is `revalidatePath`. Outside the
+    race the nesting throws (`'use cache' inside unstable_cache() is
+    unsupported`), and the advisory calls avoiding it a complete workaround.
+    Untrusted traffic never reaches the local harness.
+
+    Revisit: a patched release exists, 16.4.5. Move to it on the owner's
+    approval of the download, rerun the three-store contract
+    (`e14-contract`) and remove this allowance; sooner if the baseline
+    declares a `'use cache'` function, calls `unstable_cache()` or gives its
+    root layout a parameter.
