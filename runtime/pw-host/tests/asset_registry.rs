@@ -2,6 +2,17 @@
 use pw_host::assets::*;
 use serde_json::json;
 use std::collections::BTreeMap;
+
+/// **A refusal held to its reason** (L5a's review, finding L9): `result` is
+/// an error whose words, as its `Debug` shows them, hold `why`. A refusal for
+/// any other reason, or none, fails here.
+fn refused<T, E: std::fmt::Debug>(result: Result<T, E>, why: &str) {
+    let said = result.err().map(|e| format!("{e:?}"));
+    assert!(
+        said.as_deref().is_some_and(|said| said.contains(why)),
+        "a refusal saying {why:?}, where it said {said:?}"
+    );
+}
 fn manifest() -> Manifest {
     Manifest::from_json(&json!([
         {"name":"Photo","module":"Photo","source":"Data","route":"/uploads/photo","serves":"/photos","max_bytes":5000000,"types":["png","jpeg"],"max_width":4096,"max_height":4096},
@@ -67,20 +78,26 @@ fn a_fresh_publication_requires_a_final_row_use_to_become_live() {
     assert!(!ignored.keep_new && !ignored.collect);
     assert!(ignored.used_publications.is_empty());
     assert!(ignored.generation.live_reference("Photo").is_none());
-    assert!(
+    refused(
         plan_generation(
             &manifest(),
             Some(&ignored.generation),
             &[],
-            &[usage("Photo", 0, 1)]
-        )
-        .is_err()
+            &[usage("Photo", 0, 1)],
+        ),
+        "reference is not LIVE for this declaration and has no fresh publication",
     );
 }
 #[test]
 fn plain_reference_data_is_not_authority_to_create_a_generation() {
-    assert!(plan_generation(&manifest(), None, &[], &[usage("Photo", 0, 1)]).is_err());
-    assert!(plan_generation(&manifest(), None, &[], &[usage("Photo", 1, 0)]).is_err());
+    refused(
+        plan_generation(&manifest(), None, &[], &[usage("Photo", 0, 1)]),
+        "asset reference names an unknown generation",
+    );
+    refused(
+        plan_generation(&manifest(), None, &[], &[usage("Photo", 1, 0)]),
+        "asset reference names an unknown generation",
+    );
 }
 #[test]
 fn current_same_declaration_references_allow_copy_but_another_declaration_does_not() {
@@ -88,7 +105,10 @@ fn current_same_declaration_references_allow_copy_but_another_declaration_does_n
     let copied = plan_generation(&manifest(), Some(&old), &[], &[usage("Photo", 0, 2)]).unwrap();
     assert_eq!(copied.generation, live(&[("Photo", 3)]));
     assert!(!copied.keep_new && !copied.collect);
-    assert!(plan_generation(&manifest(), Some(&old), &[], &[usage("Avatar", 0, 1)]).is_err());
+    refused(
+        plan_generation(&manifest(), Some(&old), &[], &[usage("Avatar", 0, 1)]),
+        "reference is not LIVE for this declaration and has no fresh publication",
+    );
     let enrolled = plan_generation(
         &manifest(),
         Some(&old),
@@ -116,14 +136,14 @@ fn a_declarations_last_reference_ends_its_adoption_and_serving_even_if_another_k
     assert!(!plan.collect);
     assert!(plan.generation.live_reference("Avatar").is_none());
     assert!(plan.generation.live_reference("Photo").is_some());
-    assert!(
+    refused(
         plan_generation(
             &manifest(),
             Some(&plan.generation),
             &[],
-            &[usage("Avatar", 0, 1)]
-        )
-        .is_err()
+            &[usage("Avatar", 0, 1)],
+        ),
+        "reference is not LIVE for this declaration and has no fresh publication",
     );
     assert!(
         plan_generation(
@@ -156,9 +176,9 @@ fn final_net_moves_do_not_transiently_retire_a_generation_and_unchanged_refs_are
     );
     let mut malformed = unchanged;
     malformed.reference.width = 7;
-    assert!(
-        plan_generation(&manifest(), Some(&old), &[], &[malformed]).is_err(),
-        "zero net delta cannot mask a changed descriptor"
+    refused(
+        plan_generation(&manifest(), Some(&old), &[], &[malformed]),
+        "row reference differs from the immutable generation descriptor",
     );
 }
 #[test]
@@ -169,14 +189,14 @@ fn last_removal_captures_only_the_old_generation_and_same_bytes_require_a_new_id
     assert!(removed.collect);
     assert!(!removed.keep_new);
     assert!(removed.generation.references.is_empty());
-    assert!(
+    refused(
         plan_generation(
             &manifest(),
             Some(&removed.generation),
             &[publication("Photo")],
-            &[usage("Photo", 0, 1)]
-        )
-        .is_err()
+            &[usage("Photo", 0, 1)],
+        ),
+        "a retired generation identity cannot be published again",
     );
     let mut fresh = publication("Photo");
     fresh.descriptor.reference.generation = "c".repeat(32);
@@ -207,53 +227,80 @@ fn ignored_publications_do_not_enroll_a_declaration_or_count_untouched_rows_as_u
 #[test]
 fn contradictory_counts_overflow_unknown_declarations_and_descriptors_refuse_whole() {
     let old = live(&[("Photo", 1)]);
-    for invalid in [usage("Photo", 2, 0), usage("Missing", 0, 1)] {
-        assert!(plan_generation(&manifest(), Some(&old), &[], &[invalid]).is_err());
+    for (invalid, why) in [
+        (
+            usage("Photo", 2, 0),
+            "original uses exceed committed references",
+        ),
+        (
+            usage("Missing", 0, 1),
+            "asset generation names unknown declaration Missing",
+        ),
+    ] {
+        refused(
+            plan_generation(&manifest(), Some(&old), &[], &[invalid]),
+            why,
+        );
     }
-    assert!(
+    refused(
         plan_generation(
             &manifest(),
             Some(&live(&[("Photo", u64::MAX)])),
             &[],
-            &[usage("Photo", 0, 1)]
-        )
-        .is_err()
+            &[usage("Photo", 0, 1)],
+        ),
+        "reference count overflows",
     );
-    assert!(plan_generation(&manifest(), Some(&live(&[("Photo", 0)])), &[], &[]).is_err());
-    assert!(
+    refused(
+        plan_generation(&manifest(), Some(&live(&[("Photo", 0)])), &[], &[]),
+        "generation stores a zero reference count",
+    );
+    refused(
         plan_generation(
             &manifest(),
             Some(&Generation {
                 descriptor: descriptor(),
                 state: GenerationState::Tombstone,
-                references: BTreeMap::from([("Photo".into(), 1)])
+                references: BTreeMap::from([("Photo".into(), 1)]),
             }),
             &[],
-            &[]
-        )
-        .is_err()
+            &[],
+        ),
+        "retired generation still has references",
     );
-    assert!(
+    refused(
         plan_generation(
             &manifest(),
             None,
             &[publication("Photo"), publication("Photo")],
-            &[]
-        )
-        .is_err()
+            &[],
+        ),
+        "one declaration publishes its lease twice",
     );
     let mut wrong = publication("Photo");
     wrong.descriptor.bytes = 18;
-    assert!(plan_generation(&manifest(), Some(&old), &[wrong], &[]).is_err());
+    refused(
+        plan_generation(&manifest(), Some(&old), &[wrong], &[]),
+        "publication changes an immutable generation descriptor",
+    );
     let mut empty = publication("Photo");
     empty.descriptor.bytes = 0;
-    assert!(plan_generation(&manifest(), None, &[empty], &[]).is_err());
+    refused(
+        plan_generation(&manifest(), None, &[empty], &[]),
+        "an immutable descriptor has no stored bytes",
+    );
     let mut too_wide = publication("Avatar");
     too_wide.descriptor.reference.width = 65;
-    assert!(plan_generation(&manifest(), None, &[too_wide], &[]).is_err());
+    refused(
+        plan_generation(&manifest(), None, &[too_wide], &[]),
+        "Avatar reference exceeds its declared kind or dimensions",
+    );
     let mut invalid = publication("Photo");
     invalid.descriptor.reference.generation = "../outside".into();
-    assert!(plan_generation(&manifest(), None, &[invalid], &[]).is_err());
+    refused(
+        plan_generation(&manifest(), None, &[invalid], &[]),
+        "asset reference has invalid hash, generation, kind or dimensions",
+    );
 }
 
 #[test]
@@ -279,25 +326,25 @@ fn shared_generation_proposals_cannot_cross_sources_or_change_descriptor_bytes()
     let mut value = serde_json::to_value(&declarations).unwrap();
     value[0]["source"] = json!("Different");
     let other = Manifest::from_json(&value.to_string()).unwrap();
-    assert!(
+    refused(
         plan_generation(
             &other,
             Some(&live(&[("Photo", 1)])),
             &[publication("Avatar")],
-            &[usage("Avatar", 0, 1)]
-        )
-        .is_err()
+            &[usage("Avatar", 0, 1)],
+        ),
+        "one generation cannot cross declared data sources",
     );
     let mut second = publication("Avatar");
     second.descriptor.bytes = 18;
-    assert!(
+    refused(
         plan_generation(
             &manifest(),
             None,
             &[publication("Photo"), second],
-            &[usage("Photo", 0, 1)]
-        )
-        .is_err()
+            &[usage("Photo", 0, 1)],
+        ),
+        "publication changes an immutable generation descriptor",
     );
 }
 
@@ -424,7 +471,10 @@ fn captured_collection_completion_cannot_clear_a_new_same_hash_generation() {
         registry.generation(&old.generation).is_some(),
         "retired identity retained"
     );
-    assert!(registry.collected(&new.generation).is_err());
+    refused(
+        registry.collected(&new.generation),
+        "a LIVE generation cannot be collected",
+    );
 }
 #[test]
 fn generation_ids_are_not_reused_after_ignored_publication_or_collection() {
@@ -435,10 +485,9 @@ fn generation_ids_are_not_reused_after_ignored_publication_or_collection() {
         .unwrap();
     let patch = registry.prepare(&manifest(), draft, &[]).unwrap();
     registry.apply(patch).unwrap();
-    assert!(
-        registry
-            .propose(&manifest(), &mut registry.begin(), "Photo", descriptor())
-            .is_err()
+    refused(
+        registry.propose(&manifest(), &mut registry.begin(), "Photo", descriptor()),
+        "generation identity has already been reserved",
     );
     let mut fresh = descriptor();
     fresh.reference.generation = "c".repeat(32);
@@ -452,10 +501,9 @@ fn generation_ids_are_not_reused_after_ignored_publication_or_collection() {
     registry.collected(&live.generation).unwrap();
     let mut old_candidate = descriptor();
     old_candidate.reference = live;
-    assert!(
-        registry
-            .propose(&manifest(), &mut registry.begin(), "Photo", old_candidate)
-            .is_err()
+    refused(
+        registry.propose(&manifest(), &mut registry.begin(), "Photo", old_candidate),
+        "generation identity has already been reserved",
     );
 }
 #[test]
@@ -469,7 +517,10 @@ fn stale_or_refused_patches_leave_all_indexes_unchanged() {
         .prepare(&manifest(), registry.begin(), &[usage("Photo", 1, 0)])
         .unwrap();
     registry.apply(remove).unwrap();
-    assert!(registry.apply(stale).is_err());
+    refused(
+        registry.apply(stale),
+        "registry snapshot changed before publication",
+    );
     assert!(
         registry
             .current_reference("Photo", &old.key, "png")
@@ -478,10 +529,9 @@ fn stale_or_refused_patches_leave_all_indexes_unchanged() {
     assert_eq!(registry.pending_collections().count(), 1);
     let mut malformed = usage("Photo", 0, 1);
     malformed.reference.width = 7;
-    assert!(
-        registry
-            .prepare(&manifest(), registry.begin(), &[malformed])
-            .is_err()
+    refused(
+        registry.prepare(&manifest(), registry.begin(), &[malformed]),
+        "row reference differs from the immutable generation descriptor",
     );
     assert_eq!(registry.pending_collections().count(), 1);
 }
@@ -494,22 +544,19 @@ fn candidate_identity_and_canonical_descriptors_refuse_collisions_before_mutatio
         .unwrap();
     let mut other_hash = descriptor();
     other_hash.reference.key = "d".repeat(64);
-    assert!(
-        registry
-            .propose(&manifest(), &mut draft, "Avatar", other_hash)
-            .is_err()
+    refused(
+        registry.propose(&manifest(), &mut draft, "Avatar", other_hash),
+        "generation identity has already been reserved",
     );
     let mut wrong = descriptor();
     wrong.bytes = 18;
-    assert!(
-        registry
-            .propose(&manifest(), &mut draft, "Avatar", wrong)
-            .is_err()
+    refused(
+        registry.propose(&manifest(), &mut draft, "Avatar", wrong),
+        "canonical bytes change an immutable descriptor",
     );
-    assert!(
-        registry
-            .propose(&manifest(), &mut draft, "Photo", descriptor())
-            .is_err()
+    refused(
+        registry.propose(&manifest(), &mut draft, "Photo", descriptor()),
+        "one declaration publishes its lease twice",
     );
     assert!(
         registry
@@ -522,20 +569,18 @@ fn candidate_identity_and_canonical_descriptors_refuse_collisions_before_mutatio
 fn a_foreign_draft_cannot_propose_into_another_registry() {
     let left = Registry::default();
     let right = Registry::default();
-    assert!(
-        right
-            .propose(&manifest(), &mut left.begin(), "Photo", descriptor())
-            .is_err(),
-        "drafts belong to their registry"
+    refused(
+        right.propose(&manifest(), &mut left.begin(), "Photo", descriptor()),
+        "draft or patch belongs to another registry",
     );
 }
 #[test]
 fn even_empty_foreign_drafts_cannot_be_prepared() {
     let left = Registry::default();
     let right = Registry::default();
-    assert!(
-        right.prepare(&manifest(), left.begin(), &[]).is_err(),
-        "even empty foreign drafts refuse"
+    refused(
+        right.prepare(&manifest(), left.begin(), &[]),
+        "draft or patch belongs to another registry",
     );
 }
 #[test]
@@ -551,9 +596,9 @@ fn foreign_patches_cannot_cross_registry_instances_at_the_same_revision() {
     let patch = left
         .prepare(&manifest(), left.begin(), &[usage("Photo", 1, 0)])
         .unwrap();
-    assert!(
-        right.apply(patch).is_err(),
-        "matching revision is not registry identity"
+    refused(
+        right.apply(patch),
+        "draft or patch belongs to another registry",
     );
     assert_eq!(right.current_reference("Photo", &b.key, "png"), Some(&b));
     assert_eq!(

@@ -3,6 +3,17 @@
 include!("support/owned.rs");
 include!("support/assets.rs");
 
+/// **A refusal held to its reason** (L5a's review, finding L9): `result` is
+/// an error whose words, as its `Debug` shows them, hold `why`. A refusal for
+/// any other reason, or none, fails here.
+fn refused<T, E: std::fmt::Debug>(result: Result<T, E>, why: &str) {
+    let said = result.err().map(|e| format!("{e:?}"));
+    assert!(
+        said.as_deref().is_some_and(|said| said.contains(why)),
+        "a refusal saying {why:?}, where it said {said:?}"
+    );
+}
+
 #[test]
 fn a_compiled_reference_projects_the_existing_public_url_without_host_work() {
     let program = asset_program();
@@ -55,18 +66,29 @@ fn actual_compiler_upload_metadata_binds_its_exact_public_reference_field() {
     let upload = serde_json::from_str::<serde_json::Value>(&program.uploads).unwrap();
     let mut wrong_source = upload.clone();
     wrong_source[0]["source"] = json!("Another");
-    assert!(
+    refused(
         program
             .manifest
             .clone()
-            .with_uploads(&wrong_source.to_string())
-            .is_err()
+            .with_uploads(&wrong_source.to_string()),
+        "upload binding: multiple sources require separate adapters",
     );
-    for (field, value) in [("field", json!("alt")), ("upload", json!("Other"))] {
+    for (field, value, why) in [
+        (
+            "field",
+            json!("alt"),
+            "upload binding: field has no exact generated reference shape",
+        ),
+        (
+            "upload",
+            json!("Other"),
+            "upload binding: undeclared upload",
+        ),
+    ] {
         let mut bad = table.clone();
         bad["tables"][0]["assets"][0][field] = value;
         let manifest = pw_host::tables::Manifest::from_json(&bad.to_string()).unwrap();
-        assert!(manifest.with_uploads(&program.uploads).is_err());
+        refused(manifest.with_uploads(&program.uploads), why);
     }
     let mut duplicate = table.clone();
     let binding = duplicate["tables"][0]["assets"][0].clone();
@@ -74,19 +96,19 @@ fn actual_compiler_upload_metadata_binds_its_exact_public_reference_field() {
         .as_array_mut()
         .unwrap()
         .push(binding);
-    assert!(
+    refused(
         pw_host::tables::Manifest::from_json(&duplicate.to_string())
             .unwrap()
-            .with_uploads(&program.uploads)
-            .is_err()
+            .with_uploads(&program.uploads),
+        "upload binding: field associated twice",
     );
     let mut wrong_shape = table;
     wrong_shape["tables"][0]["fields"][1]["stored"] = json!({"option":{"string":{}}});
-    assert!(
+    refused(
         pw_host::tables::Manifest::from_json(&wrong_shape.to_string())
             .unwrap()
-            .with_uploads(&program.uploads)
-            .is_err()
+            .with_uploads(&program.uploads),
+        "upload binding: field has no exact generated reference shape",
     );
 }
 
@@ -356,11 +378,11 @@ fn asset_binding_requires_its_own_explicit_source_even_when_only_one_is_named() 
     let program = asset_program();
     let mut table = serde_json::to_value(&program.tables).unwrap();
     table["tables"][0]["source"] = serde_json::Value::Null;
-    assert!(
+    refused(
         pw_host::tables::Manifest::from_json(&table.to_string())
             .unwrap()
-            .with_uploads(&program.uploads)
-            .is_err()
+            .with_uploads(&program.uploads),
+        "upload binding: multiple sources require separate adapters",
     );
 }
 
@@ -727,10 +749,13 @@ fn ordinary_table_root_axes(missing_contract: bool) {
         &query.export(),
         &args,
     );
-    assert!(
-        result.is_err(),
-        "fresh execution also refuses the missing axis"
-    );
+    // Fresh execution also refuses the missing axis, and says which.
+    let why = if missing_contract {
+        "table operation requires `database.read<Notes>` in the contract"
+    } else {
+        "`database.read<Notes>` is not granted here"
+    };
+    refused(result, why);
 }
 #[test]
 fn authorization_only_ordinary_tables_require_the_actual_root_handle() {

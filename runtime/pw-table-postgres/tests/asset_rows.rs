@@ -8,6 +8,17 @@ use pw_host::assets::{Descriptor, Namespace, Reference, Storage};
 use pw_table_postgres::{Interaction, Options, PgTables, Records, Uploads};
 use sha2::{Digest, Sha256};
 use std::{collections::BTreeSet, io, sync::Mutex};
+
+/// **A refusal held to its reason** (L5a's review, finding L9): `result` is
+/// an error whose words, as its `Debug` shows them, hold `why`. A refusal for
+/// any other reason, or none, fails here.
+fn refused<T, E: std::fmt::Debug>(result: Result<T, E>, why: &str) {
+    let said = result.err().map(|e| format!("{e:?}"));
+    assert!(
+        said.as_deref().is_some_and(|said| said.contains(why)),
+        "a refusal saying {why:?}, where it said {said:?}"
+    );
+}
 type CollectHook = Arc<dyn Fn() + Send + Sync>;
 type ReservedBytes = BTreeMap<(Namespace, String), (Descriptor, Option<Vec<u8>>)>;
 #[derive(Default)]
@@ -204,9 +215,9 @@ fn a_missing_real_receipt_refuses_before_keep_and_rolls_back_rows_and_registry()
         .assert_ok("publication");
     c.write("pw:tables/assets#insert", &[row(1, Some(&r))])
         .assert_ok("row");
-    assert!(
-        c.commit().is_err(),
-        "compiler idempotency does not substitute an actual record"
+    refused(
+        c.commit(),
+        "upload claims require an actual durable interaction record",
     );
     assert_eq!(store.keeps.load(Ordering::SeqCst), 0);
     assert_eq!(
@@ -221,9 +232,9 @@ fn a_missing_real_receipt_refuses_before_keep_and_rolls_back_rows_and_registry()
     let c = db.begin().assert_ok("begin claimed/discarded");
     c.require_upload_receipt()
         .assert_ok("actual acquire marker");
-    assert!(
-        c.commit().is_err(),
-        "discarded/held claims also need a receipt even without publication"
+    refused(
+        c.commit(),
+        "upload claims require an actual durable interaction record",
     );
 }
 #[test]
@@ -240,14 +251,17 @@ fn plain_changed_and_retired_refs_cannot_create_authority_but_a_current_ref_can_
         &[row(1, Some(&candidate('b').reference))],
     )
     .assert_ok("structural row");
-    assert!(c.prepare().is_err());
+    refused(c.prepare(), "asset reference names an unknown generation");
     let r = seed(&db);
     let mut bad = r.clone();
     bad.width = 7;
     let mut c = db.begin().assert_ok("begin");
     c.write("pw:tables/assets#put", &[row(1, Some(&bad))])
         .assert_ok("same net count");
-    assert!(c.prepare().is_err());
+    refused(
+        c.prepare(),
+        "row reference differs from the immutable generation descriptor",
+    );
     let mut c = db.begin().assert_ok("begin copy");
     c.write("pw:tables/assets#insert", &[row(2, Some(&r))])
         .assert_ok("copy");
@@ -271,7 +285,10 @@ fn plain_changed_and_retired_refs_cannot_create_authority_but_a_current_ref_can_
     let mut c = db.begin().assert_ok("begin stale");
     c.write("pw:tables/assets#insert", &[row(3, Some(&r))])
         .assert_ok("structural stale ref");
-    assert!(c.prepare().is_err());
+    refused(
+        c.prepare(),
+        "reference is not LIVE for this declaration and has no fresh publication",
+    );
 }
 #[test]
 fn ignored_publication_and_rejected_row_do_not_keep_or_settle_untouched_old_uses() {
@@ -334,11 +351,11 @@ fn keep_failure_rolls_back_and_collection_failure_preserves_applied_ack_and_a_du
         .assert_ok("publication");
     c.write("pw:tables/assets#insert", &[row(1, Some(&r))])
         .assert_ok("row");
-    assert!(
+    refused(
         c.prepare()
             .assert_ok("prepare")
-            .publish_with(record("failed"))
-            .is_err()
+            .publish_with(record("failed")),
+        "upload keep: keep refused",
     );
     assert_eq!(s.texts("SELECT count(*)::text FROM pw_interactions"), ["0"]);
     assert_eq!(
@@ -437,10 +454,14 @@ fn rewritten_storage_state_refuses(target: &str, late: bool) {
     let refusal = c
         .prepare()
         .and_then(|p| p.publish_with(record("rewritten")));
-    assert!(
-        refusal.is_err(),
-        "{target} rewrite (late={late}) must not commit inconsistent rows/registry: {refusal:?}"
-    );
+    // A rewrite of the rows' asset fields is told as one; of the registry's
+    // generations or counts, as the other: neither commits.
+    let why = if target == "row" {
+        "actual row asset fields differ from staged writes"
+    } else {
+        "actual asset registry differs from prepared generations/counts"
+    };
+    refused(refusal, why);
     assert_eq!(
         s.texts("SELECT count(*)::text FROM pw_asset_generations"),
         ["0"]
@@ -932,9 +953,9 @@ fn declarations_share_live_bytes_only_after_independent_publication_and_keep_cur
         &[json!({"id":1,"image":r,"avatar":r})],
     )
     .assert_ok("structurally valid row");
-    assert!(
-        c.prepare().is_err(),
-        "Photo current liveness cannot authorize Avatar adoption"
+    refused(
+        c.prepare(),
+        "reference is not LIVE for this declaration and has no fresh publication",
     );
     let mut c = db.begin().assert_ok("begin actual avatar");
     let avatar = c
@@ -985,9 +1006,9 @@ fn declarations_share_live_bytes_only_after_independent_publication_and_keep_cur
         &[json!({"id":1,"image":r,"avatar":avatar})],
     )
     .assert_ok("structural ref");
-    assert!(
-        c.prepare().is_err(),
-        "Avatar liveness cannot keep Photo adoptable after Photo reaches zero"
+    refused(
+        c.prepare(),
+        "reference is not LIVE for this declaration and has no fresh publication",
     );
     let mut c = db.begin().assert_ok("begin last removal");
     c.write("pw:tables/assets#delete", &[json!(1)])
@@ -1296,9 +1317,9 @@ fn authoritative_reads_require_current_own_refs_and_distinguish_missing_live_sto
         .get_mut(&(namespace.clone(), r.generation.clone()))
         .unwrap()
         .1 = None;
-    assert!(
-        db.read_asset("PostImage", &r.key, "png").is_err(),
-        "LIVE missing storage must never look absent or eligible for304"
+    refused(
+        db.read_asset("PostImage", &r.key, "png"),
+        "LIVE upload storage is missing",
     );
     store
         .kept
@@ -1327,10 +1348,9 @@ fn authoritative_reads_require_current_own_refs_and_distinguish_missing_live_sto
     );
     assert_eq!(db.collect_assets(1).assert_ok("idempotent retry"), 0);
     let c = db.begin().assert_ok("begin old identity");
-    assert!(
-        c.propose_asset("PostImage", candidate('b'), Arc::from(b"abc".as_slice()))
-            .is_err(),
-        "collected descriptor identity remains reserved"
+    refused(
+        c.propose_asset("PostImage", candidate('b'), Arc::from(b"abc".as_slice())),
+        "generation identity already reserved",
     );
 }
 
@@ -1527,9 +1547,9 @@ fn suppressed_collection_completion_leaves_a_retryable_job_and_never_refuses_the
         s.texts("SELECT count(*)::text FROM pw_asset_collections"),
         ["1"]
     );
-    assert!(
-        db.collect_assets(1).is_err(),
-        "a suppressed completion cannot be counted as completed"
+    refused(
+        db.collect_assets(1),
+        "0 upload generations collected, 1 not: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb: Refused(",
     );
     assert_eq!(
         s.texts("SELECT count(*)::text FROM pw_asset_collections"),
@@ -1565,9 +1585,9 @@ fn reinserted_collection_completion_is_not_counted_as_done_and_preserves_applied
         s.texts("SELECT count(*)::text FROM pw_asset_collections"),
         ["1"]
     );
-    assert!(
-        db.collect_assets(1).is_err(),
-        "returned DELETE row alone cannot acknowledge a completion whose captured job remains"
+    refused(
+        db.collect_assets(1),
+        "0 upload generations collected, 1 not: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb: Refused(",
     );
     assert_eq!(
         s.texts("SELECT count(*)::text FROM pw_asset_collections"),
@@ -1663,10 +1683,7 @@ fn rewritten_actual_receipt_refuses(case: &str) {
         .prepare()
         .assert_ok("prepared actual rows")
         .publish_with(records);
-    assert!(
-        outcome.is_err(),
-        "{case} hook must not commit without the exact requested durable receipt: {outcome:?}"
-    );
+    refused(outcome, "the exact upload interaction record was not kept");
     assert_eq!(s.texts("SELECT count(*)::text FROM pw_interactions"), ["0"]);
     assert_eq!(
         s.texts("SELECT count(*)::text FROM pw_asset_generations"),
@@ -1745,16 +1762,19 @@ fn captured_asset_publisher_and_receipt_marker_borrow_only_the_original_pg_comma
     c.write("pw:tables/assets#insert", &[row(1, Some(&image))])
         .assert_ok("callback did not end original owner");
     let p = c.prepare().assert_ok("original prepares");
-    assert!(publish("PostImage", candidate('c'), Arc::from(b"abc".as_slice())).is_err());
-    assert!(marker().is_err(), "prepared claims cannot be marked again");
+    refused(
+        publish("PostImage", candidate('c'), Arc::from(b"abc".as_slice())),
+        "Ended",
+    );
+    refused(marker(), "Ended");
     p.publish_with(record("handles"))
         .assert_ok("same original transaction commits");
     let mut next = db.begin().assert_ok("next original turn");
-    assert!(
-        publish("PostImage", candidate('c'), Arc::from(b"abc".as_slice())).is_err(),
-        "stale callback cannot mutate a next command"
+    refused(
+        publish("PostImage", candidate('c'), Arc::from(b"abc".as_slice())),
+        "Ended",
     );
-    assert!(marker().is_err());
+    refused(marker(), "Ended");
     next.write("pw:tables/assets#insert", &[row(2, Some(&image))])
         .assert_ok("new turn remains valid");
     next.commit()
@@ -1863,10 +1883,7 @@ fn raw_asset_interaction_waits_on_namespace_before_query_with_one_connection_and
         0,
         "receipt inspection holds no host writer turn"
     );
-    assert!(
-        observed.try_recv().is_err(),
-        "no inspection result precedes ended old transaction"
-    );
+    refused(observed.try_recv(), "Empty");
     drop(held);
     assert!(
         child

@@ -4,6 +4,17 @@
 include!("support/owned.rs");
 include!("support/assets.rs");
 use pw_host::assets::{Descriptor, Reference};
+
+/// **A refusal held to its reason** (L5a's review, finding L9): `result` is
+/// an error whose words, as its `Debug` shows them, hold `why`. A refusal for
+/// any other reason, or none, fails here.
+fn refused<T, E: std::fmt::Debug>(result: Result<T, E>, why: &str) {
+    let said = result.err().map(|e| format!("{e:?}"));
+    assert!(
+        said.as_deref().is_some_and(|said| said.contains(why)),
+        "a refusal saying {why:?}, where it said {said:?}"
+    );
+}
 fn database() -> MemoryTables {
     let p = asset_program();
     MemoryTables::new_with_uploads(p.tables, &p.uploads).assert_ok("explicit upload-bound adapter")
@@ -145,10 +156,7 @@ fn plain_stale_and_changed_refs_refuse_the_whole_row_transaction() {
     let mut c = db.begin().assert_ok("row integration remains valid");
     c.write("pw:tables/assets#insert", &[row(1, Some(&r))])
         .assert_ok("row integration remains valid");
-    assert!(
-        c.prepare().is_err(),
-        "plain data cannot create registry authority"
-    );
+    refused(c.prepare(), "asset reference names an unknown generation");
     assert_eq!(
         db.read("pw:tables/assets#get", &[json!(1)])
             .assert_ok("row integration remains valid"),
@@ -160,9 +168,9 @@ fn plain_stale_and_changed_refs_refuse_the_whole_row_transaction() {
     let mut c = db.begin().assert_ok("row integration remains valid");
     c.write("pw:tables/assets#put", &[row(1, Some(&changed))])
         .assert_ok("row integration remains valid");
-    assert!(
-        c.prepare().is_err(),
-        "same count still validates every final descriptor"
+    refused(
+        c.prepare(),
+        "row reference differs from the immutable generation descriptor",
     );
     assert_eq!(
         db.read("pw:tables/assets#get", &[json!(1)])
@@ -176,7 +184,10 @@ fn plain_stale_and_changed_refs_refuse_the_whole_row_transaction() {
     let mut c = db.begin().assert_ok("row integration remains valid");
     c.write("pw:tables/assets#insert", &[row(2, Some(&r))])
         .assert_ok("row integration remains valid");
-    assert!(c.prepare().is_err());
+    refused(
+        c.prepare(),
+        "reference is not LIVE for this declaration and has no fresh publication",
+    );
     assert!(visible(&db).is_none());
 }
 #[test]
@@ -198,7 +209,10 @@ fn ignored_publication_and_captured_old_collection_do_not_serve_or_remove_new_by
     p.publish().assert_ok("row integration remains valid");
     assert!(visible(&db).is_none());
     let c = db.begin().assert_ok("row integration remains valid");
-    assert!(c.propose_asset("PostImage", candidate('b')).is_err());
+    refused(
+        c.propose_asset("PostImage", candidate('b')),
+        "generation identity has already been reserved",
+    );
     drop(c);
     let mut c = db.begin().assert_ok("row integration remains valid");
     let old = c
@@ -228,7 +242,10 @@ fn ignored_publication_and_captured_old_collection_do_not_serve_or_remove_new_by
             .is_empty()
     );
     db.fail_closed();
-    assert!(db.asset_reference("PostImage", &old.key, "png").is_err());
+    refused(
+        db.asset_reference("PostImage", &old.key, "png"),
+        "StoragePoisoned",
+    );
 }
 
 fn multi_database() -> MemoryTables {
@@ -320,7 +337,10 @@ fn duplicate_fields_and_independent_declarations_keep_exact_final_counts_and_ser
         &[json!({"id":1,"image":r,"thumb":r,"avatar":r})],
     )
     .assert_ok("structural input");
-    assert!(c.prepare().is_err(), "Photo liveness cannot enroll Avatar");
+    refused(
+        c.prepare(),
+        "reference is not LIVE for this declaration and has no fresh publication",
+    );
     let mut c = db.begin().assert_ok("begin");
     let avatar = c
         .propose_asset("Avatar", candidate('c'))
@@ -643,16 +663,10 @@ fn captured_asset_publisher_borrows_only_its_original_memory_command_and_never_e
     c.write("pw:tables/assets#insert", &[row(1, Some(&image))])
         .assert_ok("original command still owns its turn");
     let p = c.prepare().assert_ok("original command prepares once");
-    assert!(
-        publish("PostImage", candidate('c')).is_err(),
-        "a retained function cannot mutate a prepared command"
-    );
+    refused(publish("PostImage", candidate('c')), "Ended");
     p.publish().assert_ok("original owner publishes");
     let mut next = db.begin().assert_ok("new command owns new turn");
-    assert!(
-        publish("PostImage", candidate('c')).is_err(),
-        "stale function cannot target the next command"
-    );
+    refused(publish("PostImage", candidate('c')), "Ended");
     next.write("pw:tables/assets#insert", &[row(2, Some(&image))])
         .assert_ok("stale callback did not end the new command");
     next.commit().assert_ok("new command remains valid");
