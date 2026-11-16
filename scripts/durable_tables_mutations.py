@@ -114,7 +114,10 @@ MUTANTS = [
      "                Ok(false) => return Ok(Commit::NotCurrent),\n",
      "                Ok(false) => {}\n"),
     ("a commit the database refused is answered committed", LAYER,
-     "            Err(e) => return self.refuse(format!(\"the tables did not commit: {e:?}\")),\n",
+     "            Err(e) => {\n"
+     "                self.conflicted = matches!(e, pw_table_postgres::Error::Serialization(_));\n"
+     "                return self.refuse(format!(\"the tables did not commit: {e:?}\"));\n"
+     "            }\n",
      "            Err(_) => pw_table_postgres::Committed {\n"
      "                written: Default::default(),\n"
      "                outbox: Vec::new(),\n"
@@ -258,8 +261,8 @@ MUTANTS = [
      "    fn definitely_refused(&self) -> bool {\n        self.refused\n    }\n",
      "    fn definitely_refused(&self) -> bool {\n        self.refused && false\n    }\n"),
     ("the host answers a refused commit as unknown", MAIN,
-     "                    if refused {\n                        return Err(why);\n                    }\n",
-     "                    if refused && false {\n                        return Err(why);\n                    }\n"),
+     "                    if refused {\n                        data::note_conflicted(conflicted);\n                        return Err(why);\n                    }\n",
+     "                    if refused && false {\n                        data::note_conflicted(conflicted);\n                        return Err(why);\n                    }\n"),
     ("a commit never answered is answered refused", LAYER,
      "            ) => return Err(format!(\"the tables did not commit: {e:?}\")),\n",
      "            ) => return self.refuse(format!(\"the tables did not commit: {e:?}\")),\n"),
@@ -292,6 +295,33 @@ MUTANTS = [
     ('a generic outbox trim exceeds its bounded batch', LAYER,
      '                self.tables.trim_outbox(OUTBOX_LEFT, SWEPT),\n',
      '                self.tables.trim_outbox(OUTBOX_LEFT, SWEPT + 1),\n'),
+    # An identity's lifecycle the database could not serialize is run again,
+    # at most as many times as the layer runs its own (NEXT after L3, item 3).
+    ("a lifecycle that conflicted is not run again", MAIN,
+     "                || !conflicted\n",
+     "                || true\n"),
+    ("a lifecycle is run again whatever ended it", MAIN,
+     "                || !conflicted\n",
+     "                || false\n"),
+    ("a lifecycle is run once more than the layer's attempts", MAIN,
+     "                || attempt >= LIFECYCLE_ATTEMPTS\n",
+     "                || attempt > LIFECYCLE_ATTEMPTS\n"),
+    ("a statement's conflict is not noted for the lifecycle", MAIN,
+     "                    data::note_conflicted(staging.conflicted());\n",
+     "                    data::note_conflicted(false);\n"),
+    ("a commit's conflict is not noted for the lifecycle", MAIN,
+     "                        data::note_conflicted(conflicted);\n",
+     "                        data::note_conflicted(false);\n"),
+    ("a statement that met a serialization failure leaves no conflict", LIB,
+     "            .is_ok_and(|open| matches!(open.failed, Some(Error::Serialization(_))))\n",
+     "            .is_ok_and(|_| false)\n"),
+    ("a commit the database could not serialize leaves no conflict", LAYER,
+     "            Err(e) => {\n"
+     "                self.conflicted = matches!(e, pw_table_postgres::Error::Serialization(_));\n"
+     "                return self.refuse(format!(\"the tables did not commit: {e:?}\"));\n",
+     "            Err(e) => {\n"
+     "                self.conflicted = false;\n"
+     "                return self.refuse(format!(\"the tables did not commit: {e:?}\"));\n"),
 ]
 
 # Each Cargo test binary apart: names can repeat between binaries, and the

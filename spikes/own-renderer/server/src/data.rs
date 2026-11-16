@@ -396,6 +396,38 @@ pub(crate) trait Staged {
     fn definitely_refused(&self) -> bool {
         false
     }
+
+    /// **Whether the command failed as the database could not serialize it
+    /// against another** (a serialization failure or a deadlock, SQLSTATE
+    /// 40001 or 40P01; NEXT after L3, item 3): a statement of it or its
+    /// commit met it, its transaction kept nothing, and run again from its
+    /// beginning it may commit. A browser's client runs such a command again
+    /// (its refusal), and the platform runs again the one no client sends,
+    /// an identity's lifecycle (`Server::identity_answer`). Only a layer
+    /// whose commands run beside each other's has one; by default, never.
+    fn conflicted(&self) -> bool {
+        false
+    }
+}
+
+thread_local! {
+    /// What [`Staged::conflicted`] said of the last command this thread ran,
+    /// as its failure left it: its error is a `String` from there on, as it
+    /// is answered, and the one caller that runs such a command again
+    /// (`Server::identity_answer`) reads it here, as the refusal's predicate
+    /// is read (`identity::take_refusal`).
+    static CONFLICTED: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// Note what the failed command's staging said of a conflict.
+pub(crate) fn note_conflicted(conflicted: bool) {
+    CONFLICTED.with(|noted| noted.set(conflicted));
+}
+
+/// **Whether the last command this thread ran failed in a conflict**, and
+/// forget it.
+pub(crate) fn take_conflicted() -> bool {
+    CONFLICTED.with(|noted| noted.replace(false))
 }
 
 /// **The guard of a layer's writes** (ADR-0218, ADR-0352): one command of

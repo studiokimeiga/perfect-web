@@ -25,13 +25,18 @@ lifecycle and owned Clock actions. What stays open, in order:
    kept beside its `sub` (guest ids and `sub` values share one owner
    namespace today), each with a test that fails without it.
 3. **A lifecycle that does not commit strands the guest's rows** (the
-   review's third): the proof is spent and nothing retries the merge; a
-   bounded retry of a serialization failure inside the proof's lifetime,
-   or the guest's rows kept reachable to a later merge, with a test that
-   races the account's own write against it.
-4. **The owned Clock witness stands twice**: `tests::protected_migration`'s
-   (L3's, `4f80e543`) and `tests::owned_clock` (L2's port of it): keep one,
-   each script's controls held to the one kept.
+   review's third). Its named case is done (ADR-0440, amended 2026-11-16):
+   a lifecycle the database could not serialize against the account's own
+   write runs again, at most four times, while its proof holds, raced by a
+   second host in the test. Open: a lifecycle that never ran (a host gone
+   between the account's opening and its lifecycle), which a merge
+   recorded beside the guest's rows would cover, and a browser command's
+   conflict run again by the platform (L1's item 5).
+4. **The owned Clock witness stands twice**: done (2026-11-16, with item 3's
+   change): `tests::owned_clock` (L2's) is kept, which `e14-durable-tables`
+   names, and `tests::protected_migration`'s copy (L3's, `4f80e543`) is gone
+   with its program; `durable_tables_mutations.py` runs both modules, so its
+   controls hold to the one kept.
 5. **L4, bounded reads** (ADR-0440's fifth prerequisite): merge `ff57edc7`,
    its CI records only (1,370 receipts).
 6. **L5, declared uploads** (its fourth): finish `018fad14`, then merge.

@@ -254,6 +254,7 @@ impl DataLayer for TablesPg {
             actor: None,
             authorization: Authorization::NotAttempted,
             refused: false,
+            conflicted: false,
         })
     }
 
@@ -430,6 +431,9 @@ pub(crate) struct PgStaging<'a> {
     authorization: Authorization,
     /// The commit failed knowing it kept nothing ([`Staged::definitely_refused`]).
     refused: bool,
+    /// And it failed as the database could not serialize it
+    /// ([`Staged::conflicted`]).
+    conflicted: bool,
 }
 
 impl PgStaging<'_> {
@@ -761,7 +765,10 @@ impl Staged for PgStaging<'_> {
         }
         let prepared = match command.prepare() {
             Ok(prepared) => prepared,
-            Err(e) => return self.refuse(format!("the tables refused the commit: {e:?}")),
+            Err(e) => {
+                self.conflicted = matches!(e, pw_table_postgres::Error::Serialization(_));
+                return self.refuse(format!("the tables refused the commit: {e:?}"));
+            }
         };
         let committed = match prepared.publish_with(Records {
             interaction: interaction.map(|r| pw_table_postgres::Interaction {
@@ -783,7 +790,10 @@ impl Staged for PgStaging<'_> {
             ) => return Err(format!("the tables did not commit: {e:?}")),
             // Rolled back, as the database answered: a serialization
             // failure, a deadlock, a refusal, a statement that failed.
-            Err(e) => return self.refuse(format!("the tables did not commit: {e:?}")),
+            Err(e) => {
+                self.conflicted = matches!(e, pw_table_postgres::Error::Serialization(_));
+                return self.refuse(format!("the tables did not commit: {e:?}"));
+            }
         };
         *self.turn.get_mut() = Turn::Committed;
         // Every host has a cursor. Local delivery leaves the retained log
@@ -801,6 +811,15 @@ impl Staged for PgStaging<'_> {
 
     fn definitely_refused(&self) -> bool {
         self.refused
+    }
+
+    /// A statement met a serialization failure (the open command says so),
+    /// or the commit did.
+    fn conflicted(&self) -> bool {
+        match self.turn.try_borrow().as_deref() {
+            Ok(Turn::Open(command)) => command.conflicted(),
+            _ => self.conflicted,
+        }
     }
 }
 

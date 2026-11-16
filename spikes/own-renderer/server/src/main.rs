@@ -279,6 +279,11 @@ impl Subscriber {
     }
 }
 
+/// **How many times an identity's lifecycle is run, at most, where the
+/// database could not serialize it** (`Server::identity_answer`): as many
+/// as the data layer runs a transaction of its own (`pw_table_postgres::ATTEMPTS`).
+const LIFECYCLE_ATTEMPTS: u32 = pw_table_postgres::ATTEMPTS;
+
 /// How long the kitchen takes to answer (E14, T02): long enough that pages
 /// opened together are asking at once.
 const KITCHEN_MS: u64 = 300;
@@ -1329,6 +1334,10 @@ struct Server {
     before_commit: Mutex<Option<KeyedFetched>>,
     #[cfg(test)]
     before_command_authority: Mutex<Option<KeyedFetched>>,
+    /// A test's: told a command's component and session once its
+    /// transaction has begun, fenced on its reader's session.
+    #[cfg(test)]
+    after_command_authority: Mutex<Option<CommandObserved>>,
     #[cfg(test)]
     before_command_delivery: Mutex<Option<KeyedFetched>>,
     #[cfg(test)]
@@ -2350,6 +2359,8 @@ impl Server {
             #[cfg(test)]
             before_command_authority: Mutex::new(None),
             #[cfg(test)]
+            after_command_authority: Mutex::new(None),
+            #[cfg(test)]
             before_command_delivery: Mutex::new(None),
             #[cfg(test)]
             after_page_admission: Mutex::new(None),
@@ -2640,10 +2651,63 @@ impl Server {
         }
     }
 
+    /// **An identity's lifecycle, answered** (ADR-0440), and **run again
+    /// where the database could not serialize it** (NEXT after L3, item 3):
+    /// no client sends it again, as a browser's client does a refused press,
+    /// and the proof it runs under ends with the sign-in's request, so a
+    /// lifecycle that met the account's own write on another device (a
+    /// serialization failure, SQLSTATE 40001) left the guest's rows where
+    /// nothing would read them again. Run again in a transaction of its own
+    /// while its proof holds, under the same interaction, whose record
+    /// answers it where an attempt committed; at most
+    /// [`LIFECYCLE_ATTEMPTS`] times, as the data layer runs its own
+    /// (`pw_table_postgres::ATTEMPTS`). Any other end is its answer.
     fn identity_answer(&self, component: &str, session: &str) -> Result<Answered, String> {
-        // Keep the immutable target actor checks around fresh execution and
-        // receipt replay alike; proof presence alone is not current authority.
-        self.command_answer(component, session, &[], Some("identity-joined"))
+        let mut attempt = 1;
+        loop {
+            data::take_conflicted();
+            // Keep the immutable target actor checks around fresh execution and
+            // receipt replay alike; proof presence alone is not current authority.
+            let answer = self.command_answer(component, session, &[], Some("identity-joined"));
+            let conflicted = data::take_conflicted();
+            if answer.as_ref().is_ok_and(|answer| answer.committed)
+                || !conflicted
+                || attempt >= LIFECYCLE_ATTEMPTS
+            {
+                return answer;
+            }
+            // The attempt kept nothing, so it has no outcome to share: what
+            // the host reserved of it for its interaction (ADR-0121) is let
+            // go, or the next attempt is handed it and nothing runs. Its
+            // record, which a commit writes, still answers any attempt that
+            // committed.
+            self.forget_reserved(session, component, "identity-joined", &[]);
+            attempt += 1;
+        }
+    }
+
+    /// **Let go of what the host reserved of an interaction's outcome**
+    /// (ADR-0121): its shared result and its place in the session's queue,
+    /// so that the interaction, sent again, runs. Only for an outcome known to
+    /// have kept nothing.
+    fn forget_reserved(
+        &self,
+        session: &str,
+        component: &str,
+        id: &str,
+        args: &[serde_json::Value],
+    ) {
+        let (_, cache_key, _) = self.receipt_keys(session, component, id, args);
+        // A finished outcome it was: the attempt ended before this.
+        let _ = self.commands.forget_command(&cache_key);
+        if let Some(queue) = self
+            .interactions
+            .lock()
+            .expect("interactions")
+            .get_mut(session)
+        {
+            queue.retain(|(key, _)| *key != cache_key);
+        }
     }
 
     /// How many items the data layer holds for the session: the tests' view
@@ -3328,6 +3392,17 @@ impl Server {
             if let Some(actor) = &actor {
                 staging.authorize(actor)?;
             }
+            // A test's: the command's transaction begun, as its reader's
+            // session fenced it, and nothing of it read or written yet.
+            #[cfg(test)]
+            if let Some(hook) = self
+                .after_command_authority
+                .lock()
+                .expect("authorized hook")
+                .take()
+            {
+                hook(self, component_id, session);
+            }
             let mut host = staging.ops();
             // The host's own operations are its routes', never a
             // component's (track `store-pg`).
@@ -3376,7 +3451,16 @@ impl Server {
             // TRACK SEAM (tables): its tables' reads and writes, staged in
             // this command's transaction, as the gate admits them.
             let tables = StagedTables(&*staging);
-            let out = self.run(component_id, session, &host, &tables, args)?;
+            let out = match self.run(component_id, session, &host, &tables, args) {
+                Ok(out) => out,
+                // A statement the database could not serialize failed it:
+                // said, for the one caller that runs it again (NEXT after
+                // L3, item 3).
+                Err(why) => {
+                    data::note_conflicted(staging.conflicted());
+                    return Err(why);
+                }
+            };
             let result = out.first().map(answer_json);
             if let [Val::Result(Err(_))] = out.as_slice() {
                 staging.revalidate()?;
@@ -3475,12 +3559,14 @@ impl Server {
                     // it never reached its COMMIT) is answered refused, at
                     // once: there is nothing to reconcile.
                     let refused = staging.definitely_refused();
+                    let conflicted = staging.conflicted();
                     drop(out);
                     drop(host);
                     drop(staged_events);
                     drop(staging);
                     drop(memory_hold.take());
                     if refused {
+                        data::note_conflicted(conflicted);
                         return Err(why);
                     }
                     self.refresh_uncertain_browser(session, &invalidated, &emitted);
