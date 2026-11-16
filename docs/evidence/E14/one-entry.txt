@@ -1,8 +1,8 @@
 ADR-0312 - a page and its layout show one entry by one value
 
 produced by: just e14-one-entry
-commit: a3cab774e9569baddae69bd0d294487eaa3b697e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -20,25 +20,25 @@ test a_page_is_shown_in_its_layout_whose_parts_are_numbered_first ... ok
 test layout_is_a_declaration_and_a_clause_only_where_a_name_follows ... ok
 test a_page_names_one_layout_and_a_layout_is_given_nothing ... ok
 test what_a_layout_shows_is_its_pages_for_the_shared_cache ... ok
-test its_plan_reads_the_layouts_bindings_under_names_no_source_writes ... ok
 test a_slot_is_its_layouts_once_at_the_top_and_empty ... ok
-test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 39.10s
+test its_plan_reads_the_layouts_bindings_under_names_no_source_writes ... ok
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 19.90s
 
 == the module run under Node (compiler/pw-conformance/tests/speculation.rs)
 
 test a_speculated_value_read_inside_a_block_is_refused_by_name ... ok
 test the_stores_transitions_run_and_its_parts_read_the_result ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.14s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.16s
 
 == the host: one entry for the store's cart
 
 test tests::a_page_and_its_layout_show_one_entry_by_one_value ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1094 filtered out; finished in 11.67s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1094 filtered out; finished in 6.69s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
 
 == the layout's count, in three engines (e2e/layouts.spec.mjs)
 
-  12 passed (23.9s)
+  12 passed (16.6s)
 
 == mutation controls (scripts/one_entry_mutations.py)
 

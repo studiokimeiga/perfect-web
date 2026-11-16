@@ -1,8 +1,8 @@
 ADR-0185 - ids, and the ARIA that names them, checked at build
 
 produced by: just e14-ids
-commit: a3cab774e9569baddae69bd0d294487eaa3b697e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the rules (compiler/pw-core/tests/ids_and_aria.rs, labels.rs)
@@ -12,11 +12,11 @@ test aria_is_what_wai_aria_defines ... ok
 test an_id_names_one_element_of_its_page ... ok
 test a_reference_names_an_element_shown_whenever_the_referrer_is ... ok
 test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
-test a_button_is_refused_with_the_repair_a_button_takes ... ok
 test a_button_input_with_no_value_has_no_label ... ok
+test a_button_is_refused_with_the_repair_a_button_takes ... ok
 test a_blank_aria_label_names_nothing ... ok
-test a_button_whose_value_is_blank_has_no_label ... ok
 test a_button_is_named_by_its_value ... ok
+test a_button_whose_value_is_blank_has_no_label ... ok
 test a_hidden_input_is_no_control ... ok
 test a_button_with_no_label_of_its_own_is_named_as_any_control_is ... ok
 test a_control_and_what_names_it_are_read_whatever_their_case ... ok
@@ -25,14 +25,14 @@ test a_reference_to_an_id_every_row_has_is_its_ids_defect_alone ... ok
 test a_label_names_its_control_only_when_it_has_text ... ok
 test a_wrapping_label_names_only_its_first_control ... ok
 test an_id_inside_each_names_no_one_row ... ok
-test a_reset_or_submit_button_with_no_value_has_the_label_html_gives_it ... ok
 test a_label_that_wraps_its_control_names_it ... ok
+test a_reset_or_submit_button_with_no_value_has_the_label_html_gives_it ... ok
+test an_image_button_is_named_by_its_alt_and_reported_once ... ok
 test only_an_input_has_a_type ... ok
 test an_id_names_nothing_by_itself ... ok
-test an_image_button_is_named_by_its_alt_and_reported_once ... ok
-test which_control_a_label_names_must_not_depend_on_what_renders ... ok
 test aria_labelledby_must_reach_an_element_with_text ... ok
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.44s
+test which_control_a_label_names_must_not_depend_on_what_renders ... ok
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.45s
 
 == the corpus at C10 (corpus-check, corpus_history.rs, generality.rs, checking_source.rs)
 
@@ -42,17 +42,17 @@ rejected: 106 files
 rejected: 106/106 charter §16 categories covered
 corpus-check: OK
 test a_caught_file_conveys_every_fact_its_expect_error_lines_declare ... ok
-test every_rejected_fixture_emits_only_its_own_defect ... ok
 test every_rejected_fixtures_rule_is_a_code_its_check_reports ... ok
+test every_rejected_fixture_emits_only_its_own_defect ... ok
 test every_diagnostic_carries_what_charter_16_3_requires has been running for over 60 seconds
 test every_diagnostic_carries_what_charter_16_3_requires ... ok
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 150.98s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 150.80s
 test the_c10_texts_are_reported_where_their_defects_are ... ok
 test the_c9_texts_are_still_caught_for_their_invariant_and_refused_for_the_title ... ok
 test the_pre_change_text_of_every_repaired_fixture_still_fails ... ok
-test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 8.09s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 8.27s
 test generality_is_reported_separately_from_conformance ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 147.21s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 155.68s
 
 == every program the repository checks
 

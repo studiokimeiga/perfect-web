@@ -11,19 +11,19 @@ already checks.
 test boundary::tests::a_resource_cannot_cross_either_boundary ... ok
 test boundary::tests::a_resource_is_reported_as_a_resource_even_when_it_is_also_private ... ok
 test boundary::tests::a_scope_from_the_producer_counts_even_when_the_label_is_public ... ok
-test boundary::tests::an_unknown_destination_blocks_a_restricted_value_and_not_a_public_one ... ok
 test boundary::tests::public_flows_into_a_restricted_destination_at_both_boundaries ... ok
-test boundary::tests::disagreeing_producers_scopes_are_joined_and_refuse_what_either_alone_would ... ok
 test boundary::tests::an_undetermined_schema_is_blocked_and_not_permitted ... ok
+test boundary::tests::disagreeing_producers_scopes_are_joined_and_refuse_what_either_alone_would ... ok
+test boundary::tests::an_unknown_destination_blocks_a_restricted_value_and_not_a_public_one ... ok
+test boundary::tests::remote_session_a_into_session_a_is_allowed ... ok
 test boundary::tests::remote_session_a_into_session_b_is_refused ... ok
 test boundary::tests::resume_session_a_into_public_is_refused ... ok
 test boundary::tests::resume_session_a_into_session_a_is_allowed ... ok
 test boundary::tests::the_label_and_the_producer_scope_are_joined_rather_than_chosen ... ok
-test boundary::tests::remote_session_a_into_session_a_is_allowed ... ok
 test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 186 filtered out; finished in 0.00s
-test binding::tests::a_resource_in_an_argument_refuses_the_edge ... ok
 test binding::tests::a_resource_in_a_result_refuses_it_too ... ok
 test binding::tests::a_session_scoped_type_is_conditional_rather_than_remotable ... ok
+test binding::tests::a_resource_in_an_argument_refuses_the_edge ... ok
 test binding::tests::an_undetermined_position_is_neither_refused_nor_transferable ... ok
 test binding::tests::a_page_returns_nothing_and_that_is_not_undetermined ... ok
 test resolve::tests::an_each_rows_name_is_a_local_binding ... ok
@@ -43,19 +43,19 @@ test a_user_querys_record_is_its_users_and_no_public_manifest_holds_it ... ok
 test the_same_value_in_a_public_region_is_still_refused ... ok
 test a_record_a_sessions_and_a_users_query_both_produce_holds_both_scopes ... ok
 test the_resume_capture_verdicts_the_corpus_carries ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.33s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.35s
 test a_necessarily_remote_edge_that_owes_a_principal_is_not_a_finished_plan ... ok
 test an_edge_whose_ends_share_no_node_is_necessarily_remote ... ok
 test an_undetermined_signature_does_not_refuse_a_deployment ... ok
-test a_topology_that_grants_nothing_cannot_host_the_privileged_components ... ok
 test a_refused_component_carries_the_reason_from_every_node ... ok
+test a_topology_that_grants_nothing_cannot_host_the_privileged_components ... ok
 test placement_and_transferability_are_independent_and_only_one_pair_fails ... ok
 test an_import_naming_nothing_is_dangling_rather_than_silently_ignored ... ok
 test can_be_local_is_disjointness_of_candidate_sets ... ok
-test every_edge_in_the_store_program_can_be_bound ... ok
 test the_planner_agrees_with_admit_on_every_pair ... ok
+test every_edge_in_the_store_program_can_be_bound ... ok
 test the_store_program_is_deployable_on_a_topology_that_serves_it ... ok
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 
 and what the store's exports say about themselves:
 

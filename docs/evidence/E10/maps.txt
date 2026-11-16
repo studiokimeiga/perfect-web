@@ -1,8 +1,8 @@
 ADR-0057 - maps and sets
 
 produced by: just e10-maps
-commit: a3cab774e9569baddae69bd0d294487eaa3b697e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
@@ -24,7 +24,7 @@ javascript: 5 queries over trees, 1000 calls, component and module agree (155 tr
 javascript: 5 queries over values held in place, 1000 calls, component and module agree (132 trapped in both)
 javascript: 103 queries, 20600 calls, component and module agree (1424 trapped in both)
 test the_modules_entry_check_is_the_components ... ok
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 100.63s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 99.41s
 
 == mutation controls (scripts/map_mutations.py)
 

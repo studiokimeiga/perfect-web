@@ -1,16 +1,17 @@
 Qualified Device reads retain type and privacy
 produced by: just e14-qualified-device
-commit: a3cab774e9569baddae69bd0d294487eaa3b697e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 test_native_operand_unwrap_earns_no_assertion_kill (test_qualified_device_results.AssertionProvenance.test_native_operand_unwrap_earns_no_assertion_kill) ... ok
 
 ----------------------------------------------------------------------
-Ran 1 test in 0.069s
+Ran 1 test in 0.098s
 
 OK
    Compiling pw-core v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-core)
-    Finished `test` profile [unoptimized] target(s) in 10.55s
+   Compiling pw-render v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-render)
+    Finished `test` profile [unoptimized] target(s) in 17.46s
      Running tests/qualified_device.rs (target/debug/deps/qualified_device-97f60bb28877c3cd)
 
 running 5 tests
@@ -20,7 +21,7 @@ test lexical_record_and_signal_names_do_not_read_a_module_device_value ... ok
 test a_captured_public_record_prefix_does_not_steal_the_device_origin ... ok
 test qualified_and_selectively_imported_device_arguments_are_refused_at_their_declaration ... ok
 
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.49s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.11s
 
 
 running 5 tests
@@ -30,7 +31,7 @@ test a_captured_public_record_prefix_does_not_steal_the_device_origin ... ok
 test lexical_record_and_signal_names_do_not_read_a_module_device_value ... ok
 test qualified_and_selectively_imported_device_arguments_are_refused_at_their_declaration ... ok
 
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.49s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.10s
 
 
 baseline: 5 passed, 0 failed
@@ -46,7 +47,7 @@ failures:
 
 ---- qualified_and_selectively_imported_device_arguments_are_refused_at_their_declaration stdout ----
 
-thread 'qualified_and_selectively_imported_device_arguments_are_refused_at_their_declaration' (260835) panicked at compiler/pw-core/tests/qualified_device.rs:81:9:
+thread 'qualified_and_selectively_imported_device_arguments_are_refused_at_their_declaration' (74567) panicked at compiler/pw-core/tests/qualified_device.rs:81:9:
 assertion `left == right` failed: []
   left: []
  right: ["PW6801"]
@@ -54,7 +55,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- qualified_device_arguments_keep_their_declared_value_type stdout ----
 
-thread 'qualified_device_arguments_keep_their_declared_value_type' (260837) panicked at compiler/pw-core/tests/qualified_device.rs:120:5:
+thread 'qualified_device_arguments_keep_their_declared_value_type' (74569) panicked at compiler/pw-core/tests/qualified_device.rs:120:5:
 [Diagnostic { code: "PW0605", invariant: "a value given for a declared parameter or field must have its declared type", reason: "argument_type_disagrees_with_declaration", detector: Signature, severity: Error, message: "argument 1 of `app.send` is declared `Int` and this is `String`", primary_span: 385..395, related: [Related { span: 85..94, label: "declared `Int` here", file: None, unit: None }, Related { span: 380..396, label: "in this call to `app.send`", file: None, unit: None }], explanation: Some("a value passed to a declared parameter or field must have the declared type; two types with one representation are still two types"), repairs: [Repair { description: "pass a `Int`, or change the declaration", replacement: None }] }]
 
 
@@ -62,7 +63,7 @@ failures:
     qualified_and_selectively_imported_device_arguments_are_refused_at_their_declaration
     qualified_device_arguments_keep_their_declared_value_type
 
-test result: FAILED. 3 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s
+test result: FAILED. 3 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.70s
 
 error: test failed, to rerun pass `-p pw-core --test qualified_device`
 
@@ -79,7 +80,7 @@ failures:
 
 ---- lexical_record_and_signal_names_do_not_read_a_module_device_value stdout ----
 
-thread 'lexical_record_and_signal_names_do_not_read_a_module_device_value' (261183) panicked at compiler/pw-core/tests/qualified_device.rs:138:9:
+thread 'lexical_record_and_signal_names_do_not_read_a_module_device_value' (74915) panicked at compiler/pw-core/tests/qualified_device.rs:138:9:
 [Diagnostic { code: "PW6801", invariant: "a value the device keeps is no command's argument, and decides no command's call: a command runs on the server", reason: "device_value_to_a_command", detector: DeclarationRule, severity: Error, message: "this value holds what this device keeps, and `send`'s argument is sent to the server", primary_span: 446..456, related: [Related { span: 446..456, label: "this value holds what the device keeps", file: None, unit: None }], explanation: Some("A signal declared `privacy Device` belongs to this device and never leaves it (charter §7.8, ADR-0366): the browser keeps it, reads it and renders what it decides, and no server is told it. Its label follows every value made from it (ADR-0129)."), repairs: [Repair { description: "give the command what the server may know, or change the device's value in the handler instead of a command", replacement: None }] }]
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -87,7 +88,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     lexical_record_and_signal_names_do_not_read_a_module_device_value
 
-test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.42s
+test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.01s
 
 error: test failed, to rerun pass `-p pw-core --test qualified_device`
 
@@ -96,15 +97,15 @@ a lexical record borrows the modules Device label: KILLED (1 of 5 assertions fai
 running 5 tests
 test qualified_browser_only_read_still_refuses_unsupported_backend_lowering ... ok
 test qualified_device_arguments_keep_their_declared_value_type ... FAILED
-test lexical_record_and_signal_names_do_not_read_a_module_device_value ... ok
 test a_captured_public_record_prefix_does_not_steal_the_device_origin ... ok
+test lexical_record_and_signal_names_do_not_read_a_module_device_value ... ok
 test qualified_and_selectively_imported_device_arguments_are_refused_at_their_declaration ... ok
 
 failures:
 
 ---- qualified_device_arguments_keep_their_declared_value_type stdout ----
 
-thread 'qualified_device_arguments_keep_their_declared_value_type' (261536) panicked at compiler/pw-core/tests/qualified_device.rs:114:5:
+thread 'qualified_device_arguments_keep_their_declared_value_type' (75267) panicked at compiler/pw-core/tests/qualified_device.rs:114:5:
 [Diagnostic { code: "PW6801", invariant: "a value the device keeps is no command's argument, and decides no command's call: a command runs on the server", reason: "device_value_to_a_command", detector: DeclarationRule, severity: Error, message: "`prefs.word` is kept on this device, and `send`'s argument is sent to the server", primary_span: 385..395, related: [Related { span: 20..24, label: "`prefs.word` is kept on the device, `privacy Device`, here", file: Some("prefs.pw"), unit: Some(22) }], explanation: Some("A signal declared `privacy Device` belongs to this device and never leaves it (charter §7.8, ADR-0366): the browser keeps it, reads it and renders what it decides, and no server is told it. Its label follows every value made from it (ADR-0129)."), repairs: [Repair { description: "give the command what the server may know, or change the device's value in the handler instead of a command", replacement: None }] }]
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -112,7 +113,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     qualified_device_arguments_keep_their_declared_value_type
 
-test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.49s
+test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.09s
 
 error: test failed, to rerun pass `-p pw-core --test qualified_device`
 
@@ -129,7 +130,7 @@ failures:
 
 ---- qualified_and_selectively_imported_device_arguments_are_refused_at_their_declaration stdout ----
 
-thread 'qualified_and_selectively_imported_device_arguments_are_refused_at_their_declaration' (261883) panicked at compiler/pw-core/tests/qualified_device.rs:81:9:
+thread 'qualified_and_selectively_imported_device_arguments_are_refused_at_their_declaration' (75614) panicked at compiler/pw-core/tests/qualified_device.rs:81:9:
 assertion `left == right` failed: []
   left: []
  right: ["PW6801"]
@@ -137,7 +138,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- qualified_device_arguments_keep_their_declared_value_type stdout ----
 
-thread 'qualified_device_arguments_keep_their_declared_value_type' (261885) panicked at compiler/pw-core/tests/qualified_device.rs:120:5:
+thread 'qualified_device_arguments_keep_their_declared_value_type' (75616) panicked at compiler/pw-core/tests/qualified_device.rs:120:5:
 [Diagnostic { code: "PW0605", invariant: "a value given for a declared parameter or field must have its declared type", reason: "argument_type_disagrees_with_declaration", detector: Signature, severity: Error, message: "argument 1 of `app.send` is declared `Int` and this is `String`", primary_span: 385..395, related: [Related { span: 85..94, label: "declared `Int` here", file: None, unit: None }, Related { span: 380..396, label: "in this call to `app.send`", file: None, unit: None }], explanation: Some("a value passed to a declared parameter or field must have the declared type; two types with one representation are still two types"), repairs: [Repair { description: "pass a `Int`, or change the declaration", replacement: None }] }]
 
 
@@ -145,7 +146,7 @@ failures:
     qualified_and_selectively_imported_device_arguments_are_refused_at_their_declaration
     qualified_device_arguments_keep_their_declared_value_type
 
-test result: FAILED. 3 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s
+test result: FAILED. 3 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.70s
 
 error: test failed, to rerun pass `-p pw-core --test qualified_device`
 
@@ -162,7 +163,7 @@ failures:
 
 ---- qualified_and_selectively_imported_device_arguments_are_refused_at_their_declaration stdout ----
 
-thread 'qualified_and_selectively_imported_device_arguments_are_refused_at_their_declaration' (262232) panicked at compiler/pw-core/tests/qualified_device.rs:86:9:
+thread 'qualified_and_selectively_imported_device_arguments_are_refused_at_their_declaration' (75964) panicked at compiler/pw-core/tests/qualified_device.rs:86:9:
 [Diagnostic { code: "PW6801", invariant: "a value the device keeps is no command's argument, and decides no command's call: a command runs on the server", reason: "device_value_to_a_command", detector: DeclarationRule, severity: Error, message: "this value holds what this device keeps, and `send`'s argument is sent to the server", primary_span: 388..398, related: [Related { span: 388..398, label: "this value holds what the device keeps", file: None, unit: None }], explanation: Some("A signal declared `privacy Device` belongs to this device and never leaves it (charter §7.8, ADR-0366): the browser keeps it, reads it and renders what it decides, and no server is told it. Its label follows every value made from it (ADR-0129)."), repairs: [Repair { description: "give the command what the server may know, or change the device's value in the handler instead of a command", replacement: None }] }]
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -170,7 +171,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     qualified_and_selectively_imported_device_arguments_are_refused_at_their_declaration
 
-test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s
+test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.70s
 
 error: test failed, to rerun pass `-p pw-core --test qualified_device`
 
@@ -187,7 +188,7 @@ failures:
 
 ---- qualified_and_selectively_imported_device_arguments_are_refused_at_their_declaration stdout ----
 
-thread 'qualified_and_selectively_imported_device_arguments_are_refused_at_their_declaration' (262581) panicked at compiler/pw-core/tests/qualified_device.rs:81:9:
+thread 'qualified_and_selectively_imported_device_arguments_are_refused_at_their_declaration' (76313) panicked at compiler/pw-core/tests/qualified_device.rs:81:9:
 assertion `left == right` failed: []
   left: []
  right: ["PW6801"]
@@ -195,7 +196,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- qualified_device_arguments_keep_their_declared_value_type stdout ----
 
-thread 'qualified_device_arguments_keep_their_declared_value_type' (262583) panicked at compiler/pw-core/tests/qualified_device.rs:120:5:
+thread 'qualified_device_arguments_keep_their_declared_value_type' (76315) panicked at compiler/pw-core/tests/qualified_device.rs:120:5:
 [Diagnostic { code: "PW0605", invariant: "a value given for a declared parameter or field must have its declared type", reason: "argument_type_disagrees_with_declaration", detector: Signature, severity: Error, message: "argument 1 of `app.send` is declared `Int` and this is `String`", primary_span: 385..395, related: [Related { span: 85..94, label: "declared `Int` here", file: None, unit: None }, Related { span: 380..396, label: "in this call to `app.send`", file: None, unit: None }], explanation: Some("a value passed to a declared parameter or field must have the declared type; two types with one representation are still two types"), repairs: [Repair { description: "pass a `Int`, or change the declaration", replacement: None }] }]
 
 
@@ -203,7 +204,7 @@ failures:
     qualified_and_selectively_imported_device_arguments_are_refused_at_their_declaration
     qualified_device_arguments_keep_their_declared_value_type
 
-test result: FAILED. 3 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.30s
+test result: FAILED. 3 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.71s
 
 error: test failed, to rerun pass `-p pw-core --test qualified_device`
 
@@ -220,7 +221,7 @@ failures:
 
 ---- a_captured_public_record_prefix_does_not_steal_the_device_origin stdout ----
 
-thread 'a_captured_public_record_prefix_does_not_steal_the_device_origin' (262928) panicked at compiler/pw-core/tests/qualified_device.rs:205:9:
+thread 'a_captured_public_record_prefix_does_not_steal_the_device_origin' (76660) panicked at compiler/pw-core/tests/qualified_device.rs:205:9:
 prefs: Diagnostic { code: "PW6801", invariant: "a value the device keeps is no command's argument, and decides no command's call: a command runs on the server", reason: "device_value_to_a_command", detector: DeclarationRule, severity: Error, message: "`prefs.word` is kept on this device, and `send`'s argument is sent to the server", primary_span: 418..441, related: [Related { span: 20..24, label: "`prefs.word` is kept on the device, `privacy Device`, here", file: Some("prefs.pw"), unit: Some(22) }], explanation: Some("A signal declared `privacy Device` belongs to this device and never leaves it (charter §7.8, ADR-0366): the browser keeps it, reads it and renders what it decides, and no server is told it. Its label follows every value made from it (ADR-0129)."), repairs: [Repair { description: "give the command what the server may know, or change the device's value in the handler instead of a command", replacement: None }] }
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -228,7 +229,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_captured_public_record_prefix_does_not_steal_the_device_origin
 
-test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.40s
+test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.92s
 
 error: test failed, to rerun pass `-p pw-core --test qualified_device`
 

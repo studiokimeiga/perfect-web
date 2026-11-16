@@ -1,14 +1,14 @@
 ADR-0038 - every match is analysed, and each pattern against its own type
 
 produced by: just e10-match
-commit: a3cab774e9569baddae69bd0d294487eaa3b697e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the checker (compiler/pw-core/tests/match_exhaustiveness.rs)
 
-test a_call_returning_a_declared_sum_type_is_checked ... ok
 test a_declared_option_parameter_is_checked_too ... ok
+test a_call_returning_a_declared_sum_type_is_checked ... ok
 test a_field_count_is_checked_at_any_depth_and_in_every_arm ... ok
 test a_name_an_arm_binds_again_is_not_read_as_the_parameter ... ok
 test a_literal_is_one_value_of_its_type ... ok
@@ -16,31 +16,31 @@ test a_result_match_without_err_is_refused ... ok
 test a_nested_pattern_is_read_against_its_fields_type ... ok
 test a_pattern_nested_under_some_is_analysed ... ok
 test a_constructor_its_type_lacks_is_refused_not_read_as_a_wildcard ... ok
-test an_option_match_without_none_is_refused ... ok
 test a_return_in_an_arm_is_not_a_phantom_arm ... ok
+test an_option_match_without_none_is_refused ... ok
 test the_kiokun_slices_matches_are_proven_now ... ok
 test a_type_no_pattern_takes_apart_is_matched_by_a_name_only ... ok
-test what_the_analysis_cannot_read_is_blocked_not_proven ... ok
 test exhaustive_matches_pass ... ok
-test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.86s
+test what_the_analysis_cannot_read_is_blocked_not_proven ... ok
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.18s
 
 == the analysis (compiler/pw-core/src/exhaust.rs)
 
 test exhaust::tests::a_right_nested_or_chain_expands_completely ... ok
-test exhaust::tests::bool_needs_both_arms ... ok
 test exhaust::tests::a_blocked_analysis_is_not_a_proof_of_exhaustiveness ... ok
 test exhaust::tests::a_pattern_whose_arity_disagrees_with_its_constructor_does_not_crash ... ok
 test exhaust::tests::a_nested_pattern_is_validated_against_its_fields_type ... ok
-test exhaust::tests::complete_match_is_exhaustive ... ok
+test exhaust::tests::bool_needs_both_arms ... ok
 test exhaust::tests::empty_arm_list_over_a_finite_type_reports_every_constructor ... ok
-test exhaust::tests::missing_variants_are_named_not_merely_counted ... ok
+test exhaust::tests::complete_match_is_exhaustive ... ok
 test exhaust::tests::infinite_types_always_need_a_wildcard ... ok
 test exhaust::tests::opaque_types_cannot_be_matched_structurally ... ok
+test exhaust::tests::missing_variants_are_named_not_merely_counted ... ok
 test exhaust::tests::nested_patterns_find_nested_gaps ... ok
-test exhaust::tests::recursive_list_type_terminates_and_reports_cons ... ok
-test exhaust::tests::unreachable_arms_are_reported ... ok
 test exhaust::tests::or_patterns_count_toward_coverage ... ok
+test exhaust::tests::recursive_list_type_terminates_and_reports_cons ... ok
 test exhaust::tests::wildcard_makes_any_match_exhaustive ... ok
+test exhaust::tests::unreachable_arms_are_reported ... ok
 test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 183 filtered out; finished in 0.00s
 
 == the grammar (compiler/pw-syntax/src/grammar.rs)

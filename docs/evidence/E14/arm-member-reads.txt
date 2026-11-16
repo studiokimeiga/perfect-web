@@ -1,8 +1,8 @@
 ADR-0330 - an arm's binding is read through a member, as a block's value is
 
 produced by: just e14-arm-member-reads
-commit: a3cab774e9569baddae69bd0d294487eaa3b697e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the plan (compiler/pw-core/tests/arm_member_reads.rs)
@@ -14,7 +14,7 @@ test an_arms_member_read_outside_text_is_computed_too_and_planned_once ... ok
 test two_arms_reading_one_path_from_different_values_are_refused ... ok
 test an_arms_binding_is_read_through_a_member_from_the_value_its_match_decides_by ... ok
 test an_arms_member_read_in_a_speculated_region_is_refused_by_name ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.25s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.91s
 
 == the host's payload (spikes/own-renderer/server/src/main.rs, payload_tests)
 

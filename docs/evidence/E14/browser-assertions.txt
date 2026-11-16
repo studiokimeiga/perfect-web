@@ -1,15 +1,15 @@
 ADR-0366 - native browser assertion provenance
 
 produced by: just e14-browser-assertions
-commit: a3cab774e9569baddae69bd0d294487eaa3b697e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 green: native exit 0, valid=True, expected=True
 assertion: native exit 1, valid=True, expected=True
 
 Running 1 test using 1 worker
 
-[1A[2K[1/1] ../../../../../../../tmp/pw-browser-protocol-9jdz9ikm/fixture.spec.mjs:61:8 › witness
-[1A[2K  1) ../../../../../../../tmp/pw-browser-protocol-9jdz9ikm/fixture.spec.mjs:61:8 › witness ─────────
+[1A[2K[1/1] ../../../../../../../tmp/pw-browser-protocol-ezvnn4is/fixture.spec.mjs:61:8 › witness
+[1A[2K  1) ../../../../../../../tmp/pw-browser-protocol-ezvnn4is/fixture.spec.mjs:61:8 › witness ─────────
 
     Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
 
@@ -26,15 +26,15 @@ Running 1 test using 1 worker
       33 |             ? result.catch(error => proven(error, name, isNot)) : result;
       34 |         } catch (error) { return proven(error, name, isNot); }
         at Proxy.toBe (/home/runner/work/perfect-web/perfect-web/spikes/own-renderer/assertion-expect.mjs:31:34)
-        at witness (/tmp/pw-browser-protocol-9jdz9ikm/fixture.spec.mjs:10:39)
-    [cause]: Error: PW_ASSERTION:e49fef0a26604ac74f4372862a6cf891aa1fbe7e97d224fc11d190658e251d82
+        at witness (/tmp/pw-browser-protocol-ezvnn4is/fixture.spec.mjs:10:39)
+    [cause]: Error: PW_ASSERTION:418d7b48ed7ae5f34896c82c33546ae94bf330d1afb7c04d1d432bc04c53472c
         at proven (/home/runner/work/perfect-web/perfect-web/spikes/own-renderer/assertion-expect.mjs:13:19)
         at Proxy.toBe (/home/runner/work/perfect-web/perfect-web/spikes/own-renderer/assertion-expect.mjs:34:34)
-        at witness (/tmp/pw-browser-protocol-9jdz9ikm/fixture.spec.mjs:10:39)
+        at witness (/tmp/pw-browser-protocol-ezvnn4is/fixture.spec.mjs:10:39)
 
 
 [1A[2K  1 failed
-    ../../../../../../../tmp/pw-browser-protocol-9jdz9ikm/fixture.spec.mjs:61:8 › witness ──────────
+    ../../../../../../../tmp/pw-browser-protocol-ezvnn4is/fixture.spec.mjs:61:8 › witness ──────────
 
 customMessage: native exit 1, valid=True, expected=True
 not: native exit 1, valid=True, expected=True
@@ -44,8 +44,8 @@ poll: native exit 1, valid=True, expected=True
 
 Running 1 test using 1 worker
 
-[1A[2K[1/1] ../../../../../../../tmp/pw-browser-protocol-s07vqium/fixture.spec.mjs:61:8 › witness
-[1A[2K  1) ../../../../../../../tmp/pw-browser-protocol-s07vqium/fixture.spec.mjs:61:8 › witness ─────────
+[1A[2K[1/1] ../../../../../../../tmp/pw-browser-protocol-ur3muxag/fixture.spec.mjs:61:8 › witness
+[1A[2K  1) ../../../../../../../tmp/pw-browser-protocol-ur3muxag/fixture.spec.mjs:61:8 › witness ─────────
 
     Error: Expected: [32m"stale"[39m
     Received: [31m"fresh"[39m
@@ -61,15 +61,15 @@ Running 1 test using 1 worker
       34 |         } catch (error) { return proven(error, name, isNot); }
         at Proxy.toBePolled (/home/runner/work/perfect-web/perfect-web/spikes/own-renderer/assertion-expect.mjs:31:34)
         at Object.toBe (/home/runner/work/perfect-web/perfect-web/spikes/own-renderer/assertion-expect.mjs:96:81)
-        at witness (/tmp/pw-browser-protocol-s07vqium/fixture.spec.mjs:14:66)
-    [cause]: Error: PW_ASSERTION:5de9211c47571f42255c1f86a569f21ae1d4d9dbb201aeb18219227f197f8f84
+        at witness (/tmp/pw-browser-protocol-ur3muxag/fixture.spec.mjs:14:66)
+    [cause]: Error: PW_ASSERTION:dd36dcd5eea8457aa72f86ab5f295bfc1b66c330e633eb8d5cfc13d092a36e6c
         at proven (/home/runner/work/perfect-web/perfect-web/spikes/own-renderer/assertion-expect.mjs:13:19)
         at /home/runner/work/perfect-web/perfect-web/spikes/own-renderer/assertion-expect.mjs:33:37
-        at witness (/tmp/pw-browser-protocol-s07vqium/fixture.spec.mjs:14:24)
+        at witness (/tmp/pw-browser-protocol-ur3muxag/fixture.spec.mjs:14:24)
 
 
 [1A[2K  1 failed
-    ../../../../../../../tmp/pw-browser-protocol-s07vqium/fixture.spec.mjs:61:8 › witness ──────────
+    ../../../../../../../tmp/pw-browser-protocol-ur3muxag/fixture.spec.mjs:61:8 › witness ──────────
 
 pollNaN: native exit 0, valid=True, expected=True
 pollSignedZero: native exit 1, valid=True, expected=True
@@ -79,8 +79,8 @@ closed: native exit 1, valid=False, expected=False
 
 Running 1 test using 1 worker
 
-[1A[2K[1/1] ../../../../../../../tmp/pw-browser-protocol-b1_iuhzm/fixture.spec.mjs:56:3 › witness
-[1A[2K  1) ../../../../../../../tmp/pw-browser-protocol-b1_iuhzm/fixture.spec.mjs:56:3 › witness ─────────
+[1A[2K[1/1] ../../../../../../../tmp/pw-browser-protocol-8wr502bp/fixture.spec.mjs:56:3 › witness
+[1A[2K  1) ../../../../../../../tmp/pw-browser-protocol-8wr502bp/fixture.spec.mjs:56:3 › witness ─────────
 
     Error: expect.toHaveText: Target page, context or browser has been closed
 
@@ -94,18 +94,18 @@ Running 1 test using 1 worker
       33 |             ? result.catch(error => proven(error, name, isNot)) : result;
       34 |         } catch (error) { return proven(error, name, isNot); }
         at Proxy.toHaveText (/home/runner/work/perfect-web/perfect-web/spikes/own-renderer/assertion-expect.mjs:31:34)
-        at /tmp/pw-browser-protocol-b1_iuhzm/fixture.spec.mjs:59:70
+        at /tmp/pw-browser-protocol-8wr502bp/fixture.spec.mjs:59:70
 
 
 [1A[2K  1 failed
-    ../../../../../../../tmp/pw-browser-protocol-b1_iuhzm/fixture.spec.mjs:56:3 › witness ──────────
+    ../../../../../../../tmp/pw-browser-protocol-8wr502bp/fixture.spec.mjs:56:3 › witness ──────────
 
 invalidMatcher: native exit 1, valid=False, expected=False
 
 Running 1 test using 1 worker
 
-[1A[2K[1/1] ../../../../../../../tmp/pw-browser-protocol-d6hxfe32/fixture.spec.mjs:56:3 › witness
-[1A[2K  1) ../../../../../../../tmp/pw-browser-protocol-d6hxfe32/fixture.spec.mjs:56:3 › witness ─────────
+[1A[2K[1/1] ../../../../../../../tmp/pw-browser-protocol-o87b8ib2/fixture.spec.mjs:56:3 › witness
+[1A[2K  1) ../../../../../../../tmp/pw-browser-protocol-o87b8ib2/fixture.spec.mjs:56:3 › witness ─────────
 
     Error: toHaveText can be only used with Locator object
 
@@ -119,13 +119,13 @@ Running 1 test using 1 worker
       33 |             ? result.catch(error => proven(error, name, isNot)) : result;
       34 |         } catch (error) { return proven(error, name, isNot); }
         at Proxy.toHaveText (/home/runner/work/perfect-web/perfect-web/spikes/own-renderer/assertion-expect.mjs:31:34)
-        at /tmp/pw-browser-protocol-d6hxfe32/fixture.spec.mjs:59:70
+        at /tmp/pw-browser-protocol-o87b8ib2/fixture.spec.mjs:59:70
 
     Error Context: test-results/fixture-witness/error-context.md
 
 
 [1A[2K  1 failed
-    ../../../../../../../tmp/pw-browser-protocol-d6hxfe32/fixture.spec.mjs:56:3 › witness ──────────
+    ../../../../../../../tmp/pw-browser-protocol-o87b8ib2/fixture.spec.mjs:56:3 › witness ──────────
 
 pollCallback: native exit 1, valid=False, expected=False
 pollAssertCallback: native exit 1, valid=False, expected=False
@@ -142,7 +142,7 @@ retry: native exit 0, valid=False, expected=False
 soft: native exit 1, valid=False, expected=False
 unwrapped: native exit 1, valid=False, expected=False
 27 of 27 native Playwright producer cases agree
-structured instrument receipts: /tmp/pw-browser-proof-controls-90dcus1h
+structured instrument receipts: /tmp/pw-browser-proof-controls-1m_u0x8d
 test_closed_browser_is_not_a_comparison (scripts.tests.test_browser_assertion_proof.BrowserAssertions.test_closed_browser_is_not_a_comparison) ... ok
 test_final_poll_interval_never_restarts_an_early_callback (scripts.tests.test_browser_assertion_proof.BrowserAssertions.test_final_poll_interval_never_restarts_an_early_callback) ... ok
 test_invalid_matcher_api_is_not_a_comparison (scripts.tests.test_browser_assertion_proof.BrowserAssertions.test_invalid_matcher_api_is_not_a_comparison) ... ok
@@ -156,7 +156,7 @@ test_poll_preserves_object_is_and_completed_mismatches (scripts.tests.test_brows
 test_stale_native_proof_is_refused (scripts.tests.test_browser_assertion_proof.BrowserAssertions.test_stale_native_proof_is_refused) ... ok
 
 ----------------------------------------------------------------------
-Ran 11 tests in 27.902s
+Ran 11 tests in 36.209s
 
 OK
 
@@ -175,7 +175,7 @@ Traceback (most recent call last):
 AssertionError: {'schema': 1, 'complete': True, 'nonce': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'tests': [['one', 'failed']], 'inventory': ['one']} is not None
 
 ----------------------------------------------------------------------
-Ran 1 test in 0.022s
+Ran 1 test in 0.027s
 
 FAILED (failures=1)
 
@@ -194,7 +194,7 @@ Traceback (most recent call last):
 AssertionError: {'schema': 1, 'complete': True, 'nonce': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'tests': [['one', 'failed']], 'inventory': ['one']} is not None
 
 ----------------------------------------------------------------------
-Ran 1 test in 0.023s
+Ran 1 test in 0.027s
 
 FAILED (failures=1)
 
@@ -222,8 +222,8 @@ False
 + (False, 0) : 
 Running 1 test using 1 worker
 
-[1A[2K[1/1] ../../../../../../../tmp/pw-browser-protocol-6hm5tmww/fixture.spec.mjs:56:3 › witness
-[1A[2K  1) ../../../../../../../tmp/pw-browser-protocol-6hm5tmww/fixture.spec.mjs:56:3 › witness ─────────
+[1A[2K[1/1] ../../../../../../../tmp/pw-browser-protocol-jjnfhy2n/fixture.spec.mjs:56:3 › witness
+[1A[2K  1) ../../../../../../../tmp/pw-browser-protocol-jjnfhy2n/fixture.spec.mjs:56:3 › witness ─────────
 
     Error: expect.toHaveText: Target page, context or browser has been closed
 
@@ -237,19 +237,19 @@ Running 1 test using 1 worker
       32 |             ? result.catch(error => proven(error, name, isNot)) : result;
       33 |         } catch (error) { return proven(error, name, isNot); }
         at Proxy.toHaveText (/home/runner/work/perfect-web/perfect-web/spikes/own-renderer/assertion-expect.mjs:30:34)
-        at /tmp/pw-browser-protocol-6hm5tmww/fixture.spec.mjs:59:70
-    [cause]: Error: PW_ASSERTION:16762e1c71dd8efa9d4bb5013c4ba8b24c06e716ffe1d79af664f0ae9fd9b3f7
+        at /tmp/pw-browser-protocol-jjnfhy2n/fixture.spec.mjs:59:70
+    [cause]: Error: PW_ASSERTION:0414d2e2c57da502fc6955bfc8eb9e2a332d38b524dc5217c87ed7f8b29d40ce
         at proven (/home/runner/work/perfect-web/perfect-web/spikes/own-renderer/assertion-expect.mjs:12:19)
         at /home/runner/work/perfect-web/perfect-web/spikes/own-renderer/assertion-expect.mjs:32:37
-        at /tmp/pw-browser-protocol-6hm5tmww/fixture.spec.mjs:59:5
+        at /tmp/pw-browser-protocol-jjnfhy2n/fixture.spec.mjs:59:5
 
 
 [1A[2K  1 failed
-    ../../../../../../../tmp/pw-browser-protocol-6hm5tmww/fixture.spec.mjs:56:3 › witness ──────────
+    ../../../../../../../tmp/pw-browser-protocol-jjnfhy2n/fixture.spec.mjs:56:3 › witness ──────────
 
 
 ----------------------------------------------------------------------
-Ran 1 test in 2.000s
+Ran 1 test in 2.561s
 
 FAILED (failures=1)
 
@@ -277,8 +277,8 @@ True
 + (True, 1) : 
 Running 1 test using 1 worker
 
-[1A[2K[1/1] ../../../../../../../tmp/pw-browser-protocol-0bac6cqm/fixture.spec.mjs:61:8 › witness
-[1A[2K  1) ../../../../../../../tmp/pw-browser-protocol-0bac6cqm/fixture.spec.mjs:61:8 › witness ─────────
+[1A[2K[1/1] ../../../../../../../tmp/pw-browser-protocol-bl4m5gzr/fixture.spec.mjs:61:8 › witness
+[1A[2K  1) ../../../../../../../tmp/pw-browser-protocol-bl4m5gzr/fixture.spec.mjs:61:8 › witness ─────────
 
     Error: [2mexpect([22m[31mreceived[39m[2m).[22mnot[2m.[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
 
@@ -294,15 +294,15 @@ Running 1 test using 1 worker
       33 |             ? result.catch(error => proven(error, name, isNot)) : result;
       34 |         } catch (error) { return proven(error, name, isNot); }
         at Proxy.toBe (/home/runner/work/perfect-web/perfect-web/spikes/own-renderer/assertion-expect.mjs:31:34)
-        at witness (/tmp/pw-browser-protocol-0bac6cqm/fixture.spec.mjs:12:37)
+        at witness (/tmp/pw-browser-protocol-bl4m5gzr/fixture.spec.mjs:12:37)
 
 
 [1A[2K  1 failed
-    ../../../../../../../tmp/pw-browser-protocol-0bac6cqm/fixture.spec.mjs:61:8 › witness ──────────
+    ../../../../../../../tmp/pw-browser-protocol-bl4m5gzr/fixture.spec.mjs:61:8 › witness ──────────
 
 
 ----------------------------------------------------------------------
-Ran 1 test in 5.420s
+Ran 1 test in 7.060s
 
 FAILED (failures=1)
 
@@ -330,8 +330,8 @@ True
 + (True, 1) : 
 Running 1 test using 1 worker
 
-[1A[2K[1/1] ../../../../../../../tmp/pw-browser-protocol-qtzhiukg/fixture.spec.mjs:61:8 › witness
-[1A[2K  1) ../../../../../../../tmp/pw-browser-protocol-qtzhiukg/fixture.spec.mjs:61:8 › witness ─────────
+[1A[2K[1/1] ../../../../../../../tmp/pw-browser-protocol-l3p4uljz/fixture.spec.mjs:61:8 › witness
+[1A[2K  1) ../../../../../../../tmp/pw-browser-protocol-l3p4uljz/fixture.spec.mjs:61:8 › witness ─────────
 
     Error: native cause was lost
 
@@ -342,15 +342,15 @@ Running 1 test using 1 worker
       44 |       throw error;
       45 |     } finally { delete Error.prototype.cause; }
       46 |   }
-        at witness (/tmp/pw-browser-protocol-qtzhiukg/fixture.spec.mjs:43:50)
+        at witness (/tmp/pw-browser-protocol-l3p4uljz/fixture.spec.mjs:43:50)
 
 
 [1A[2K  1 failed
-    ../../../../../../../tmp/pw-browser-protocol-qtzhiukg/fixture.spec.mjs:61:8 › witness ──────────
+    ../../../../../../../tmp/pw-browser-protocol-l3p4uljz/fixture.spec.mjs:61:8 › witness ──────────
 
 
 ----------------------------------------------------------------------
-Ran 1 test in 1.832s
+Ran 1 test in 2.370s
 
 FAILED (failures=1)
 
@@ -371,8 +371,8 @@ Traceback (most recent call last):
 AssertionError: 1 != 0 : 
 Running 1 test using 1 worker
 
-[1A[2K[1/1] ../../../../../../../tmp/pw-browser-protocol-f36tv7o5/fixture.spec.mjs:61:8 › witness
-[1A[2K  1) ../../../../../../../tmp/pw-browser-protocol-f36tv7o5/fixture.spec.mjs:61:8 › witness ─────────
+[1A[2K[1/1] ../../../../../../../tmp/pw-browser-protocol-4x7n2mi4/fixture.spec.mjs:61:8 › witness
+[1A[2K  1) ../../../../../../../tmp/pw-browser-protocol-4x7n2mi4/fixture.spec.mjs:61:8 › witness ─────────
 
     Error: Expected: [32mNaN[39m
     Received: [31mNaN[39m
@@ -388,19 +388,19 @@ Running 1 test using 1 worker
       34 |         } catch (error) { return proven(error, name, isNot); }
         at Proxy.toBePolled (/home/runner/work/perfect-web/perfect-web/spikes/own-renderer/assertion-expect.mjs:31:34)
         at Object.toBe (/home/runner/work/perfect-web/perfect-web/spikes/own-renderer/assertion-expect.mjs:96:81)
-        at witness (/tmp/pw-browser-protocol-f36tv7o5/fixture.spec.mjs:15:65)
-    [cause]: Error: PW_ASSERTION:23da71f166ee732f7e10741b35d81e70de68123d3f90d8e9b3506326763ae799
+        at witness (/tmp/pw-browser-protocol-4x7n2mi4/fixture.spec.mjs:15:65)
+    [cause]: Error: PW_ASSERTION:36485e97df8cd5e8d0b4f784e9e5fdbc9ffacba499bf03302038c4623a2e1452
         at proven (/home/runner/work/perfect-web/perfect-web/spikes/own-renderer/assertion-expect.mjs:13:19)
         at /home/runner/work/perfect-web/perfect-web/spikes/own-renderer/assertion-expect.mjs:33:37
-        at witness (/tmp/pw-browser-protocol-f36tv7o5/fixture.spec.mjs:15:27)
+        at witness (/tmp/pw-browser-protocol-4x7n2mi4/fixture.spec.mjs:15:27)
 
 
 [1A[2K  1 failed
-    ../../../../../../../tmp/pw-browser-protocol-f36tv7o5/fixture.spec.mjs:61:8 › witness ──────────
+    ../../../../../../../tmp/pw-browser-protocol-4x7n2mi4/fixture.spec.mjs:61:8 › witness ──────────
 
 
 ----------------------------------------------------------------------
-Ran 1 test in 5.514s
+Ran 1 test in 7.200s
 
 FAILED (failures=1)
 
@@ -421,12 +421,12 @@ Traceback (most recent call last):
 AssertionError: 0 != 1 : 
 Running 1 test using 1 worker
 
-[1A[2K[1/1] ../../../../../../../tmp/pw-browser-protocol-v6rrfp84/fixture.spec.mjs:61:8 › witness
-[1A[2K  1 passed (935ms)
+[1A[2K[1/1] ../../../../../../../tmp/pw-browser-protocol-6cu5li4e/fixture.spec.mjs:61:8 › witness
+[1A[2K  1 passed (1.2s)
 
 
 ----------------------------------------------------------------------
-Ran 1 test in 1.801s
+Ran 1 test in 2.399s
 
 FAILED (failures=1)
 
@@ -454,8 +454,8 @@ True
 + (True, 1) : 
 Running 1 test using 1 worker
 
-[1A[2K[1/1] ../../../../../../../tmp/pw-browser-protocol-u2xy45f5/fixture.spec.mjs:61:8 › witness
-[1A[2K  1) ../../../../../../../tmp/pw-browser-protocol-u2xy45f5/fixture.spec.mjs:61:8 › witness ─────────
+[1A[2K[1/1] ../../../../../../../tmp/pw-browser-protocol-flaxtrej/fixture.spec.mjs:61:8 › witness
+[1A[2K  1) ../../../../../../../tmp/pw-browser-protocol-flaxtrej/fixture.spec.mjs:61:8 › witness ─────────
 
     Error: a final clamped sleep restarted the callback
 
@@ -466,15 +466,15 @@ Running 1 test using 1 worker
       31 |     }
       32 |   }
       33 |   if (mode === 'pollCallback') await expect.poll(() => { throw new Error('callback failure'); }, polling).toBe(undefined);
-        at witness (/tmp/pw-browser-protocol-u2xy45f5/fixture.spec.mjs:30:30)
+        at witness (/tmp/pw-browser-protocol-flaxtrej/fixture.spec.mjs:30:30)
 
 
 [1A[2K  1 failed
-    ../../../../../../../tmp/pw-browser-protocol-u2xy45f5/fixture.spec.mjs:61:8 › witness ──────────
+    ../../../../../../../tmp/pw-browser-protocol-flaxtrej/fixture.spec.mjs:61:8 › witness ──────────
 
 
 ----------------------------------------------------------------------
-Ran 1 test in 1.817s
+Ran 1 test in 2.416s
 
 FAILED (failures=1)
 
@@ -502,8 +502,8 @@ False
 + (False, 0) : 
 Running 1 test using 1 worker
 
-[1A[2K[1/1] ../../../../../../../tmp/pw-browser-protocol-2gs706wx/fixture.spec.mjs:61:8 › witness
-[1A[2K  1) ../../../../../../../tmp/pw-browser-protocol-2gs706wx/fixture.spec.mjs:61:8 › witness ─────────
+[1A[2K[1/1] ../../../../../../../tmp/pw-browser-protocol-uyowykiu/fixture.spec.mjs:61:8 › witness
+[1A[2K  1) ../../../../../../../tmp/pw-browser-protocol-uyowykiu/fixture.spec.mjs:61:8 › witness ─────────
 
     Error: Expected: [32m1[39m
     Received: [31mundefined[39m
@@ -519,19 +519,19 @@ Running 1 test using 1 worker
       34 |         } catch (error) { return proven(error, name, isNot); }
         at Proxy.toBePolled (/home/runner/work/perfect-web/perfect-web/spikes/own-renderer/assertion-expect.mjs:31:34)
         at Object.toBe (/home/runner/work/perfect-web/perfect-web/spikes/own-renderer/assertion-expect.mjs:95:81)
-        at witness (/tmp/pw-browser-protocol-2gs706wx/fixture.spec.mjs:35:87)
-    [cause]: Error: PW_ASSERTION:7999ea0a7d93268c3e1ce3417bf428fb279c27b4e5f571f86dd39fe78a166366
+        at witness (/tmp/pw-browser-protocol-uyowykiu/fixture.spec.mjs:35:87)
+    [cause]: Error: PW_ASSERTION:715a021bc7dfbbe622698aee7a866c0bd556684213f7cdba83d32eebc8071ef4
         at proven (/home/runner/work/perfect-web/perfect-web/spikes/own-renderer/assertion-expect.mjs:13:19)
         at /home/runner/work/perfect-web/perfect-web/spikes/own-renderer/assertion-expect.mjs:33:37
-        at witness (/tmp/pw-browser-protocol-2gs706wx/fixture.spec.mjs:35:31)
+        at witness (/tmp/pw-browser-protocol-uyowykiu/fixture.spec.mjs:35:31)
 
 
 [1A[2K  1 failed
-    ../../../../../../../tmp/pw-browser-protocol-2gs706wx/fixture.spec.mjs:61:8 › witness ──────────
+    ../../../../../../../tmp/pw-browser-protocol-uyowykiu/fixture.spec.mjs:61:8 › witness ──────────
 
 
 ----------------------------------------------------------------------
-Ran 1 test in 1.915s
+Ran 1 test in 2.486s
 
 FAILED (failures=1)
 

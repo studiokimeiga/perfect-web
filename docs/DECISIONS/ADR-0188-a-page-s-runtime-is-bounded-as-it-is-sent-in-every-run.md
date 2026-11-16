@@ -1,6 +1,8 @@
 # ADR-0188: a page's runtime is bounded as it is sent, in every run
 
 Status: accepted under the owner's delegation of 2026-10-02. Date: 2026-10-04.
+Amended 2026-11-13 by ADR-0439: the interactive route's activation is bounded
+at 72 KiB.
 Milestone: E14, with E7's gate item 7. A correction to E7's record, found
 while measuring ADR-0187.
 

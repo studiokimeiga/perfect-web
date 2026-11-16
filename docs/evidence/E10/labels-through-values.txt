@@ -1,15 +1,15 @@
 ADR-0079 - a function value carries the label of what it makes
 
 produced by: just e10-labels-through-values
-commit: a3cab774e9569baddae69bd0d294487eaa3b697e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == labels through values (compiler/pw-core/tests/labels_through_values.rs)
 
 test a_binding_named_like_a_secrets_source_is_its_value ... ok
 test a_secret_made_through_a_function_value_is_labelled ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.38s
 
 == mutation controls (scripts/label_value_mutations.py)
 

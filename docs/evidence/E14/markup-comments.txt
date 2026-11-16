@@ -1,8 +1,8 @@
 ADR-0167 - markup text is text, and a comment in markup is <!-- -->
 
 produced by: just e14-markup-comments
-commit: a3cab774e9569baddae69bd0d294487eaa3b697e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the parser (compiler/pw-syntax)
@@ -22,10 +22,10 @@ test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 == the corpus: each rejected fixture emits its own defect, and no other
 
+test every_rejected_fixture_emits_only_its_own_defect ... ok
 test every_rejected_fixtures_rule_is_a_code_its_check_reports ... ok
 test no_accepted_corpus_file_reports_a_body_level_error ... ok
-test every_rejected_fixture_emits_only_its_own_defect ... ok
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 105.61s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 101.13s
 
 == the store checks
 

@@ -95,8 +95,10 @@ test("gate 7b: the interactive route's runtime is bounded as it is sent", async 
   for (const u of bytes.urls) console.log(`EVIDENCE  ${u}`);
 
   // A bound, not a target. It exists so the number cannot quietly become a
-  // megabyte; the figure itself is the evidence.
-  expect(bytes.sent.script + bytes.sent.wasm, "activation, as sent").toBeLessThan(64 * 1024);
+  // megabyte; the figure itself is the evidence. The runtime as written, its
+  // comments in it, as the development host sends it: 72 KiB since
+  // ADR-0439, whose rows' placing took it past ADR-0188's 64 KiB (67,331 B).
+  expect(bytes.sent.script + bytes.sent.wasm, "activation, as sent").toBeLessThan(72 * 1024);
   expect(bytes.script, "the runtime really was downloaded").toBeGreaterThan(0);
 
   // Handler code is NOT in that figure, and that is E7-L's claim restated as a

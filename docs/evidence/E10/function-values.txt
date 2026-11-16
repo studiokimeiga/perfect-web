@@ -1,8 +1,8 @@
 ADR-0052 - a function is a value
 
 produced by: just e10-function-values
-commit: a3cab774e9569baddae69bd0d294487eaa3b697e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
@@ -10,11 +10,11 @@ node: v22.21.1
 
 test a_declarations_name_is_a_value ... ok
 test a_function_is_chosen_by_a_branch ... ok
-test a_closure_carries_what_it_captures ... ok
 test a_function_is_returned_and_called ... ok
+test a_closure_carries_what_it_captures ... ok
 test a_lambda_passed_to_a_declaration_is_called_there ... ok
 test a_recursion_carries_a_function ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.55s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.51s
 
 == the component and the JavaScript module, on the same arguments
 

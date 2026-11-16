@@ -1,21 +1,21 @@
 ADR-0051 - an early return, ?, and for loops compile
 
 produced by: just e10-control-flow
-commit: a3cab774e9569baddae69bd0d294487eaa3b697e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
 == compiled bodies through the host (pw-conformance/tests/control_flow.rs)
 
-test a_branch_that_returns_takes_the_other_branchs_type ... ok
 test a_callee_that_returns_early_returns_from_itself ... ok
+test a_branch_that_returns_takes_the_other_branchs_type ... ok
 test a_read_is_a_copy_a_later_assignment_does_not_change ... ok
 test a_question_mark_returns_the_failure ... ok
 test a_loop_updates_a_mutable_binding ... ok
 test a_return_leaves_a_loop_and_the_body ... ok
 test a_return_leaves_the_body_early ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.93s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.22s
 
 == what may be assigned (compiler/pw-core/tests/assignments.rs)
 

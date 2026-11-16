@@ -1,8 +1,8 @@
 ADR-0371 - a Node audit passes only with a completed scan
 
 produced by: just e14-node-audit
-commit: a3cab774e9569baddae69bd0d294487eaa3b697e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 python: Python 3.12.3
 
 test_advisory_shape_is_validated_before_allowance (scripts.tests.test_node_audit.NodeAudit.test_advisory_shape_is_validated_before_allowance) ... ok
@@ -31,10 +31,10 @@ test_unexpected_producer_exit_fails_despite_valid_json (scripts.tests.test_node_
 test_unreviewed_advisory_fails (scripts.tests.test_node_audit.NodeAudit.test_unreviewed_advisory_fails) ... ok
 
 ----------------------------------------------------------------------
-Ran 24 tests in 0.801s
+Ran 24 tests in 0.957s
 
 OK
-structured instrument receipts: /tmp/pw-node-audit-controls-2pjhvdzm
+structured instrument receipts: /tmp/pw-node-audit-controls-bi834xjt
 baseline: 24 executed; 0 failed; valid=True
 non-object report passes: KILLED by test_node_audit.NodeAudit.test_non_object_report_fails (1 actual body assertions)
 producer error object passes: KILLED by test_node_audit.NodeAudit.test_error_response_fails_even_with_empty_advisories (1 actual body assertions)

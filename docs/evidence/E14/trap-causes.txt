@@ -1,8 +1,8 @@
 ADR-0267 - a component's trap says why it stopped
 
 produced by: just e14-trap-causes
-commit: a3cab774e9569baddae69bd0d294487eaa3b697e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
@@ -11,7 +11,7 @@ node: v22.21.1
 test the_compiler_and_the_host_name_a_trap_alike ... ok
 test wasms_own_traps_say_theirs ... ok
 test a_trap_of_the_components_own_says_its_cause ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.83s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.36s
 
 == nodes that are no tree, by name (compiler/pw-conformance/tests/recursive_types.rs)
 
@@ -20,12 +20,12 @@ test a_host_answers_with_a_tree_and_is_given_one ... ok
 test a_sum_type_that_contains_itself_crosses_both_ways ... ok
 test a_value_as_deep_as_a_host_nests_stays_within_half_a_thread_stack ... ok
 test a_tree_is_rebuilt_in_the_component ... ok
-test a_tree_is_built_and_walked_in_the_component ... ok
 test nodes_that_are_not_one_tree_in_level_order_trap ... ok
-test two_types_that_hold_each_other_through_a_list_compile_inside_a_component ... ok
+test a_tree_is_built_and_walked_in_the_component ... ok
 test a_chain_deeper_than_any_stack_crosses_both_ways ... ok
+test two_types_that_hold_each_other_through_a_list_compile_inside_a_component ... ok
 test trees_held_by_other_types_cross_both_ways ... ok
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.65s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.90s
 
 == the browser's module and the component agree by cause (compiler/pw-conformance/tests/javascript.rs)
 
@@ -33,14 +33,14 @@ test a_case_from_its_expected_type_agrees_with_its_component ... ok
 test a_list_of_literals_is_a_value_of_the_module ... ok
 test a_type_that_holds_itself_in_place_agrees_with_its_component ... ok
 test a_type_that_contains_itself_agrees_with_its_component ... ok
-test kiokuns_shard_rule_as_a_module_agrees_with_its_component ... ok
 test an_option_matched_where_it_is_made_is_never_made ... ok
+test kiokuns_shard_rule_as_a_module_agrees_with_its_component ... ok
 test the_modules_entry_check_is_the_components ... ok
 test the_modules_case_mapping_is_rusts_for_every_code_point ... ok
 test money_is_rounded_as_the_program_names_it ... ok
 test every_query_agrees_with_its_component_under_node has been running for over 60 seconds
 test every_query_agrees_with_its_component_under_node ... ok
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 91.27s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 62.69s
 
 == mutation controls (scripts/trap_cause_mutations.py)
 

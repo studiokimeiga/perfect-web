@@ -7,7 +7,7 @@ import test from "node:test";
 import { brotliDecompressSync, gunzipSync } from "node:zlib";
 import { mkdir } from "node:fs/promises";
 import { bundlePages, compressModules, optimizeAssets, sharedPreludes, withOwnRows } from "./optimize-assets.mjs";
-import { ELEMENT_LINES, OWN_EDITS, OWN_LINES, OWN_ROWS, OWN_WALKS, ownRows, pageLists, rowElement, rowPaths, walkSource } from "./own-rows.mjs";
+import { ELEMENT_LINES, GENERAL_LINES, OWN_EDITS, OWN_LINES, OWN_ROWS, OWN_WALKS, ownRows, pageLists, rowElement, rowPaths, walkSource } from "./own-rows.mjs";
 
 test("the production build minifies and compresses only public client assets", async () => {
   const dir = await mkdtemp(path.join(tmpdir(), "pw-assets-"));
@@ -884,6 +884,24 @@ test("what a list's own code cannot read as the general code does is refused, by
   assert.deepEqual(said({ ...entry([text("a.b.name")]), list: { ...keyedList(6, [text("a.b.name")]), binding: "a.b" } }), ["its row is bound as a.b"]);
 });
 
+test("a list's own code says each name of the page its rows read, and none where a handler captures the page", () => {
+  // A row whose item is the very one is kept where none of them moved
+  // (ADR-0439): what its holes read of the page, whole or a path's head,
+  // and what a value it computes reads; none where a press captures the
+  // page in the scope its row was made in.
+  const entry = (body, more = {}) => ({ template: "p", list: keyedList(6, body), around: [], names: new Set(["rows", "selected", "note"]), computes: new Map(), ...more });
+  const readsOf = (e) => /reads: (null|\[[^\]]*\]),\n/.exec(ownRows([e]).rows)?.[1];
+  const text = (value, id = 9) => dynamic({ part: "text", id, value, context: "text" });
+  const press = (captures) => dynamic({ part: "event", id: 8, owner: 0, event: "press", handler: "h", name: "n", captures });
+  assert.equal(readsOf(entry([text("row.name"), press(["row.id"])])), "[]");
+  assert.equal(readsOf(entry([text("selected")])), '["selected"]');
+  assert.equal(readsOf(entry([text("rows.length")])), '["rows"]');
+  assert.equal(readsOf(entry([text("selected"), text("rows.length", 10), text("selected", 11)])), '["rows","selected"]');
+  assert.equal(readsOf(entry([text("row.#p~7")], { computes: new Map([["#p~7", ["row", "selected"]]]) })), '["selected"]');
+  assert.equal(readsOf(entry([text("row.name"), press(["selected"])])), "null");
+  assert.equal(readsOf(entry([text("row.name"), press(["note.x"])])), "null");
+});
+
 test("the build reads a row's markup as it is written, element inside element", () => {
   assert.deepEqual(rowPaths(LARGE_ROW), [[0], [0, 0, 0], [0, 1, 0], [0, 1, 0, 0], [0, 2, 0]]);
   const s = (value) => ({ chunk: "static", value });
@@ -942,9 +960,10 @@ test("the runtime holds one place for a page's own lists, and once what the pack
   for (const held of [OWN_ROWS, OWN_WALKS, "const PW_OWN = false;", "const PW_UNOWNED = true;", ...OWN_EDITS.map(([general]) => general)]) {
     assert.equal(source.split(held).length, 2, held);
   }
-  // Its own lines: the flags, the two places, and the hooks of `rowsKept`,
-  // `rowOf`, `rowsComputed`, `planOf` and `rowsPlanned`.
-  assert.equal(source.match(OWN_LINES).length, 8);
+  // Its own lines: the flags, the two places, the hooks of `rowsKept`,
+  // `rowOf`, `rowsComputed`, `planOf`, `rowsPlanned` and `listMade`, and the
+  // placing of the rows a page's own code found (`rowsFound`, ADR-0439).
+  assert.equal(source.match(OWN_LINES).length, 10);
   for (const [, mine] of OWN_EDITS) assert.ok(!source.includes(mine), `the runtime as written is the general code: ${mine}`);
 });
 
@@ -965,6 +984,28 @@ test("a build of the large list keeps its rows by its own code, and holds none o
   // The general test of whether a list is planned, which only the general
   // code's making of a row asks: its parts' kinds, written once.
   assert.ok(!runtime.includes('.part==="boolean_attribute"||'), "no general test of a plan");
+});
+
+test("a build every list of which is its page's own places each by what its own code found, and holds no general placing", async () => {
+  // Marked in the runtime: the general placing's questions, its putting of
+  // a row, its keeping of rows where they were, and its placing (ADR-0439).
+  const source = await readFile(RUNTIME_SOURCE, "utf8");
+  assert.equal(source.match(GENERAL_LINES).length, 4);
+  // The general placing's set of the rows that stay, and the found rows'
+  // marks of them, as a build minifies each.
+  const general = /new Set\(\w+\.filter\(\w+=>\w+>=0\)\)/;
+  const found = /new Int32Array\(\w+-\w+\)/;
+  const runtime = await deviceRuntimeOf([dynamic(keyedList(6, LARGE_ROW))], LARGE_PLAN, LARGE_HANDLERS);
+  assert.ok(found.test(runtime), "its placing by what its own code found");
+  assert.ok(!general.test(runtime), "no general placing");
+  // Beside a list the general code keeps (in a case's arm that binds a
+  // name), both: that list is placed by the general placing.
+  const arm = dynamic({ part: "match", id: 30, value: "maybe", arms: [{ case: "Some", binding: "n", body: [dynamic(keyedList(31, [dynamic({ part: "text", id: 32, value: "n", context: "text" })]))] }, { case: "None", body: [] }] });
+  const both = await deviceRuntimeOf([dynamic(keyedList(6, LARGE_ROW)), arm], { ...LARGE_PLAN, live: [...LARGE_PLAN.live, { part: 30, kind: "match" }] }, LARGE_HANDLERS);
+  assert.ok(found.test(both) && general.test(both), "both placings");
+  // And one with no list of its own holds the general placing alone.
+  const none = await deviceRuntimeOf([dynamic(keyedList(6, LARGE_ROW))], { ...LARGE_PLAN, live: [] }, LARGE_HANDLERS);
+  assert.ok(!found.test(none), "no placing by what own code found");
 });
 
 test("a build none of whose lists is its own code's holds none of that code", async () => {

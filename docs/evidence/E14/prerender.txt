@@ -1,8 +1,8 @@
 a page no reader decides is one document
 
 produced by: just e14-prerender
-commit: a3cab774e9569baddae69bd0d294487eaa3b697e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -10,8 +10,8 @@ playwright: Version 1.58.0
 == which pages the build marks (compiler/pw-core/tests/prerender.rs)
 
 test a_layout_that_binds_a_query_keeps_a_page_unmarked ... ok
-test a_layout_with_a_stream_keeps_a_page_unmarked ... ok
 test a_layout_is_read_for_its_handlers ... ok
+test a_layout_with_a_stream_keeps_a_page_unmarked ... ok
 test a_handler_that_stays_in_the_browser_leaves_a_page_marked ... ok
 test a_page_its_address_gives_a_value_is_not_marked ... ok
 test a_page_marked_is_said_so_in_its_plan ... ok
@@ -22,32 +22,32 @@ test a_page_with_no_address_is_not_marked ... ok
 test a_page_with_a_stream_is_not_marked ... ok
 test a_page_that_is_someones_is_not_marked ... ok
 test a_value_the_device_keeps_leaves_a_page_marked ... ok
-test a_view_that_contains_itself_is_read_for_its_handlers ... ok
 test a_predicate_asked_by_a_layout_or_a_view_keeps_a_page_unmarked ... ok
-test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.27s
+test a_view_that_contains_itself_is_read_for_its_handlers ... ok
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.26s
 
 == what the host sends for one (tests::prerender::, TodoMVC's)
 
 test tests::prerender::a_gzip_trailers_checksum_is_crc_32 ... ok
 test tests::prerender::a_head_is_answered_as_its_get_is ... ok
-test tests::prerender::a_host_route_keeps_its_place ... ok
 test tests::prerender::a_browser_that_holds_a_representation_is_told_so ... ok
+test tests::prerender::a_host_route_keeps_its_place ... ok
 test tests::prerender::a_page_someone_decides_is_as_it_was ... ok
 test tests::prerender::a_page_that_does_not_render_stops_the_host ... ok
-test tests::prerender::a_validator_is_the_first_128_bits_of_its_digest ... ok
-test tests::prerender::a_page_with_no_rows_is_the_same_bytes_as_a_request_would_have_been ... ok
 test tests::prerender::a_request_with_a_session_is_admitted_as_every_request_is ... ok
+test tests::prerender::a_page_with_no_rows_is_the_same_bytes_as_a_request_would_have_been ... ok
+test tests::prerender::a_validator_is_the_first_128_bits_of_its_digest ... ok
 test tests::prerender::a_versioned_build_says_its_delivery_and_names_its_files_at_it ... ok
-test tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing ... ok
 test tests::prerender::each_representation_holds_the_document ... ok
 test tests::prerender::it_is_rendered_in_the_public_partition ... ok
+test tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing ... ok
 test tests::prerender::it_is_the_document_a_request_would_have_been_rendered ... ok
 test tests::prerender::nothing_is_one_document_until_it_is_rendered ... ok
 test tests::prerender::what_it_says_of_itself_is_part_of_its_validator ... ok
-test tests::prerender::the_address_that_still_renders_is_as_it_was ... ok
 test tests::prerender::it_says_what_a_document_says_of_itself ... ok
+test tests::prerender::the_address_that_still_renders_is_as_it_was ... ok
 test tests::prerender::todomvc_is_one_document ... ok
-test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 1076 filtered out; finished in 1.34s
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 1076 filtered out; finished in 1.33s
 
 == TodoMVC through it in three engines (e2e/todomvc.spec.mjs)
 
@@ -73,7 +73,7 @@ test a_predicate_asked_by_a_layout_or_a_view_keeps_a_page_unmarked ... ok
 test a_value_the_device_keeps_leaves_a_page_marked ... ok
 test a_view_that_contains_itself_is_read_for_its_handlers ... ok
 
-test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.04s
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.00s
 
 
 
@@ -99,7 +99,7 @@ test tests::prerender::the_address_that_still_renders_is_as_it_was ... ok
 test tests::prerender::todomvc_is_one_document ... ok
 test tests::prerender::what_it_says_of_itself_is_part_of_its_validator ... ok
 
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.36s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.21s
 
 
 
@@ -124,7 +124,7 @@ failures:
 
 ---- a_page_with_no_address_is_not_marked stdout ----
 
-thread 'a_page_with_no_address_is_not_marked' (142099) panicked at compiler/pw-core/tests/prerender.rs:140:5:
+thread 'a_page_with_no_address_is_not_marked' (137130) panicked at compiler/pw-core/tests/prerender.rs:140:5:
 module t
 
 opaque type InteractionId = String
@@ -157,7 +157,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_page_with_no_address_is_not_marked
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.02s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.99s
 
 error: test failed, to rerun pass `-p pw-core --test prerender`
 
@@ -184,7 +184,7 @@ failures:
 
 ---- a_page_its_address_gives_a_value_is_not_marked stdout ----
 
-thread 'a_page_its_address_gives_a_value_is_not_marked' (142470) panicked at compiler/pw-core/tests/prerender.rs:151:9:
+thread 'a_page_its_address_gives_a_value_is_not_marked' (137499) panicked at compiler/pw-core/tests/prerender.rs:151:9:
 module t
 
 opaque type InteractionId = String
@@ -218,7 +218,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_page_its_address_gives_a_value_is_not_marked
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.95s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.90s
 
 error: test failed, to rerun pass `-p pw-core --test prerender`
 
@@ -245,7 +245,7 @@ failures:
 
 ---- a_layout_that_binds_a_query_keeps_a_page_unmarked stdout ----
 
-thread 'a_layout_that_binds_a_query_keeps_a_page_unmarked' (142843) panicked at compiler/pw-core/tests/prerender.rs:254:5:
+thread 'a_layout_that_binds_a_query_keeps_a_page_unmarked' (137874) panicked at compiler/pw-core/tests/prerender.rs:254:5:
 module t
 
 opaque type InteractionId = String
@@ -287,7 +287,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- a_page_that_binds_a_query_is_not_marked stdout ----
 
-thread 'a_page_that_binds_a_query_is_not_marked' (142848) panicked at compiler/pw-core/tests/prerender.rs:164:5:
+thread 'a_page_that_binds_a_query_is_not_marked' (137879) panicked at compiler/pw-core/tests/prerender.rs:164:5:
 module t
 
 opaque type InteractionId = String
@@ -323,7 +323,7 @@ failures:
     a_layout_that_binds_a_query_keeps_a_page_unmarked
     a_page_that_binds_a_query_is_not_marked
 
-test result: FAILED. 13 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.06s
+test result: FAILED. 13 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.97s
 
 error: test failed, to rerun pass `-p pw-core --test prerender`
 
@@ -350,7 +350,7 @@ failures:
 
 ---- a_layout_with_a_stream_keeps_a_page_unmarked stdout ----
 
-thread 'a_layout_with_a_stream_keeps_a_page_unmarked' (143220) panicked at compiler/pw-core/tests/prerender.rs:267:5:
+thread 'a_layout_with_a_stream_keeps_a_page_unmarked' (138250) panicked at compiler/pw-core/tests/prerender.rs:267:5:
 module t
 
 opaque type InteractionId = String
@@ -401,7 +401,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- a_page_with_a_stream_is_not_marked stdout ----
 
-thread 'a_page_with_a_stream_is_not_marked' (143226) panicked at compiler/pw-core/tests/prerender.rs:179:5:
+thread 'a_page_with_a_stream_is_not_marked' (138256) panicked at compiler/pw-core/tests/prerender.rs:179:5:
 module t
 
 opaque type InteractionId = String
@@ -446,7 +446,7 @@ failures:
     a_layout_with_a_stream_keeps_a_page_unmarked
     a_page_with_a_stream_is_not_marked
 
-test result: FAILED. 13 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.06s
+test result: FAILED. 13 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.00s
 
 error: test failed, to rerun pass `-p pw-core --test prerender`
 
@@ -473,7 +473,7 @@ failures:
 
 ---- a_predicate_asked_by_a_layout_or_a_view_keeps_a_page_unmarked stdout ----
 
-thread 'a_predicate_asked_by_a_layout_or_a_view_keeps_a_page_unmarked' (143603) panicked at compiler/pw-core/tests/prerender.rs:283:5:
+thread 'a_predicate_asked_by_a_layout_or_a_view_keeps_a_page_unmarked' (138635) panicked at compiler/pw-core/tests/prerender.rs:283:5:
 module t
 
 opaque type InteractionId = String
@@ -518,7 +518,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_predicate_asked_by_a_layout_or_a_view_keeps_a_page_unmarked
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.82s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.84s
 
 error: test failed, to rerun pass `-p pw-core --test prerender`
 
@@ -545,7 +545,7 @@ failures:
 
 ---- a_predicate_asked_by_a_layout_or_a_view_keeps_a_page_unmarked stdout ----
 
-thread 'a_predicate_asked_by_a_layout_or_a_view_keeps_a_page_unmarked' (143979) panicked at compiler/pw-core/tests/prerender.rs:287:5:
+thread 'a_predicate_asked_by_a_layout_or_a_view_keeps_a_page_unmarked' (139010) panicked at compiler/pw-core/tests/prerender.rs:287:5:
 module t
 
 opaque type InteractionId = String
@@ -586,7 +586,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_predicate_asked_by_a_layout_or_a_view_keeps_a_page_unmarked
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.94s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.89s
 
 error: test failed, to rerun pass `-p pw-core --test prerender`
 
@@ -613,7 +613,7 @@ failures:
 
 ---- a_page_that_is_someones_is_not_marked stdout ----
 
-thread 'a_page_that_is_someones_is_not_marked' (144351) panicked at compiler/pw-core/tests/prerender.rs:189:9:
+thread 'a_page_that_is_someones_is_not_marked' (139385) panicked at compiler/pw-core/tests/prerender.rs:189:9:
 module t
 
 opaque type InteractionId = String
@@ -648,7 +648,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_page_that_is_someones_is_not_marked
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.80s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.81s
 
 error: test failed, to rerun pass `-p pw-core --test prerender`
 
@@ -675,7 +675,7 @@ failures:
 
 ---- a_handler_that_sends_a_command_keeps_a_page_unmarked stdout ----
 
-thread 'a_handler_that_sends_a_command_keeps_a_page_unmarked' (144717) panicked at compiler/pw-core/tests/prerender.rs:206:9:
+thread 'a_handler_that_sends_a_command_keeps_a_page_unmarked' (139752) panicked at compiler/pw-core/tests/prerender.rs:206:9:
 module t
 
 opaque type InteractionId = String
@@ -711,7 +711,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- a_layout_is_read_for_its_handlers stdout ----
 
-thread 'a_layout_is_read_for_its_handlers' (144719) panicked at compiler/pw-core/tests/prerender.rs:244:5:
+thread 'a_layout_is_read_for_its_handlers' (139754) panicked at compiler/pw-core/tests/prerender.rs:244:5:
 module t
 
 opaque type InteractionId = String
@@ -750,14 +750,14 @@ page P() {
 
 ---- a_page_marked_is_said_so_in_its_plan stdout ----
 
-thread 'a_page_marked_is_said_so_in_its_plan' (144723) panicked at compiler/pw-core/tests/prerender.rs:310:5:
+thread 'a_page_marked_is_said_so_in_its_plan' (139758) panicked at compiler/pw-core/tests/prerender.rs:310:5:
 assertion `left == right` failed
   left: Some(Bool(true))
  right: None
 
 ---- a_view_that_contains_itself_is_read_for_its_handlers stdout ----
 
-thread 'a_view_that_contains_itself_is_read_for_its_handlers' (144731) panicked at compiler/pw-core/tests/prerender.rs:228:5:
+thread 'a_view_that_contains_itself_is_read_for_its_handlers' (139770) panicked at compiler/pw-core/tests/prerender.rs:228:5:
 module t
 
 opaque type InteractionId = String
@@ -804,7 +804,7 @@ failures:
     a_page_marked_is_said_so_in_its_plan
     a_view_that_contains_itself_is_read_for_its_handlers
 
-test result: FAILED. 11 passed; 4 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.61s
+test result: FAILED. 11 passed; 4 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.59s
 
 error: test failed, to rerun pass `-p pw-core --test prerender`
 
@@ -831,7 +831,7 @@ failures:
 
 ---- a_handler_that_sends_a_command_keeps_a_page_unmarked stdout ----
 
-thread 'a_handler_that_sends_a_command_keeps_a_page_unmarked' (145093) panicked at compiler/pw-core/tests/prerender.rs:206:9:
+thread 'a_handler_that_sends_a_command_keeps_a_page_unmarked' (140131) panicked at compiler/pw-core/tests/prerender.rs:206:9:
 module t
 
 opaque type InteractionId = String
@@ -869,7 +869,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_handler_that_sends_a_command_keeps_a_page_unmarked
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.70s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.71s
 
 error: test failed, to rerun pass `-p pw-core --test prerender`
 
@@ -918,7 +918,7 @@ failures:
 
 ---- a_view_that_contains_itself_is_read_for_its_handlers stdout ----
 
-thread 'a_view_that_contains_itself_is_read_for_its_handlers' (145485) panicked at compiler/pw-core/tests/prerender.rs:228:5:
+thread 'a_view_that_contains_itself_is_read_for_its_handlers' (140521) panicked at compiler/pw-core/tests/prerender.rs:228:5:
 module t
 
 opaque type InteractionId = String
@@ -963,7 +963,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_view_that_contains_itself_is_read_for_its_handlers
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.07s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.00s
 
 error: test failed, to rerun pass `-p pw-core --test prerender`
 
@@ -1036,7 +1036,7 @@ failures:
 
 ---- a_handler_that_stays_in_the_browser_leaves_a_page_marked stdout ----
 
-thread 'a_handler_that_stays_in_the_browser_leaves_a_page_marked' (145848) panicked at compiler/pw-core/tests/prerender.rs:120:9:
+thread 'a_handler_that_stays_in_the_browser_leaves_a_page_marked' (140884) panicked at compiler/pw-core/tests/prerender.rs:120:9:
 module t
 
 opaque type InteractionId = String
@@ -1072,7 +1072,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- a_layout_is_read_for_its_handlers stdout ----
 
-thread 'a_layout_is_read_for_its_handlers' (145849) panicked at compiler/pw-core/tests/prerender.rs:242:5:
+thread 'a_layout_is_read_for_its_handlers' (140885) panicked at compiler/pw-core/tests/prerender.rs:242:5:
 module t
 
 opaque type InteractionId = String
@@ -1111,19 +1111,19 @@ page P() {
 
 ---- a_page_marked_is_said_so_in_its_plan stdout ----
 
-thread 'a_page_marked_is_said_so_in_its_plan' (145853) panicked at compiler/pw-core/tests/prerender.rs:308:5:
+thread 'a_page_marked_is_said_so_in_its_plan' (140889) panicked at compiler/pw-core/tests/prerender.rs:308:5:
 assertion `left == right` failed
   left: Null
  right: Bool(true)
 
 ---- a_page_of_signals_at_an_address_is_marked stdout ----
 
-thread 'a_page_of_signals_at_an_address_is_marked' (145854) panicked at compiler/pw-core/tests/prerender.rs:105:5:
+thread 'a_page_of_signals_at_an_address_is_marked' (140890) panicked at compiler/pw-core/tests/prerender.rs:105:5:
 assertion failed: marked(&plain())
 
 ---- a_value_the_device_keeps_leaves_a_page_marked stdout ----
 
-thread 'a_value_the_device_keeps_leaves_a_page_marked' (145860) panicked at compiler/pw-core/tests/prerender.rs:134:5:
+thread 'a_value_the_device_keeps_leaves_a_page_marked' (140896) panicked at compiler/pw-core/tests/prerender.rs:134:5:
 module t
 
 opaque type InteractionId = String
@@ -1159,7 +1159,7 @@ page P() {
 
 ---- a_view_that_contains_itself_is_read_for_its_handlers stdout ----
 
-thread 'a_view_that_contains_itself_is_read_for_its_handlers' (145861) panicked at compiler/pw-core/tests/prerender.rs:226:5:
+thread 'a_view_that_contains_itself_is_read_for_its_handlers' (140897) panicked at compiler/pw-core/tests/prerender.rs:226:5:
 module t
 
 opaque type InteractionId = String
@@ -1208,7 +1208,7 @@ failures:
     a_value_the_device_keeps_leaves_a_page_marked
     a_view_that_contains_itself_is_read_for_its_handlers
 
-test result: FAILED. 9 passed; 6 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.42s
+test result: FAILED. 9 passed; 6 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.40s
 
 error: test failed, to rerun pass `-p pw-core --test prerender`
 
@@ -1235,7 +1235,7 @@ failures:
 
 ---- a_page_marked_is_said_so_in_its_plan stdout ----
 
-thread 'a_page_marked_is_said_so_in_its_plan' (146229) panicked at compiler/pw-core/tests/prerender.rs:310:5:
+thread 'a_page_marked_is_said_so_in_its_plan' (141264) panicked at compiler/pw-core/tests/prerender.rs:310:5:
 assertion `left == right` failed
   left: Some(Bool(false))
  right: None
@@ -1245,7 +1245,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_page_marked_is_said_so_in_its_plan
 
-test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.05s
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.02s
 
 error: test failed, to rerun pass `-p pw-core --test prerender`
 
@@ -1277,78 +1277,78 @@ failures:
 
 ---- tests::prerender::a_browser_that_holds_a_representation_is_told_so stdout ----
 
-thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (147163) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
+thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (142196) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
 Err("`t.Bound~ui` cannot be prerendered: `t.Bound~ui` binds a query; this route renders a page's signals and streams")
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::prerender::a_head_is_answered_as_its_get_is stdout ----
 
-thread 'tests::prerender::a_head_is_answered_as_its_get_is' (147165) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
+thread 'tests::prerender::a_head_is_answered_as_its_get_is' (142198) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
 Err("`t.Bound~ui` cannot be prerendered: `t.Bound~ui` binds a query; this route renders a page's signals and streams")
 
 ---- tests::prerender::a_host_route_keeps_its_place stdout ----
 
-thread 'tests::prerender::a_host_route_keeps_its_place' (147166) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
+thread 'tests::prerender::a_host_route_keeps_its_place' (142199) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
 Err("`t.Bound~ui` cannot be prerendered: `t.Bound~ui` binds a query; this route renders a page's signals and streams")
 
 ---- tests::prerender::a_page_someone_decides_is_as_it_was stdout ----
 
-thread 'tests::prerender::a_page_someone_decides_is_as_it_was' (147167) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
+thread 'tests::prerender::a_page_someone_decides_is_as_it_was' (142200) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
 Err("`t.Bound~ui` cannot be prerendered: `t.Bound~ui` binds a query; this route renders a page's signals and streams")
 
 ---- tests::prerender::a_page_that_does_not_render_stops_the_host stdout ----
 
-thread 'tests::prerender::a_page_that_does_not_render_stops_the_host' (147168) panicked at spikes/own-renderer/server/src/tests/prerender.rs:471:5:
+thread 'tests::prerender::a_page_that_does_not_render_stops_the_host' (142201) panicked at spikes/own-renderer/server/src/tests/prerender.rs:471:5:
 assertion failed: done.unwrap_err().contains(HOME)
 
 ---- tests::prerender::a_page_with_no_rows_is_the_same_bytes_as_a_request_would_have_been stdout ----
 
-thread 'tests::prerender::a_page_with_no_rows_is_the_same_bytes_as_a_request_would_have_been' (147169) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
+thread 'tests::prerender::a_page_with_no_rows_is_the_same_bytes_as_a_request_would_have_been' (142202) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
 Err("`t.Bound~ui` cannot be prerendered: `t.Bound~ui` binds a query; this route renders a page's signals and streams")
 
 ---- tests::prerender::a_request_with_a_session_is_admitted_as_every_request_is stdout ----
 
-thread 'tests::prerender::a_request_with_a_session_is_admitted_as_every_request_is' (147170) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
+thread 'tests::prerender::a_request_with_a_session_is_admitted_as_every_request_is' (142203) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
 Err("`t.Bound~ui` cannot be prerendered: `t.Bound~ui` binds a query; this route renders a page's signals and streams")
 
 ---- tests::prerender::a_validator_is_the_first_128_bits_of_its_digest stdout ----
 
-thread 'tests::prerender::a_validator_is_the_first_128_bits_of_its_digest' (147171) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
+thread 'tests::prerender::a_validator_is_the_first_128_bits_of_its_digest' (142204) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
 Err("`t.Bound~ui` cannot be prerendered: `t.Bound~ui` binds a query; this route renders a page's signals and streams")
 
 ---- tests::prerender::a_versioned_build_says_its_delivery_and_names_its_files_at_it stdout ----
 
-thread 'tests::prerender::a_versioned_build_says_its_delivery_and_names_its_files_at_it' (147172) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
+thread 'tests::prerender::a_versioned_build_says_its_delivery_and_names_its_files_at_it' (142205) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
 Err("`t.Bound~ui` cannot be prerendered: `t.Bound~ui` binds a query; this route renders a page's signals and streams")
 
 ---- tests::prerender::each_representation_holds_the_document stdout ----
 
-thread 'tests::prerender::each_representation_holds_the_document' (147173) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
+thread 'tests::prerender::each_representation_holds_the_document' (142206) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
 Err("`t.Bound~ui` cannot be prerendered: `t.Bound~ui` binds a query; this route renders a page's signals and streams")
 
 ---- tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing stdout ----
 
-thread 'tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing' (147174) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
+thread 'tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing' (142207) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
 Err("`t.Bound~ui` cannot be prerendered: `t.Bound~ui` binds a query; this route renders a page's signals and streams")
 
 ---- tests::prerender::it_is_rendered_in_the_public_partition stdout ----
 
-thread 'tests::prerender::it_is_rendered_in_the_public_partition' (147175) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
+thread 'tests::prerender::it_is_rendered_in_the_public_partition' (142208) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
 Err("`t.Bound~ui` cannot be prerendered: `t.Bound~ui` binds a query; this route renders a page's signals and streams")
 
 ---- tests::prerender::it_is_the_document_a_request_would_have_been_rendered stdout ----
 
-thread 'tests::prerender::it_is_the_document_a_request_would_have_been_rendered' (147176) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
+thread 'tests::prerender::it_is_the_document_a_request_would_have_been_rendered' (142209) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
 Err("`t.Bound~ui` cannot be prerendered: `t.Bound~ui` binds a query; this route renders a page's signals and streams")
 
 ---- tests::prerender::it_says_what_a_document_says_of_itself stdout ----
 
-thread 'tests::prerender::it_says_what_a_document_says_of_itself' (147177) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
+thread 'tests::prerender::it_says_what_a_document_says_of_itself' (142210) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
 Err("`t.Bound~ui` cannot be prerendered: `t.Bound~ui` binds a query; this route renders a page's signals and streams")
 
 ---- tests::prerender::the_address_that_still_renders_is_as_it_was stdout ----
 
-thread 'tests::prerender::the_address_that_still_renders_is_as_it_was' (147180) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
+thread 'tests::prerender::the_address_that_still_renders_is_as_it_was' (142213) panicked at spikes/own-renderer/server/src/tests/prerender.rs:31:5:
 Err("`t.Bound~ui` cannot be prerendered: `t.Bound~ui` binds a query; this route renders a page's signals and streams")
 
 
@@ -1369,7 +1369,7 @@ failures:
     tests::prerender::it_says_what_a_document_says_of_itself
     tests::prerender::the_address_that_still_renders_is_as_it_was
 
-test result: FAILED. 5 passed; 15 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.21s
+test result: FAILED. 5 passed; 15 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 3.91s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1401,7 +1401,7 @@ failures:
 
 ---- tests::prerender::it_is_rendered_in_the_public_partition stdout ----
 
-thread 'tests::prerender::it_is_rendered_in_the_public_partition' (147520) panicked at spikes/own-renderer/server/src/tests/prerender.rs:334:5:
+thread 'tests::prerender::it_is_rendered_in_the_public_partition' (142553) panicked at spikes/own-renderer/server/src/tests/prerender.rs:334:5:
 assertion `left == right` failed
   left: "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Home</title>\n<link rel=\"modulepreload\" href=\"/pw-runtime.mjs\">\n<link rel=\"preload\" href=\"/pw-handlers\" as=\"fetch\" crossorigin>\n</head>\n<body>\n<button data-pw=\"0\" type=\"button\"><!--pw:s1-->0<!--pw:e1--></button><!--pw:s2--><!--pw:s3--><!--pw:s3@lfMoWFBJYTSqT3wg--><p><!--pw:s4-->1<!--pw:e4--></p><!--pw:e3@lfMoWFBJYTSqT3wg--><!--pw:s3@OOOGy8BBSPTHArFB--><p><!--pw:s4-->2<!--pw:e4--></p><!--pw:e3@OOOGy8BBSPTHArFB--><!--pw:e3--><!--pw:e2-->\n<div role=\"status\" class=\"pw-announcer\"></div>\n<script type=\"application/json\" id=\"pw-parts\">{\"blocks\":{\"2\":{\"id\":2,\"otherwise\":[],\"part\":\"conditional\",\"then\":[{\"chunk\":\"dynamic\",\"value\":{\"binding\":\"n\",\"body\":[{\"chunk\":\"static\",\"value\":\"\\u003cp>\"},{\"chunk\":\"dynamic\",\"value\":{\"context\":\"text\",\"id\":4,\"part\":\"text\",\"value\":\"n\"}},{\"chunk\":\"static\",\"value\":\"\\u003c/p>\"}],\"collection\":\"rows\",\"id\":3,\"key\":\"\",\"part\":\"each\"}}],\"value\":\"#t.Home~ui~2\"}},\"computed\":\"/computed/t.Home~ui.mjs\",\"cursor\":0,\"listens\":false,\"live\":[{\"kind\":\"text\",\"part\":1,\"path\":\"count\",\"signal\":\"count\"},{\"derived\":\"t.Home~ui.derived_2\",\"kind\":\"conditional\",\"part\":2,\"path\":\"count\",\"reads\":[\"count\",\"rows\"],\"signal\":\"count\"}],\"parts\":[{\"anchor\":\"element\",\"event\":\"press\",\"id\":0,\"kind\":\"event\",\"owner\":0,\"value\":\"10311fd4e84fb087\"},{\"anchor\":\"range\",\"id\":1,\"kind\":\"text\",\"value\":\"count\"},{\"anchor\":\"range\",\"id\":2,\"kind\":\"conditional\",\"value\":\"#t.Home~ui~2\"},{\"anchor\":\"range\",\"id\":3,\"kind\":\"each\",\"value\":\"rows\"},{\"anchor\":\"range\",\"id\":4,\"kind\":\"text\",\"value\":\"n\"},{\"anchor\":\"document\",\"id\":5,\"kind\":\"title\",\"value\":\"\"}],\"resume\":{\"abi\":\"1\",\"build\":\"bdf5cdf7edfcc7f02\",\"capture\":\"\",\"captures\":\"\",\"construct\":\"region\",\"document\":\"278996881c5bbff5\",\"handler\":\"\",\"handlers\":{\"0fe8c81850fe72a6\":{\"capture\":\"\",\"captures\":\"\",\"handler\":\"0fe8c81850fe72a6\"},\"10311fd4e84fb087\":{\"capture\":\"\",\"captures\":\"\",\"handler\":\"10311fd4e84fb087\"}},\"scheme\":\"2\",\"scope\":\"public\"},\"schema\":\"278996881c5bbff5\",\"signals\":{\"count\":0,\"rows\":[1,2]},\"template\":\"t.Home~ui\"}</script>\n<script>import(\"/pw-runtime.mjs\")</script>\n</body>\n</html>\n"
  right: "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Home</title>\n<link rel=\"modulepreload\" href=\"/pw-runtime.mjs\">\n<link rel=\"preload\" href=\"/pw-handlers\" as=\"fetch\" crossorigin>\n</head>\n<body>\n<button data-pw=\"0\" type=\"button\"><!--pw:s1-->0<!--pw:e1--></button><!--pw:s2--><!--pw:s3--><!--pw:s3@AasAyp8FNh53xZUa--><p><!--pw:s4-->1<!--pw:e4--></p><!--pw:e3@AasAyp8FNh53xZUa--><!--pw:s3@cTbd5ZgaAhNfryAK--><p><!--pw:s4-->2<!--pw:e4--></p><!--pw:e3@cTbd5ZgaAhNfryAK--><!--pw:e3--><!--pw:e2-->\n<div role=\"status\" class=\"pw-announcer\"></div>\n<script type=\"application/json\" id=\"pw-parts\">{\"blocks\":{\"2\":{\"id\":2,\"otherwise\":[],\"part\":\"conditional\",\"then\":[{\"chunk\":\"dynamic\",\"value\":{\"binding\":\"n\",\"body\":[{\"chunk\":\"static\",\"value\":\"\\u003cp>\"},{\"chunk\":\"dynamic\",\"value\":{\"context\":\"text\",\"id\":4,\"part\":\"text\",\"value\":\"n\"}},{\"chunk\":\"static\",\"value\":\"\\u003c/p>\"}],\"collection\":\"rows\",\"id\":3,\"key\":\"\",\"part\":\"each\"}}],\"value\":\"#t.Home~ui~2\"}},\"computed\":\"/computed/t.Home~ui.mjs\",\"cursor\":0,\"listens\":false,\"live\":[{\"kind\":\"text\",\"part\":1,\"path\":\"count\",\"signal\":\"count\"},{\"derived\":\"t.Home~ui.derived_2\",\"kind\":\"conditional\",\"part\":2,\"path\":\"count\",\"reads\":[\"count\",\"rows\"],\"signal\":\"count\"}],\"parts\":[{\"anchor\":\"element\",\"event\":\"press\",\"id\":0,\"kind\":\"event\",\"owner\":0,\"value\":\"10311fd4e84fb087\"},{\"anchor\":\"range\",\"id\":1,\"kind\":\"text\",\"value\":\"count\"},{\"anchor\":\"range\",\"id\":2,\"kind\":\"conditional\",\"value\":\"#t.Home~ui~2\"},{\"anchor\":\"range\",\"id\":3,\"kind\":\"each\",\"value\":\"rows\"},{\"anchor\":\"range\",\"id\":4,\"kind\":\"text\",\"value\":\"n\"},{\"anchor\":\"document\",\"id\":5,\"kind\":\"title\",\"value\":\"\"}],\"resume\":{\"abi\":\"1\",\"build\":\"bdf5cdf7edfcc7f02\",\"capture\":\"\",\"captures\":\"\",\"construct\":\"region\",\"document\":\"278996881c5bbff5\",\"handler\":\"\",\"handlers\":{\"0fe8c81850fe72a6\":{\"capture\":\"\",\"captures\":\"\",\"handler\":\"0fe8c81850fe72a6\"},\"10311fd4e84fb087\":{\"capture\":\"\",\"captures\":\"\",\"handler\":\"10311fd4e84fb087\"}},\"scheme\":\"2\",\"scope\":\"public\"},\"schema\":\"278996881c5bbff5\",\"signals\":{\"count\":0,\"rows\":[1,2]},\"template\":\"t.Home~ui\"}</script>\n<script>import(\"/pw-runtime.mjs\")</script>\n</body>\n</html>\n"
@@ -1411,7 +1411,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::it_is_rendered_in_the_public_partition
 
-test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.26s
+test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.25s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1443,7 +1443,7 @@ failures:
 
 ---- tests::prerender::a_page_that_does_not_render_stops_the_host stdout ----
 
-thread 'tests::prerender::a_page_that_does_not_render_stops_the_host' (147851) panicked at spikes/own-renderer/server/src/tests/prerender.rs:470:5:
+thread 'tests::prerender::a_page_that_does_not_render_stops_the_host' (142885) panicked at spikes/own-renderer/server/src/tests/prerender.rs:470:5:
 Ok(())
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -1451,7 +1451,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::a_page_that_does_not_render_stops_the_host
 
-test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.34s
+test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.23s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1483,13 +1483,13 @@ failures:
 
 ---- tests::prerender::a_browser_that_holds_a_representation_is_told_so stdout ----
 
-thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (148184) panicked at spikes/own-renderer/server/src/tests/prerender.rs:226:9:
+thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (143216) panicked at spikes/own-renderer/server/src/tests/prerender.rs:226:9:
 a validator: HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 2161
 x-content-type-options: nosniff
 cache-control: private, no-store
-set-cookie: pw-session=s-ddabbdc5890a366aa771e249840db8a2; Path=/; HttpOnly; SameSite=Lax
+set-cookie: pw-session=s-3f0efa15cdb3f1db1a5f3b1dac9037f8; Path=/; HttpOnly; SameSite=Lax
 pw-build: bdf5cdf7edfcc7f02
 content-security-policy: default-src 'none'; script-src 'self' 'sha256-v8jCs+poUKnEHV7piaB+l4LlDvig0qQ2jqYEal4D2VY='; style-src 'self' 'sha256-PsoNDNr2FXKmBWScmALXJCtS6SI8vayZA8mDCwXDMYE='; img-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'
 connection: close
@@ -1499,13 +1499,13 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 ---- tests::prerender::a_request_with_a_session_is_admitted_as_every_request_is stdout ----
 pw dev server: session admission refused: session authority source is unavailable
 
-thread 'tests::prerender::a_request_with_a_session_is_admitted_as_every_request_is' (148199) panicked at spikes/own-renderer/server/src/tests/prerender.rs:459:5:
+thread 'tests::prerender::a_request_with_a_session_is_admitted_as_every_request_is' (143231) panicked at spikes/own-renderer/server/src/tests/prerender.rs:459:5:
 assertion `left == right` failed: HTTP/1.1 503 Service Unavailable
 content-type: text/plain; charset=utf-8
 content-length: 38
 x-content-type-options: nosniff
 cache-control: private, no-store
-set-cookie: pw-session=s-3f08e5621561390b0225bf22cdc24214; Path=/; HttpOnly; SameSite=Lax
+set-cookie: pw-session=s-f9eac4a86dcfdbf04b852da7f06e70e4; Path=/; HttpOnly; SameSite=Lax
 connection: close
 
   left: "503"
@@ -1513,13 +1513,13 @@ connection: close
 
 ---- tests::prerender::a_validator_is_the_first_128_bits_of_its_digest stdout ----
 
-thread 'tests::prerender::a_validator_is_the_first_128_bits_of_its_digest' (148202) panicked at spikes/own-renderer/server/src/tests/prerender.rs:300:5:
+thread 'tests::prerender::a_validator_is_the_first_128_bits_of_its_digest' (143234) panicked at spikes/own-renderer/server/src/tests/prerender.rs:300:5:
 a validator: HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 2161
 x-content-type-options: nosniff
 cache-control: private, no-store
-set-cookie: pw-session=s-06e9225186e6d53e566141f7fbd30c3e; Path=/; HttpOnly; SameSite=Lax
+set-cookie: pw-session=s-0b9e51109e5d91d55071b03bfd7b3eba; Path=/; HttpOnly; SameSite=Lax
 pw-build: bdf5cdf7edfcc7f02
 content-security-policy: default-src 'none'; script-src 'self' 'sha256-v8jCs+poUKnEHV7piaB+l4LlDvig0qQ2jqYEal4D2VY='; style-src 'self' 'sha256-PsoNDNr2FXKmBWScmALXJCtS6SI8vayZA8mDCwXDMYE='; img-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'
 connection: close
@@ -1527,13 +1527,13 @@ connection: close
 
 ---- tests::prerender::each_representation_holds_the_document stdout ----
 
-thread 'tests::prerender::each_representation_holds_the_document' (148206) panicked at spikes/own-renderer/server/src/tests/prerender.rs:190:5:
+thread 'tests::prerender::each_representation_holds_the_document' (143238) panicked at spikes/own-renderer/server/src/tests/prerender.rs:190:5:
 assertion `left == right` failed: HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 2161
 x-content-type-options: nosniff
 cache-control: private, no-store
-set-cookie: pw-session=s-cde670509a77e3184082b8e74e12f932; Path=/; HttpOnly; SameSite=Lax
+set-cookie: pw-session=s-54af29995846149a93ba0376aca60f74; Path=/; HttpOnly; SameSite=Lax
 pw-build: bdf5cdf7edfcc7f02
 content-security-policy: default-src 'none'; script-src 'self' 'sha256-v8jCs+poUKnEHV7piaB+l4LlDvig0qQ2jqYEal4D2VY='; style-src 'self' 'sha256-PsoNDNr2FXKmBWScmALXJCtS6SI8vayZA8mDCwXDMYE='; img-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'
 connection: close
@@ -1543,27 +1543,27 @@ connection: close
 
 ---- tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing stdout ----
 
-thread 'tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing' (148209) panicked at spikes/own-renderer/server/src/tests/prerender.rs:93:5:
+thread 'tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing' (143241) panicked at spikes/own-renderer/server/src/tests/prerender.rs:93:5:
 assertion `left == right` failed
-  left: [60, 33, 100, 111, 99, 116, 121, 112, 101, 32, 104, 116, 109, 108, 62, 10, 60, 104, 116, 109, 108, 32, 108, 97, 110, 103, 61, 34, 101, 110, 34, 62, 10, 60, 104, 101, 97, 100, 62, 10, 60, 109, 101, 116, 97, 32, 99, 104, 97, 114, 115, 101, 116, 61, 34, 117, 116, 102, 45, 56, 34, 62, 10, 60, 109, 101, 116, 97, 32, 110, 97, 109, 101, 61, 34, 118, 105, 101, 119, 112, 111, 114, 116, 34, 32, 99, 111, 110, 116, 101, 110, 116, 61, 34, 119, 105, 100, 116, 104, 61, 100, 101, 118, 105, 99, 101, 45, 119, 105, 100, 116, 104, 44, 32, 105, 110, 105, 116, 105, 97, 108, 45, 115, 99, 97, 108, 101, 61, 49, 34, 62, 10, 60, 116, 105, 116, 108, 101, 62, 72, 111, 109, 101, 60, 47, 116, 105, 116, 108, 101, 62, 10, 60, 108, 105, 110, 107, 32, 114, 101, 108, 61, 34, 109, 111, 100, 117, 108, 101, 112, 114, 101, 108, 111, 97, 100, 34, 32, 104, 114, 101, 102, 61, 34, 47, 112, 119, 45, 114, 117, 110, 116, 105, 109, 101, 46, 109, 106, 115, 34, 62, 10, 60, 108, 105, 110, 107, 32, 114, 101, 108, 61, 34, 112, 114, 101, 108, 111, 97, 100, 34, 32, 104, 114, 101, 102, 61, 34, 47, 112, 119, 45, 104, 97, 110, 100, 108, 101, 114, 115, 34, 32, 97, 115, 61, 34, 102, 101, 116, 99, 104, 34, 32, 99, 114, 111, 115, 115, 111, 114, 105, 103, 105, 110, 62, 10, 60, 47, 104, 101, 97, 100, 62, 10, 60, 98, 111, 100, 121, 62, 10, 60, 98, 117, 116, 116, 111, 110, 32, 100, 97, 116, 97, 45, 112, 119, 61, 34, 48, 34, 32, 116, 121, 112, 101, 61, 34, 98, 117, 116, 116, 111, 110, 34, 62, 60, 33, 45, 45, 112, 119, 58, 115, 49, 45, 45, 62, 48, 60, 33, 45, 45, 112, 119, 58, 101, 49, 45, 45, 62, 60, 47, 98, 117, 116, 116, 111, 110, 62, 60, 33, 45, 45, 112, 119, 58, 115, 50, 45, 45, 62, 60, 33, 45, 45, 112, 119, 58, 115, 51, 45, 45, 62, 60, 33, 45, 45, 112, 119, 58, 115, 51, 64, 71, 115, 107, 116, 74, 72, 115, 83, 107, 105, 104, 112, 98, 97, 75, 52, 45, 45, 62, 60, 112, 62, 60, 33, 45, 45, 112, 119, 58, 115, 52, 45, 45, 62, 49, 60, 33, 45, 45, 112, 119, 58, 101, 52, 45, 45, 62, 60, 47, 112, 62, 60, 33, 45, 45, 112, 119, 58, 101, 51, 64, 71, 115, 107, 116, 74, 72, 115, 83, 107, 105, 104, 112, 98, 97, 75, 52, 45, 45, 62, 60, 33, 45, 45, 112, 119, 58, 115, 51, 64, 56, 122, 66, 55, 119, 73, 82, 79, 100, 102, 52, 48, 52, 108, 86, 45, 45, 45, 62, 60, 112, 62, 60, 33, 45, 45, 112, 119, 58, 115, 52, 45, 45, 62, 50, 60, 33, 45, 45, 112, 119, 58, 101, 52, 45, 45, 62, 60, 47, 112, 62, 60, 33, 45, 45, 112, 119, 58, 101, 51, 64, 56, 122, 66, 55, 119, 73, 82, 79, 100, 102, 52, 48, 52, 108, 86, 45, 45, 45, 62, 60, 33, 45, 45, 112, 119, 58, 101, 51, 45, 45, 62, 60, 33, 45, 45, 112, 119, 58, 101, 50, 45, 45, 62, 10, 60, 100, 105, 118, 32, 114, 111, 108, 101, 61, 34, 115, 116, 97, 116, 117, 115, 34, 32, 99, 108, 97, 115, 115, 61, 34, 112, 119, 45, 97, 110, 110, 111, 117, 110, 99, 101, 114, 34, 62, 60, 47, 100, 105, 118, 62, 10, 60, 115, 99, 114, 105, 112, 116, 32, 116, 121, 112, 101, 61, 34, 97, 112, 112, 108, 105, 99, 97, 116, 105, 111, 110, 47, 106, 115, 111, 110, 34, 32, 105, 100, 61, 34, 112, 119, 45, 112, 97, 114, 116, 115, 34, 62, 123, 34, 98, 108, 111, 99, 107, 115, 34, 58, 123, 34, 50, 34, 58, 123, 34, 105, 100, 34, 58, 50, 44, 34, 111, 116, 104, 101, 114, 119, 105, 115, 101, 34, 58, 91, 93, 44, 34, 112, 97, 114, 116, 34, 58, 34, 99, 111, 110, 100, 105, 116, 105, 111, 110, 97, 108, 34, 44, 34, 116, 104, 101, 110, 34, 58, 91, 123, 34, 99, 104, 117, 110, 107, 34, 58, 34, 100, 121, 110, 97, 109, 105, 99, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 123, 34, 98, 105, 110, 100, 105, 110, 103, 34, 58, 34, 110, 34, 44, 34, 98, 111, 100, 121, 34, 58, 91, 123, 34, 99, 104, 117, 110, 107, 34, 58, 34, 115, 116, 97, 116, 105, 99, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 92, 117, 48, 48, 51, 99, 112, 62, 34, 125, 44, 123, 34, 99, 104, 117, 110, 107, 34, 58, 34, 100, 121, 110, 97, 109, 105, 99, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 123, 34, 99, 111, 110, 116, 101, 120, 116, 34, 58, 34, 116, 101, 120, 116, 34, 44, 34, 105, 100, 34, 58, 52, 44, 34, 112, 97, 114, 116, 34, 58, 34, 116, 101, 120, 116, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 110, 34, 125, 125, 44, 123, 34, 99, 104, 117, 110, 107, 34, 58, 34, 115, 116, 97, 116, 105, 99, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 92, 117, 48, 48, 51, 99, 47, 112, 62, 34, 125, 93, 44, 34, 99, 111, 108, 108, 101, 99, 116, 105, 111, 110, 34, 58, 34, 114, 111, 119, 115, 34, 44, 34, 105, 100, 34, 58, 51, 44, 34, 107, 101, 121, 34, 58, 34, 34, 44, 34, 112, 97, 114, 116, 34, 58, 34, 101, 97, 99, 104, 34, 125, 125, 93, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 35, 116, 46, 72, 111, 109, 101, 126, 117, 105, 126, 50, 34, 125, 125, 44, 34, 99, 111, 109, 112, 117, 116, 101, 100, 34, 58, 34, 47, 99, 111, 109, 112, 117, 116, 101, 100, 47, 116, 46, 72, 111, 109, 101, 126, 117, 105, 46, 109, 106, 115, 34, 44, 34, 99, 117, 114, 115, 111, 114, 34, 58, 48, 44, 34, 108, 105, 115, 116, 101, 110, 115, 34, 58, 102, 97, 108, 115, 101, 44, 34, 108, 105, 118, 101, 34, 58, 91, 123, 34, 107, 105, 110, 100, 34, 58, 34, 116, 101, 120, 116, 34, 44, 34, 112, 97, 114, 116, 34, 58, 49, 44, 34, 112, 97, 116, 104, 34, 58, 34, 99, 111, 117, 110, 116, 34, 44, 34, 115, 105, 103, 110, 97, 108, 34, 58, 34, 99, 111, 117, 110, 116, 34, 125, 44, 123, 34, 100, 101, 114, 105, 118, 101, 100, 34, 58, 34, 116, 46, 72, 111, 109, 101, 126, 117, 105, 46, 100, 101, 114, 105, 118, 101, 100, 95, 50, 34, 44, 34, 107, 105, 110, 100, 34, 58, 34, 99, 111, 110, 100, 105, 116, 105, 111, 110, 97, 108, 34, 44, 34, 112, 97, 114, 116, 34, 58, 50, 44, 34, 112, 97, 116, 104, 34, 58, 34, 99, 111, 117, 110, 116, 34, 44, 34, 114, 101, 97, 100, 115, 34, 58, 91, 34, 99, 111, 117, 110, 116, 34, 44, 34, 114, 111, 119, 115, 34, 93, 44, 34, 115, 105, 103, 110, 97, 108, 34, 58, 34, 99, 111, 117, 110, 116, 34, 125, 93, 44, 34, 112, 97, 114, 116, 115, 34, 58, 91, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 101, 108, 101, 109, 101, 110, 116, 34, 44, 34, 101, 118, 101, 110, 116, 34, 58, 34, 112, 114, 101, 115, 115, 34, 44, 34, 105, 100, 34, 58, 48, 44, 34, 107, 105, 110, 100, 34, 58, 34, 101, 118, 101, 110, 116, 34, 44, 34, 111, 119, 110, 101, 114, 34, 58, 48, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 49, 48, 51, 49, 49, 102, 100, 52, 101, 56, 52, 102, 98, 48, 56, 55, 34, 125, 44, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 114, 97, 110, 103, 101, 34, 44, 34, 105, 100, 34, 58, 49, 44, 34, 107, 105, 110, 100, 34, 58, 34, 116, 101, 120, 116, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 99, 111, 117, 110, 116, 34, 125, 44, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 114, 97, 110, 103, 101, 34, 44, 34, 105, 100, 34, 58, 50, 44, 34, 107, 105, 110, 100, 34, 58, 34, 99, 111, 110, 100, 105, 116, 105, 111, 110, 97, 108, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 35, 116, 46, 72, 111, 109, 101, 126, 117, 105, 126, 50, 34, 125, 44, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 114, 97, 110, 103, 101, 34, 44, 34, 105, 100, 34, 58, 51, 44, 34, 107, 105, 110, 100, 34, 58, 34, 101, 97, 99, 104, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 114, 111, 119, 115, 34, 125, 44, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 114, 97, 110, 103, 101, 34, 44, 34, 105, 100, 34, 58, 52, 44, 34, 107, 105, 110, 100, 34, 58, 34, 116, 101, 120, 116, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 110, 34, 125, 44, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 100, 111, 99, 117, 109, 101, 110, 116, 34, 44, 34, 105, 100, 34, 58, 53, 44, 34, 107, 105, 110, 100, 34, 58, 34, 116, 105, 116, 108, 101, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 34, 125, 93, 44, 34, 114, 101, 115, 117, 109, 101, 34, 58, 123, 34, 97, 98, 105, 34, 58, 34, 49, 34, 44, 34, 98, 117, 105, 108, 100, 34, 58, 34, 98, 100, 102, 53, 99, 100, 102, 55, 101, 100, 102, 99, 99, 55, 102, 48, 50, 34, 44, 34, 99, 97, 112, 116, 117, 114, 101, 34, 58, 34, 34, 44, 34, 99, 97, 112, 116, 117, 114, 101, 115, 34, 58, 34, 34, 44, 34, 99, 111, 110, 115, 116, 114, 117, 99, 116, 34, 58, 34, 114, 101, 103, 105, 111, 110, 34, 44, 34, 100, 111, 99, 117, 109, 101, 110, 116, 34, 58, 34, 50, 55, 56, 57, 57, 54, 56, 56, 49, 99, 53, 98, 98, 102, 102, 53, 34, 44, 34, 104, 97, 110, 100, 108, 101, 114, 34, 58, 34, 34, 44, 34, 104, 97, 110, 100, 108, 101, 114, 115, 34, 58, 123, 34, 48, 102, 101, 56, 99, 56, 49, 56, 53, 48, 102, 101, 55, 50, 97, 54, 34, 58, 123, 34, 99, 97, 112, 116, 117, 114, 101, 34, 58, 34, 34, 44, 34, 99, 97, 112, 116, 117, 114, 101, 115, 34, 58, 34, 34, 44, 34, 104, 97, 110, 100, 108, 101, 114, 34, 58, 34, 48, 102, 101, 56, 99, 56, 49, 56, 53, 48, 102, 101, 55, 50, 97, 54, 34, 125, 44, 34, 49, 48, 51, 49, 49, 102, 100, 52, 101, 56, 52, 102, 98, 48, 56, 55, 34, 58, 123, 34, 99, 97, 112, 116, 117, 114, 101, 34, 58, 34, 34, 44, 34, 99, 97, 112, 116, 117, 114, 101, 115, 34, 58, 34, 34, 44, 34, 104, 97, 110, 100, 108, 101, 114, 34, 58, 34, 49, 48, 51, 49, 49, 102, 100, 52, 101, 56, 52, 102, 98, 48, 56, 55, 34, 125, 125, 44, 34, 115, 99, 104, 101, 109, 101, 34, 58, 34, 50, 34, 44, 34, 115, 99, 111, 112, 101, 34, 58, 34, 112, 117, 98, 108, 105, 99, 34, 125, 44, 34, 115, 99, 104, 101, 109, 97, 34, 58, 34, 50, 55, 56, 57, 57, 54, 56, 56, 49, 99, 53, 98, 98, 102, 102, 53, 34, 44, 34, 115, 105, 103, 110, 97, 108, 115, 34, 58, 123, 34, 99, 111, 117, 110, 116, 34, 58, 48, 44, 34, 114, 111, 119, 115, 34, 58, 91, 49, 44, 50, 93, 125, 44, 34, 116, 101, 109, 112, 108, 97, 116, 101, 34, 58, 34, 116, 46, 72, 111, 109, 101, 126, 117, 105, 34, 125, 60, 47, 115, 99, 114, 105, 112, 116, 62, 10, 60, 115, 99, 114, 105, 112, 116, 62, 105, 109, 112, 111, 114, 116, 40, 34, 47, 112, 119, 45, 114, 117, 110, 116, 105, 109, 101, 46, 109, 106, 115, 34, 41, 60, 47, 115, 99, 114, 105, 112, 116, 62, 10, 60, 47, 98, 111, 100, 121, 62, 10, 60, 47, 104, 116, 109, 108, 62, 10]
+  left: [60, 33, 100, 111, 99, 116, 121, 112, 101, 32, 104, 116, 109, 108, 62, 10, 60, 104, 116, 109, 108, 32, 108, 97, 110, 103, 61, 34, 101, 110, 34, 62, 10, 60, 104, 101, 97, 100, 62, 10, 60, 109, 101, 116, 97, 32, 99, 104, 97, 114, 115, 101, 116, 61, 34, 117, 116, 102, 45, 56, 34, 62, 10, 60, 109, 101, 116, 97, 32, 110, 97, 109, 101, 61, 34, 118, 105, 101, 119, 112, 111, 114, 116, 34, 32, 99, 111, 110, 116, 101, 110, 116, 61, 34, 119, 105, 100, 116, 104, 61, 100, 101, 118, 105, 99, 101, 45, 119, 105, 100, 116, 104, 44, 32, 105, 110, 105, 116, 105, 97, 108, 45, 115, 99, 97, 108, 101, 61, 49, 34, 62, 10, 60, 116, 105, 116, 108, 101, 62, 72, 111, 109, 101, 60, 47, 116, 105, 116, 108, 101, 62, 10, 60, 108, 105, 110, 107, 32, 114, 101, 108, 61, 34, 109, 111, 100, 117, 108, 101, 112, 114, 101, 108, 111, 97, 100, 34, 32, 104, 114, 101, 102, 61, 34, 47, 112, 119, 45, 114, 117, 110, 116, 105, 109, 101, 46, 109, 106, 115, 34, 62, 10, 60, 108, 105, 110, 107, 32, 114, 101, 108, 61, 34, 112, 114, 101, 108, 111, 97, 100, 34, 32, 104, 114, 101, 102, 61, 34, 47, 112, 119, 45, 104, 97, 110, 100, 108, 101, 114, 115, 34, 32, 97, 115, 61, 34, 102, 101, 116, 99, 104, 34, 32, 99, 114, 111, 115, 115, 111, 114, 105, 103, 105, 110, 62, 10, 60, 47, 104, 101, 97, 100, 62, 10, 60, 98, 111, 100, 121, 62, 10, 60, 98, 117, 116, 116, 111, 110, 32, 100, 97, 116, 97, 45, 112, 119, 61, 34, 48, 34, 32, 116, 121, 112, 101, 61, 34, 98, 117, 116, 116, 111, 110, 34, 62, 60, 33, 45, 45, 112, 119, 58, 115, 49, 45, 45, 62, 48, 60, 33, 45, 45, 112, 119, 58, 101, 49, 45, 45, 62, 60, 47, 98, 117, 116, 116, 111, 110, 62, 60, 33, 45, 45, 112, 119, 58, 115, 50, 45, 45, 62, 60, 33, 45, 45, 112, 119, 58, 115, 51, 45, 45, 62, 60, 33, 45, 45, 112, 119, 58, 115, 51, 64, 79, 72, 101, 112, 100, 65, 83, 70, 88, 56, 54, 77, 69, 73, 78, 106, 45, 45, 62, 60, 112, 62, 60, 33, 45, 45, 112, 119, 58, 115, 52, 45, 45, 62, 49, 60, 33, 45, 45, 112, 119, 58, 101, 52, 45, 45, 62, 60, 47, 112, 62, 60, 33, 45, 45, 112, 119, 58, 101, 51, 64, 79, 72, 101, 112, 100, 65, 83, 70, 88, 56, 54, 77, 69, 73, 78, 106, 45, 45, 62, 60, 33, 45, 45, 112, 119, 58, 115, 51, 64, 118, 82, 112, 71, 75, 88, 122, 84, 88, 53, 82, 108, 84, 107, 100, 111, 45, 45, 62, 60, 112, 62, 60, 33, 45, 45, 112, 119, 58, 115, 52, 45, 45, 62, 50, 60, 33, 45, 45, 112, 119, 58, 101, 52, 45, 45, 62, 60, 47, 112, 62, 60, 33, 45, 45, 112, 119, 58, 101, 51, 64, 118, 82, 112, 71, 75, 88, 122, 84, 88, 53, 82, 108, 84, 107, 100, 111, 45, 45, 62, 60, 33, 45, 45, 112, 119, 58, 101, 51, 45, 45, 62, 60, 33, 45, 45, 112, 119, 58, 101, 50, 45, 45, 62, 10, 60, 100, 105, 118, 32, 114, 111, 108, 101, 61, 34, 115, 116, 97, 116, 117, 115, 34, 32, 99, 108, 97, 115, 115, 61, 34, 112, 119, 45, 97, 110, 110, 111, 117, 110, 99, 101, 114, 34, 62, 60, 47, 100, 105, 118, 62, 10, 60, 115, 99, 114, 105, 112, 116, 32, 116, 121, 112, 101, 61, 34, 97, 112, 112, 108, 105, 99, 97, 116, 105, 111, 110, 47, 106, 115, 111, 110, 34, 32, 105, 100, 61, 34, 112, 119, 45, 112, 97, 114, 116, 115, 34, 62, 123, 34, 98, 108, 111, 99, 107, 115, 34, 58, 123, 34, 50, 34, 58, 123, 34, 105, 100, 34, 58, 50, 44, 34, 111, 116, 104, 101, 114, 119, 105, 115, 101, 34, 58, 91, 93, 44, 34, 112, 97, 114, 116, 34, 58, 34, 99, 111, 110, 100, 105, 116, 105, 111, 110, 97, 108, 34, 44, 34, 116, 104, 101, 110, 34, 58, 91, 123, 34, 99, 104, 117, 110, 107, 34, 58, 34, 100, 121, 110, 97, 109, 105, 99, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 123, 34, 98, 105, 110, 100, 105, 110, 103, 34, 58, 34, 110, 34, 44, 34, 98, 111, 100, 121, 34, 58, 91, 123, 34, 99, 104, 117, 110, 107, 34, 58, 34, 115, 116, 97, 116, 105, 99, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 92, 117, 48, 48, 51, 99, 112, 62, 34, 125, 44, 123, 34, 99, 104, 117, 110, 107, 34, 58, 34, 100, 121, 110, 97, 109, 105, 99, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 123, 34, 99, 111, 110, 116, 101, 120, 116, 34, 58, 34, 116, 101, 120, 116, 34, 44, 34, 105, 100, 34, 58, 52, 44, 34, 112, 97, 114, 116, 34, 58, 34, 116, 101, 120, 116, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 110, 34, 125, 125, 44, 123, 34, 99, 104, 117, 110, 107, 34, 58, 34, 115, 116, 97, 116, 105, 99, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 92, 117, 48, 48, 51, 99, 47, 112, 62, 34, 125, 93, 44, 34, 99, 111, 108, 108, 101, 99, 116, 105, 111, 110, 34, 58, 34, 114, 111, 119, 115, 34, 44, 34, 105, 100, 34, 58, 51, 44, 34, 107, 101, 121, 34, 58, 34, 34, 44, 34, 112, 97, 114, 116, 34, 58, 34, 101, 97, 99, 104, 34, 125, 125, 93, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 35, 116, 46, 72, 111, 109, 101, 126, 117, 105, 126, 50, 34, 125, 125, 44, 34, 99, 111, 109, 112, 117, 116, 101, 100, 34, 58, 34, 47, 99, 111, 109, 112, 117, 116, 101, 100, 47, 116, 46, 72, 111, 109, 101, 126, 117, 105, 46, 109, 106, 115, 34, 44, 34, 99, 117, 114, 115, 111, 114, 34, 58, 48, 44, 34, 108, 105, 115, 116, 101, 110, 115, 34, 58, 102, 97, 108, 115, 101, 44, 34, 108, 105, 118, 101, 34, 58, 91, 123, 34, 107, 105, 110, 100, 34, 58, 34, 116, 101, 120, 116, 34, 44, 34, 112, 97, 114, 116, 34, 58, 49, 44, 34, 112, 97, 116, 104, 34, 58, 34, 99, 111, 117, 110, 116, 34, 44, 34, 115, 105, 103, 110, 97, 108, 34, 58, 34, 99, 111, 117, 110, 116, 34, 125, 44, 123, 34, 100, 101, 114, 105, 118, 101, 100, 34, 58, 34, 116, 46, 72, 111, 109, 101, 126, 117, 105, 46, 100, 101, 114, 105, 118, 101, 100, 95, 50, 34, 44, 34, 107, 105, 110, 100, 34, 58, 34, 99, 111, 110, 100, 105, 116, 105, 111, 110, 97, 108, 34, 44, 34, 112, 97, 114, 116, 34, 58, 50, 44, 34, 112, 97, 116, 104, 34, 58, 34, 99, 111, 117, 110, 116, 34, 44, 34, 114, 101, 97, 100, 115, 34, 58, 91, 34, 99, 111, 117, 110, 116, 34, 44, 34, 114, 111, 119, 115, 34, 93, 44, 34, 115, 105, 103, 110, 97, 108, 34, 58, 34, 99, 111, 117, 110, 116, 34, 125, 93, 44, 34, 112, 97, 114, 116, 115, 34, 58, 91, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 101, 108, 101, 109, 101, 110, 116, 34, 44, 34, 101, 118, 101, 110, 116, 34, 58, 34, 112, 114, 101, 115, 115, 34, 44, 34, 105, 100, 34, 58, 48, 44, 34, 107, 105, 110, 100, 34, 58, 34, 101, 118, 101, 110, 116, 34, 44, 34, 111, 119, 110, 101, 114, 34, 58, 48, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 49, 48, 51, 49, 49, 102, 100, 52, 101, 56, 52, 102, 98, 48, 56, 55, 34, 125, 44, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 114, 97, 110, 103, 101, 34, 44, 34, 105, 100, 34, 58, 49, 44, 34, 107, 105, 110, 100, 34, 58, 34, 116, 101, 120, 116, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 99, 111, 117, 110, 116, 34, 125, 44, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 114, 97, 110, 103, 101, 34, 44, 34, 105, 100, 34, 58, 50, 44, 34, 107, 105, 110, 100, 34, 58, 34, 99, 111, 110, 100, 105, 116, 105, 111, 110, 97, 108, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 35, 116, 46, 72, 111, 109, 101, 126, 117, 105, 126, 50, 34, 125, 44, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 114, 97, 110, 103, 101, 34, 44, 34, 105, 100, 34, 58, 51, 44, 34, 107, 105, 110, 100, 34, 58, 34, 101, 97, 99, 104, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 114, 111, 119, 115, 34, 125, 44, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 114, 97, 110, 103, 101, 34, 44, 34, 105, 100, 34, 58, 52, 44, 34, 107, 105, 110, 100, 34, 58, 34, 116, 101, 120, 116, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 110, 34, 125, 44, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 100, 111, 99, 117, 109, 101, 110, 116, 34, 44, 34, 105, 100, 34, 58, 53, 44, 34, 107, 105, 110, 100, 34, 58, 34, 116, 105, 116, 108, 101, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 34, 125, 93, 44, 34, 114, 101, 115, 117, 109, 101, 34, 58, 123, 34, 97, 98, 105, 34, 58, 34, 49, 34, 44, 34, 98, 117, 105, 108, 100, 34, 58, 34, 98, 100, 102, 53, 99, 100, 102, 55, 101, 100, 102, 99, 99, 55, 102, 48, 50, 34, 44, 34, 99, 97, 112, 116, 117, 114, 101, 34, 58, 34, 34, 44, 34, 99, 97, 112, 116, 117, 114, 101, 115, 34, 58, 34, 34, 44, 34, 99, 111, 110, 115, 116, 114, 117, 99, 116, 34, 58, 34, 114, 101, 103, 105, 111, 110, 34, 44, 34, 100, 111, 99, 117, 109, 101, 110, 116, 34, 58, 34, 50, 55, 56, 57, 57, 54, 56, 56, 49, 99, 53, 98, 98, 102, 102, 53, 34, 44, 34, 104, 97, 110, 100, 108, 101, 114, 34, 58, 34, 34, 44, 34, 104, 97, 110, 100, 108, 101, 114, 115, 34, 58, 123, 34, 48, 102, 101, 56, 99, 56, 49, 56, 53, 48, 102, 101, 55, 50, 97, 54, 34, 58, 123, 34, 99, 97, 112, 116, 117, 114, 101, 34, 58, 34, 34, 44, 34, 99, 97, 112, 116, 117, 114, 101, 115, 34, 58, 34, 34, 44, 34, 104, 97, 110, 100, 108, 101, 114, 34, 58, 34, 48, 102, 101, 56, 99, 56, 49, 56, 53, 48, 102, 101, 55, 50, 97, 54, 34, 125, 44, 34, 49, 48, 51, 49, 49, 102, 100, 52, 101, 56, 52, 102, 98, 48, 56, 55, 34, 58, 123, 34, 99, 97, 112, 116, 117, 114, 101, 34, 58, 34, 34, 44, 34, 99, 97, 112, 116, 117, 114, 101, 115, 34, 58, 34, 34, 44, 34, 104, 97, 110, 100, 108, 101, 114, 34, 58, 34, 49, 48, 51, 49, 49, 102, 100, 52, 101, 56, 52, 102, 98, 48, 56, 55, 34, 125, 125, 44, 34, 115, 99, 104, 101, 109, 101, 34, 58, 34, 50, 34, 44, 34, 115, 99, 111, 112, 101, 34, 58, 34, 112, 117, 98, 108, 105, 99, 34, 125, 44, 34, 115, 99, 104, 101, 109, 97, 34, 58, 34, 50, 55, 56, 57, 57, 54, 56, 56, 49, 99, 53, 98, 98, 102, 102, 53, 34, 44, 34, 115, 105, 103, 110, 97, 108, 115, 34, 58, 123, 34, 99, 111, 117, 110, 116, 34, 58, 48, 44, 34, 114, 111, 119, 115, 34, 58, 91, 49, 44, 50, 93, 125, 44, 34, 116, 101, 109, 112, 108, 97, 116, 101, 34, 58, 34, 116, 46, 72, 111, 109, 101, 126, 117, 105, 34, 125, 60, 47, 115, 99, 114, 105, 112, 116, 62, 10, 60, 115, 99, 114, 105, 112, 116, 62, 105, 109, 112, 111, 114, 116, 40, 34, 47, 112, 119, 45, 114, 117, 110, 116, 105, 109, 101, 46, 109, 106, 115, 34, 41, 60, 47, 115, 99, 114, 105, 112, 116, 62, 10, 60, 47, 98, 111, 100, 121, 62, 10, 60, 47, 104, 116, 109, 108, 62, 10]
  right: [60, 33, 100, 111, 99, 116, 121, 112, 101, 32, 104, 116, 109, 108, 62, 10, 60, 104, 116, 109, 108, 32, 108, 97, 110, 103, 61, 34, 101, 110, 34, 62, 10, 60, 104, 101, 97, 100, 62, 10, 60, 109, 101, 116, 97, 32, 99, 104, 97, 114, 115, 101, 116, 61, 34, 117, 116, 102, 45, 56, 34, 62, 10, 60, 109, 101, 116, 97, 32, 110, 97, 109, 101, 61, 34, 118, 105, 101, 119, 112, 111, 114, 116, 34, 32, 99, 111, 110, 116, 101, 110, 116, 61, 34, 119, 105, 100, 116, 104, 61, 100, 101, 118, 105, 99, 101, 45, 119, 105, 100, 116, 104, 44, 32, 105, 110, 105, 116, 105, 97, 108, 45, 115, 99, 97, 108, 101, 61, 49, 34, 62, 10, 60, 116, 105, 116, 108, 101, 62, 72, 111, 109, 101, 60, 47, 116, 105, 116, 108, 101, 62, 10, 60, 108, 105, 110, 107, 32, 114, 101, 108, 61, 34, 109, 111, 100, 117, 108, 101, 112, 114, 101, 108, 111, 97, 100, 34, 32, 104, 114, 101, 102, 61, 34, 47, 112, 119, 45, 114, 117, 110, 116, 105, 109, 101, 46, 109, 106, 115, 34, 62, 10, 60, 108, 105, 110, 107, 32, 114, 101, 108, 61, 34, 112, 114, 101, 108, 111, 97, 100, 34, 32, 104, 114, 101, 102, 61, 34, 47, 112, 119, 45, 104, 97, 110, 100, 108, 101, 114, 115, 34, 32, 97, 115, 61, 34, 102, 101, 116, 99, 104, 34, 32, 99, 114, 111, 115, 115, 111, 114, 105, 103, 105, 110, 62, 10, 60, 47, 104, 101, 97, 100, 62, 10, 60, 98, 111, 100, 121, 62, 10, 60, 98, 117, 116, 116, 111, 110, 32, 100, 97, 116, 97, 45, 112, 119, 61, 34, 48, 34, 32, 116, 121, 112, 101, 61, 34, 98, 117, 116, 116, 111, 110, 34, 62, 60, 33, 45, 45, 112, 119, 58, 115, 49, 45, 45, 62, 48, 60, 33, 45, 45, 112, 119, 58, 101, 49, 45, 45, 62, 60, 47, 98, 117, 116, 116, 111, 110, 62, 60, 33, 45, 45, 112, 119, 58, 115, 50, 45, 45, 62, 60, 33, 45, 45, 112, 119, 58, 115, 51, 45, 45, 62, 60, 33, 45, 45, 112, 119, 58, 115, 51, 64, 98, 86, 99, 45, 75, 54, 75, 72, 52, 55, 87, 49, 99, 78, 102, 81, 45, 45, 62, 60, 112, 62, 60, 33, 45, 45, 112, 119, 58, 115, 52, 45, 45, 62, 49, 60, 33, 45, 45, 112, 119, 58, 101, 52, 45, 45, 62, 60, 47, 112, 62, 60, 33, 45, 45, 112, 119, 58, 101, 51, 64, 98, 86, 99, 45, 75, 54, 75, 72, 52, 55, 87, 49, 99, 78, 102, 81, 45, 45, 62, 60, 33, 45, 45, 112, 119, 58, 115, 51, 64, 56, 102, 106, 120, 65, 75, 100, 121, 88, 98, 84, 113, 49, 107, 102, 121, 45, 45, 62, 60, 112, 62, 60, 33, 45, 45, 112, 119, 58, 115, 52, 45, 45, 62, 50, 60, 33, 45, 45, 112, 119, 58, 101, 52, 45, 45, 62, 60, 47, 112, 62, 60, 33, 45, 45, 112, 119, 58, 101, 51, 64, 56, 102, 106, 120, 65, 75, 100, 121, 88, 98, 84, 113, 49, 107, 102, 121, 45, 45, 62, 60, 33, 45, 45, 112, 119, 58, 101, 51, 45, 45, 62, 60, 33, 45, 45, 112, 119, 58, 101, 50, 45, 45, 62, 10, 60, 100, 105, 118, 32, 114, 111, 108, 101, 61, 34, 115, 116, 97, 116, 117, 115, 34, 32, 99, 108, 97, 115, 115, 61, 34, 112, 119, 45, 97, 110, 110, 111, 117, 110, 99, 101, 114, 34, 62, 60, 47, 100, 105, 118, 62, 10, 60, 115, 99, 114, 105, 112, 116, 32, 116, 121, 112, 101, 61, 34, 97, 112, 112, 108, 105, 99, 97, 116, 105, 111, 110, 47, 106, 115, 111, 110, 34, 32, 105, 100, 61, 34, 112, 119, 45, 112, 97, 114, 116, 115, 34, 62, 123, 34, 98, 108, 111, 99, 107, 115, 34, 58, 123, 34, 50, 34, 58, 123, 34, 105, 100, 34, 58, 50, 44, 34, 111, 116, 104, 101, 114, 119, 105, 115, 101, 34, 58, 91, 93, 44, 34, 112, 97, 114, 116, 34, 58, 34, 99, 111, 110, 100, 105, 116, 105, 111, 110, 97, 108, 34, 44, 34, 116, 104, 101, 110, 34, 58, 91, 123, 34, 99, 104, 117, 110, 107, 34, 58, 34, 100, 121, 110, 97, 109, 105, 99, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 123, 34, 98, 105, 110, 100, 105, 110, 103, 34, 58, 34, 110, 34, 44, 34, 98, 111, 100, 121, 34, 58, 91, 123, 34, 99, 104, 117, 110, 107, 34, 58, 34, 115, 116, 97, 116, 105, 99, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 92, 117, 48, 48, 51, 99, 112, 62, 34, 125, 44, 123, 34, 99, 104, 117, 110, 107, 34, 58, 34, 100, 121, 110, 97, 109, 105, 99, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 123, 34, 99, 111, 110, 116, 101, 120, 116, 34, 58, 34, 116, 101, 120, 116, 34, 44, 34, 105, 100, 34, 58, 52, 44, 34, 112, 97, 114, 116, 34, 58, 34, 116, 101, 120, 116, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 110, 34, 125, 125, 44, 123, 34, 99, 104, 117, 110, 107, 34, 58, 34, 115, 116, 97, 116, 105, 99, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 92, 117, 48, 48, 51, 99, 47, 112, 62, 34, 125, 93, 44, 34, 99, 111, 108, 108, 101, 99, 116, 105, 111, 110, 34, 58, 34, 114, 111, 119, 115, 34, 44, 34, 105, 100, 34, 58, 51, 44, 34, 107, 101, 121, 34, 58, 34, 34, 44, 34, 112, 97, 114, 116, 34, 58, 34, 101, 97, 99, 104, 34, 125, 125, 93, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 35, 116, 46, 72, 111, 109, 101, 126, 117, 105, 126, 50, 34, 125, 125, 44, 34, 99, 111, 109, 112, 117, 116, 101, 100, 34, 58, 34, 47, 99, 111, 109, 112, 117, 116, 101, 100, 47, 116, 46, 72, 111, 109, 101, 126, 117, 105, 46, 109, 106, 115, 34, 44, 34, 99, 117, 114, 115, 111, 114, 34, 58, 48, 44, 34, 108, 105, 115, 116, 101, 110, 115, 34, 58, 102, 97, 108, 115, 101, 44, 34, 108, 105, 118, 101, 34, 58, 91, 123, 34, 107, 105, 110, 100, 34, 58, 34, 116, 101, 120, 116, 34, 44, 34, 112, 97, 114, 116, 34, 58, 49, 44, 34, 112, 97, 116, 104, 34, 58, 34, 99, 111, 117, 110, 116, 34, 44, 34, 115, 105, 103, 110, 97, 108, 34, 58, 34, 99, 111, 117, 110, 116, 34, 125, 44, 123, 34, 100, 101, 114, 105, 118, 101, 100, 34, 58, 34, 116, 46, 72, 111, 109, 101, 126, 117, 105, 46, 100, 101, 114, 105, 118, 101, 100, 95, 50, 34, 44, 34, 107, 105, 110, 100, 34, 58, 34, 99, 111, 110, 100, 105, 116, 105, 111, 110, 97, 108, 34, 44, 34, 112, 97, 114, 116, 34, 58, 50, 44, 34, 112, 97, 116, 104, 34, 58, 34, 99, 111, 117, 110, 116, 34, 44, 34, 114, 101, 97, 100, 115, 34, 58, 91, 34, 99, 111, 117, 110, 116, 34, 44, 34, 114, 111, 119, 115, 34, 93, 44, 34, 115, 105, 103, 110, 97, 108, 34, 58, 34, 99, 111, 117, 110, 116, 34, 125, 93, 44, 34, 112, 97, 114, 116, 115, 34, 58, 91, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 101, 108, 101, 109, 101, 110, 116, 34, 44, 34, 101, 118, 101, 110, 116, 34, 58, 34, 112, 114, 101, 115, 115, 34, 44, 34, 105, 100, 34, 58, 48, 44, 34, 107, 105, 110, 100, 34, 58, 34, 101, 118, 101, 110, 116, 34, 44, 34, 111, 119, 110, 101, 114, 34, 58, 48, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 49, 48, 51, 49, 49, 102, 100, 52, 101, 56, 52, 102, 98, 48, 56, 55, 34, 125, 44, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 114, 97, 110, 103, 101, 34, 44, 34, 105, 100, 34, 58, 49, 44, 34, 107, 105, 110, 100, 34, 58, 34, 116, 101, 120, 116, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 99, 111, 117, 110, 116, 34, 125, 44, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 114, 97, 110, 103, 101, 34, 44, 34, 105, 100, 34, 58, 50, 44, 34, 107, 105, 110, 100, 34, 58, 34, 99, 111, 110, 100, 105, 116, 105, 111, 110, 97, 108, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 35, 116, 46, 72, 111, 109, 101, 126, 117, 105, 126, 50, 34, 125, 44, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 114, 97, 110, 103, 101, 34, 44, 34, 105, 100, 34, 58, 51, 44, 34, 107, 105, 110, 100, 34, 58, 34, 101, 97, 99, 104, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 114, 111, 119, 115, 34, 125, 44, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 114, 97, 110, 103, 101, 34, 44, 34, 105, 100, 34, 58, 52, 44, 34, 107, 105, 110, 100, 34, 58, 34, 116, 101, 120, 116, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 110, 34, 125, 44, 123, 34, 97, 110, 99, 104, 111, 114, 34, 58, 34, 100, 111, 99, 117, 109, 101, 110, 116, 34, 44, 34, 105, 100, 34, 58, 53, 44, 34, 107, 105, 110, 100, 34, 58, 34, 116, 105, 116, 108, 101, 34, 44, 34, 118, 97, 108, 117, 101, 34, 58, 34, 34, 125, 93, 44, 34, 114, 101, 115, 117, 109, 101, 34, 58, 123, 34, 97, 98, 105, 34, 58, 34, 49, 34, 44, 34, 98, 117, 105, 108, 100, 34, 58, 34, 98, 100, 102, 53, 99, 100, 102, 55, 101, 100, 102, 99, 99, 55, 102, 48, 50, 34, 44, 34, 99, 97, 112, 116, 117, 114, 101, 34, 58, 34, 34, 44, 34, 99, 97, 112, 116, 117, 114, 101, 115, 34, 58, 34, 34, 44, 34, 99, 111, 110, 115, 116, 114, 117, 99, 116, 34, 58, 34, 114, 101, 103, 105, 111, 110, 34, 44, 34, 100, 111, 99, 117, 109, 101, 110, 116, 34, 58, 34, 50, 55, 56, 57, 57, 54, 56, 56, 49, 99, 53, 98, 98, 102, 102, 53, 34, 44, 34, 104, 97, 110, 100, 108, 101, 114, 34, 58, 34, 34, 44, 34, 104, 97, 110, 100, 108, 101, 114, 115, 34, 58, 123, 34, 48, 102, 101, 56, 99, 56, 49, 56, 53, 48, 102, 101, 55, 50, 97, 54, 34, 58, 123, 34, 99, 97, 112, 116, 117, 114, 101, 34, 58, 34, 34, 44, 34, 99, 97, 112, 116, 117, 114, 101, 115, 34, 58, 34, 34, 44, 34, 104, 97, 110, 100, 108, 101, 114, 34, 58, 34, 48, 102, 101, 56, 99, 56, 49, 56, 53, 48, 102, 101, 55, 50, 97, 54, 34, 125, 44, 34, 49, 48, 51, 49, 49, 102, 100, 52, 101, 56, 52, 102, 98, 48, 56, 55, 34, 58, 123, 34, 99, 97, 112, 116, 117, 114, 101, 34, 58, 34, 34, 44, 34, 99, 97, 112, 116, 117, 114, 101, 115, 34, 58, 34, 34, 44, 34, 104, 97, 110, 100, 108, 101, 114, 34, 58, 34, 49, 48, 51, 49, 49, 102, 100, 52, 101, 56, 52, 102, 98, 48, 56, 55, 34, 125, 125, 44, 34, 115, 99, 104, 101, 109, 101, 34, 58, 34, 50, 34, 44, 34, 115, 99, 111, 112, 101, 34, 58, 34, 112, 117, 98, 108, 105, 99, 34, 125, 44, 34, 115, 99, 104, 101, 109, 97, 34, 58, 34, 50, 55, 56, 57, 57, 54, 56, 56, 49, 99, 53, 98, 98, 102, 102, 53, 34, 44, 34, 115, 105, 103, 110, 97, 108, 115, 34, 58, 123, 34, 99, 111, 117, 110, 116, 34, 58, 48, 44, 34, 114, 111, 119, 115, 34, 58, 91, 49, 44, 50, 93, 125, 44, 34, 116, 101, 109, 112, 108, 97, 116, 101, 34, 58, 34, 116, 46, 72, 111, 109, 101, 126, 117, 105, 34, 125, 60, 47, 115, 99, 114, 105, 112, 116, 62, 10, 60, 115, 99, 114, 105, 112, 116, 62, 105, 109, 112, 111, 114, 116, 40, 34, 47, 112, 119, 45, 114, 117, 110, 116, 105, 109, 101, 46, 109, 106, 115, 34, 41, 60, 47, 115, 99, 114, 105, 112, 116, 62, 10, 60, 47, 98, 111, 100, 121, 62, 10, 60, 47, 104, 116, 109, 108, 62, 10]
 
 ---- tests::prerender::it_is_rendered_in_the_public_partition stdout ----
 
-thread 'tests::prerender::it_is_rendered_in_the_public_partition' (148212) panicked at spikes/own-renderer/server/src/tests/prerender.rs:334:5:
+thread 'tests::prerender::it_is_rendered_in_the_public_partition' (143244) panicked at spikes/own-renderer/server/src/tests/prerender.rs:334:5:
 assertion `left == right` failed
-  left: "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Home</title>\n<link rel=\"modulepreload\" href=\"/pw-runtime.mjs\">\n<link rel=\"preload\" href=\"/pw-handlers\" as=\"fetch\" crossorigin>\n</head>\n<body>\n<button data-pw=\"0\" type=\"button\"><!--pw:s1-->0<!--pw:e1--></button><!--pw:s2--><!--pw:s3--><!--pw:s3@ZkR1HorWRP4HOz0l--><p><!--pw:s4-->1<!--pw:e4--></p><!--pw:e3@ZkR1HorWRP4HOz0l--><!--pw:s3@NnmIncOvJVpyykg5--><p><!--pw:s4-->2<!--pw:e4--></p><!--pw:e3@NnmIncOvJVpyykg5--><!--pw:e3--><!--pw:e2-->\n<div role=\"status\" class=\"pw-announcer\"></div>\n<script type=\"application/json\" id=\"pw-parts\">{\"blocks\":{\"2\":{\"id\":2,\"otherwise\":[],\"part\":\"conditional\",\"then\":[{\"chunk\":\"dynamic\",\"value\":{\"binding\":\"n\",\"body\":[{\"chunk\":\"static\",\"value\":\"\\u003cp>\"},{\"chunk\":\"dynamic\",\"value\":{\"context\":\"text\",\"id\":4,\"part\":\"text\",\"value\":\"n\"}},{\"chunk\":\"static\",\"value\":\"\\u003c/p>\"}],\"collection\":\"rows\",\"id\":3,\"key\":\"\",\"part\":\"each\"}}],\"value\":\"#t.Home~ui~2\"}},\"computed\":\"/computed/t.Home~ui.mjs\",\"cursor\":0,\"listens\":false,\"live\":[{\"kind\":\"text\",\"part\":1,\"path\":\"count\",\"signal\":\"count\"},{\"derived\":\"t.Home~ui.derived_2\",\"kind\":\"conditional\",\"part\":2,\"path\":\"count\",\"reads\":[\"count\",\"rows\"],\"signal\":\"count\"}],\"parts\":[{\"anchor\":\"element\",\"event\":\"press\",\"id\":0,\"kind\":\"event\",\"owner\":0,\"value\":\"10311fd4e84fb087\"},{\"anchor\":\"range\",\"id\":1,\"kind\":\"text\",\"value\":\"count\"},{\"anchor\":\"range\",\"id\":2,\"kind\":\"conditional\",\"value\":\"#t.Home~ui~2\"},{\"anchor\":\"range\",\"id\":3,\"kind\":\"each\",\"value\":\"rows\"},{\"anchor\":\"range\",\"id\":4,\"kind\":\"text\",\"value\":\"n\"},{\"anchor\":\"document\",\"id\":5,\"kind\":\"title\",\"value\":\"\"}],\"resume\":{\"abi\":\"1\",\"build\":\"bdf5cdf7edfcc7f02\",\"capture\":\"\",\"captures\":\"\",\"construct\":\"region\",\"document\":\"278996881c5bbff5\",\"handler\":\"\",\"handlers\":{\"0fe8c81850fe72a6\":{\"capture\":\"\",\"captures\":\"\",\"handler\":\"0fe8c81850fe72a6\"},\"10311fd4e84fb087\":{\"capture\":\"\",\"captures\":\"\",\"handler\":\"10311fd4e84fb087\"}},\"scheme\":\"2\",\"scope\":\"public\"},\"schema\":\"278996881c5bbff5\",\"signals\":{\"count\":0,\"rows\":[1,2]},\"template\":\"t.Home~ui\"}</script>\n<script>import(\"/pw-runtime.mjs\")</script>\n</body>\n</html>\n"
+  left: "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Home</title>\n<link rel=\"modulepreload\" href=\"/pw-runtime.mjs\">\n<link rel=\"preload\" href=\"/pw-handlers\" as=\"fetch\" crossorigin>\n</head>\n<body>\n<button data-pw=\"0\" type=\"button\"><!--pw:s1-->0<!--pw:e1--></button><!--pw:s2--><!--pw:s3--><!--pw:s3@4y8Mt4Y5MsGipXVC--><p><!--pw:s4-->1<!--pw:e4--></p><!--pw:e3@4y8Mt4Y5MsGipXVC--><!--pw:s3@tEV0UevsibWjZh2p--><p><!--pw:s4-->2<!--pw:e4--></p><!--pw:e3@tEV0UevsibWjZh2p--><!--pw:e3--><!--pw:e2-->\n<div role=\"status\" class=\"pw-announcer\"></div>\n<script type=\"application/json\" id=\"pw-parts\">{\"blocks\":{\"2\":{\"id\":2,\"otherwise\":[],\"part\":\"conditional\",\"then\":[{\"chunk\":\"dynamic\",\"value\":{\"binding\":\"n\",\"body\":[{\"chunk\":\"static\",\"value\":\"\\u003cp>\"},{\"chunk\":\"dynamic\",\"value\":{\"context\":\"text\",\"id\":4,\"part\":\"text\",\"value\":\"n\"}},{\"chunk\":\"static\",\"value\":\"\\u003c/p>\"}],\"collection\":\"rows\",\"id\":3,\"key\":\"\",\"part\":\"each\"}}],\"value\":\"#t.Home~ui~2\"}},\"computed\":\"/computed/t.Home~ui.mjs\",\"cursor\":0,\"listens\":false,\"live\":[{\"kind\":\"text\",\"part\":1,\"path\":\"count\",\"signal\":\"count\"},{\"derived\":\"t.Home~ui.derived_2\",\"kind\":\"conditional\",\"part\":2,\"path\":\"count\",\"reads\":[\"count\",\"rows\"],\"signal\":\"count\"}],\"parts\":[{\"anchor\":\"element\",\"event\":\"press\",\"id\":0,\"kind\":\"event\",\"owner\":0,\"value\":\"10311fd4e84fb087\"},{\"anchor\":\"range\",\"id\":1,\"kind\":\"text\",\"value\":\"count\"},{\"anchor\":\"range\",\"id\":2,\"kind\":\"conditional\",\"value\":\"#t.Home~ui~2\"},{\"anchor\":\"range\",\"id\":3,\"kind\":\"each\",\"value\":\"rows\"},{\"anchor\":\"range\",\"id\":4,\"kind\":\"text\",\"value\":\"n\"},{\"anchor\":\"document\",\"id\":5,\"kind\":\"title\",\"value\":\"\"}],\"resume\":{\"abi\":\"1\",\"build\":\"bdf5cdf7edfcc7f02\",\"capture\":\"\",\"captures\":\"\",\"construct\":\"region\",\"document\":\"278996881c5bbff5\",\"handler\":\"\",\"handlers\":{\"0fe8c81850fe72a6\":{\"capture\":\"\",\"captures\":\"\",\"handler\":\"0fe8c81850fe72a6\"},\"10311fd4e84fb087\":{\"capture\":\"\",\"captures\":\"\",\"handler\":\"10311fd4e84fb087\"}},\"scheme\":\"2\",\"scope\":\"public\"},\"schema\":\"278996881c5bbff5\",\"signals\":{\"count\":0,\"rows\":[1,2]},\"template\":\"t.Home~ui\"}</script>\n<script>import(\"/pw-runtime.mjs\")</script>\n</body>\n</html>\n"
  right: "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Home</title>\n<link rel=\"modulepreload\" href=\"/pw-runtime.mjs\">\n<link rel=\"preload\" href=\"/pw-handlers\" as=\"fetch\" crossorigin>\n</head>\n<body>\n<button data-pw=\"0\" type=\"button\"><!--pw:s1-->0<!--pw:e1--></button><!--pw:s2--><!--pw:s3--><!--pw:s3@AasAyp8FNh53xZUa--><p><!--pw:s4-->1<!--pw:e4--></p><!--pw:e3@AasAyp8FNh53xZUa--><!--pw:s3@cTbd5ZgaAhNfryAK--><p><!--pw:s4-->2<!--pw:e4--></p><!--pw:e3@cTbd5ZgaAhNfryAK--><!--pw:e3--><!--pw:e2-->\n<div role=\"status\" class=\"pw-announcer\"></div>\n<script type=\"application/json\" id=\"pw-parts\">{\"blocks\":{\"2\":{\"id\":2,\"otherwise\":[],\"part\":\"conditional\",\"then\":[{\"chunk\":\"dynamic\",\"value\":{\"binding\":\"n\",\"body\":[{\"chunk\":\"static\",\"value\":\"\\u003cp>\"},{\"chunk\":\"dynamic\",\"value\":{\"context\":\"text\",\"id\":4,\"part\":\"text\",\"value\":\"n\"}},{\"chunk\":\"static\",\"value\":\"\\u003c/p>\"}],\"collection\":\"rows\",\"id\":3,\"key\":\"\",\"part\":\"each\"}}],\"value\":\"#t.Home~ui~2\"}},\"computed\":\"/computed/t.Home~ui.mjs\",\"cursor\":0,\"listens\":false,\"live\":[{\"kind\":\"text\",\"part\":1,\"path\":\"count\",\"signal\":\"count\"},{\"derived\":\"t.Home~ui.derived_2\",\"kind\":\"conditional\",\"part\":2,\"path\":\"count\",\"reads\":[\"count\",\"rows\"],\"signal\":\"count\"}],\"parts\":[{\"anchor\":\"element\",\"event\":\"press\",\"id\":0,\"kind\":\"event\",\"owner\":0,\"value\":\"10311fd4e84fb087\"},{\"anchor\":\"range\",\"id\":1,\"kind\":\"text\",\"value\":\"count\"},{\"anchor\":\"range\",\"id\":2,\"kind\":\"conditional\",\"value\":\"#t.Home~ui~2\"},{\"anchor\":\"range\",\"id\":3,\"kind\":\"each\",\"value\":\"rows\"},{\"anchor\":\"range\",\"id\":4,\"kind\":\"text\",\"value\":\"n\"},{\"anchor\":\"document\",\"id\":5,\"kind\":\"title\",\"value\":\"\"}],\"resume\":{\"abi\":\"1\",\"build\":\"bdf5cdf7edfcc7f02\",\"capture\":\"\",\"captures\":\"\",\"construct\":\"region\",\"document\":\"278996881c5bbff5\",\"handler\":\"\",\"handlers\":{\"0fe8c81850fe72a6\":{\"capture\":\"\",\"captures\":\"\",\"handler\":\"0fe8c81850fe72a6\"},\"10311fd4e84fb087\":{\"capture\":\"\",\"captures\":\"\",\"handler\":\"10311fd4e84fb087\"}},\"scheme\":\"2\",\"scope\":\"public\"},\"schema\":\"278996881c5bbff5\",\"signals\":{\"count\":0,\"rows\":[1,2]},\"template\":\"t.Home~ui\"}</script>\n<script>import(\"/pw-runtime.mjs\")</script>\n</body>\n</html>\n"
 
 ---- tests::prerender::todomvc_is_one_document stdout ----
 
-thread 'tests::prerender::todomvc_is_one_document' (148224) panicked at spikes/own-renderer/server/src/tests/prerender.rs:498:5:
+thread 'tests::prerender::todomvc_is_one_document' (143256) panicked at spikes/own-renderer/server/src/tests/prerender.rs:498:5:
 HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 9815
 x-content-type-options: nosniff
 cache-control: private, no-store
-set-cookie: pw-session=s-89ccc25600c12b08b94ea470232e8220; Path=/; HttpOnly; SameSite=Lax
+set-cookie: pw-session=s-dd8f38c8c275aa9d83e0f671d1f66157; Path=/; HttpOnly; SameSite=Lax
 pw-build: be18d360853cd14ea
 content-security-policy: default-src 'none'; script-src 'self' 'sha256-v8jCs+poUKnEHV7piaB+l4LlDvig0qQ2jqYEal4D2VY='; style-src 'self' 'sha256-PsoNDNr2FXKmBWScmALXJCtS6SI8vayZA8mDCwXDMYE=' 'sha256-hJ66mWLqVtq8EKxzKNPujjAVwmVE+PKsDyFNUOusFD4=' 'sha256-lOjBrcnONAXa9IkfySWUyxuaJ58G+9Ma0I9EQI0GJuk='; img-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'
 connection: keep-alive
@@ -1599,7 +1599,7 @@ failures:
     tests::prerender::it_is_rendered_in_the_public_partition
     tests::prerender::todomvc_is_one_document
 
-test result: FAILED. 13 passed; 7 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.37s
+test result: FAILED. 13 passed; 7 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.26s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1631,7 +1631,7 @@ failures:
 
 ---- tests::prerender::a_host_route_keeps_its_place stdout ----
 
-thread 'tests::prerender::a_host_route_keeps_its_place' (148538) panicked at spikes/own-renderer/server/src/tests/prerender.rs:436:5:
+thread 'tests::prerender::a_host_route_keeps_its_place' (143570) panicked at spikes/own-renderer/server/src/tests/prerender.rs:436:5:
 <!doctype html>
 <html lang="en">
 <head>
@@ -1655,7 +1655,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::a_host_route_keeps_its_place
 
-test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.30s
+test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.22s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1687,7 +1687,7 @@ failures:
 
 ---- tests::prerender::a_request_with_a_session_is_admitted_as_every_request_is stdout ----
 
-thread 'tests::prerender::a_request_with_a_session_is_admitted_as_every_request_is' (148897) panicked at spikes/own-renderer/server/src/tests/prerender.rs:456:5:
+thread 'tests::prerender::a_request_with_a_session_is_admitted_as_every_request_is' (143930) panicked at spikes/own-renderer/server/src/tests/prerender.rs:456:5:
 assertion `left == right` failed: HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 2161
@@ -1707,7 +1707,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::a_request_with_a_session_is_admitted_as_every_request_is
 
-test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.24s
+test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.22s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1739,7 +1739,7 @@ failures:
 
 ---- tests::prerender::a_browser_that_holds_a_representation_is_told_so stdout ----
 
-thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (149224) panicked at spikes/own-renderer/server/src/tests/prerender.rs:246:5:
+thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (144257) panicked at spikes/own-renderer/server/src/tests/prerender.rs:246:5:
 assertion `left == right` failed: HTTP/1.1 304 Not Modified
 cache-control: private, no-store
 etag: "KSi_1P2YS4beNkL8ojwU3w"
@@ -1753,7 +1753,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing stdout ----
 
-thread 'tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing' (149254) panicked at spikes/own-renderer/server/src/tests/prerender.rs:98:9:
+thread 'tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing' (144287) panicked at spikes/own-renderer/server/src/tests/prerender.rs:98:9:
 assertion `left == right` failed: HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 2161
@@ -1770,7 +1770,7 @@ connection: close
 
 ---- tests::prerender::todomvc_is_one_document stdout ----
 
-thread 'tests::prerender::todomvc_is_one_document' (149269) panicked at spikes/own-renderer/server/src/tests/prerender.rs:498:5:
+thread 'tests::prerender::todomvc_is_one_document' (144302) panicked at spikes/own-renderer/server/src/tests/prerender.rs:498:5:
 HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 9815
@@ -1809,7 +1809,7 @@ failures:
     tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing
     tests::prerender::todomvc_is_one_document
 
-test result: FAILED. 17 passed; 3 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.36s
+test result: FAILED. 17 passed; 3 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.26s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1841,7 +1841,7 @@ failures:
 
 ---- tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing stdout ----
 
-thread 'tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing' (149604) panicked at spikes/own-renderer/server/src/tests/prerender.rs:97:9:
+thread 'tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing' (144637) panicked at spikes/own-renderer/server/src/tests/prerender.rs:97:9:
 assertion `left == right` failed: HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 2161
@@ -1860,7 +1860,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::prerender::todomvc_is_one_document stdout ----
 
-thread 'tests::prerender::todomvc_is_one_document' (149619) panicked at spikes/own-renderer/server/src/tests/prerender.rs:502:5:
+thread 'tests::prerender::todomvc_is_one_document' (144652) panicked at spikes/own-renderer/server/src/tests/prerender.rs:502:5:
 HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 9815
@@ -1899,7 +1899,7 @@ failures:
     tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing
     tests::prerender::todomvc_is_one_document
 
-test result: FAILED. 18 passed; 2 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.22s
+test result: FAILED. 18 passed; 2 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.21s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -1931,7 +1931,7 @@ failures:
 
 ---- tests::prerender::each_representation_holds_the_document stdout ----
 
-thread 'tests::prerender::each_representation_holds_the_document' (149950) panicked at spikes/own-renderer/server/src/tests/prerender.rs:190:5:
+thread 'tests::prerender::each_representation_holds_the_document' (144983) panicked at spikes/own-renderer/server/src/tests/prerender.rs:190:5:
 assertion `left == right` failed: HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 721
@@ -1994,7 +1994,7 @@ failures:
 
 ---- tests::prerender::a_versioned_build_says_its_delivery_and_names_its_files_at_it stdout ----
 
-thread 'tests::prerender::a_versioned_build_says_its_delivery_and_names_its_files_at_it' (150303) panicked at spikes/own-renderer/server/src/tests/prerender.rs:380:5:
+thread 'tests::prerender::a_versioned_build_says_its_delivery_and_names_its_files_at_it' (145330) panicked at spikes/own-renderer/server/src/tests/prerender.rs:380:5:
 assertion `left == right` failed: HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 2218
@@ -2010,7 +2010,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::prerender::it_says_what_a_document_says_of_itself stdout ----
 
-thread 'tests::prerender::it_says_what_a_document_says_of_itself' (150318) panicked at spikes/own-renderer/server/src/tests/prerender.rs:346:5:
+thread 'tests::prerender::it_says_what_a_document_says_of_itself' (145345) panicked at spikes/own-renderer/server/src/tests/prerender.rs:346:5:
 HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 2161
@@ -2058,7 +2058,7 @@ failures:
 
 ---- tests::prerender::a_browser_that_holds_a_representation_is_told_so stdout ----
 
-thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (150625) panicked at spikes/own-renderer/server/src/tests/prerender.rs:243:5:
+thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (145652) panicked at spikes/own-renderer/server/src/tests/prerender.rs:243:5:
 assertion `left == right` failed: HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 721
@@ -2079,7 +2079,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::a_browser_that_holds_a_representation_is_told_so
 
-test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.25s
+test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.19s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -2111,7 +2111,7 @@ failures:
 
 ---- tests::prerender::a_browser_that_holds_a_representation_is_told_so stdout ----
 
-thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (150970) panicked at spikes/own-renderer/server/src/tests/prerender.rs:272:9:
+thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (145998) panicked at spikes/own-renderer/server/src/tests/prerender.rs:272:9:
 assertion `left == right` failed: W/"KSi_1P2YS4beNkL8ojwU3w": HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 721
@@ -2132,7 +2132,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::a_browser_that_holds_a_representation_is_told_so
 
-test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.27s
+test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.24s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -2164,7 +2164,7 @@ failures:
 
 ---- tests::prerender::a_browser_that_holds_a_representation_is_told_so stdout ----
 
-thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (151318) panicked at spikes/own-renderer/server/src/tests/prerender.rs:272:9:
+thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (146347) panicked at spikes/own-renderer/server/src/tests/prerender.rs:272:9:
 assertion `left == right` failed: *: HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 721
@@ -2185,7 +2185,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::a_browser_that_holds_a_representation_is_told_so
 
-test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.26s
+test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.27s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -2217,7 +2217,7 @@ failures:
 
 ---- tests::prerender::a_browser_that_holds_a_representation_is_told_so stdout ----
 
-thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (151666) panicked at spikes/own-renderer/server/src/tests/prerender.rs:262:5:
+thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (146695) panicked at spikes/own-renderer/server/src/tests/prerender.rs:262:5:
 assertion `left == right` failed: HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 721
@@ -2238,7 +2238,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::a_browser_that_holds_a_representation_is_told_so
 
-test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.29s
+test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.22s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -2270,7 +2270,7 @@ failures:
 
 ---- tests::prerender::a_browser_that_holds_a_representation_is_told_so stdout ----
 
-thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (152012) panicked at spikes/own-renderer/server/src/tests/prerender.rs:253:5:
+thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (147043) panicked at spikes/own-renderer/server/src/tests/prerender.rs:253:5:
 assertion `left == right` failed: HTTP/1.1 304 Not Modified
 content-length: 0
 cache-control: public, no-cache
@@ -2287,7 +2287,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::a_browser_that_holds_a_representation_is_told_so
 
-test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.28s
+test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.19s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -2319,7 +2319,7 @@ failures:
 
 ---- tests::prerender::a_browser_that_holds_a_representation_is_told_so stdout ----
 
-thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (152359) panicked at spikes/own-renderer/server/src/tests/prerender.rs:251:5:
+thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (147388) panicked at spikes/own-renderer/server/src/tests/prerender.rs:251:5:
 assertion `left == right` failed: HTTP/1.1 304 Not Modified
 cache-control: public, no-cache
 etag: "KSi_1P2YS4beNkL8ojwU3w"
@@ -2334,7 +2334,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::a_browser_that_holds_a_representation_is_told_so
 
-test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.31s
+test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.21s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -2366,7 +2366,7 @@ failures:
 
 ---- tests::a_compiled_module_is_sent_as_its_packaging_wrote_it stdout ----
 
-thread 'tests::a_compiled_module_is_sent_as_its_packaging_wrote_it' (152689) panicked at spikes/own-renderer/server/src/main.rs:19937:13:
+thread 'tests::a_compiled_module_is_sent_as_its_packaging_wrote_it' (147716) panicked at spikes/own-renderer/server/src/main.rs:19937:13:
 HTTP/1.1 200 OK
 content-type: text/javascript; charset=utf-8
 content-length: 303
@@ -2382,7 +2382,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::a_compiled_module_is_sent_as_its_packaging_wrote_it
 
-test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.24s
+test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.20s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -2422,7 +2422,7 @@ failures:
 
 ---- tests::prerender::it_says_what_a_document_says_of_itself stdout ----
 
-thread 'tests::prerender::it_says_what_a_document_says_of_itself' (153093) panicked at spikes/own-renderer/server/src/tests/prerender.rs:354:5:
+thread 'tests::prerender::it_says_what_a_document_says_of_itself' (148121) panicked at spikes/own-renderer/server/src/tests/prerender.rs:354:5:
 assertion `left == right` failed: HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 2161
@@ -2441,7 +2441,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::it_says_what_a_document_says_of_itself
 
-test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.23s
+test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.26s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -2481,7 +2481,7 @@ failures:
 
 ---- tests::prerender::a_versioned_build_says_its_delivery_and_names_its_files_at_it stdout ----
 
-thread 'tests::prerender::a_versioned_build_says_its_delivery_and_names_its_files_at_it' (153429) panicked at spikes/own-renderer/server/src/tests/prerender.rs:380:5:
+thread 'tests::prerender::a_versioned_build_says_its_delivery_and_names_its_files_at_it' (148456) panicked at spikes/own-renderer/server/src/tests/prerender.rs:380:5:
 assertion `left == right` failed: HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 2218
@@ -2533,7 +2533,7 @@ failures:
 
 ---- tests::prerender::a_browser_that_holds_a_representation_is_told_so stdout ----
 
-thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (153751) panicked at spikes/own-renderer/server/src/tests/prerender.rs:234:5:
+thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (148778) panicked at spikes/own-renderer/server/src/tests/prerender.rs:234:5:
 assertion `left != right` failed
   left: "\"syj8VIVQGBE0EhUsfLNdMA\""
  right: "\"syj8VIVQGBE0EhUsfLNdMA\""
@@ -2543,7 +2543,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::a_browser_that_holds_a_representation_is_told_so
 
-test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.21s
+test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.19s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -2583,7 +2583,7 @@ failures:
 
 ---- tests::prerender::what_it_says_of_itself_is_part_of_its_validator stdout ----
 
-thread 'tests::prerender::what_it_says_of_itself_is_part_of_its_validator' (154147) panicked at spikes/own-renderer/server/src/tests/prerender.rs:324:5:
+thread 'tests::prerender::what_it_says_of_itself_is_part_of_its_validator' (149175) panicked at spikes/own-renderer/server/src/tests/prerender.rs:324:5:
 assertion `left != right` failed
   left: "\"THdCyA2bQho6U1tvtuXypg\""
  right: "\"THdCyA2bQho6U1tvtuXypg\""
@@ -2593,7 +2593,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::what_it_says_of_itself_is_part_of_its_validator
 
-test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.22s
+test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.21s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -2625,7 +2625,7 @@ failures:
 
 ---- tests::prerender::a_validator_is_the_first_128_bits_of_its_digest stdout ----
 
-thread 'tests::prerender::a_validator_is_the_first_128_bits_of_its_digest' (154473) panicked at spikes/own-renderer/server/src/tests/prerender.rs:294:5:
+thread 'tests::prerender::a_validator_is_the_first_128_bits_of_its_digest' (149502) panicked at spikes/own-renderer/server/src/tests/prerender.rs:294:5:
 assertion `left == right` failed
   left: "\"ungWv48Bz-pBQUDeXa4iI7ADYaOWF3qctBD_YfIAFa0\""
  right: "\"ungWv48Bz-pBQUDeXa4iIw\""
@@ -2635,7 +2635,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::a_validator_is_the_first_128_bits_of_its_digest
 
-test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.43s
+test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.14s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -2667,7 +2667,7 @@ failures:
 
 ---- tests::prerender::a_browser_that_holds_a_representation_is_told_so stdout ----
 
-thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (154796) panicked at spikes/own-renderer/server/src/tests/prerender.rs:234:5:
+thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (149826) panicked at spikes/own-renderer/server/src/tests/prerender.rs:234:5:
 assertion `left != right` failed
   left: "\"-hJSx2uvDwqZTR0uHLZWvQ\""
  right: "\"-hJSx2uvDwqZTR0uHLZWvQ\""
@@ -2675,7 +2675,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::prerender::each_representation_holds_the_document stdout ----
 
-thread 'tests::prerender::each_representation_holds_the_document' (154820) panicked at spikes/own-renderer/server/src/tests/prerender.rs:190:5:
+thread 'tests::prerender::each_representation_holds_the_document' (149850) panicked at spikes/own-renderer/server/src/tests/prerender.rs:190:5:
 assertion `left == right` failed: HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 933
@@ -2696,7 +2696,7 @@ failures:
     tests::prerender::a_browser_that_holds_a_representation_is_told_so
     tests::prerender::each_representation_holds_the_document
 
-test result: FAILED. 18 passed; 2 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.20s
+test result: FAILED. 18 passed; 2 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.22s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -2728,7 +2728,7 @@ failures:
 
 ---- tests::prerender::a_browser_that_holds_a_representation_is_told_so stdout ----
 
-thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (155138) panicked at spikes/own-renderer/server/src/tests/prerender.rs:235:5:
+thread 'tests::prerender::a_browser_that_holds_a_representation_is_told_so' (150169) panicked at spikes/own-renderer/server/src/tests/prerender.rs:235:5:
 assertion `left != right` failed
   left: "\"-hJSx2uvDwqZTR0uHLZWvQ\""
  right: "\"-hJSx2uvDwqZTR0uHLZWvQ\""
@@ -2736,7 +2736,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::prerender::each_representation_holds_the_document stdout ----
 
-thread 'tests::prerender::each_representation_holds_the_document' (155162) panicked at spikes/own-renderer/server/src/tests/prerender.rs:198:5:
+thread 'tests::prerender::each_representation_holds_the_document' (150193) panicked at spikes/own-renderer/server/src/tests/prerender.rs:198:5:
 assertion `left == right` failed: HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 2161
@@ -2788,7 +2788,7 @@ failures:
 
 ---- tests::prerender::a_gzip_trailers_checksum_is_crc_32 stdout ----
 
-thread 'tests::prerender::a_gzip_trailers_checksum_is_crc_32' (155492) panicked at spikes/own-renderer/server/src/tests/prerender.rs:216:5:
+thread 'tests::prerender::a_gzip_trailers_checksum_is_crc_32' (150528) panicked at spikes/own-renderer/server/src/tests/prerender.rs:216:5:
 assertion `left == right` failed
   left: 3485321504
  right: 3421780262
@@ -2798,7 +2798,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::a_gzip_trailers_checksum_is_crc_32
 
-test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.21s
+test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.25s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -2830,7 +2830,7 @@ failures:
 
 ---- tests::prerender::each_representation_holds_the_document stdout ----
 
-thread 'tests::prerender::each_representation_holds_the_document' (155864) panicked at spikes/own-renderer/server/src/tests/prerender.rs:206:5:
+thread 'tests::prerender::each_representation_holds_the_document' (150901) panicked at spikes/own-renderer/server/src/tests/prerender.rs:206:5:
 assertion `left == right` failed
   left: [0, 0, 8, 113]
  right: [113, 8, 0, 0]
@@ -2840,7 +2840,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::prerender::each_representation_holds_the_document
 
-test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.21s
+test result: FAILED. 19 passed; 1 failed; 0 ignored; 0 measured; 1075 filtered out; finished in 4.51s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 

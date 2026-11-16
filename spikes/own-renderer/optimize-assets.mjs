@@ -7,7 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { brotliCompressSync, constants, gzipSync } from "node:zlib";
 import { build, transform } from "esbuild";
-import { ELEMENT_LINES, HOLES, OWN_EDITS, OWN_LINES, OWN_ROWS, OWN_WALKS, ownRows, pageLists, planned, rowElement } from "./own-rows.mjs";
+import { ELEMENT_LINES, GENERAL_LINES, HOLES, OWN_EDITS, OWN_LINES, OWN_ROWS, OWN_WALKS, ownRows, pageLists, planned, rowElement } from "./own-rows.mjs";
 
 const BR = {
   params: {
@@ -202,6 +202,9 @@ export function withOwnRows(source, own) {
       if (out.split(general).length !== 2) throw new Error(`the runtime holds no one place for what a page's own code changes: ${general}`);
       out = out.replace(general, () => mine);
     }
+    // Every list its page's own: each placed by what its own code found, and
+    // no general placing held (ADR-0439).
+    if (!own.unowned) out = out.replace(GENERAL_LINES, "");
   } else {
     out = out.replace(OWN_LINES, "");
   }

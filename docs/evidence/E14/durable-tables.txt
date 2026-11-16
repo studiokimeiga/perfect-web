@@ -1,8 +1,8 @@
 durable-tables - a program's declared tables served durably from PostgreSQL, through the gate: one transaction a command, one state a render, the reader's session the database's
 
 produced by: just e14-durable-tables
-commit: a3cab774e9569baddae69bd0d294487eaa3b697e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -13,48 +13,48 @@ running 8 tests
 test a_postgres_predicate_reads_its_commands_staged_rows_and_no_refused_body_runs ... ok
 test a_postgres_command_conflicting_after_its_predicate_is_refused_by_serializability ... ok
 test a_postgres_query_keeps_one_snapshot_for_its_predicate_and_body ... ok
-test postgres_operation_costs_keep_transaction_overhead_in_the_total ... ok
 test postgres_predicate_callbacks_end_with_the_command_and_refuse_a_nonpredicate_contract ... ok
-test a_readers_command_is_never_the_platforms ... ok
 test a_put_waiting_on_its_owners_row_is_answered_by_what_it_wrote ... ok
+test postgres_operation_costs_keep_transaction_overhead_in_the_total ... ok
+test a_readers_command_is_never_the_platforms ... ok
 test two_owners_rows_of_one_id_are_two_rows_whatever_runs_between_them ... ok
 
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.69s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.92s
 
 == the adapter's runs, sessions and fence (runtime/pw-table-postgres/tests/platform.rs)
 
 test a_commands_runs_commit_with_its_writes_or_not_at_all ... ok
-test a_command_waiting_for_its_session_holds_no_other_command_up ... ok
 test a_connection_whose_session_change_failed_is_closed ... ok
-test a_failed_run_is_retried_by_its_generation_alone ... ok
+test a_command_waiting_for_its_session_holds_no_other_command_up ... ok
 test a_command_holding_the_turn_never_waits_for_a_connection ... ok
+test a_failed_run_is_retried_by_its_generation_alone ... ok
 test a_run_is_taken_once_by_the_command_that_completes_it ... ok
 test a_renders_reads_end_at_a_read_that_fails ... ok
 test a_run_whose_deletion_is_suppressed_is_refused ... ok
 test a_sessions_change_waits_for_the_command_fenced_on_it ... ok
 test an_admission_never_waits_for_a_command_holding_its_session ... ok
-test sessions_are_kept_by_their_hash_and_live_by_their_lifetimes ... ok
 test sessions_and_sign_ins_past_their_lifetimes_are_swept ... ok
+test sessions_are_kept_by_their_hash_and_live_by_their_lifetimes ... ok
 test the_outboxs_delivered_rows_are_forgotten ... ok
 test a_session_a_command_holds_is_left_for_the_next_sweep ... ok
 test a_fenced_command_commits_only_as_the_session_it_was_admitted_as ... ok
-test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.34s
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.39s
 
 == the server on PostgreSQL (tests::tables_pg::), the conformance suite over it, and a clock run its scheduling reader's (tests::owned_clock::, ADR-0395)
 
 test tests::owned_clock::the_clock_reads_and_writes_the_scheduling_owners_rows_after_sign_out_in_memory ... ok
-test tests::tables_pg::a_command_is_fenced_from_its_first_statement_or_never ... ok
 test tests::tables_pg::a_command_waiting_for_its_session_holds_no_other_session_up ... ok
+test tests::tables_pg::a_command_is_fenced_from_its_first_statement_or_never ... ok
 test tests::owned_clock::the_clock_reads_and_writes_the_scheduling_owners_rows_after_sign_out_on_postgresql ... ok
 test tests::tables_pg::a_commit_the_database_rolled_back_is_answered_refused ... ok
-test tests::tables_pg::a_commands_scheduled_run_commits_with_its_rows ... ok
 test tests::tables_pg::a_commands_rows_record_and_outbox_commit_as_one_transaction ... ok
+test tests::tables_pg::a_commands_scheduled_run_commits_with_its_rows ... ok
 test tests::tables_pg::a_render_reads_one_state_of_the_tables_on_postgresql ... ok
-test tests::tables_pg::a_commit_whose_connection_ends_under_it_is_reconciled_not_refused ... ok
 test tests::tables_pg::a_removed_entrys_number_is_never_given_again_on_postgresql ... ok
+test tests::tables_pg::a_commit_whose_connection_ends_under_it_is_reconciled_not_refused ... ok
 test tests::tables_pg::a_render_without_a_seat_reads_no_other_state ... ok
-test tests::tables_pg::a_run_whose_taking_is_suppressed_is_retried_after_its_backoff ... ok
 test tests::tables_pg::a_run_that_schedules_itself_again_runs_each_generation_once ... ok
+test tests::tables_pg::a_run_whose_taking_is_suppressed_is_retried_after_its_backoff ... ok
 test tests::tables_pg::a_runs_key_names_the_user_whose_command_scheduled_it_on_postgresql ... ok
 test tests::tables_pg::a_session_signed_out_before_its_command_commits_keeps_nothing ... ok
 test tests::tables_pg::a_sign_out_waits_for_a_command_admitted_before_it ... ok
@@ -62,12 +62,12 @@ test tests::tables_pg::a_signing_reaches_every_other_open_page_on_postgresql ...
 test tests::tables_pg::a_tables_schema_is_a_development_deployments_alone ... ok
 test tests::tables_pg::a_signing_sent_twice_is_one_entry_on_any_host ... ok
 test tests::tables_pg::an_entry_is_its_authors_alone_to_remove_on_postgresql ... ok
-test tests::tables_pg::an_old_generation_of_a_run_does_not_run ... ok
-test tests::tables_pg::each_idempotent_command_sent_again_is_answered_once_on_postgresql ... ok
-test tests::tables_pg::a_session_past_its_lifetime_at_the_commit_keeps_nothing ... ok
 test tests::tables_pg::a_commit_whose_answer_was_lost_is_answered_from_its_record ... ok
-test tests::tables_pg::requests_of_one_session_at_once_are_each_answered_on_postgresql ... ok
+test tests::tables_pg::an_old_generation_of_a_run_does_not_run ... ok
+test tests::tables_pg::a_session_past_its_lifetime_at_the_commit_keeps_nothing ... ok
+test tests::tables_pg::each_idempotent_command_sent_again_is_answered_once_on_postgresql ... ok
 test tests::tables_pg::owned_rows_and_compiled_predicates_survive_the_durable_server_boundary ... ok
+test tests::tables_pg::requests_of_one_session_at_once_are_each_answered_on_postgresql ... ok
 test tests::tables_pg::sessions_and_sign_ins_past_their_lifetimes_are_swept_by_the_host ... ok
 test tests::tables_pg::the_guestbook_is_served_from_postgresql ... ok
 test tests::tables_pg::nothing_the_tables_keep_holds_a_session_cookie_on_postgresql ... ok
@@ -77,59 +77,59 @@ conformance on PostgreSQL: the lists app's tables, 328 reads checked, refusals {
 test tests::tables_pg::the_suite_holds_for_the_lists_apps_tables_on_postgresql ... ok
 conformance on PostgreSQL: the guestbook's tables, 406 reads checked, refusals {"Books": 1, "Entries": 2}
 test tests::tables_pg::the_suite_holds_for_the_guestbooks_tables_on_postgresql ... ok
-test result: ok. 33 passed; 0 failed; 0 ignored; 0 measured; 1062 filtered out; finished in 8.75s
+test result: ok. 33 passed; 0 failed; 0 ignored; 0 measured; 1062 filtered out; finished in 10.66s
 
 == and in memory (tests::tables::, tests::guestbook::, tests::conformance::)
 
 test tests::conformance::each_idempotent_command_sent_again_is_answered_once ... ok
-conformance: the guestbook's tables, 406 reads checked, refusals {"Books": 1, "Entries": 2}, 8 writes measured, 1 reference to a staged row
-test tests::conformance::the_suite_holds_for_the_guestbooks_tables ... ok
 conformance: the lists app's tables, 328 reads checked, refusals {"Items": 1, "Lists": 2}, 7 writes measured, 1 reference to a staged row
 test tests::conformance::the_suite_holds_for_the_lists_apps_tables ... ok
-test tests::guestbook::a_commit_failing_after_its_rows_are_published_closes_the_tables ... ok
+conformance: the guestbook's tables, 406 reads checked, refusals {"Books": 1, "Entries": 2}, 8 writes measured, 1 reference to a staged row
+test tests::conformance::the_suite_holds_for_the_guestbooks_tables ... ok
 test tests::conformance::each_query_reads_its_tables_a_fixed_number_of_times_at_two_sizes ... ok
+test tests::guestbook::a_commit_failing_after_its_rows_are_published_closes_the_tables ... ok
 test tests::guestbook::a_removed_entrys_number_is_never_given_again ... ok
-test tests::guestbook::a_signing_reaches_every_other_open_page_of_the_entries ... ok
 test tests::guestbook::a_render_reads_one_state_of_the_tables ... ok
+test tests::guestbook::a_signing_reaches_every_other_open_page_of_the_entries ... ok
 test tests::guestbook::each_digest_of_a_session_is_its_own_domains ... ok
-test tests::guestbook::an_entry_is_its_authors_alone_to_remove ... ok
 test tests::guestbook::a_signing_sent_twice_is_one_entry ... ok
+test tests::guestbook::an_entry_is_its_authors_alone_to_remove ... ok
 test tests::guestbook::an_outbox_that_refuses_a_signings_event_publishes_none_of_its_rows ... ok
-test tests::guestbook::the_guestbook_is_served_from_the_tables_it_declares ... ok
 test tests::guestbook::nothing_the_host_keeps_or_logs_holds_a_session_cookie ... ok
 test tests::guestbook::the_composer_is_a_reader_with_an_accounts_alone ... ok
+test tests::guestbook::the_guestbook_is_served_from_the_tables_it_declares ... ok
 test tests::tables::a_commits_rows_and_records_are_kept_together_or_not_at_all ... ok
 test tests::tables::a_build_whose_row_names_a_handle_is_refused_where_it_is_served ... ok
-test tests::guestbook::the_guestbook_keeps_its_bound_and_its_page_is_measured_at_it ... ok
 test tests::tables::a_guarded_command_writes_its_tables_once_its_predicate_holds ... ok
+test tests::guestbook::the_guestbook_keeps_its_bound_and_its_page_is_measured_at_it ... ok
 test tests::tables::a_command_that_does_not_commit_keeps_nothing ... ok
 test tests::tables::a_program_that_declares_its_tables_is_served_by_the_generic_adapter ... ok
 test tests::tables::a_run_on_a_readers_behalf_is_answered_their_account_and_never_their_session ... ok
-test tests::tables::a_program_of_tables_declaring_an_upload_is_refused_where_it_is_served ... ok
 test tests::tables::a_program_mixing_its_tables_with_a_hand_written_layer_is_refused ... ok
+test tests::tables::a_program_of_tables_declaring_an_upload_is_refused_where_it_is_served ... ok
 test tests::tables::a_staged_write_is_invisible_until_its_commit ... ok
-test tests::tables::closed_tables_refuse_cached_answers_outside_the_failed_commands_invalidations ... ok
-test tests::tables::closed_tables_refuse_an_answer_closed_while_its_query_was_in_flight ... ok
 test tests::tables::closed_tables_refuse_a_renders_remembered_operations ... ok
+test tests::tables::closed_tables_refuse_an_answer_closed_while_its_query_was_in_flight ... ok
+test tests::tables::closed_tables_refuse_cached_answers_outside_the_failed_commands_invalidations ... ok
 test tests::tables::closed_tables_refuse_fresh_and_last_known_good_materializations ... ok
 test tests::tables::each_components_host_map_holds_its_own_table_functions_alone ... ok
-test result: ok. 30 passed; 0 failed; 0 ignored; 0 measured; 1065 filtered out; finished in 3.18s
+test result: ok. 30 passed; 0 failed; 0 ignored; 0 measured; 1065 filtered out; finished in 2.79s
 
 == the server as a process, killed and stopped (spikes/own-renderer/server/tests/durable_tables.rs)
 
 test the_guestbook_outlives_its_host_killed_or_stopped ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.95s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.99s
 
 == the guestbook in three engines on PostgreSQL (playwright.tables.config.mjs)
 
-  18 passed (25.7s)
+  18 passed (27.8s)
 
 == owned rows in three engines on PostgreSQL
-  6 passed (11.0s)
+  6 passed (13.0s)
 
 == and in memory, the main suite's hosts (playwright.config.mjs)
 
-  15 passed (17.5s)
+  15 passed (19.5s)
 
 == mutation controls (scripts/durable_tables_mutations.py)
 

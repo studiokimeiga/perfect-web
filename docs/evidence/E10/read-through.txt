@@ -1,19 +1,19 @@
 ADR-0102 - an event reaches what reads what it invalidates
 
 produced by: just e10-read-through
-commit: a3cab774e9569baddae69bd0d294487eaa3b697e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43358026474 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 0dcff90abf8c3956e3cb5838c8d0f4cb1d0ae9cb
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43399061818 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == reads followed (runtime/pw-materialize/tests/reads.rs)
 
-test a_key_the_reader_does_not_supply_reaches_every_entry ... ok
-test an_event_reaches_what_reads_a_materialization_it_reaches ... ok
 test a_node_read_twice_is_followed_at_each_key ... ok
+test an_event_reaches_what_reads_a_materialization_it_reaches ... ok
+test a_key_the_reader_does_not_supply_reaches_every_entry ... ok
+test reads_that_form_a_cycle_end ... ok
 test an_event_reaches_what_reads_its_listener ... ok
 test a_reader_of_what_the_event_does_not_reach_is_untouched ... ok
-test reads_that_form_a_cycle_end ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
 == the M6 gate and the listeners, unchanged
 
