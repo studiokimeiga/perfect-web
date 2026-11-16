@@ -434,6 +434,7 @@ SOURCES = [
     IDENTITY,
     ROOT / "compiler/pw-core/tests/invoked_by.rs",
     ROOT / "spikes/own-renderer/server/src/tests/protected_migration.rs",
+    ROOT / "spikes/own-renderer/server/src/tests/owned_clock.rs",
     ROOT / "spikes/own-renderer/server/src/tests/required_queries.rs",
     ROOT / "spikes/own-renderer/server/src/tests/tables.rs",
     ROOT / "compiler/pw-core/tests/table_owners.rs",
