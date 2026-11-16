@@ -1,0 +1,35 @@
+generic-upload-claims - the server's claim bridge: a compiled command claims, publishes and commits a declared upload, each outcome settling its claims once
+
+produced by: just e14-generic-upload-claims
+commit: 8d07d3bd61ab1dc97a38f36323f69a58bc1cbc09
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+
+baseline: 44 passed, 0 failed
+an attempt's answer is recorded unsealed: KILLED (25 of 44 tests fail)
+the ledger is not frozen before the commit: KILLED (12 of 44 tests fail)
+a committed attempt's claims are not applied: KILLED (4 of 44 tests fail)
+a claiming command that writes no row keeps no record: KILLED (2 of 44 tests fail)
+a failed attempt that kept nothing is inspected all the same: KILLED (5 of 44 tests fail)
+a failed attempt's receipt is never inspected: KILLED (5 of 44 tests fail)
+a refused commit's claims are left pending on PostgreSQL: KILLED (2 of 44 tests fail)
+a refused publication's claims are left pending in memory: KILLED (2 of 44 tests fail)
+a commit another attempt recorded first leaves its claims pending: KILLED (1 of 44 tests fail)
+a commit its ledger refused before its COMMIT is answered unknown: KILLED (2 of 44 tests fail)
+a query reads its session's leases by another handle: KILLED (3 of 44 tests fail)
+a lease is keyed by another declaration than its route's: KILLED (15 of 44 tests fail)
+a lease is claimed whoever its reader: KILLED (2 of 44 tests fail)
+a lease is shown whoever its reader: KILLED (2 of 44 tests fail)
+a new generation's bytes are not kept in memory: KILLED (2 of 44 tests fail)
+an absent receipt gives the claim back: KILLED (3 of 44 tests fail)
+a live attempt is offered to the periodic pass: KILLED (5 of 44 tests fail)
+another attempt's receipt, alike but for its nonce, settles this one: KILLED (4 of 44 tests fail)
+an inspection that could not be made holds its claim for good: KILLED (3 of 44 tests fail)
+the periodic pass inspects no pending upload: KILLED (2 of 44 tests fail)
+the periodic pass leaves an absent receipt's claim due for ever: KILLED (1 of 44 tests fail)
+an attempt dropped uninspected is not offered to the periodic pass: KILLED (2 of 44 tests fail)
+each pass takes up the attempts due from the first again: KILLED (1 of 44 tests fail)
+a commit collects no generation it left unnamed on PostgreSQL: KILLED (1 of 44 tests fail)
+housekeeping collects no generation a commit failed to on PostgreSQL: KILLED (1 of 44 tests fail)
+a keep that fails does not refuse its commit on PostgreSQL: KILLED (1 of 44 tests fail)
+26 of 26 mutants killed
+memory bound: no process was stopped
