@@ -575,3 +575,69 @@ fn publication_checks_foreign_session_token_and_the_row_adapters_returned_canoni
     begin(&mut inv, &sealed).must("refused proposals left claims closable");
     inv.refused().must("known rollback");
 }
+
+/// One pending attempt for `cookie`'s Avatar lease, its invocation still
+/// open to the caller.
+fn pending(leases: &Leases, cookie: &str) -> (Invocation, String) {
+    post(leases, cookie, "Avatar");
+    let mut inv = invocation(leases, cookie);
+    let token = claim(&mut inv, "Avatar", cookie);
+    discard(&mut inv, "Avatar", cookie, &token);
+    let sealed = answer(&inv);
+    begin(&mut inv, &sealed).must("marked before an unanswered COMMIT");
+    (inv, sealed)
+}
+
+#[test]
+fn a_live_attempt_is_never_due_and_one_its_owner_left_uninspected_is() {
+    let (_u, leases) = setup();
+    let (inv, _) = pending(&leases, "reader");
+    // Its owner may still be committing it: the periodic pass leaves it.
+    assert!(leases.due_attempts(10).must("due").is_empty());
+    assert_eq!(leases.pending_attempts(10).must("pending").len(), 1);
+    drop(inv);
+    assert_eq!(leases.due_attempts(10).must("due").len(), 1);
+}
+
+#[test]
+fn an_owners_inspection_holds_absence_for_good_and_a_failed_one_leaves_it_due() {
+    let (_u, leases) = setup();
+    // Absent, after the adapter's lifetime was taken again: held for good.
+    let (mut absent, _) = pending(&leases, "absent");
+    assert!(!absent.reconcile(Ok(None)).must("an inspection made"));
+    drop(absent);
+    assert!(leases.due_attempts(10).must("due").is_empty());
+    assert_eq!(leases.pending_attempts(10).must("held").len(), 1);
+    assert!(leases.shown("absent").is_none(), "held, not given back");
+    // An inspection that could not be made: due to the periodic pass.
+    let (mut failed, _) = pending(&leases, "failed");
+    assert!(failed.reconcile(Err("lock timeout".into())).is_err());
+    drop(failed);
+    let due = leases.due_attempts(10).must("due");
+    assert_eq!(due.len(), 1);
+    // Its own receipt: applied, no longer pending.
+    let (mut landed, sealed) = pending(&leases, "landed");
+    assert!(landed.reconcile(Ok(Some(receipt(sealed)))).must("its own receipt"));
+    drop(landed);
+    assert_eq!(leases.pending_attempts(10).must("pending").len(), 2);
+    assert_eq!(leases.due_attempts(10).must("due").len(), 1);
+}
+
+#[test]
+fn due_attempts_are_taken_in_turn() {
+    let (_u, leases) = setup();
+    for cookie in ["a", "b", "c"] {
+        let (inv, _) = pending(&leases, cookie);
+        drop(inv);
+    }
+    let taken: Vec<String> = (0..4)
+        .map(|_| {
+            let due = leases.due_attempts(1).must("due");
+            assert_eq!(due.len(), 1);
+            due[0].attempt.clone()
+        })
+        .collect();
+    let distinct: std::collections::BTreeSet<_> = taken[..3].iter().collect();
+    assert_eq!(distinct.len(), 3, "each in turn: {taken:?}");
+    assert_eq!(taken[3], taken[0], "and round again: {taken:?}");
+}

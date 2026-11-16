@@ -23,6 +23,24 @@ impl MemoryTables {
             .current_reference(declaration, key, kind)
             .cloned())
     }
+    /// [`Self::asset_reference`]'s committed generation whole: its reference
+    /// and the canonical byte count its publication recorded, which a host
+    /// holds the bytes it serves to (ADR-0440, L5b). None where no committed
+    /// row of `declaration` names that key and kind.
+    pub fn asset_descriptor(
+        &self,
+        declaration: &str,
+        key: &str,
+        kind: &str,
+    ) -> Result<Option<Descriptor>, Error> {
+        let working = self.inner.lock_working()?;
+        self.inner.asset_operations.fetch_add(1, Ordering::SeqCst);
+        Ok(working
+            .registry
+            .current_reference(declaration, key, kind)
+            .and_then(|reference| working.registry.generation(&reference.generation))
+            .map(|generation| generation.descriptor.clone()))
+    }
     /// Captured-generation cleanup jobs; no storage action is performed here.
     pub fn pending_asset_collections(&self, limit: usize) -> Result<Vec<Descriptor>, Error> {
         let working = self.inner.lock_working()?;

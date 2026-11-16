@@ -658,3 +658,26 @@ fn captured_asset_publisher_borrows_only_its_original_memory_command_and_never_e
     next.commit().assert_ok("new command remains valid");
     assert_eq!(visible(&db), Some(image));
 }
+
+/// **A committed generation's descriptor is the one its publication
+/// recorded** (ADR-0440, L5b: what the server holds the bytes it serves
+/// to): none for another declaration or kind, and none once the last row
+/// naming it is gone.
+#[test]
+fn a_committed_generations_descriptor_is_its_publications_and_goes_with_its_last_row() {
+    let db = database();
+    let published = seed(&db);
+    let key = "a".repeat(64);
+    let found = db
+        .asset_descriptor("PostImage", &key, "png")
+        .assert_ok("resolve registry")
+        .assert_ok("a committed generation");
+    assert_eq!(found.reference, published);
+    assert_eq!(found.bytes, 17);
+    assert_eq!(db.asset_descriptor("Avatar", &key, "png").assert_ok("resolve"), None);
+    assert_eq!(db.asset_descriptor("PostImage", &key, "jpeg").assert_ok("resolve"), None);
+    let mut c = db.begin().assert_ok("a command");
+    c.write("pw:tables/assets#delete", &[json!(1)]).assert_ok("the last row goes");
+    c.commit().assert_ok("committed");
+    assert_eq!(db.asset_descriptor("PostImage", &key, "png").assert_ok("resolve"), None);
+}

@@ -51,6 +51,11 @@ impl std::fmt::Debug for Ticket {
 pub(super) struct Pending {
     ticket: Ticket,
     claimed: Vec<Claimed>,
+    /// Due another inspection ([`Shared::due_attempts`]): its owner went
+    /// without one, or its last one could not be made. One made under the
+    /// adapter's reacquired lifetime is final either way (a receipt that
+    /// matches applies it; one absent or another's holds it for good).
+    due: bool,
 }
 #[derive(Clone)]
 pub(crate) struct Payload {
@@ -81,6 +86,8 @@ pub(crate) struct Invocation {
     held: BTreeMap<String, Held>,
     payloads: BTreeMap<String, Payload>,
     phase: Phase,
+    /// Its own pending attempt inspected once, conclusively or not.
+    reconciled: bool,
 }
 fn opaque() -> String {
     crate::identity::hex(&crate::identity::random_bytes::<16>())
@@ -97,7 +104,56 @@ impl Invocation {
             held: BTreeMap::new(),
             payloads: BTreeMap::new(),
             phase: Phase::Open,
+            reconciled: false,
         }
+    }
+    /// **This invocation's attempt, where its outcome is pending**: the one
+    /// its owner inspects once the command holds nothing.
+    pub(crate) fn pending_ticket(&self) -> Option<Ticket> {
+        match &self.phase {
+            Phase::Pending(ticket) => Some(ticket.clone()),
+            _ => None,
+        }
+    }
+    /// **The attempt's raw receipt, as the adapter inspected it** after an
+    /// unknown outcome, under its reacquired lifetime: one that matches
+    /// applies the claims (`Ok(true)`); one absent or another's leaves them
+    /// held for good (`Ok(false)`: absence is never rollback); an inspection
+    /// that could not be made leaves them due to the periodic pass.
+    pub(crate) fn reconcile(
+        &mut self,
+        inspected: Result<Option<Receipt>, String>,
+    ) -> Result<bool, String> {
+        let Phase::Pending(ticket) = &self.phase else {
+            return Err("this upload invocation has no pending commit".into());
+        };
+        let ticket = ticket.clone();
+        self.reconciled = true;
+        match inspected {
+            Ok(receipt) => {
+                let applied = self.leases.reconcile_attempt(&ticket, receipt.as_ref())?;
+                if !applied {
+                    self.leases.inspected(&ticket, true)?;
+                }
+                self.phase = Phase::Finished;
+                Ok(applied)
+            }
+            Err(why) => {
+                self.leases.inspected(&ticket, false)?;
+                self.phase = Phase::Finished;
+                Err(why)
+            }
+        }
+    }
+    /// **What a page shows of the session's lease of `declaration`**, for the
+    /// reader this invocation admitted: none, or the one.
+    pub(crate) fn attached(&self, declaration: &str, session: &str) -> Result<Vec<Shown>, String> {
+        let cookie = self.asked.session("upload.attached", session)?;
+        Ok(self
+            .leases
+            .shown_for(cookie, declaration, &self.reader)
+            .into_iter()
+            .collect())
     }
     fn open(&self) -> Result<(), String> {
         if matches!(self.phase, Phase::Open) {
@@ -340,6 +396,7 @@ impl Invocation {
             Pending {
                 ticket: ticket.clone(),
                 claimed,
+                due: false,
             },
         );
         self.phase = Phase::Pending(ticket);
@@ -370,14 +427,70 @@ impl Invocation {
 }
 impl Drop for Invocation {
     fn drop(&mut self) {
-        if matches!(self.phase, Phase::Open) {
-            for held in std::mem::take(&mut self.held).into_values() {
-                self.leases.unclaim(held.claimed);
+        match &self.phase {
+            Phase::Open => {
+                for held in std::mem::take(&mut self.held).into_values() {
+                    self.leases.unclaim(held.claimed);
+                }
             }
+            // Its owner went without inspecting it: the periodic pass does.
+            Phase::Pending(ticket) if !self.reconciled => {
+                let _ = self.leases.inspected(ticket, false);
+            }
+            _ => {}
         }
     }
 }
 impl Shared {
+    /// **The attempts due another inspection**, at most `limit`, in turn:
+    /// each pass takes up after the last one it gave, so an attempt whose
+    /// inspection keeps failing never keeps another from its turn.
+    pub(crate) fn due_attempts(&self, limit: usize) -> Result<Vec<Ticket>, String> {
+        let mut state = self
+            .state
+            .lock()
+            .map_err(|_| "upload staging is unavailable")?;
+        let state = &mut *state;
+        let after = state.due_after.clone();
+        let due = |pending: &&Pending| pending.due;
+        let later = state
+            .pending
+            .iter()
+            .filter(|(attempt, _)| after.as_ref().is_none_or(|after| *attempt > after))
+            .map(|(_, pending)| pending);
+        let earlier = state
+            .pending
+            .iter()
+            .filter(|(attempt, _)| after.as_ref().is_some_and(|after| *attempt <= after))
+            .map(|(_, pending)| pending);
+        let taken: Vec<Ticket> = later
+            .chain(earlier)
+            .filter(due)
+            .take(limit)
+            .map(|pending| pending.ticket.clone())
+            .collect();
+        if let Some(last) = taken.last() {
+            state.due_after = Some(last.attempt.clone());
+        }
+        Ok(taken)
+    }
+    /// **What an inspection of `ticket` concluded**: `conclusive`, an
+    /// inspection made, which nothing later changes; otherwise one that
+    /// could not be made, so the attempt is due again.
+    pub(crate) fn inspected(&self, ticket: &Ticket, conclusive: bool) -> Result<(), String> {
+        let mut state = self
+            .state
+            .lock()
+            .map_err(|_| "upload staging is unavailable")?;
+        if let Some(pending) = state
+            .pending
+            .get_mut(&ticket.attempt)
+            .filter(|pending| Arc::ptr_eq(&pending.ticket.identity, &ticket.identity))
+        {
+            pending.due = !conclusive;
+        }
+        Ok(())
+    }
     pub(crate) fn pending_attempts(&self, limit: usize) -> Result<Vec<Ticket>, String> {
         let state = self
             .state

@@ -36,6 +36,8 @@
 
 #[allow(dead_code)] // Actual generic adapter bridge is connected in the following slice.
 pub(crate) mod generic;
+#[allow(dead_code)] // Bound by the server's command path in the steps that follow (L5b).
+pub(crate) mod bridge;
 #[cfg(test)]
 mod generic_lease_tests;
 pub(crate) mod icc;
@@ -181,6 +183,8 @@ struct State {
     leases: BTreeMap<LeaseKey, Lease>,
     pending: BTreeMap<String, generic::Pending>,
     pending_proof_bytes: usize,
+    /// The last attempt the periodic pass was given ([`Shared::due_attempts`]).
+    due_after: Option<String>,
     /// How many leases hold each staged blob: the same bytes from two
     /// sessions are one blob.
     holds: BTreeMap<BlobKey, u32>,

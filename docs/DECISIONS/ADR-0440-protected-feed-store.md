@@ -1128,6 +1128,64 @@ Capacity refusal precedes COMMIT and returns that invocation's claims. Elapsed
 time never clears a pending invocation. Native ledger tests alone do not replace
 the required actual row/receipt/lifetime, compiled resource and startup gates.
 
+### The server's claim bridge (L5b), decided 2026-11-16
+
+The integrator's, under the owner's delegation of 2026-10-02, before the
+code. L5a lands the claim ledger (`uploads::generic`) and every adapter
+check below it; nothing binds a compiled program's upload imports yet, and
+`tables::servable` refuses a program of tables that declares an upload.
+
+**Decided.**
+
+1. **One ledger per command run.** The host makes an `Invocation` in
+   `command_held` after the command's authority is taken, for a command
+   whose contract imports an upload's claim, publish or discard, with the
+   reader it admitted, frozen. Its declarations' imports
+   (`pw:uploads/<declaration>#claim`, `#publish`, `#discard`) are bound to
+   it for that run alone, by the bound manifest's interfaces, never the
+   first declaration; a handle the program passes is the request's
+   session's or nothing is claimed. A query reads `#attached`, the
+   session's own leases. A command no reader runs (a Clock's) claims
+   nothing: its upload imports refuse.
+2. **The layer publishes in the command's own transaction**
+   (`Staged::upload_publisher`): PostgreSQL's adapter publisher and receipt
+   marker, taken after the command's authority; the memory layer's
+   publisher, the canonical bytes kept beside it for the keep.
+3. **The commit carries the attempt.** The answer the record keeps is
+   sealed with the attempt's nonce before it is recorded, the ledger is
+   frozen just before `COMMIT` (its capacity refused before `COMMIT`), and a
+   command that claimed commits its record even where it writes no row (a
+   discard), so that a retried interaction is answered from it.
+4. **Each outcome settles the claims once.** Committed: applied. Kept
+   nothing (a refusal, a definite rollback, or `Recorded`: another
+   attempt's record answers this interaction, and this attempt committed
+   nothing): returned. Otherwise pending: reconciled from the raw receipt
+   once the command holds nothing (its turn, its lease and the namespace
+   lock let go), and by a periodic pass that retries only an inspection
+   that failed, in turn, never the first few alone. Absence stays held.
+5. **The memory layer keeps uploads too**: bytes in memory storage, kept
+   before the publication and collected after it; an unknown memory
+   outcome (a commit failing after the rows were published) holds its
+   claims, as no inspection exists and the tables close.
+6. **Startup opens for generic declarations only.** Still refused: a legacy
+   or malformed declaration, one no table's asset names, a binding the
+   manifest refuses, a hand-written layer's imports beside the tables, and
+   a layer whose manifest binds no uploads. The feed's compatibility stays
+   L7's gate (decision 4 of this ADR).
+
+**Accepted, and named in KNOWN_LIMITATIONS.** An unknown outcome that in
+fact rolled back holds its session's lease for that declaration until the
+host restarts, and a replacement upload is refused meanwhile (409); it is
+logged. Proving the rollback is the negative-proof protocol named above,
+work of its own. Leases are host-local: an upload and the command that
+claims it reach one host (affinity, L6's deploy). On PostgreSQL every
+upload-enabled command and image read takes the namespace lock (five
+seconds at most), to be measured before L7.
+
+**Not chosen.** Releasing a held claim by its age, or inferring a rollback
+from a missing receipt (both above); a fresh interaction per attempt (the
+record that answers a retry is keyed by the interaction).
+
 ## Landing (L3, 2026-11-13)
 
 L3 merges the integration branch's six commits after `a9a8d79e`
