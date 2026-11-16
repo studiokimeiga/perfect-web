@@ -108,3 +108,54 @@ GHSA-rqw3-x7hx-mm3p
     on the owner's approval of the download, rerun the three-store contract and
     remove this allowance; sooner if the baseline proxies a request or is
     exposed outside the local harness.
+
+GHSA-3r8g-jcqq-3p5j
+    SvelteKit 2.42.0 to 3.1.0 — a specially crafted request blocks the event
+    loop while form data from a remote function (`form`, `query` or
+    `command`) is parsed (high; published 2026-11-16).
+    https://github.com/advisories/GHSA-3r8g-jcqq-3p5j
+
+    Why accepted temporarily: it affects only an application that enables
+    SvelteKit's experimental remote functions. The only @sveltejs/kit
+    dependency is the undeployed E14 benchmark baseline, pinned to 2.70.3
+    under ADR-0120. Its `svelte.config.js` is `kit: { adapter: adapter() }`,
+    with no `experimental.remoteFunctions`. It has no `*.remote.*` module and
+    imports nothing from `$app/server`, so no remote function is parsed.
+    Untrusted traffic never reaches the local harness.
+
+    Revisit: the advisory lists no patched 2.x release, only 3.1.1, which is
+    outside ADR-0120's pin. Remove this allowance once a 2.x patch exists (or
+    the baseline moves to 3.x, an ADR of its own) and is installed on the
+    owner's approval of the download. Revisit sooner if the baseline enables
+    remote functions or is exposed outside the local harness.
+
+GHSA-6cf5-gc4q-fm3x
+    SvelteKit 2.60.1 to 3.1.0 — private (non-exported) `query.batch`
+    functions can share a batch, so one function is given another's
+    arguments (moderate; published 2026-11-16).
+    https://github.com/advisories/GHSA-6cf5-gc4q-fm3x
+
+    Why accepted temporarily: it affects only an application that enables
+    the experimental remote functions and declares non-exported
+    `query.batch` functions. The undeployed E14 baseline (2.70.3, ADR-0120)
+    enables neither and has no remote function at all, as above.
+
+    Revisit: as GHSA-3r8g-jcqq-3p5j. No 2.x release is patched, only 3.1.1.
+    Revisit sooner if the baseline enables remote functions.
+
+GHSA-rqp5-r3wg-vg35
+    SvelteKit <2.70.4 (and 3.0.0 to 3.1.0) — where `router.resolution` is
+    `'server'`, a crafted link followed by client-side navigation can import
+    and run a module from another origin (moderate; published 2026-11-16).
+    https://github.com/advisories/GHSA-rqp5-r3wg-vg35
+
+    Why accepted temporarily: it affects only an application with
+    `router.resolution: 'server'`. The undeployed E14 baseline (2.70.3,
+    ADR-0120) sets no `router` option, so it resolves routes in the browser,
+    the default, and no user browses it outside the local harness.
+
+    Revisit: a patched release exists, 2.70.4, the patch within ADR-0120's pin
+    that GHSA-mw6w-2fmv-pvw3 already waits on. Move to it once the owner
+    approves the download (asked 2026-11-16), rerun the three-store contract
+    and remove this allowance. Revisit sooner if the baseline sets
+    `router.resolution: 'server'`.
