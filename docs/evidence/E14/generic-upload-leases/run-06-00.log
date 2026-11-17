@@ -15,13 +15,13 @@ failures:
 
 ---- uploads::generic_lease_tests::claimed_lease_survives_expiry_and_sweep_until_an_explicit_outcome stdout ----
 
-thread 'uploads::generic_lease_tests::claimed_lease_survives_expiry_and_sweep_until_an_explicit_outcome' (3260) panicked at spikes/own-renderer/server/src/uploads/generic_lease_tests.rs:318:5:
+thread 'uploads::generic_lease_tests::claimed_lease_survives_expiry_and_sweep_until_an_explicit_outcome' (218306) panicked at spikes/own-renderer/server/src/uploads/generic_lease_tests.rs:318:5:
 returned but expired lease is no longer shown
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- uploads::generic_lease_tests::explicit_claims_block_only_their_own_declarations_replacement_and_release stdout ----
 
-thread 'uploads::generic_lease_tests::explicit_claims_block_only_their_own_declarations_replacement_and_release' (3265) panicked at spikes/own-renderer/server/src/uploads/generic_lease_tests.rs:163:5:
+thread 'uploads::generic_lease_tests::explicit_claims_block_only_their_own_declarations_replacement_and_release' (218311) panicked at spikes/own-renderer/server/src/uploads/generic_lease_tests.rs:163:5:
 assertion `left == right` failed: unclaim returns exactly Avatar
   left: 409
  right: 303
@@ -31,6 +31,6 @@ failures:
     uploads::generic_lease_tests::claimed_lease_survives_expiry_and_sweep_until_an_explicit_outcome
     uploads::generic_lease_tests::explicit_claims_block_only_their_own_declarations_replacement_and_release
 
-test result: FAILED. 8 passed; 2 failed; 0 ignored; 0 measured; 1218 filtered out; finished in 0.00s
+test result: FAILED. 8 passed; 2 failed; 0 ignored; 0 measured; 1228 filtered out; finished in 0.00s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`

@@ -1,8 +1,8 @@
 ADR-0221 - a form control's value is written where HTML reads it
 
 produced by: just e14-form-controls
-commit: 83ad1ab1f92c0bc4377dfc72df28643828771bb5
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43929087203 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 44e55a2efe12de1ef6b7b0a63665f32e23adef2b
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/44051793903 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -13,39 +13,39 @@ test the_template_refuses_what_the_check_refuses ... ok
 test the_browser_sets_a_textareas_value_in_place ... ok
 test a_textareas_value_is_written_as_its_text ... ok
 test a_value_html_does_not_read_is_refused_where_it_is_written ... ok
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.60s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.25s
 
 == the renderer's escaping matrix (runtime/pw-render/tests/security.rs)
 
-test a_javascript_url_is_replaced_rather_than_escaped ... ok
 test a_record_field_in_a_hostile_position_is_escaped_the_same_way ... ok
-test a_textareas_value_is_its_text ... ok
-test ampersands_are_encoded_in_both_contexts ... ok
 test a_style_value_that_executes_is_dropped ... ok
+test a_javascript_url_is_replaced_rather_than_escaped ... ok
+test ampersands_are_encoded_in_both_contexts ... ok
 test an_attribute_breakout_stays_inside_one_attribute ... ok
-test an_unquoted_breakout_attempt_stays_inside_the_quotes ... ok
-test embedded_json_cannot_end_its_script ... ok
+test a_textareas_value_is_its_text ... ok
 test an_ordinary_url_is_not_mangled ... ok
+test an_unquoted_breakout_attempt_stays_inside_the_quotes ... ok
 test lone_surrogates_cannot_reach_the_renderer ... ok
+test embedded_json_cannot_end_its_script ... ok
 test quotes_and_angles_are_encoded_where_they_matter ... ok
 test raw_html_requires_the_capability_and_is_not_a_flag_on_a_string ... ok
 test text_injection_becomes_inert_text ... ok
-test unicode_passes_through_unchanged ... ok
 test the_matrix_can_fail ... ok
+test unicode_passes_through_unchanged ... ok
 test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
 == the corpus (C15) and generality
 
-accepted: 50 files
-accepted: 49/49 charter §16 categories covered
-rejected: 106 files
-rejected: 106/106 charter §16 categories covered
+accepted: 52 files
+accepted: 51/51 charter §16 categories covered
+rejected: 112 files
+rejected: 112/112 charter §16 categories covered
 corpus-check: OK
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 113.82s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 251.35s
 
 == bound fields in three engines (e2e/bind.spec.mjs)
 
-  24 passed (15.3s)
+  24 passed (22.0s)
 
 == mutation controls (scripts/form_controls_mutations.py)
 

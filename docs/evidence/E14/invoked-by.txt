@@ -1,27 +1,27 @@
 NEXT 6c - a command the platform invokes, which no reader presses
 
 produced by: just e14-invoked-by
-commit: 83ad1ab1f92c0bc4377dfc72df28643828771bb5
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43929087203 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 44e55a2efe12de1ef6b7b0a63665f32e23adef2b
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/44051793903 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the clause and its refusals (compiler/pw-core/tests/invoked_by.rs)
 
-test a_command_the_platform_invokes_holds_no_reader_to_a_predicate ... ok
 test a_command_the_platform_invokes_is_idempotent ... ok
+test a_command_the_platform_invokes_holds_no_reader_to_a_predicate ... ok
 test a_command_the_platform_invokes_says_so_in_its_contract ... ok
-test a_payments_command_is_told_at_its_invoked_by_clause ... ok
 test a_command_the_platform_invokes_is_given_what_the_host_has ... ok
+test a_payments_command_is_told_at_its_invoked_by_clause ... ok
 test one_command_answers_a_payments_outcome ... ok
+test no_page_presses_a_command_the_platform_invokes ... ok
 test only_the_platforms_invokers_and_only_on_a_command ... ok
 test an_identity_transition_has_one_parameter_free_idempotent_target ... ok
-test no_page_presses_a_command_the_platform_invokes ... ok
-test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
 
 == a reader's press refused (spikes/own-renderer/server/src/payments.rs)
 
 test payments::invoked_tests::a_command_the_platform_invokes_is_told_by_its_contract ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1226 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1237 filtered out; finished in 0.00s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
 
 == mutation controls (scripts/invoked_by_mutations.py)

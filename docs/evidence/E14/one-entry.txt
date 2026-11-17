@@ -1,8 +1,8 @@
 ADR-0312 - a page and its layout show one entry by one value
 
 produced by: just e14-one-entry
-commit: 83ad1ab1f92c0bc4377dfc72df28643828771bb5
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43929087203 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 44e55a2efe12de1ef6b7b0a63665f32e23adef2b
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/44051793903 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -22,23 +22,23 @@ test a_page_names_one_layout_and_a_layout_is_given_nothing ... ok
 test what_a_layout_shows_is_its_pages_for_the_shared_cache ... ok
 test a_slot_is_its_layouts_once_at_the_top_and_empty ... ok
 test its_plan_reads_the_layouts_bindings_under_names_no_source_writes ... ok
-test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 27.70s
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 22.48s
 
 == the module run under Node (compiler/pw-conformance/tests/speculation.rs)
 
 test a_speculated_value_read_inside_a_block_is_refused_by_name ... ok
 test the_stores_transitions_run_and_its_parts_read_the_result ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.54s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.38s
 
 == the host: one entry for the store's cart
 
 test tests::a_page_and_its_layout_show_one_entry_by_one_value ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1226 filtered out; finished in 8.60s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1237 filtered out; finished in 7.16s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
 
 == the layout's count, in three engines (e2e/layouts.spec.mjs)
 
-  12 passed (19.3s)
+  12 passed (16.5s)
 
 == mutation controls (scripts/one_entry_mutations.py)
 

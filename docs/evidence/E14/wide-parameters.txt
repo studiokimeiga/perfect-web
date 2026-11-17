@@ -1,15 +1,15 @@
 ADR-0266 - an export's parameters past the flat limit arrive in memory
 
 produced by: just e14-wide-parameters
-commit: 83ad1ab1f92c0bc4377dfc72df28643828771bb5
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43929087203 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 44e55a2efe12de1ef6b7b0a63665f32e23adef2b
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/44051793903 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == through the host (compiler/pw-conformance/tests/wide_parameters.rs)
 
 test seventeen_parameters_arrive_each_in_its_place ... ok
 test a_record_past_the_limit_arrives_aligned_after_what_comes_before_it ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.51s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.74s
 
 == mutation controls (scripts/wide_parameter_mutations.py)
 
@@ -19,4 +19,27 @@ a parameter is read where the last ended, unaligned: KILLED (1 of 2 tests fail)
 the offsets do not accumulate: KILLED (2 of 2 tests fail)
 each parameter is read at the pointer's start: KILLED (2 of 2 tests fail)
 4 of 4 mutants killed
+memory bound: no process was stopped
+
+== a call's arguments past the limit, through the host (compiler/pw-conformance/tests/wide_arguments.rs)
+
+test a_call_past_the_limit_takes_its_answer_through_a_pointer_too ... ok
+test a_type_that_contains_itself_is_passed_past_the_limit_as_within_it ... ok
+test a_record_built_in_the_body_is_passed_aligned_after_what_comes_before_it ... ok
+test arguments_held_in_memory_are_copied_each_to_its_place ... ok
+test seventeen_arguments_reach_the_host_each_in_its_place ... ok
+test a_case_an_option_and_a_list_held_flat_reach_the_host_as_within_the_limit ... ok
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.40s
+
+== their mutation controls (scripts/wide_argument_mutations.py)
+
+baseline: 6 passed, 0 failed
+a call's argument is stored where the last ended, unaligned: KILLED (3 of 6 tests fail)
+a call's arguments' offsets do not accumulate: KILLED (6 of 6 tests fail)
+a call's argument held flat is stored at the tuple's start: KILLED (4 of 6 tests fail)
+a call's argument held in memory is copied to the tuple's start: KILLED (4 of 6 tests fail)
+a call's argument held in memory is copied short: KILLED (4 of 6 tests fail)
+a call's arguments' tuple is allocated unaligned: KILLED (2 of 6 tests fail)
+a call passes another pointer than its tuple's: KILLED (6 of 6 tests fail)
+7 of 7 mutants killed
 memory bound: no process was stopped
