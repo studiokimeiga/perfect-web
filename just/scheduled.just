@@ -34,5 +34,5 @@ e14-scheduled:
        cargo test --locked -p pw-dev-server -- tests::store_pg::on_postgres_a_run tests::store_pg::on_postgres_two_hosts tests::feed_pg::on_postgres_a_feeds_run 2>&1 | grep -E '^(test |test result)|panicked at'; \
        echo; echo "== mutation controls (scripts/scheduled_mutations.py)"; echo; \
        python3 scripts/scheduled_mutations.py; \
-     } > docs/evidence/E14/scheduled.txt
-    @grep -E "^test result|mutants killed|panicked at" docs/evidence/E14/scheduled.txt
+     } > docs/evidence/E14/scheduled.txt; \
+     grep -E "^test result|mutants killed|panicked at" docs/evidence/E14/scheduled.txt

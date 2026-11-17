@@ -287,6 +287,23 @@ class Plan(unittest.TestCase):
         self.assertTrue(plan.EVIDENCE_RECIPE.match("e14-feed"))
         self.assertFalse(plan.EVIDENCE_RECIPE.match("ci"))
 
+    def test_a_change_to_a_helper_that_chooses_mutants_reaches_its_scripts(self) -> None:
+        # #126's follow-up review (2026-11-17): a change to
+        # `mutation_parts.py` alone planned nothing, though it deals
+        # row_ownership's mutants to its three recipes.
+        reached = plan.touched_scripts({"scripts/mutation_parts.py": [(1, 1)]}, 30)
+        self.assertIn("row_ownership_mutations.py", reached)
+        self.assertNotIn("d3_postgres_mutations.py", reached, "d3 keeps its own copy")
+        recipes = plan.recipes_for({"scripts/mutation_parts.py": [(1, 1)]}, 30, list(plan.bodies()))
+        for name in ("e14-row-ownership", "e14-row-ownership-2", "e14-row-ownership-3"):
+            self.assertIn(name, recipes)
+        # An instrument helper every script imports reaches no script by its
+        # import alone (row_ownership imports producer_process, and does not
+        # mutate it; guide_ownership's mutants do, so it is reached).
+        instrument = plan.touched_scripts({"scripts/producer_process.py": [(1, 1)]}, 30)
+        self.assertNotIn("row_ownership_mutations.py", instrument)
+        self.assertLess(len(instrument), 5, instrument)
+
     def test_a_change_reaches_the_scripts_it_touches(self) -> None:
         # The script itself.
         self.assertIn(

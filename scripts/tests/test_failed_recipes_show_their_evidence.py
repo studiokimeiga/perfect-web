@@ -8,9 +8,11 @@ shell at the group, so `cat FILE` never runs and the recipe says nothing but
 just's own error line. The three upload recipes (`e14-generic-upload-http`,
 `-leases`, `-claims`) did that. Their exit status was right, and CI's harness
 prints a failed recipe's tail anyway, but a failing run on a developer's
-machine showed nothing of why. Each now takes the status in the group's own
-`||`, which errexit does not stop at, and other recipes keep it in an `EXIT`
-trap.
+machine showed nothing of why. Each now shows its evidence from an `EXIT`
+trap, as the recipes beside them do. Not from the group's own `|| status=$?`
+(the first repair): bash turns errexit off for everything left of `||`, so a
+failure inside the group would be passed over while its last command
+succeeded (#126's follow-up review, reproduced).
 
 Each upload recipe is run here as `test_builds_before_suites.py` runs one: by
 `just` under the justfile's own settings, in a tree of its own, each program
@@ -56,6 +58,17 @@ def bare_statuses(body: str) -> list[str]:
     return found
 
 
+# A group whose status a `||` takes: errexit is off inside it, so a failed
+# command in it does not fail the recipe while its last one succeeds.
+GROUP_TAKEN_BY_OR = re.compile(r"\}(?:\s*[0-9&]?>{1,2}\s*\S+)*\s*\|\|\s*status=\$\?")
+
+
+def groups_taken_by_or(body: str) -> list[str]:
+    """The groups of a recipe whose status `|| status=$?` takes."""
+    joined = body.replace("\\\n", " ")
+    return GROUP_TAKEN_BY_OR.findall(joined)
+
+
 class FailedRecipesShowTheirEvidence(unittest.TestCase):
     def test_the_check_finds_a_status_errexit_skips_and_passes_the_ones_it_reaches(self):
         self.assertEqual(
@@ -71,6 +84,14 @@ class FailedRecipesShowTheirEvidence(unittest.TestCase):
     def test_no_recipe_reads_a_status_errexit_never_lets_it_reach(self):
         found = {name: bare_statuses(body) for name, body in ci_plan.bodies().items()}
         self.assertEqual({name: lines for name, lines in found.items() if lines}, {})
+
+    def test_no_recipe_turns_errexit_off_for_a_group_by_taking_its_status(self):
+        self.assertTrue(groups_taken_by_or("{ a; b; } > f 2>&1 || status=$?; cat f"))
+        self.assertTrue(groups_taken_by_or("{ a; \\\n b; \\\n } > f 2>&1 || status=$?"))
+        self.assertFalse(groups_taken_by_or("trap 'status=$?; cat f' EXIT; { a; } > f 2>&1"))
+        self.assertFalse(groups_taken_by_or("cmd || status=$?"))
+        found = {name: groups_taken_by_or(body) for name, body in ci_plan.bodies().items()}
+        self.assertEqual({name: groups for name, groups in found.items() if groups}, {})
 
     def test_each_upload_recipe_shows_its_evidence_when_its_script_fails(self):
         for recipe, header in (

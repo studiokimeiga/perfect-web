@@ -107,6 +107,35 @@ class UnreadWordTests(unittest.TestCase):
         self.assertEqual(mutation_anchors.unread_word_tests(
             SCRIPT, types.SimpleNamespace(SERVER=self.COMMAND)), [])
 
+    def test_a_test_name_before_the_separator_and_a_module_filter_are_filters_too(self):
+        # #126's follow-up review: row_ownership's TESTS give their filter as
+        # cargo's TESTNAME, before `--`, and a module filter (`uploads::`)
+        # runs tests in many files; both went unread.
+        self.assertEqual(mutation_anchors.filters_of(
+            ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server",
+             "tests::owned_clock::", "--", "--format=pretty", "blob"]),
+            ["tests::owned_clock::", "blob"])
+        self.assertEqual(mutation_anchors.filters_of(
+            ["cargo", "test", "-p", "pw-dev-server", "--features", "engine", "--", "uploads::"]),
+            ["uploads::"])
+        before = types.SimpleNamespace(
+            SERVER=["cargo", "test", "-p", "pw-dev-server", "--bin", "pw-dev-server", "sniff"],
+            RUST_SOURCES=[SERVER / "uploads.rs"])
+        self.assertTrue(any("uploads/sniff.rs" in f for f in mutation_anchors.unread_word_tests(SCRIPT, before)))
+        module = types.SimpleNamespace(
+            SERVER=["cargo", "test", "-p", "pw-dev-server", "--bin", "pw-dev-server", "--", "uploads::"],
+            RUST_SOURCES=[SERVER / "uploads.rs"])
+        found = mutation_anchors.unread_word_tests(SCRIPT, module)
+        self.assertTrue(any("uploads/generic/tests.rs" in f for f in found), found)
+
+    def test_a_file_pulled_in_by_include_is_named_in_its_includers_module(self):
+        # `uploads.rs`'s `mod tests` includes two files: cargo names their
+        # tests `uploads::tests::...`, not by their files' own paths.
+        named = {path.name: name for name, path in mutation_anchors.server_tests()}
+        for included in ("session_authority_tests.rs", "privacy_lifecycle_tests.rs"):
+            self.assertTrue(named[included].startswith("uploads::tests::"), named[included])
+        self.assertIn(SERVER / "uploads/session_authority_tests.rs", mutation_anchors.reached("uploads::tests::"))
+
     def test_every_script_here_lists_what_its_words_run(self):
         problems = []
         for path in sorted((mutation_anchors.ROOT / "scripts").glob("*_mutations.py")):

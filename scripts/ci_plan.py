@@ -696,12 +696,32 @@ def names_python_tests(text: str, changed: dict[str, list[tuple[int, int]]]) -> 
     return False
 
 
+# **A helper that chooses which mutants a script runs** (ADR-0359, amended
+# 2026-11-17): a change to it reaches every mutation script that imports it,
+# as a change to the script itself would. `mutation_parts` deals a script's
+# mutants to its part recipes; the instrument helpers (`cargo_assertion_results`,
+# `producer_process`, ...) are held by their own tests and recipes instead,
+# and nearly every script imports them.
+SELECTING_HELPERS = ("mutation_parts",)
+
+
+def imports_a_changed_helper(text: str, changed: dict[str, list[tuple[int, int]]]) -> bool:
+    """Whether a script's text imports a helper of `SELECTING_HELPERS` that
+    the change touches."""
+    return any(
+        f"scripts/{helper}.py" in changed
+        and re.search(rf"(?m)^\s*(?:import\s+{helper}\b|from\s+{helper}\s+import\b)", text)
+        for helper in SELECTING_HELPERS
+    )
+
+
 def touched_scripts(changed: dict[str, list[tuple[int, int]]], near: int) -> set[str]:
-    """The mutation scripts a change reaches: the script itself, a mutant
-    within `near` lines of a changed line, or a test file it runs, a Rust
-    test or a browser spec (ADR-0281): a test target by `--test`, or one of
-    the server's test modules by its filter, `tests::store_scheduled::`,
-    which planned nothing until train-6's fix to one."""
+    """The mutation scripts a change reaches: the script itself, a helper
+    of `SELECTING_HELPERS` it imports, a mutant within `near` lines of a
+    changed line, or a test file it runs, a Rust test or a browser spec
+    (ADR-0281): a test target by `--test`, or one of the server's test
+    modules by its filter, `tests::store_scheduled::`, which planned nothing
+    until train-6's fix to one."""
     tests = {pathlib.Path(p).stem for p in changed if "/tests/" in p and p.endswith(".rs")}
     modules = test_modules(changed)
     packages = root_test_packages(changed)
@@ -713,6 +733,9 @@ def touched_scripts(changed: dict[str, list[tuple[int, int]]], near: int) -> set
             out.add(path.name)
             continue
         text = path.read_text()
+        if imports_a_changed_helper(text, changed):
+            out.add(path.name)
+            continue
         if any(
             f'"--test", "{t}"' in text or f"--test {t}" in text or f"tests::{t}::" in text
             for t in tests

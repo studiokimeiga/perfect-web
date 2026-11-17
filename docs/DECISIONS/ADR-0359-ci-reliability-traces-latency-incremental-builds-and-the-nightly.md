@@ -535,11 +535,11 @@ the incremental builds.
 The integrator's, under the owner's grant of 2026-11-17 to make CI faster
 with no gate given up (no paid runners: the account keeps its plan). A
 verify deals recipes to shards, each runs its recipes in turn, and the run
-takes its slowest shard's time. No recipe is split across shards, so the
-longest recipe sets every full verify's length. In L5's repairs' verify
+takes its slowest shard's time. No recipe is split across shards, so no run
+is shorter than the longest recipe it runs. In L5's repairs' verify
 (43978661391) `e14-row-ownership` took 11,009 s on a shard by itself, its
-241 mutants about 45 s each over the 27 commands of
-`row_ownership_mutations.py`. The next longest, `e14-d3-postgres` (9,710 s),
+234 mutants (241 with this follow-up's) about 45 s each over the 27 commands
+of `row_ownership_mutations.py`. The next longest, `e14-d3-postgres` (9,710 s),
 had been split into two parts for the same reason (ADR-0393, amended).
 
 `row_ownership_mutations.py` runs in three parts (`PARTS`, three even
@@ -563,9 +563,15 @@ in 9,710 s. Its `PARTS` are three: the first and second halves of D3's own
 (`NEEDS_DATABASE`). Projections: 5,000 s, 4,900 s and the uploads' measured
 2,868 s.
 
-**What a split does not shorten.** Every recipe together is about 74 hours
-(`ci_seconds.json`, 364 recipes), so a full verify's 24 shards hold about
-three hours each whatever the parts: a whole run is bounded by its total, a
-pull request's by the longest recipe it reaches. The split is for the
-second, which is every pull request's.
+**What the splits shorten, by the plan.** A pull request's verify is
+bounded by the longest recipe it reaches, which the splits cut from 11,009 s
+to about 5,000 s for a data-layer change. A full verify (`ci_plan.py --all`,
+which deals 27 shards whether asked for 17 or 24) is bounded by its longest
+shard and by its total: before the splits its longest shard was
+`e14-row-ownership`'s 11,009 s at any count of shards, and after them it is
+10,192 s, near the floor that every recipe together sets (74.3 hours over
+365 recipes, 9,900 s a shard over 27). At 40 shards it would be 9,425 s,
+`e14-device-runtime` alone (#126's follow-up review measured the same).
+More shards, and the long recipes left in parts, are what shorten a full
+verify further (NEXT).
 

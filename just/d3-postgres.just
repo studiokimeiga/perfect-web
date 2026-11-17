@@ -44,8 +44,8 @@ e14-d3-postgres:
        echo "== mutation controls, part 1 of 3 (scripts/d3_postgres_mutations.py --part 1/3; parts 2 and 3 are e14-d3-postgres-2's and -3's)"; echo; \
        CARGO_INCREMENTAL=0 python3 scripts/d3_postgres_mutations.py --part 1/3; \
      } > "$report" 2>&1; \
-     mv "$report" docs/evidence/E14/d3-postgres.txt
-    @grep -E '^test result|mutants killed|^baseline:|panicked at' docs/evidence/E14/d3-postgres.txt
+     mv "$report" docs/evidence/E14/d3-postgres.txt; \
+     grep -E '^test result|mutants killed|^baseline:|panicked at' docs/evidence/E14/d3-postgres.txt
 
 # D3's mutation controls, part 2 of 3 (ADR-0359, amended 2026-11-17): the
 # second half of D3's own mutants, a recipe of their own, with the baseline
@@ -69,8 +69,8 @@ e14-d3-postgres-2:
        echo "== mutation controls, part 2 of 3 (scripts/d3_postgres_mutations.py --part 2/3; parts 1 and 3 are e14-d3-postgres's and -3's)"; echo; \
        CARGO_INCREMENTAL=0 python3 scripts/d3_postgres_mutations.py --part 2/3; \
      } > "$report" 2>&1; \
-     mv "$report" docs/evidence/E14/d3-postgres-2.txt
-    @grep -E 'mutants killed|^baseline:|panicked at' docs/evidence/E14/d3-postgres-2.txt
+     mv "$report" docs/evidence/E14/d3-postgres-2.txt; \
+     grep -E 'mutants killed|^baseline:|panicked at' docs/evidence/E14/d3-postgres-2.txt
 
 # D3's mutation controls, part 3 of 3 (ADR-0393 and ADR-0359, amended 2026-11-17): the
 # uploads' mutants (ADR-0440's L5), a recipe of their own, with the baseline
@@ -94,5 +94,5 @@ e14-d3-postgres-3:
        echo "== mutation controls, part 3 of 3 (scripts/d3_postgres_mutations.py --part 3/3; parts 1 and 2 are e14-d3-postgres's and -2's)"; echo; \
        CARGO_INCREMENTAL=0 python3 scripts/d3_postgres_mutations.py --part 3/3; \
      } > "$report" 2>&1; \
-     mv "$report" docs/evidence/E14/d3-postgres-3.txt
-    @grep -E 'mutants killed|^baseline:|panicked at' docs/evidence/E14/d3-postgres-3.txt
+     mv "$report" docs/evidence/E14/d3-postgres-3.txt; \
+     grep -E 'mutants killed|^baseline:|panicked at' docs/evidence/E14/d3-postgres-3.txt

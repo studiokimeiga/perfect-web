@@ -76,8 +76,8 @@ POOL = CRATE / "src/pool.rs"
 CARGO = ROOT / "Cargo.toml"
 
 # **The uploads' mutants** (ADR-0440's L5): the namespace, its generations,
-# its receipts and its enrollment on PostgreSQL. Part 2 of `PARTS`, run by
-# `just e14-d3-postgres-2`.
+# its receipts and its enrollment on PostgreSQL. Part 3 of `PARTS`, run by
+# `just e14-d3-postgres-3` (part 2 until 2026-11-17).
 UPLOADS = [
     ('upload lifecycle keeps without verifying exact receipt after immediate hooks', ROOT / 'runtime/pw-table-postgres/src/lib.rs',
      '                assets::verify_receipt(\n                    &inner,\n                    conn,\n                    prepared_assets.receipt_required,\n                    records.interaction,\n                )?;', '                let _ = records.interaction;'),
@@ -166,8 +166,9 @@ UPLOADS = [
 
 # **Every mutant but the uploads'**: D3's own (ADR-0338, ADR-0393), the
 # declared tables, and since then the platform's on PostgreSQL (the
-# connection's keepalives, the outbox's removals marked). Part 1 of `PARTS`,
-# run by `just e14-d3-postgres`.
+# connection's keepalives, the outbox's removals marked). Parts 1 and 2 of
+# `PARTS`, its two halves, run by `just e14-d3-postgres` and
+# `just e14-d3-postgres-2`.
 DECLARED = [
     ('closed cases PostgreSQL additive columns use a different encoding', MIGRATE,
      '    let (kind, nullable) = crate::shape::column_of(&field.stored);', '    let (kind, nullable) = match &field.stored {\n        Stored::Option(inner) if matches!(**inner, Stored::Cases(_)) => (crate::shape::Kind::Json, true),\n        _ => crate::shape::column_of(&field.stored),\n    };'),

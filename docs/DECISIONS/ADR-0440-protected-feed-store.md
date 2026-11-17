@@ -1981,12 +1981,14 @@ without it.
   one, the backend moved from 2233 to 2234). The comments say what the
   first mutant does: it drops and reconnects, uncounted.
 - **upload-metadata's validator lists what its filter runs.** Its server
-  command runs the tests whose names hold `uploads` or `blob`, in thirteen
-  files; its `RUST_SOURCES` listed six, so a kill at an assertion in another
-  was INVALID (L5's verifies, at `uploads/generic_lease_tests.rs`). It lists
-  all thirteen, `tests/upload_bridge.rs` among them (one of its tests is
-  named for a blob). `mutation_anchors.py`, which preflight and `just ci`
-  run on every change, now reads a script's server filter words as it read
-  its module filters: each file holding a test a word runs must be one of
+  command runs the tests whose names hold `uploads` or `blob`, in sixteen
+  files; its `RUST_SOURCES` listed nine, so a kill at an assertion in
+  another was INVALID (L5's verifies, at `uploads/generic_lease_tests.rs`).
+  It lists all sixteen, the seven added among them `tests/upload_bridge.rs`
+  (one of its tests is named for a blob). `mutation_anchors.py`, which
+  preflight and `just ci` run on every change, now reads the filters a
+  script's server command gives (a word or a module filter, before `--` or
+  after it), naming each test as cargo does, an included file's in its
+  includer's module: each file holding a test a filter runs must be one of
   the script's sources, where those sources name a server file at all.
 

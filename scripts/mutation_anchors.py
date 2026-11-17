@@ -113,24 +113,44 @@ TEST_FN = re.compile(r"#\[test\]\s*(?:#\[[^\]]*\]\s*)*(?:pub(?:\([^)]*\))?\s+)?f
 INLINE_MOD = re.compile(r"^[ \t]*(?:pub(?:\([^)]*\))?\s+)?mod\s+(\w+)\s*\{", re.M)
 
 
+INCLUDE = re.compile(r'include!\(\s*"([^"]+)"\s*\)')
+
+
+def module_of(path):
+    """A server source file's module path, by its file (`uploads/sniff.rs`
+    is `uploads::sniff`; `main.rs` and a `mod.rs` name their directory)."""
+    parts = path.relative_to(SERVER).with_suffix("").parts
+    return [p for p in parts if p not in ("main", "mod")]
+
+
 @functools.lru_cache(maxsize=None)
 def server_tests():
     """Each of the server's tests as cargo names it, with its file: the
     file's module (`uploads::sniff`), a module inline in it where the test
-    follows one (`tests`), and the test's own name. Read from the source, so
-    a module nested deeper than one inline level is read as its first."""
-    found = []
-    for path in sorted(SERVER.rglob("*.rs")):
+    follows one (`tests`), and the test's own name. A file another pulls in
+    by `include!` is named in the module it is included into, as cargo names
+    it (`uploads/session_authority_tests.rs`, in `uploads.rs`'s `mod tests`,
+    is `uploads::tests::...`). Read from the source, so a module nested
+    deeper than one inline level is read as its first."""
+    sources = sorted(SERVER.rglob("*.rs"))
+    included = {}
+    for path in sources:
+        text = path.read_text()
+        mods = [(m.start(), m.group(1)) for m in INLINE_MOD.finditer(text)]
+        for found in INCLUDE.finditer(text):
+            inline = [name for at, name in mods if at < found.start()][-1:]
+            included[(path.parent / found.group(1)).resolve()] = module_of(path) + inline
+    out = []
+    for path in sources:
         text = path.read_text()
         if "#[test]" not in text:
             continue
-        parts = path.relative_to(SERVER).with_suffix("").parts
-        base = [p for p in parts if p not in ("main", "mod")]
+        base = included.get(path.resolve(), module_of(path))
         mods = [(m.start(), m.group(1)) for m in INLINE_MOD.finditer(text)]
         for test in TEST_FN.finditer(text):
             inline = [name for at, name in mods if at < test.start()][-1:]
-            found.append(("::".join(base + inline + [test.group(1)]), path))
-    return tuple(found)
+            out.append(("::".join(base + inline + [test.group(1)]), path))
+    return tuple(out)
 
 
 def reached(word):
@@ -151,11 +171,40 @@ def commands(value):
     return []
 
 
+# `cargo test`'s options that take a value: the word after one is its value,
+# not a test name.
+VALUED = {"-p", "--package", "--bin", "--test", "--example", "--bench", "--features", "-F",
+          "--manifest-path", "--target", "--target-dir", "-j", "--jobs", "--profile", "--color",
+          "--message-format", "--exclude", "--config", "-Z"}
+
+
+def filters_of(command):
+    """The test filters a `cargo test` command gives: its TESTNAME, the one
+    word before `--` that no option takes as its value, and every word after
+    `--` that is no option. A module filter (`uploads::`) is one too: cargo
+    runs each test whose name holds it, in every file whose tests do."""
+    split = command.index("--") if "--" in command else len(command)
+    out, skip = [], False
+    for word in command[2:split]:
+        if skip:
+            skip = False
+        elif word in VALUED:
+            skip = True
+        elif not word.startswith("-"):
+            out.append(word)
+    out += [w for w in command[split + 1:] if not w.startswith("-")]
+    return out
+
+
 def unread_word_tests(script, module):
-    """A server test a script runs by a word of its name whose file none of
-    its `*SOURCES` lists: its failures would be INVALID, never kills. Only a
-    script whose sources name a server file reads the server's kills by
-    them; another reads them some other way, and is left."""
+    """A server test a script runs by a filter (a word or a module filter,
+    before `--` or after it) whose file none of its `*SOURCES` lists: its
+    failures would be INVALID, never kills. Only a script whose sources name
+    a server file reads the server's kills by them; another reads them some
+    other way, and is left. What it does not read: a script's sources by
+    another name than `*SOURCES`, and each of a script's suites against its
+    own sources (a dict's are merged); #126's follow-up review found none of
+    either missing a file (against `cargo test -- --list`)."""
     lists = [v for k, v in vars(module).items() if k.endswith("SOURCES")]
     listed = {pathlib.Path(s).resolve() for s in flat(lists) if isinstance(s, (str, pathlib.Path))}
     server = SERVER.resolve()
@@ -164,9 +213,7 @@ def unread_word_tests(script, module):
     words = set()
     for value in vars(module).values():
         for command in commands(value):
-            if "--" in command:
-                after = command[command.index("--") + 1:]
-                words.update(w for w in after if not w.startswith("-") and not MODULE_FILTER.match(w))
+            words.update(filters_of(command))
     unlisted = {}
     for word in sorted(words):
         for path in reached(word):

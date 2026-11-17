@@ -22,11 +22,12 @@ in order:
    and asset refusal told by a rule of its own (PW5604, PW5605, PW0371),
    the asset tests' refusals held to their reasons, a d3 part refused where
    it holds no mutant and costed by its own, and corpus cases for each
-   upload and asset rule; and the second L5 review's four lows of code: a
+   upload and asset rule; the second L5 review's four lows of code (a
    script's database URL read wherever it names one, the upload recipes'
    evidence shown when they fail, the render-merge test holding a render
    to its connection's backend, and upload-metadata's validator listing
-   every test file its filter runs.
+   every test file its filter runs); and `e14-row-ownership` and d3 in three
+   parts each (item 8).
 3. **One contract suite for assets** over memory and PostgreSQL alike
    (L5a's review, a low finding).
 4. **WebKit's cut-off test** (`e2e/connections.spec.mjs`): in two of three
@@ -41,14 +42,18 @@ in order:
    download), as after L4 (item 5).
 8. **CI's wall-clock, with no gate given up** (the owner's grant of
    2026-11-17; no paid runners). A pull request's verify takes the longest
-   recipe it reaches; a full verify about 74 hours over 24 shards, three
-   hours each whatever the parts (ADR-0359, amended). Done here:
-   `e14-row-ownership` and d3 in three parts each. Next, in order:
+   recipe it reaches; a full verify its longest shard, 10,192 s of the
+   plan's 27 after the splits (11,009 s before), near the floor that 74.3
+   hours of recipes set (ADR-0359, amended). Done here, verified in this
+   pull request's verify: `e14-row-ownership` and d3 in three parts each.
+   Next, in order:
    - **every recipe under about 75 minutes**, by `scripts/mutation_parts.py`:
      `e14-device-runtime` (9,425 s), `e14-labels` (8,604 s),
      `e14-statements-separated` (8,088 s), `e14-scheduled` (5,582 s),
-     `e14-durable-tables` (5,073 s), and `e10-browser` (3,974 s; one recipe
-     an engine, its evidence a file each), each run again for its evidence;
+     `e14-durable-tables` (5,073 s), d3's two halves if their measured
+     seconds stay near the 5,000 s projected, and `e10-browser` (3,974 s;
+     one recipe an engine, its evidence a file each), each run again for its
+     evidence;
    - **a full verify's shards to what the account runs at once**: more
      shards shorten a whole run while its total, not its longest recipe,
      bounds it;
