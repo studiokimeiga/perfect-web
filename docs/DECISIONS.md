@@ -3226,6 +3226,7 @@ Vite uses the patched editor launcher on every dependency path (landed with trai
 Dependency audits require a complete, internally consistent producer result (landed with train-12 at `e7664d2e`, 2026-10-21).
 - Reject empty, malformed, duplicate-key or inconsistent audit reports and producer failures; the pinned package manager's exit status must agree with its advisory report.
 - 2026-11-17: an allowance no reported advisory matches is refused, so each goes with its advisory.
+- 2026-11-17: an advisory counts once for each of its findings (a node of pnpm's strict audit tree, one path each), as the registry counts; GHSA-fc5q-39xc-vjpf (picomatch, no patched release) is accepted, every consumer's patterns this repository's or its tools' own.
 
 [ADR-0372](DECISIONS/ADR-0372-ci-test-reach.md):
 Changed test witnesses reach their verification recipes (landed with train-12 at `e7664d2e`, 2026-10-21).
