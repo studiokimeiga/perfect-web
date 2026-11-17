@@ -882,7 +882,7 @@ models and budget.
 store in Next.js 16.3.8 and SvelteKit 2.70.3 (not the day-old 3.0.0) beside
 the Pleris store, held to one behavioural contract with mutant stores as
 negative controls. Found that the Pleris store's `optimistic` and
-`idempotent_by` are checked and not executed; the contract excludes both. Amended 2026-10-11: svelte-check is asked for its machine output, which it wrote by default only in an agent's session (`CLAUDECODE=1`), so every runner failed the recipe. Amended 2026-10-22: Next.js 16.4.1, for three advisories in 16.3.8 (two unauthenticated remote code executions, one denial of service) that no 16.3.x fixes.
+`idempotent_by` are checked and not executed; the contract excludes both. Amended 2026-10-11: svelte-check is asked for its machine output, which it wrote by default only in an agent's session (`CLAUDECODE=1`), so every runner failed the recipe. Amended 2026-10-22: Next.js 16.4.1, for three advisories in 16.3.8 (two unauthenticated remote code executions, one denial of service) that no 16.3.x fixes. Amended 2026-11-17: SvelteKit 2.70.4, adapter-node 5.5.8 and Next.js 16.4.5 (not 16.4.6, whose backported response compression a comparison should choose on purpose), the patches of four accepted advisories, which go; the harness's lockfiles move with them, and the owner's standing approval takes each later patch-level security update.
 
 ## 2026-10-02: an idempotent command runs once per interaction (E14)
 
@@ -2343,6 +2343,9 @@ a merge is held to CI's verification run.
 - Amended 2026-10-12: a fetch takes no file whose recipe reads what
   changed between its run's commit and the tree it joins (the planner's
   rule): the branch merges master and is verified again.
+- Amended 2026-11-17: Ruff's and Fallow's new-only gates run on every
+  branch push too, against where the branch left master, so a branch is
+  shown what its pull request would be refused for before it has one.
 [ADR-0282](DECISIONS/ADR-0282-what-a-value-holds-is-one-label.md):
 what a value holds is one label (amends ADR-0118, corrects ADR-0128).
 - A secret a declaration answers is held, and one it only uses as a key is
@@ -3018,6 +3021,9 @@ the claim, measured: the bug museum and the head-to-head (track `proof`).
 - Amended 2026-10-22: its findings were read in Next.js 16.3.8; on 16.4.1
   the museum shows the same five, J01's stale page and its repair among
   them.
+- Amended 2026-11-17: on Next.js 16.4.5 and SvelteKit 2.70.4 the museum
+  shows the same five, and T09's `unstable_cache` reading holds (its files
+  unchanged since 16.4.1).
 [ADR-0343](DECISIONS/ADR-0343-a-guide-whose-examples-compile.md):
 a guide whose examples compile (track `guide`; NEXT's developer
 experience).
@@ -3219,6 +3225,7 @@ Vite uses the patched editor launcher on every dependency path (landed with trai
 [ADR-0371](DECISIONS/ADR-0371-node-audit-fails-closed.md):
 Dependency audits require a complete, internally consistent producer result (landed with train-12 at `e7664d2e`, 2026-10-21).
 - Reject empty, malformed, duplicate-key or inconsistent audit reports and producer failures; the pinned package manager's exit status must agree with its advisory report.
+- 2026-11-17: an allowance no reported advisory matches is refused, so each goes with its advisory.
 
 [ADR-0372](DECISIONS/ADR-0372-ci-test-reach.md):
 Changed test witnesses reach their verification recipes (landed with train-12 at `e7664d2e`, 2026-10-21).
@@ -3302,6 +3309,7 @@ Session authority is checked at delivery and commit (proposed; reproduced curren
 The head-to-head: TodoMVC against TodoMVC's own React and Svelte apps and the store against Next.js and SvelteKit, measured by one instrument on one machine, Pleris's losses first (track `head-to-head`; independently reviewed and landed 2026-11-02).
 - `just e14-head-to-head` (`benchmarks/headtohead`; local only, ADR-0281's decision 5): production builds, Lighthouse's Slow 4G as Lighthouse applies it through DevTools, seven runs a page cell and five rounds of each server measurement, medians with quartiles, a difference only where the spreads are apart by what the instrument tells apart; behaviour in three engines, source, the twelve tasks' changes and their checkers, the museum's classes; 41 mutants and 4 integrity controls.
 - Pleris loses on bytes (no minifier, compression or cache; the renderer fetched by the first press), every interaction's time, Slow 4G, open tabs and idle visitors, and the store's source (its data layer is Rust); it is best in behaviour, the changes' size and its checker's catch, the museum, and the store server's cost. The review corrected the shaping (a quarter of Lighthouse's request latency), single-run server numbers, idle pages capped by one browser's connections, wins over the instrument's own static host and the store's line count.
+- Amended 2026-11-17: the store's stacks name the baselines' new pins, each label held to its baseline's `package.json`.
 
 [ADR-0393](DECISIONS/ADR-0393-declared-tables-on-postgresql.md):
 Any program's declared tables on PostgreSQL, answering as the memory adapter does (ADR-0338's D3, track `d3-postgres`; independently reviewed and repaired 2026-11-02, its PR holds the landing record; amended 2026-11-17: its mutation controls run in two recipes, the uploads' and every other; in three since, every other in two halves, ADR-0359, amended).

@@ -94,6 +94,18 @@ command `requires Anyone` (PW0367). At the merge the workspace's 4,438
 tests pass on PostgreSQL 18.6 (26 ignored), and every mutation anchor
 matches once (6,253).
 
+**The benchmark baselines' patches, 2026-11-17 (#127):** on
+the owner's approval of the downloads, SvelteKit 2.70.4, adapter-node 5.5.8
+and Next.js 16.4.5 (ADR-0120, amended), in the workspace's lockfile and the
+harness's own, whose Next sandbox installs frozen again. Both stores build
+and typecheck, and the contract holds each (81 of 81, its five controls
+killed; the museum the same five exhibits). The Node audit reports four
+advisories, each still documented: three SvelteKit 2.x has no patch for,
+and one 2.70.4 fixes that GitHub's record does not yet say so; the four the
+patches fix leave the allow list, and an allowance no advisory matches is
+now refused. The owner's standing approval takes each later patch-level
+security update to a baseline through the same gates.
+
 **L4, bounded reads, 2026-11-16:** on L3 (`f375b92d`), the fourth train
 of the declared data layer's landing (`wip/l4-bounded`): the integration
 branch's seventeen commits after `2e2ef45b`, to `ff57edc7`, ADR-0440's

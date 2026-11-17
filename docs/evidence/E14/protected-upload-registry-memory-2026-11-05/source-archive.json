@@ -1,0 +1,23 @@
+{
+ "schema": 1,
+ "stored": "2026-11-17",
+ "why": "A copy of the source a run executed, kept as evidence, is stored as lossless gzip (ADR-0367's archive rule): under its executable extension the repository's Python analyzers read it as project code, and Ruff's new-only gate failed #126 on it. Its decoded bytes are the original's: each raw_sha256 is the one SHA256SUMS lists. The frozen scripts here name the original path; decode it first (`gzip -dc X.py.gz > X.py`) to run one again.",
+ "source_archive_repairs": [
+  {
+   "path": "upload_memory_strict.py.gz",
+   "original_path": "upload_memory_strict.py",
+   "raw_bytes": 2437,
+   "raw_sha256": "df82e52c840d5407a0eec726efe8075873374ec5952eef63037ed369282524aa",
+   "stored_bytes": 1210,
+   "stored_sha256": "7a328138da3250fd9a3afb2e3de362aed3696574586a267438910380764c958d"
+  },
+  {
+   "path": "upload_registry_strict.py.gz",
+   "original_path": "upload_registry_strict.py",
+   "raw_bytes": 2145,
+   "raw_sha256": "5dd0131efeb9ca424d3ca293dd13aaf193e7947e1bccacddd8bb0db795fc0b3e",
+   "stored_bytes": 1078,
+   "stored_sha256": "d9428c85ea405643440530ed195ba9dbf90761afe17d74d9d90ff14b6d5272dd"
+  }
+ ]
+}
