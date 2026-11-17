@@ -631,7 +631,11 @@ class Planner(Toy):
         git(self.toy, "commit", "-q", "-am", "a recipe that records its evidence")
         second = git(self.toy, "rev-parse", "HEAD").stdout.strip()
         (self.toy / "docs/evidence/E14").mkdir(parents=True)
-        (self.toy / "docs/evidence/E14/current.txt").write_text(f"commit: {second}\n")
+        # As a run's fetch stamps it (`ci:` after `commit:`): a record is a
+        # run's, never a local one's (ADR-0281, amended 2026-11-17).
+        (self.toy / "docs/evidence/E14/current.txt").write_text(
+            f"commit: {second}\nci: https://example.invalid/run/1 (ubuntu)\n"
+        )
         git(self.toy, "add", "-A")
         git(self.toy, "commit", "-q", "-m", "its evidence, recorded at the commit before")
         left_out = self.tool("--plan", first)

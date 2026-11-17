@@ -22,7 +22,13 @@ Each mutant undoes one piece:
    twice, or a part no recipe runs let be; and (2b, train-11, 2026-10-20) a
    binary file's change is read as none: the diff's binaries not read, their
    readers' lines not changes, a directory named whole, a placeholder, a
-   directory inside or ending in the binary's, or a record misread;
+   directory inside or ending in the binary's, or a record misread; and
+   (ADR-0281, amended 2026-11-17) a campaign's count not read, one not
+   whole, valid and restored counted killed, its control not named by its
+   identifier, its controls counted as its script's mutants, its unit
+   tests' lines read as its count, a control described by its first word,
+   a table of prose controls read as a campaign's, or a control not killed
+   read as no verdict;
 3. a rejected fixture's `@rule` is its code as written
    (`checking_source.rs`): an alias, a retired code, a code its check does
    not report, or another code's invariant passes; R-004 names its alias
@@ -453,6 +459,64 @@ MUTANTS = [
         ADRS,
         '    return ref == "refs/heads/master" or (ref or "").startswith("refs/heads/track/train-")\n',
         '    return ref == "refs/heads/master"\n',
+    ),
+    # A campaign's counts (ADR-0281, amended 2026-11-17): its controls, by
+    # their identifiers, counted whole, valid and restored.
+    (
+        "a campaign's count is not read",
+        "plan",
+        COUNTS,
+        "        c = CAMPAIGN.match(line)\n        if c:\n",
+        "        c = None\n        if c:\n",
+    ),
+    (
+        "a campaign that was not whole is counted as killed",
+        "plan",
+        COUNTS,
+        '            whole = c.group(1) == "FULL" and c.group(4) == "True" and c.group(5) == "True"\n',
+        "            whole = True\n",
+    ),
+    (
+        "a campaign's control is not named by its identifier",
+        "plan",
+        COUNTS,
+        "    if mutant[-3:] == (None, None, None) and said.strip() in others:\n        return True\n",
+        "    if False:\n        return True\n",
+    ),
+    (
+        "a campaign is counted by its script's mutants, not its controls",
+        "plan",
+        COUNTS,
+        '                units = scripts if kind == "mutants" else {r: campaigns.get(r, []) for r in scripts}\n',
+        "                units = scripts\n",
+    ),
+    (
+        "a campaign's control is described by its first word, not its description",
+        "plan",
+        COUNTS,
+        "            out.append((control[0], max(said, key=len), None, None, None))\n",
+        "            out.append((control[0], said[0], None, None, None))\n",
+    ),
+    (
+        "a table of prose controls is read as a campaign's",
+        "plan",
+        COUNTS,
+        "        if IDENTIFIER.fullmatch(control[0]) and said and isinstance(control[1 + len(said)], list):\n",
+        "        if said:\n",
+    ),
+    (
+        "a control not killed is no verdict",
+        "plan",
+        COUNTS,
+        '    r"^(.*): (KILLED(?: by [^()]+ \\(.*\\)| \\(.*\\))?|SURVIVED|INVALID OR SURVIVED|DID NOT BUILD.*"\n',
+        '    r"^(.*): (KILLED(?: by [^()]+ \\(.*\\)| \\(.*\\))?|SURVIVED|DID NOT BUILD.*"\n',
+    ),
+    (
+        "a campaign's unit tests' lines are read as its count",
+        "plan",
+        COUNTS,
+        '                if s is None and kind == "controls":\n',
+        "                if False:\n",
     ),
 ]
 

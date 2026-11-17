@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import types
 import unittest
 
 SCRIPTS = pathlib.Path(__file__).resolve().parent.parent
@@ -99,6 +100,39 @@ Y_AGREES = (
     "next-react: the count is distinct items: KILLED (1 of 2 tests fail)\n"
     "sveltekit: the count is distinct items: KILLED (2 of 2 tests fail)\n"
     "2 of 2 mutants killed\n"
+)
+
+
+# **A campaign** (ADR-0389's producers; ADR-0281, amended 2026-11-17): its
+# controls, an identifier, a description and its edits each, flattened into
+# `MUTANTS` an edit a row; its recipe copies its console's report.
+C = """\
+import pathlib
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+CONTROLS = [
+    ("lease-reader", "a preview accepts another reader's lease", [(ROOT / "a.rs", "a", "b"), (ROOT / "b.rs", "c", "d")], []),
+    ("live-inspection", "frozen bytes skip the live inspection", [(ROOT / "a.rs", "e", "f")], []),
+]
+MUTANTS = [(identifier, description, path, anchor, replacement)
+           for identifier, description, edits, _ in CONTROLS
+           for path, anchor, replacement in edits]
+"""
+CAMPAIGN_RECIPE = (
+    "e14-c:\n"
+    '    @bundle="$(mktemp -d docs/evidence/E14/c.XXXXXX)"; report="$bundle/console.txt"; \\\n'
+    '     { echo "commit: $(git rev-parse HEAD)"; python3 -m unittest -v scripts/tests/test_c_mutations.py; \\\n'
+    '       python3 scripts/c_mutations.py --output "$bundle/campaign"; } > "$report" 2>&1; \\\n'
+    '     cp "$report" docs/evidence/E14/c.txt\n'
+)
+# Its own unit tests print a campaign's lines of a control it does not
+# define, before the campaign runs.
+C_AGREES = (
+    "test_a_kill_is_recorded (scripts.tests.test_c_mutations.C) ... one: KILLED\n"
+    "scope=FULL, controls=1/1, valid=True, restored=True\n"
+    "ok\n"
+    "lease-reader: KILLED\n"
+    "live-inspection: KILLED\n"
+    "scope=FULL, controls=2/2, valid=True, restored=True\n"
 )
 
 
@@ -338,6 +372,66 @@ an unfinished callback becomes an observed mismatch: KILLED by scripts.tests.tes
         self.assertTrue(counts.names("next-react: the count is distinct items", react))
         self.assertFalse(counts.names("next-react: the count is distinct items", svelte))
 
+    def campaign(self, evidence: str) -> dict:
+        root = self.tree(
+            {
+                "justfile": CAMPAIGN_RECIPE,
+                "scripts/c_mutations.py": C,
+                "docs/evidence/E14/c.txt": evidence,
+            }
+        )
+        return counts.disagreements(root, plan)
+
+    def test_a_campaigns_controls_are_counted_by_their_identifiers(self):
+        # Two controls, three edits: the campaign counts its controls, each
+        # said by its identifier; its unit tests' lines are no count of it.
+        self.assertEqual(self.campaign(C_AGREES), {})
+        def whats(found: dict) -> list[str]:
+            return [what for _, _, what in found.get("e14-c", [])]
+
+        short = C_AGREES.replace("controls=2/2", "controls=2/3")
+        self.assertIn("c_mutations.py: counts 3 mutants; its campaign defines 2", whats(self.campaign(short)))
+        # A run that was not whole, valid and restored is counted as none killed.
+        whole = "scope=FULL, controls=2/2, valid=True, restored=True"
+        for bad in (
+            "scope=PARTIAL, controls=2/2, valid=True, restored=True",
+            "scope=FULL, controls=2/2, valid=False, restored=True",
+            "scope=FULL, controls=2/2, valid=True, restored=False",
+        ):
+            told = whats(self.campaign(C_AGREES.replace(whole, bad)))
+            self.assertIn("c_mutations.py: counts 0 killed; 2 verdicts say KILLED", told, bad)
+        failed = C_AGREES.replace("live-inspection: KILLED", "live-inspection: INVALID OR SURVIVED")
+        told = whats(self.campaign(failed))
+        self.assertIn("c_mutations.py: counts 2 killed; 1 verdicts say KILLED", told)
+        # The control that was not killed is a verdict still, of the two.
+        self.assertNotIn("c_mutations.py: counts 2 mutants above 1 verdicts", told)
+        unknown = C_AGREES.replace("live-inspection: KILLED", "an-other-control: KILLED")
+        self.assertTrue(any("names no mutant of its script" in w for w in whats(self.campaign(unknown))))
+        # And where the campaign's own count is missing, none of its controls are.
+        gone = C_AGREES.replace("scope=FULL, controls=2/2, valid=True, restored=True\n", "")
+        self.assertIn("counts none of c_mutations.py's mutants, which the recipe runs", whats(self.campaign(gone)))
+
+    def test_a_campaigns_controls_are_its_identifiers_and_descriptions_alone(self):
+        shaped = types.SimpleNamespace(CONTROLS=[
+            # identifier, description, edits, expectations
+            ("lease-reader", "a preview accepts another reader's lease", [], []),
+            # identifier, suite, description, edits (session_command's)
+            ("render-actor-cache", "memory", "render operation cache ignores actor generation", []),
+        ])
+        self.assertEqual(
+            counts.controls_of(shaped),
+            [
+                ("lease-reader", "a preview accepts another reader's lease", None, None, None),
+                ("render-actor-cache", "render operation cache ignores actor generation", None, None, None),
+            ],
+        )
+        # head_to_head's integrity controls are no campaign's: prose first.
+        prose = types.SimpleNamespace(CONTROLS=[
+            ("a run count of one", None, None, ["--stacks", "react"], "fewer than 5"),
+            ("one", "two", "three", "four"),
+        ])
+        self.assertEqual(counts.controls_of(prose), [])
+
     def test_a_disagreement_fails_unless_a_trains_push_records_it_again(self):
         found = {"e14-x": [("x.txt", 1, "?")], "e14-y": [("y.txt", 1, "?")]}
         self.assertEqual(counts.failing(found, {"e14-x"}), ["e14-y"])
@@ -371,7 +465,7 @@ class PlannedAgain(unittest.TestCase):
         self.git("add", ".")
         self.git("commit", "-q", "-m", "a script")
         recorded = self.git("rev-parse", "HEAD")
-        lying = f"commit: {recorded}\n" + AGREES.replace("3 of 3", "4 of 4")
+        lying = f"commit: {recorded}\nci: https://example.invalid/run/1 (ubuntu)\n" + AGREES.replace("3 of 3", "4 of 4")
         for name in ("x.txt", "local.txt"):
             path = self.root / "docs/evidence/E14" / name
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -385,6 +479,15 @@ class PlannedAgain(unittest.TestCase):
 
     def test_evidence_current_in_the_tree_here_is_recorded_again_by_no_plan(self):
         self.assertEqual(self.again(), set())
+
+    def test_evidence_no_run_stamped_is_planned_again(self):
+        # A local run's file, committed (the review of the planner's
+        # reading, 2026-11-17): its commit line has no run after it, so it
+        # is no record, and the recipe CI runs is planned again.
+        path = self.root / "docs/evidence/E14/x.txt"
+        path.write_text("\n".join(line for line in path.read_text().splitlines() if not line.startswith("ci: ")) + "\n")
+        self.git("commit", "-q", "-am", "a local run's evidence")
+        self.assertEqual(self.again(), {"e14-x"})
 
     def test_evidence_whose_script_changed_in_the_tree_here_is_planned_again(self):
         # Not committed yet, as `just ci` runs before a commit.
