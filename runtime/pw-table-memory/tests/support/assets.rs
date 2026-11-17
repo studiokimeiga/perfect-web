@@ -166,6 +166,87 @@ command Note(note: Notes.Note) -> ()
 "#)])
 }
 
+/// **Posts owned by their author, keeping an image** (L7's G4, ADR-0440
+/// amended 2026-11-17): the feed's shape, a `public table` its author alone
+/// writes and every reader reads (ADR-0395's ruling 4). `Publish` claims and
+/// publishes the image the reader attached, into the reader's own post;
+/// `Keep` puts a post given whole, as a forged request would give it, the
+/// reader's handle beside it; `TakeDown` deletes the reader's own post of
+/// an id. Each writes a table keeping an asset, and works on the uploads.
+fn owned_asset_program()->Program {
+    built_from(&[("PostImage.pw",r#"module PostImage
+upload PostImage
+    route "/uploads/post-image"
+    serves "/images"
+    max_bytes 5_000_000
+    types png, jpeg
+    max_width 4096
+    max_height 4096
+"#),("Posts.pw",r#"module Posts
+import PostImage
+import capability.{ UserId }
+type Post = Post { author: UserId, id: Int, image: Option<PostImage.Ref>, alt: String }
+public table Posts
+    row Post
+    key author, id
+    bounded 100
+    owned by author
+    asset image from PostImage
+"#),("AssetData.pw",r#"module AssetData
+import PostImage
+import Posts
+source AssetData
+    holds PostImage, Posts
+    transactions serializable
+    reads strong
+    changes none
+    sets one_call
+"#),("app.pw",r#"module owned.app
+import PostImage
+import Posts
+import Posts.{ Post }
+import context.{ current_session, current_user }
+import capability.{ Session, SessionId, id_of }
+opaque type InteractionId = String
+command Publish(id: Int, alt: String) -> Result<Int, PostImage.Error>
+    requires Anyone
+    idempotent_by InteractionId
+    invalidates Attached(current_session())
+    transaction serializable
+{
+    let me = current_user()
+    let claim = PostImage.claim(current_session())?
+    let image = PostImage.publish(current_session(),claim)?
+    let saved = Posts.put(me, Post { author: id_of(me), id: id, image: Some(image), alt: alt })
+    Ok(id)
+}
+command Keep(post: Post) -> ()
+    requires Anyone
+    transaction serializable
+{ Posts.put(current_user(), post) }
+command TakeDown(id: Int) -> ()
+    requires Anyone
+    transaction serializable
+{ Posts.delete(current_user(), id) }
+session query Attached(session: Session<SessionId>) -> List<PostImage.Attached>
+    freshness 0.seconds
+    consistency read_your_writes
+    cache private
+    key session
+    concurrency one_per_key
+    on_key_change cancel
+    timeout 2.seconds
+{
+    PostImage.attached(session)
+}
+"#)])
+}
+
+/// A post of [`owned_asset_program`] as the adapter stores it.
+fn owned_post(author: &str, id: i64, image: Option<&pw_host::assets::Reference>) -> serde_json::Value {
+    json!({"author": author, "id": id, "image": image, "alt": format!("{author}'s post {id}")})
+}
+
 fn image_reference()->Val {
     Val::Record(vec![("key".into(),Val::String("a".repeat(64))),
         ("generation".into(),Val::String("b".repeat(32))),

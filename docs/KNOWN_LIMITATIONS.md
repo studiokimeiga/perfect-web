@@ -61,6 +61,15 @@
 - **The feed keeps its own uploads.** Startup opens for generic upload
   declarations only; the hand-written feed's are refused beside declared
   tables, and its compatibility is L7's gate.
+- **A declared image is served while any row names it** (L7's G4,
+  ADR-0440 amended 2026-11-17). An author's delete of their own row in an
+  owned `public table` ends that row's use of its image, not the image: a
+  generation's uses are counted per declaration, so another owner's row
+  naming the same reference (copied from the first, or the same bytes
+  uploaded again, which are one generation by their hash) keeps it served
+  at its address, and caches keep what they were served for a year. A
+  delete is no erasure: what a user's erasure takes, and whether it reaches
+  another's row, is ADR-0384's H9, not built.
 
 ## Declared tables on PostgreSQL, 2026-11-02 (ADR-0393)
 
@@ -767,7 +776,9 @@ awaited in order. What remains:
   `notifications` (W3) lands, and `current_organization()`'s no host
   answers at all.
 - **An upload's image outlives its post only where it was copied**
-  (ADR-0260, ADR-0261): a deleted post's image is served no more, and its
+  (ADR-0260, ADR-0261; the hand-written feed's, which declared tables do
+  not follow: their image is served while any row names it, the first
+  section's G4 entry): a deleted post's image is served no more, and its
   blob is collected where no post names it, but a copy a browser or a CDN
   kept under `immutable` stays, and a blob a failed commit put stays in the
   store, served to no one. A budget of uploads is the server's memory, as a

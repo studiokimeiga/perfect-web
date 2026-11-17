@@ -186,6 +186,11 @@ UPLOADS = [
      '        let command = self.begin()?;\n        let mut open = command.state.lock().map_err(|_| Error::StoragePoisoned)?;\n        let conn = open.lease.as_mut().ok_or(Error::Ended)?.conn()?;\n        // In turn:', '        let command = self.begin_for(crate::Work::Tables)?;\n        let mut open = command.state.lock().map_err(|_| Error::StoragePoisoned)?;\n        let conn = open.lease.as_mut().ok_or(Error::Ended)?.conn()?;\n        // In turn:'),
     ('upload lifecycle checks an ordinary commands asset rows at its commit', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
      '    if inner.uploads.is_none() || open.lifetime.is_none() {\n        return Ok(());\n    }\n    let conn = inner.command_conn(open)?;\n    conn.batch(&inner.counters, "SET CONSTRAINTS ALL IMMEDIATE")', '    if inner.uploads.is_none() {\n        return Ok(());\n    }\n    let conn = inner.command_conn(open)?;\n    conn.batch(&inner.counters, "SET CONSTRAINTS ALL IMMEDIATE")'),
+    # L7's G4 (ADR-0440 amended 2026-11-17): an owned asset table's rows are
+    # read back at their whole key, its owner leading it, so two owners'
+    # rows at one id are two rows.
+    ('upload lifecycle verifies an owned asset row by its id alone, not its owner', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
+     '            .zip(&aliases)\n            .map(|(&f, alias)| format!("t.{}=k.{alias}", ident(&table.columns[f].name)))', '            .zip(&aliases)\n            .skip(table.key.len() - 1)\n            .map(|(&f, alias)| format!("t.{}=k.{alias}", ident(&table.columns[f].name)))'),
 ]
 
 # **Every mutant but the uploads'**: D3's own (ADR-0338, ADR-0393), the

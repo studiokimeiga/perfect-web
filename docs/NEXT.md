@@ -68,14 +68,25 @@ in order:
      upload, or writes a table keeping an asset, holds the namespace now, and
      is served its host's turn first; the port keeps its hot commands (likes)
      off the tables that keep assets.
-   - **G4**, an asset on an owned table (a post's image): refused by the
-     compiler (`tables/assets.rs`) and the host (`tables.rs`).
+   - ~~**G4**, an asset on an owned table (a post's image)~~: done
+     (2026-11-17, `wip/l7-owned-assets`; ADR-0440, amended). An asset's
+     table is one every reader reads, an owned `public table` among them,
+     never one read by its reader alone. No adapter changed: ownership
+     never reached the asset machinery. A reference copied into another
+     owner's row keeps its image after the author's delete, which is no
+     erasure (H9's); G3's cascades into a table keeping an asset go
+     through the adapters' write path, and work on the uploads.
    - **G1**, an id sequence never reused after a delete, a rollback, a
      restart or on a second host (the feed's post ids); **G2**, seed rows,
      applied once per database under a lock.
    - **G3**, a delete that takes other owners' rows (a post's replies,
      likes and notifications, and their images): `refers` is one field,
      refuse-only and within one owner (PW6924). The largest; an ADR first.
+     A cascade into a table keeping an asset works on the uploads (G4's
+     ruling), so G3 extends `Manifest::work` to the tables a command's
+     cascades reach: it reads a command's own imports alone, and would
+     refuse such a cascade's asset write as `Work::Tables` (G4's review,
+     L6).
    - **G6**, `Account`'s handle, and a Payments-invoked command writing its
      payer's owned rows; **G7**, guest session ids the host alone issues,
      and the provider's issuer kept beside `sub`; **G8**, an operator's
@@ -130,6 +141,16 @@ in order:
      (`cp`), whose counts `evidence_counts` reads as a campaign's. Still
      owed: the ADR for the rest of an evidence-only commit's checks (which
      of them its head already passed).
+10. **Builds held to their refusals.** A build whose program a backend
+    refused is `Ok`, its refusals beside it (`Build::refusals`), and a test
+    that reads neither its components nor its refusals passes on a program
+    that never lowered: L7's G4 found one
+    (`a_public_optional_reference_and_resource_only_components_compile`,
+    ADR-0440's G4 amendment). Twenty other test files build a program and
+    never read `refusals()` (`compiler/pw-core/tests/` among them
+    `table_windows.rs`, `table_ranges.rs`, `table_counts.rs`,
+    `template_values.rs`). Read each, and hold each that could pass so to
+    its refusals.
 
 Keep the mixed-layer startup refusal until its replacement is real; a
 program's uploads beside its tables are served only through L5b's gates.
