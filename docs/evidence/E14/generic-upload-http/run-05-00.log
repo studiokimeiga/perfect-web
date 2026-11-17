@@ -11,7 +11,7 @@ failures:
 
 ---- tests::upload_generations::generation_http_rejects_actual_file_kind_differing_from_the_descriptor stdout ----
 
-thread 'tests::upload_generations::generation_http_rejects_actual_file_kind_differing_from_the_descriptor' (307505) panicked at spikes/own-renderer/server/src/tests/upload_generations.rs:525:5:
+thread 'tests::upload_generations::generation_http_rejects_actual_file_kind_differing_from_the_descriptor' (4558) panicked at spikes/own-renderer/server/src/tests/upload_generations.rs:525:5:
 assertion `left == right` failed: HTTP must validate measured kind before cache validators even with hash-valid actual files
   left: 304
  right: 503
@@ -21,6 +21,6 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::upload_generations::generation_http_rejects_actual_file_kind_differing_from_the_descriptor
 
-test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 1222 filtered out; finished in 0.92s
+test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 1222 filtered out; finished in 0.96s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`

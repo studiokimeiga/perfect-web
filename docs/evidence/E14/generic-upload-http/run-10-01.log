@@ -7,7 +7,7 @@ failures:
 ---- uploads::tests::a_lease_is_claimed_once_and_ended_once stdout ----
 pw dev server: whether a post names b66280038ac31008663934943becb1ef2bba97cd38f821e65f21c207a86fe110: the layer cannot say
 
-thread 'uploads::tests::a_lease_is_claimed_once_and_ended_once' (308329) panicked at spikes/own-renderer/server/src/uploads.rs:2108:9:
+thread 'uploads::tests::a_lease_is_claimed_once_and_ended_once' (5398) panicked at spikes/own-renderer/server/src/uploads.rs:2108:9:
 assertion `left == right` failed
   left: 200
  right: 503

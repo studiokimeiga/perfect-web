@@ -1,8 +1,8 @@
 generic-upload-http - a generic upload's image served from its database's rows and the blob root, each authority and file check held by a mutant
 
 produced by: just e14-generic-upload-http
-commit: 41a73a48ab29a42cce090990051accd8278d6e0c
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43978661391 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 8a95c57488531bec2fe92e382692fc4c74099a5c
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/44006404872 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 postgres: 18.6 (Debian 18.6-1.pgdg13+2)
 
