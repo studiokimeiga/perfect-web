@@ -12,7 +12,7 @@ failures:
 ---- tests::upload_generations::current_generation_http_validates_real_png_and_jpeg_files_before_304_and_head stdout ----
 pw dev server: reading a current upload generation: Refused("LIVE upload storage unavailable: stored generation length changed")
 
-thread 'tests::upload_generations::current_generation_http_validates_real_png_and_jpeg_files_before_304_and_head' (4709) panicked at spikes/own-renderer/server/src/tests/upload_generations.rs:350:9:
+thread 'tests::upload_generations::current_generation_http_validates_real_png_and_jpeg_files_before_304_and_head' (311963) panicked at spikes/own-renderer/server/src/tests/upload_generations.rs:350:9:
 assertion `left == right` failed: corruption beats 304
   left: 404
  right: 503
@@ -22,6 +22,6 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::upload_generations::current_generation_http_validates_real_png_and_jpeg_files_before_304_and_head
 
-test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 1222 filtered out; finished in 2.03s
+test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 1232 filtered out; finished in 1.26s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`

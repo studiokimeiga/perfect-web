@@ -1,8 +1,8 @@
 row-ownership - owned tables read and written by their reader; predicates in Pleris: mutation controls, part 3 of 3
 
 produced by: just e14-row-ownership-3
-commit: 6734ea7e5adedb90115a02c8db1d11e7d31fc860
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/44017699885 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 44e55a2efe12de1ef6b7b0a63665f32e23adef2b
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/44051793903 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == mutation controls (scripts/row_ownership_mutations.py), part 3 of 3

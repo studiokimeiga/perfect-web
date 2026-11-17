@@ -1,51 +1,51 @@
 the browser renders with a page of JavaScript, held to the server's renderer
 
 produced by: just e14-browser-renderer
-commit: 83ad1ab1f92c0bc4377dfc72df28643828771bb5
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43929087203 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 44e55a2efe12de1ef6b7b0a63665f32e23adef2b
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/44051793903 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
 
 == the two renderers, asked the same (renderer-agreement.test.mjs)
 
-✔ the two renderers agree over generated templates of every part and context (9859.449696ms)
-✔ a block kept in pieces is the text the renderer writes, the second time too (1399.055537ms)
-✔ a row is written again when what it reads changes, and not otherwise (2.220958ms)
-✔ a row is written again when what a block around it bound changes (1.889777ms)
-✔ a row that read NaN of the page is the row kept, and its computed value is not computed again (3.681905ms)
-✔ the two renderers agree over the compiler's own templates (4964.158437ms)
-✔ a planned row agrees with the server over generated templates (4637.198507ms)
+✔ the two renderers agree over generated templates of every part and context (9928.804623ms)
+✔ a block kept in pieces is the text the renderer writes, the second time too (1440.077566ms)
+✔ a row is written again when what it reads changes, and not otherwise (2.260237ms)
+✔ a row is written again when what a block around it bound changes (1.902968ms)
+✔ a row that read NaN of the page is the row kept, and its computed value is not computed again (3.773352ms)
+✔ the two renderers agree over the compiler's own templates (5024.88734ms)
+✔ a planned row agrees with the server over generated templates (4743.210377ms)
 ℹ held: {"rows":7991,"planned":7325,"anchored":1821,"holes":22799,"refused":5302}
-✔ a row its own anchor writes its key where the server does, however its element's name ends (7.008545ms)
-✔ a list the packaging says is its rows' own anchor has a row of one element, and each other its comments (106.699836ms)
-✔ a planned row agrees with the server over the compiler's own templates (103.433311ms)
+✔ a row its own anchor writes its key where the server does, however its element's name ends (6.697538ms)
+✔ a list the packaging says is its rows' own anchor has a row of one element, and each other its comments (113.367505ms)
+✔ a planned row agrees with the server over the compiler's own templates (109.405548ms)
 ℹ held: {"rows":174,"planned":150,"anchored":54,"holes":414,"refused":76}
-✔ a list's own code keeps and makes its rows as the general code does, over generated templates (2432.374853ms)
+✔ a list's own code keeps and makes its rows as the general code does, over generated templates (2468.042489ms)
 ℹ held: {"written":5302,"refusedLists":2478,"rows":11929,"own":7123,"kept":3726,"refused":9118,"why":{"it is inside a block":2063,"its attribute href interpolates in":415},"found":5953,"moved":51,"few":33,"gone":94,"remade":250,"keptFound":1525,"last":2885}
-✔ a list's own code computes what its rows compute as the general code does (662.702077ms)
+✔ a list's own code computes what its rows compute as the general code does (675.162935ms)
 ℹ held: {"written":1368,"refusedLists":132,"rows":2622,"own":2612,"kept":1136,"refused":814,"why":{"what its row computes for":132},"found":2133,"moved":19,"few":14,"gone":47,"remade":67,"keptFound":680,"last":1035}
 ℹ held with no function: {"written":546,"refusedLists":54,"rows":181,"own":166,"kept":80,"refused":817,"why":{"what its row computes for":54},"found":349,"moved":1,"few":1,"gone":0,"remade":7,"keptFound":54,"last":166}
-✔ a list's own code keeps and makes its rows as the general code does, over the compiler's own templates (65.577932ms)
+✔ a list's own code keeps and makes its rows as the general code does, over the compiler's own templates (68.740099ms)
 ℹ held: {"written":102,"refusedLists":20,"rows":342,"own":297,"kept":164,"refused":146,"why":{"it is inside a block":20},"found":99,"moved":2,"few":2,"gone":1,"remade":3,"keptFound":49,"last":49}
-✔ a list's own code finds its rows where they were, and says what it found as their keys say (6738.462705ms)
+✔ a list's own code finds its rows where they were, and says what it found as their keys say (6898.990282ms)
 ℹ held: {"written":3317,"refusedLists":967,"rows":113711,"own":105027,"kept":69626,"refused":14373,"why":{"it is inside a block":823,"its attribute href interpolates in":144},"found":17586,"moved":1692,"few":1028,"gone":2002,"remade":1873,"keptFound":7519,"last":14473}
-✔ a list's own code finds its rows where they were as what they compute moves and does not (1151.320826ms)
+✔ a list's own code finds its rows where they were as what they compute moves and does not (1134.068902ms)
 ℹ held: {"written":1096,"refusedLists":104,"rows":9681,"own":9611,"kept":6310,"refused":2616,"why":{"what its row computes for":104},"found":6772,"moved":509,"few":477,"gone":718,"remade":334,"keptFound":3176,"last":5653}
-✔ each escaping agrees on every code point (2842.192985ms)
-✔ an address agrees on every code point inside and around a scheme (1024.833036ms)
-✔ keys sort as the server's do, by code point (8.483028ms)
-✔ a view inside itself stops where the server's does (1300.469714ms)
-✔ a graph that is no tree is refused where it is read (8.906505ms)
-✔ what has been an exploit agrees in every context (83.877084ms)
-✔ a path reads a record's fields and nothing else's (9.922564ms)
-✔ each element's handlers write one attribute of their own (5.423373ms)
-✔ an instance reads its parameters and none of the page's values (9.093421ms)
-✔ what changed in a row agrees on a block, a case and a list inside it (6.866118ms)
-✔ a list inside a row is refused, not walked, when its keys repeat or are missing (5.386985ms)
-✔ an item of a list inside a row is refused as rendering it would be (18.289782ms)
-✔ a change in a row is what the server says it is (5.14165ms)
-✔ the renderer is small (64.813447ms)
+✔ each escaping agrees on every code point (2872.384126ms)
+✔ an address agrees on every code point inside and around a scheme (1041.296971ms)
+✔ keys sort as the server's do, by code point (8.964223ms)
+✔ a view inside itself stops where the server's does (1313.384896ms)
+✔ a graph that is no tree is refused where it is read (8.75786ms)
+✔ what has been an exploit agrees in every context (81.133955ms)
+✔ a path reads a record's fields and nothing else's (11.504014ms)
+✔ each element's handlers write one attribute of their own (6.409129ms)
+✔ an instance reads its parameters and none of the page's values (9.585767ms)
+✔ what changed in a row agrees on a block, a case and a list inside it (7.166277ms)
+✔ a list inside a row is refused, not walked, when its keys repeat or are missing (5.789257ms)
+✔ an item of a list inside a row is refused as rendering it would be (18.933117ms)
+✔ a change in a row is what the server says it is (5.094954ms)
+✔ the renderer is small (62.017476ms)
 ℹ tests 29
 ℹ suites 0
 ℹ pass 29
@@ -53,7 +53,7 @@ playwright: Version 1.58.0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 37630.410448
+ℹ duration_ms 38174.15922
 
 == the server's renderer on the address that panicked it (escape.rs)
 

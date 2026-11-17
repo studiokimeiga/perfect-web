@@ -935,6 +935,151 @@ source AssetData
     )
     .assert_ok("compiled asset shape")
 }
+/// One upload in two fields of a row: memory's
+/// `duplicate_fields_and_independent_declarations_keep_exact_final_counts_and_serving`'s
+/// shape, which PostgreSQL never wrote (ADR-0440's asset contract suite).
+/// Its `Option<Ref>` pair is past the Canonical ABI's 16 flat values, which
+/// until ADR-0266's amendment of 2026-11-17 no compiled command could `put`;
+/// the server's suite now writes one through a compiled command.
+fn two_fields(s: &common::Scratch, store: &Arc<ByteStore>) -> PgTables {
+    let p = built_from(&[
+        (
+            "PostImage.pw",
+            r#"module PostImage
+upload PostImage
+    route "/uploads/photo"
+    serves "/photos"
+    max_bytes 5_000_000
+    types png
+    max_width 4096
+    max_height 4096
+"#,
+        ),
+        (
+            "Assets.pw",
+            r#"module Assets
+import PostImage
+type Item = Item { id: Int, image: Option<PostImage.Ref>, thumb: Option<PostImage.Ref> }
+table Assets
+    row Item
+    key id
+    bounded 100
+    asset image from PostImage
+    asset thumb from PostImage
+"#,
+        ),
+        (
+            "AssetData.pw",
+            r#"module AssetData
+import PostImage
+import Assets
+source AssetData
+    holds PostImage, Assets
+    transactions serializable
+    reads strong
+    changes none
+    sets one_call
+"#,
+        ),
+    ]);
+    PgTables::open_with_uploads(
+        &s.url,
+        s.schema(),
+        p.tables,
+        Options::default(),
+        Uploads {
+            metadata: p.uploads,
+            store: store.clone(),
+            fresh_namespace: Namespace::from_bytes([1; 16]),
+        },
+    )
+    .assert_ok("two fields of one upload")
+}
+
+/// **A generation two fields of one row name is counted twice, and kept
+/// while either does**: committed in both, its references counted 2; one
+/// field cleared, 1, and served still; both cleared, its last use ended, it
+/// is collected at that commit and served no more. Memory's adapter counts
+/// two fields of a row too (`duplicate_fields_...` in pw-table-memory's
+/// `asset_rows.rs`), though it never clears one of them alone.
+#[test]
+fn a_generation_two_fields_of_a_row_name_is_kept_while_either_does() {
+    let Some(url) = common::database() else {
+        return;
+    };
+    let s = common::Scratch::new(&url, "asset_two_fields");
+    let store = Arc::new(ByteStore::default());
+    let db = two_fields(&s, &store);
+    let mut c = db.begin().assert_ok("begin");
+    let r = c
+        .propose_asset("PostImage", candidate('b'), Arc::from(b"abc".as_slice()))
+        .assert_ok("photo claim");
+    c.write(
+        "pw:tables/assets#insert",
+        &[json!({"id":1,"image":r,"thumb":r})],
+    )
+    .assert_ok("two uses");
+    let p = c.prepare().assert_ok("prepare");
+    assert_eq!(
+        p.asset_plans()
+            .assert_ok("plans")
+            .first()
+            .assert_ok("a generation plan exists")
+            .generation
+            .references
+            .get("PostImage"),
+        Some(&2)
+    );
+    p.publish_with(record("both")).assert_ok("commit");
+    assert_eq!(
+        s.texts("SELECT declaration || ':' || count::text FROM pw_asset_references"),
+        ["PostImage:2"]
+    );
+    let mut c = db.begin().assert_ok("begin");
+    c.write(
+        "pw:tables/assets#put",
+        &[json!({"id":1,"image":null,"thumb":r})],
+    )
+    .assert_ok("one use left");
+    c.commit().assert_ok("commit");
+    assert_eq!(
+        s.texts("SELECT declaration || ':' || count::text FROM pw_asset_references"),
+        ["PostImage:1"]
+    );
+    assert_eq!(
+        db.read_asset("PostImage", &r.key, "png")
+            .assert_ok("served while the thumb names it"),
+        Some((candidate('b'), b"abc".to_vec()))
+    );
+    assert_eq!(
+        store.collections.load(Ordering::SeqCst),
+        0,
+        "not collected while one names it"
+    );
+    let mut c = db.begin().assert_ok("begin");
+    c.write(
+        "pw:tables/assets#put",
+        &[json!({"id":1,"image":null,"thumb":null})],
+    )
+    .assert_ok("no use left");
+    c.commit().assert_ok("commit");
+    assert!(
+        s.texts("SELECT count::text FROM pw_asset_references")
+            .is_empty(),
+        "its last use ended"
+    );
+    assert!(
+        db.read_asset("PostImage", &r.key, "png")
+            .assert_ok("no committed row names it")
+            .is_none()
+    );
+    assert_eq!(
+        store.collections.load(Ordering::SeqCst),
+        1,
+        "collected at the commit that ended its last use"
+    );
+}
+
 #[test]
 fn declarations_share_live_bytes_only_after_independent_publication_and_keep_current_counts_separate()
  {

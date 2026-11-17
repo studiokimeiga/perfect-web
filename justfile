@@ -5328,6 +5328,10 @@ e14-wide-parameters:
        cargo test --locked -p pw-conformance --test wide_parameters 2>&1 | grep -E '^(test |test result)|panicked at'; \
        echo; echo "== mutation controls (scripts/wide_parameter_mutations.py)"; echo; \
        CARGO_INCREMENTAL=0 python3 scripts/wide_parameter_mutations.py; \
+       echo; echo "== a call's arguments past the limit, through the host (compiler/pw-conformance/tests/wide_arguments.rs)"; echo; \
+       cargo test --locked -p pw-conformance --test wide_arguments 2>&1 | grep -E '^(test |test result)|panicked at'; \
+       echo; echo "== their mutation controls (scripts/wide_argument_mutations.py)"; echo; \
+       CARGO_INCREMENTAL=0 python3 scripts/wide_argument_mutations.py; \
      } > docs/evidence/E14/wide-parameters.txt
     @grep -E "^test result|mutants killed|^---- |panicked at" docs/evidence/E14/wide-parameters.txt
 

@@ -38,6 +38,46 @@ fn check_bytes(descriptor: &Descriptor, bytes: &[u8]) -> io::Result<()> {
 fn missing_namespace() -> io::Error {
     invalid("storage namespace is not enrolled")
 }
+/// **A test's hands on what memory keeps** (ADR-0440's asset contract
+/// suite, `tests::asset_contract`): a generation's bytes lost or changed
+/// where they are kept, its reservation kept, as a deployment's disk can lose
+/// or change a file the database still names.
+#[cfg(test)]
+impl MemoryBlobs {
+    fn with_generation<T>(
+        &self,
+        namespace: &Namespace,
+        generation: &str,
+        f: impl FnOnce(&mut MemoryGeneration) -> T,
+    ) -> Option<T> {
+        let mut state = self.assets.lock().ok()?;
+        let found = state.spaces.get_mut(namespace)?.get_mut(generation)?;
+        Some(f(found))
+    }
+    /// Whether the generation's bytes are kept.
+    pub(crate) fn holds_generation(&self, namespace: &Namespace, generation: &str) -> bool {
+        self.with_generation(namespace, generation, |g| g.payload.is_some())
+            .unwrap_or(false)
+    }
+    /// The generation's bytes lost, its reservation kept: true where it had any.
+    pub(crate) fn lose_generation(&self, namespace: &Namespace, generation: &str) -> bool {
+        self.with_generation(namespace, generation, |g| g.payload.take().is_some())
+            .unwrap_or(false)
+    }
+    /// One byte of the generation's flipped, its length kept: true where it had any.
+    pub(crate) fn corrupt_generation(&self, namespace: &Namespace, generation: &str) -> bool {
+        self.with_generation(namespace, generation, |g| match g.payload.as_mut() {
+            Some(bytes) if !bytes.is_empty() => {
+                let at = bytes.len() / 2;
+                bytes[at] ^= 0xff;
+                true
+            }
+            _ => false,
+        })
+        .unwrap_or(false)
+    }
+}
+
 impl Storage for MemoryBlobs {
     fn enroll(&self, namespace: &Namespace, fresh: bool) -> io::Result<()> {
         let mut state = self

@@ -3651,7 +3651,22 @@ impl Server {
                     if let Some(claims) = &claims {
                         self.settle_failed_claims(claims, kept_nothing);
                     }
-                    if refused {
+                    // **Unless its interaction is recorded, for this very
+                    // request**: a commit refused because another attempt
+                    // recorded the interaction first (memory's materializer
+                    // refuses a second record of one key, in the transaction
+                    // that then rolls back) kept nothing, and that record is
+                    // the interaction's answer, given below, as PostgreSQL's
+                    // `Recorded` is reconciled (the asset contract suite's
+                    // review, 2026-11-17: memory answered it refused).
+                    let recorded = refused
+                        && record.is_some_and(|(key, sent)| {
+                            matches!(
+                                self.recalled_interaction(key),
+                                Ok(Some((first, _))) if first == sent
+                            )
+                        });
+                    if refused && !recorded {
                         data::note_conflicted(component_id, conflicted);
                         return Err(why);
                     }
@@ -19480,6 +19495,7 @@ public query Store(",
     mod protected_migration;
     mod upload_claims_pg;
     // ADR-0440, L5b: the server's claim bridge, through a compiled program.
+    mod asset_contract;
     mod upload_bridge;
     mod upload_generations;
 

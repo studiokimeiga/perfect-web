@@ -1,8 +1,8 @@
 ADR-0381 - a command's send is answered within its deadline, or it is no answer
 
 produced by: just e14-command-deadline
-commit: 83ad1ab1f92c0bc4377dfc72df28643828771bb5
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43929087203 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 44e55a2efe12de1ef6b7b0a63665f32e23adef2b
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/44051793903 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -11,11 +11,11 @@ playwright: Version 1.58.0
 
 test tests::a_dropped_command_connection_is_answered_by_nothing ... ok
 test tests::a_held_command_connection_is_answered_by_nothing_until_it_is_given_up ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1225 filtered out; finished in 4.13s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1236 filtered out; finished in 4.98s
 
 == the deadline in three engines (e2e/command-deadline.spec.mjs)
 
-  30 passed (1.4m)
+  30 passed (1.3m)
 
 == mutation controls (scripts/command_deadline_mutations.py)
 
@@ -24,19 +24,19 @@ baseline (cargo): 1 passed, 0 failed
   1) [chromium] › e2e/command-deadline.spec.mjs:126:1 › a send no answer comes for is given up at its deadline and sent again, its line shown meanwhile 
     Error: Expected: 1
     Received: 0
-    [cause]: Error: PW_ASSERTION:5add3205168f537c47c1d69022dd04ca84b8951fdb5b89ea38fd4d00c7c0bc15
+    [cause]: Error: PW_ASSERTION:52a01d888ac77ab58da84a34e47f7226b95c1cd27e10172d7b93bafb1ac079f1
   2) [chromium] › e2e/command-deadline.spec.mjs:168:3 › a command whose connection is held before it runs is sent again at its deadline, and is one line 
     Error: Expected: 2
     Received: 1
-    [cause]: Error: PW_ASSERTION:5add3205168f537c47c1d69022dd04ca84b8951fdb5b89ea38fd4d00c7c0bc15
+    [cause]: Error: PW_ASSERTION:52a01d888ac77ab58da84a34e47f7226b95c1cd27e10172d7b93bafb1ac079f1
   3) [chromium] › e2e/command-deadline.spec.mjs:168:3 › a command whose connection is held after it committed is sent again at its deadline, and is one line 
     Error: Expected: 2
     Received: 1
-    [cause]: Error: PW_ASSERTION:5add3205168f537c47c1d69022dd04ca84b8951fdb5b89ea38fd4d00c7c0bc15
+    [cause]: Error: PW_ASSERTION:52a01d888ac77ab58da84a34e47f7226b95c1cd27e10172d7b93bafb1ac079f1
   4) [chromium] › e2e/command-deadline.spec.mjs:168:3 › a command whose connection is held partway through its answer's body is sent again at its deadline, and is one line 
     Error: Expected: 2
     Received: 1
-    [cause]: Error: PW_ASSERTION:5add3205168f537c47c1d69022dd04ca84b8951fdb5b89ea38fd4d00c7c0bc15
+    [cause]: Error: PW_ASSERTION:52a01d888ac77ab58da84a34e47f7226b95c1cd27e10172d7b93bafb1ac079f1
   5) [chromium] › e2e/command-deadline.spec.mjs:192:1 › a press none of whose sends is answered fails at its last send's deadline, its line taken away 
     Error: expect(locator).toHaveCount(expected) failed
     Expected: 1
@@ -44,15 +44,15 @@ baseline (cargo): 1 passed, 0 failed
       - Expect "toHaveCount" with timeout 12000ms
       - waiting for locator('[data-pw-handler-error]')
            - unexpected value "0"
-    [cause]: Error: PW_ASSERTION:5add3205168f537c47c1d69022dd04ca84b8951fdb5b89ea38fd4d00c7c0bc15
+    [cause]: Error: PW_ASSERTION:52a01d888ac77ab58da84a34e47f7226b95c1cd27e10172d7b93bafb1ac079f1
   6) [chromium] › e2e/command-deadline.spec.mjs:235:1 › a press made after one never answered runs once that one is given up 
     Error: Expected: "order,none"
     Received: "order"
-    [cause]: Error: PW_ASSERTION:5add3205168f537c47c1d69022dd04ca84b8951fdb5b89ea38fd4d00c7c0bc15
+    [cause]: Error: PW_ASSERTION:52a01d888ac77ab58da84a34e47f7226b95c1cd27e10172d7b93bafb1ac079f1
   7) [chromium] › e2e/command-deadline.spec.mjs:296:1 › a press made after one that declares no retry runs, though the host held it for that one 
     Error: Expected: "none,first,none"
     Received: "none,first"
-    [cause]: Error: PW_ASSERTION:5add3205168f537c47c1d69022dd04ca84b8951fdb5b89ea38fd4d00c7c0bc15
+    [cause]: Error: PW_ASSERTION:52a01d888ac77ab58da84a34e47f7226b95c1cd27e10172d7b93bafb1ac079f1
   8) [chromium] › e2e/command-deadline.spec.mjs:271:1 › a send held for the one before it is no retry of its own 
     Error: expect(locator).toHaveCount(expected) failed
     Expected: 2
@@ -60,7 +60,7 @@ baseline (cargo): 1 passed, 0 failed
       - Expect "toHaveCount" with timeout 20000ms
       - waiting for locator('[data-pw-handler-error]')
            - unexpected value "0"
-    [cause]: Error: PW_ASSERTION:5add3205168f537c47c1d69022dd04ca84b8951fdb5b89ea38fd4d00c7c0bc15
+    [cause]: Error: PW_ASSERTION:52a01d888ac77ab58da84a34e47f7226b95c1cd27e10172d7b93bafb1ac079f1
   9) [chromium] › e2e/command-deadline.spec.mjs:328:1 › a command that declares no retry fails at its one send's deadline 
     Error: expect(locator).toHaveCount(expected) failed
     Expected: 1
@@ -68,42 +68,42 @@ baseline (cargo): 1 passed, 0 failed
       - Expect "toHaveCount" with timeout 6000ms
       - waiting for locator('[data-pw-handler-error]')
            - unexpected value "0"
-    [cause]: Error: PW_ASSERTION:5add3205168f537c47c1d69022dd04ca84b8951fdb5b89ea38fd4d00c7c0bc15
+    [cause]: Error: PW_ASSERTION:52a01d888ac77ab58da84a34e47f7226b95c1cd27e10172d7b93bafb1ac079f1
   9 failed
-  1 passed (1.0m)
-  run_suite: kept 10 of 10 entries of its output (1.1 MiB) in kept-traces/e14-command-deadline/20261116T184311Z-34290/run-1
+  1 passed (1.1m)
+  run_suite: kept 10 of 10 entries of its output (1.1 MiB) in kept-traces/e14-command-deadline/20261117T093841Z-52013/run-1
   run_suite: exit 1
 
 a send has no deadline [browser]: KILLED (9 of 10 tests fail)
   1) [chromium] › e2e/command-deadline.spec.mjs:126:1 › a send no answer comes for is given up at its deadline and sent again, its line shown meanwhile 
     Error: Expected: 2
     Received: 1
-    [cause]: Error: PW_ASSERTION:6224b15db22e070d8c6a6e97bc3b9fb274b6374cd429b0c5ab33de9844bcdd2a
+    [cause]: Error: PW_ASSERTION:7b285c515f99dbaa10f10566a16501db8d0f450a6e9baf492b2db27830959b31
   2) [chromium] › e2e/command-deadline.spec.mjs:168:3 › a command whose connection is held before it runs is sent again at its deadline, and is one line 
     Error: Expected: 2
     Received: 1
-    [cause]: Error: PW_ASSERTION:6224b15db22e070d8c6a6e97bc3b9fb274b6374cd429b0c5ab33de9844bcdd2a
+    [cause]: Error: PW_ASSERTION:7b285c515f99dbaa10f10566a16501db8d0f450a6e9baf492b2db27830959b31
   3) [chromium] › e2e/command-deadline.spec.mjs:168:3 › a command whose connection is held after it committed is sent again at its deadline, and is one line 
     Error: Expected: 2
     Received: 1
-    [cause]: Error: PW_ASSERTION:6224b15db22e070d8c6a6e97bc3b9fb274b6374cd429b0c5ab33de9844bcdd2a
+    [cause]: Error: PW_ASSERTION:7b285c515f99dbaa10f10566a16501db8d0f450a6e9baf492b2db27830959b31
   4) [chromium] › e2e/command-deadline.spec.mjs:168:3 › a command whose connection is held partway through its answer's body is sent again at its deadline, and is one line 
     Error: Expected: 2
     Received: 1
-    [cause]: Error: PW_ASSERTION:6224b15db22e070d8c6a6e97bc3b9fb274b6374cd429b0c5ab33de9844bcdd2a
+    [cause]: Error: PW_ASSERTION:7b285c515f99dbaa10f10566a16501db8d0f450a6e9baf492b2db27830959b31
   5) [chromium] › e2e/command-deadline.spec.mjs:192:1 › a press none of whose sends is answered fails at its last send's deadline, its line taken away 
     Error: expect(received).toBe(expected) // Object.is equality
     Expected: 3
     Received: 1
-    [cause]: Error: PW_ASSERTION:6224b15db22e070d8c6a6e97bc3b9fb274b6374cd429b0c5ab33de9844bcdd2a
+    [cause]: Error: PW_ASSERTION:7b285c515f99dbaa10f10566a16501db8d0f450a6e9baf492b2db27830959b31
   6) [chromium] › e2e/command-deadline.spec.mjs:235:1 › a press made after one never answered runs once that one is given up 
     Error: expect(received).toBe(expected) // Object.is equality
     Expected: 3
     Received: 1
-    [cause]: Error: PW_ASSERTION:6224b15db22e070d8c6a6e97bc3b9fb274b6374cd429b0c5ab33de9844bcdd2a
+    [cause]: Error: PW_ASSERTION:7b285c515f99dbaa10f10566a16501db8d0f450a6e9baf492b2db27830959b31
   6 failed
-  4 passed (35.8s)
-  run_suite: kept 7 of 7 entries of its output (980.6 KiB) in kept-traces/e14-command-deadline/20261116T184419Z-35174/run-1
+  4 passed (40.7s)
+  run_suite: kept 7 of 7 entries of its output (993.9 KiB) in kept-traces/e14-command-deadline/20261117T093958Z-52946/run-1
   run_suite: exit 1
 
 a send given up is an outcome, not no answer [browser]: KILLED (6 of 10 tests fail)
@@ -111,28 +111,28 @@ a send given up is an outcome, not no answer [browser]: KILLED (6 of 10 tests fa
     Error: expect(received).toBe(expected) // Object.is equality
     Expected: "order,none,none,none"
     Received: "order,order,order"
-    [cause]: Error: PW_ASSERTION:599a90e6d4922a983dadc9fe470c0dfe721321aaa6472c8ada971a5e18d09e42
+    [cause]: Error: PW_ASSERTION:ff25d5b71da84b430577e38f0d48a7faed8da9dd2203fbc38f96c11261456ffa
   2) [chromium] › e2e/command-deadline.spec.mjs:235:1 › a press made after one never answered runs once that one is given up 
     Error: Expected: "order,none"
     Received: "order,order,order"
-    [cause]: Error: PW_ASSERTION:599a90e6d4922a983dadc9fe470c0dfe721321aaa6472c8ada971a5e18d09e42
+    [cause]: Error: PW_ASSERTION:ff25d5b71da84b430577e38f0d48a7faed8da9dd2203fbc38f96c11261456ffa
   3) [chromium] › e2e/command-deadline.spec.mjs:296:1 › a press made after one that declares no retry runs, though the host held it for that one 
     Error: Expected: "none,first,none"
     Received: "none,first"
-    [cause]: Error: PW_ASSERTION:599a90e6d4922a983dadc9fe470c0dfe721321aaa6472c8ada971a5e18d09e42
+    [cause]: Error: PW_ASSERTION:ff25d5b71da84b430577e38f0d48a7faed8da9dd2203fbc38f96c11261456ffa
   3 failed
-  7 passed (36.9s)
-  run_suite: kept 4 of 4 entries of its output (451.2 KiB) in kept-traces/e14-command-deadline/20261116T184501Z-35985/run-1
+  7 passed (39.8s)
+  run_suite: kept 4 of 4 entries of its output (501.7 KiB) in kept-traces/e14-command-deadline/20261117T094047Z-53762/run-1
   run_suite: exit 1
 
 a send held for the one before it is sent again as a retry [browser]: KILLED (3 of 10 tests fail)
   1) [chromium] › e2e/command-deadline.spec.mjs:296:1 › a press made after one that declares no retry runs, though the host held it for that one 
     Error: Expected: "none,first,none"
     Received: "none,first"
-    [cause]: Error: PW_ASSERTION:2803ca0739ace76e5de703e28ea8db2f8b47364405edaf85052b39e0b0aa79fa
+    [cause]: Error: PW_ASSERTION:2d61578effb1d3a5b304fdc33703f9abb4b2ba18ce7dbed9ca8d89e1b42a9cf5
   1 failed
-  9 passed (32.3s)
-  run_suite: kept 2 of 2 entries of its output (34.1 KiB) in kept-traces/e14-command-deadline/20261116T184543Z-36595/run-1
+  9 passed (35.2s)
+  run_suite: kept 2 of 2 entries of its output (34.1 KiB) in kept-traces/e14-command-deadline/20261117T094135Z-54376/run-1
   run_suite: exit 1
 
 a send is held for the one before it only while that one is unanswered [browser]: KILLED (1 of 10 tests fail)
@@ -140,10 +140,10 @@ a send is held for the one before it only while that one is unanswered [browser]
     Error: expect(received).toBe(expected) // Object.is equality
     Expected: "order,none,none,none"
     Received: "order,none,none"
-    [cause]: Error: PW_ASSERTION:4e924e873fc873040168222140b3e8b9db023f92a231981901e0cf50f74ccfb3
+    [cause]: Error: PW_ASSERTION:59e2681a9147ed91508ea66d856a21dc8f905c680f5a9ed1e7789879c3bf1f2b
   1 failed
-  9 passed (26.7s)
-  run_suite: kept 2 of 2 entries of its output (209.1 KiB) in kept-traces/e14-command-deadline/20261116T184620Z-37080/run-1
+  9 passed (33.0s)
+  run_suite: kept 2 of 2 entries of its output (234.6 KiB) in kept-traces/e14-command-deadline/20261117T094218Z-54854/run-1
   run_suite: exit 1
 
 a send held for the one before it counts as a retry [browser]: KILLED (1 of 10 tests fail)
@@ -151,18 +151,18 @@ a send held for the one before it counts as a retry [browser]: KILLED (1 of 10 t
     Error: expect(received).toBe(expected) // Object.is equality
     Expected: "order,none,none,none"
     Received: "order,order,order,order"
-    [cause]: Error: PW_ASSERTION:aa976047319b2917fcac4dbb2ddaaad0306a37abc506e244e784102036169cbf
+    [cause]: Error: PW_ASSERTION:9ede0b0542a27f45dee17e093a0bc8995498227599194e05beeb882a9d1e7bae
   2) [chromium] › e2e/command-deadline.spec.mjs:235:1 › a press made after one never answered runs once that one is given up 
     Error: Expected: "order,none"
-    Received: "order,order,order,order,order,order,order,order,order,order,order,order,order,order,order,order"
-    [cause]: Error: PW_ASSERTION:aa976047319b2917fcac4dbb2ddaaad0306a37abc506e244e784102036169cbf
+    Received: "order,order,order,order,order,order,order,order,order,order,order,order,order,order,order,order,order"
+    [cause]: Error: PW_ASSERTION:9ede0b0542a27f45dee17e093a0bc8995498227599194e05beeb882a9d1e7bae
   3) [chromium] › e2e/command-deadline.spec.mjs:296:1 › a press made after one that declares no retry runs, though the host held it for that one 
     Error: Expected: "none,first,none"
     Received: "none,first,first,first,first,first,first,first,first,first,first,first,first,first"
-    [cause]: Error: PW_ASSERTION:aa976047319b2917fcac4dbb2ddaaad0306a37abc506e244e784102036169cbf
+    [cause]: Error: PW_ASSERTION:9ede0b0542a27f45dee17e093a0bc8995498227599194e05beeb882a9d1e7bae
   3 failed
-  7 passed (38.9s)
-  run_suite: kept 4 of 4 entries of its output (453.7 KiB) in kept-traces/e14-command-deadline/20261116T184652Z-37566/run-1
+  7 passed (44.5s)
+  run_suite: kept 4 of 4 entries of its output (479.1 KiB) in kept-traces/e14-command-deadline/20261117T094259Z-55335/run-1
   run_suite: exit 1
 
 a send held for the one before it is sent again naming that one [browser]: KILLED (3 of 10 tests fail)
@@ -170,10 +170,10 @@ a send held for the one before it is sent again naming that one [browser]: KILLE
     Error: expect(received).toBe(expected) // Object.is equality
     Expected: 3
     Received: 1
-    [cause]: Error: PW_ASSERTION:06f27165fd1f5175f0496fb8782864e61647c9390791751d685e68aa5c1a38f2
+    [cause]: Error: PW_ASSERTION:8d783492c1f44d99289fe796cf30ec2a546bb85e5ab5d14aeb611091d43404cd
   1 failed
-  9 passed (26.6s)
-  run_suite: kept 2 of 2 entries of its output (185.9 KiB) in kept-traces/e14-command-deadline/20261116T184736Z-38174/run-1
+  9 passed (28.1s)
+  run_suite: kept 2 of 2 entries of its output (201.0 KiB) in kept-traces/e14-command-deadline/20261117T094352Z-55941/run-1
   run_suite: exit 1
 
 a send held for the one before it does not wait its turn [browser]: KILLED (1 of 10 tests fail)
@@ -181,23 +181,23 @@ a send held for the one before it does not wait its turn [browser]: KILLED (1 of
     Error: expect(received).toBe(expected) // Object.is equality
     Expected: "1500 10000"
     Received: "10000 10000"
-    [cause]: Error: PW_ASSERTION:39e1a8be2535be3c1c3e08a8dacc74190a805668e7a382377c957a0ffa9f90e3
+    [cause]: Error: PW_ASSERTION:442b375c3e2174ea5d7c784a06c48d0bd2f94ee8c0ae0f49c18cb04dbaa8a14f
   2) [chromium] › e2e/command-deadline.spec.mjs:126:1 › a send no answer comes for is given up at its deadline and sent again, its line shown meanwhile 
     Error: Expected: 1
     Received: 0
-    [cause]: Error: PW_ASSERTION:39e1a8be2535be3c1c3e08a8dacc74190a805668e7a382377c957a0ffa9f90e3
+    [cause]: Error: PW_ASSERTION:442b375c3e2174ea5d7c784a06c48d0bd2f94ee8c0ae0f49c18cb04dbaa8a14f
   3) [chromium] › e2e/command-deadline.spec.mjs:168:3 › a command whose connection is held before it runs is sent again at its deadline, and is one line 
     Error: Expected: 2
     Received: 1
-    [cause]: Error: PW_ASSERTION:39e1a8be2535be3c1c3e08a8dacc74190a805668e7a382377c957a0ffa9f90e3
+    [cause]: Error: PW_ASSERTION:442b375c3e2174ea5d7c784a06c48d0bd2f94ee8c0ae0f49c18cb04dbaa8a14f
   4) [chromium] › e2e/command-deadline.spec.mjs:168:3 › a command whose connection is held after it committed is sent again at its deadline, and is one line 
     Error: Expected: 2
     Received: 1
-    [cause]: Error: PW_ASSERTION:39e1a8be2535be3c1c3e08a8dacc74190a805668e7a382377c957a0ffa9f90e3
+    [cause]: Error: PW_ASSERTION:442b375c3e2174ea5d7c784a06c48d0bd2f94ee8c0ae0f49c18cb04dbaa8a14f
   5) [chromium] › e2e/command-deadline.spec.mjs:168:3 › a command whose connection is held partway through its answer's body is sent again at its deadline, and is one line 
     Error: Expected: 2
     Received: 1
-    [cause]: Error: PW_ASSERTION:39e1a8be2535be3c1c3e08a8dacc74190a805668e7a382377c957a0ffa9f90e3
+    [cause]: Error: PW_ASSERTION:442b375c3e2174ea5d7c784a06c48d0bd2f94ee8c0ae0f49c18cb04dbaa8a14f
   6) [chromium] › e2e/command-deadline.spec.mjs:192:1 › a press none of whose sends is answered fails at its last send's deadline, its line taken away 
     Error: expect(locator).toHaveCount(expected) failed
     Expected: 1
@@ -205,15 +205,15 @@ a send held for the one before it does not wait its turn [browser]: KILLED (1 of
       - Expect "toHaveCount" with timeout 12000ms
       - waiting for locator('[data-pw-handler-error]')
            - unexpected value "0"
-    [cause]: Error: PW_ASSERTION:39e1a8be2535be3c1c3e08a8dacc74190a805668e7a382377c957a0ffa9f90e3
+    [cause]: Error: PW_ASSERTION:442b375c3e2174ea5d7c784a06c48d0bd2f94ee8c0ae0f49c18cb04dbaa8a14f
   7) [chromium] › e2e/command-deadline.spec.mjs:235:1 › a press made after one never answered runs once that one is given up 
     Error: Expected: "order,none"
     Received: "order"
-    [cause]: Error: PW_ASSERTION:39e1a8be2535be3c1c3e08a8dacc74190a805668e7a382377c957a0ffa9f90e3
+    [cause]: Error: PW_ASSERTION:442b375c3e2174ea5d7c784a06c48d0bd2f94ee8c0ae0f49c18cb04dbaa8a14f
   8) [chromium] › e2e/command-deadline.spec.mjs:296:1 › a press made after one that declares no retry runs, though the host held it for that one 
     Error: Expected: "none,first,none"
     Received: "none,first"
-    [cause]: Error: PW_ASSERTION:39e1a8be2535be3c1c3e08a8dacc74190a805668e7a382377c957a0ffa9f90e3
+    [cause]: Error: PW_ASSERTION:442b375c3e2174ea5d7c784a06c48d0bd2f94ee8c0ae0f49c18cb04dbaa8a14f
   9) [chromium] › e2e/command-deadline.spec.mjs:271:1 › a send held for the one before it is no retry of its own 
     Error: expect(locator).toHaveCount(expected) failed
     Expected: 2
@@ -221,7 +221,7 @@ a send held for the one before it does not wait its turn [browser]: KILLED (1 of
       - Expect "toHaveCount" with timeout 20000ms
       - waiting for locator('[data-pw-handler-error]')
            - unexpected value "0"
-    [cause]: Error: PW_ASSERTION:39e1a8be2535be3c1c3e08a8dacc74190a805668e7a382377c957a0ffa9f90e3
+    [cause]: Error: PW_ASSERTION:442b375c3e2174ea5d7c784a06c48d0bd2f94ee8c0ae0f49c18cb04dbaa8a14f
   10) [chromium] › e2e/command-deadline.spec.mjs:328:1 › a command that declares no retry fails at its one send's deadline 
     Error: expect(locator).toHaveCount(expected) failed
     Expected: 1
@@ -229,9 +229,9 @@ a send held for the one before it does not wait its turn [browser]: KILLED (1 of
       - Expect "toHaveCount" with timeout 6000ms
       - waiting for locator('[data-pw-handler-error]')
            - unexpected value "0"
-    [cause]: Error: PW_ASSERTION:39e1a8be2535be3c1c3e08a8dacc74190a805668e7a382377c957a0ffa9f90e3
+    [cause]: Error: PW_ASSERTION:442b375c3e2174ea5d7c784a06c48d0bd2f94ee8c0ae0f49c18cb04dbaa8a14f
   10 failed
-  run_suite: kept 11 of 11 entries of its output (1.2 MiB) in kept-traces/e14-command-deadline/20261116T184808Z-38707/run-1
+  run_suite: kept 11 of 11 entries of its output (1.2 MiB) in kept-traces/e14-command-deadline/20261117T094428Z-56482/run-1
   run_suite: exit 1
 
 `?deadline=` raises the deadline [browser]: KILLED (10 of 10 tests fail)
@@ -239,10 +239,10 @@ a send held for the one before it does not wait its turn [browser]: KILLED (1 of
     Error: expect(received).toBe(expected) // Object.is equality
     Expected: "10000 10000"
     Received: "500 500"
-    [cause]: Error: PW_ASSERTION:5ebea214df244fb12e972b5a3735e3564df60ad2e0db2a4873467651815f739a
+    [cause]: Error: PW_ASSERTION:c9772a15818212d65650fb7806e78a3be9ddf96bc005024534c507536d84bbc8
   1 failed
-  9 passed (27.8s)
-  run_suite: kept 2 of 2 entries of its output (87.5 KiB) in kept-traces/e14-command-deadline/20261116T184915Z-39615/run-1
+  9 passed (29.4s)
+  run_suite: kept 2 of 2 entries of its output (87.5 KiB) in kept-traces/e14-command-deadline/20261117T094545Z-57401/run-1
   run_suite: exit 1
 
 `?deadline=` takes what is no time above zero [browser]: KILLED (1 of 10 tests fail)
@@ -250,23 +250,23 @@ a send held for the one before it does not wait its turn [browser]: KILLED (1 of
     Error: expect(received).toBe(expected) // Object.is equality
     Expected: "1500 10000"
     Received: "10000 10000"
-    [cause]: Error: PW_ASSERTION:d11308edb0a32176861a1979f067382dd38229c244d1d4e7615c276d95328f89
+    [cause]: Error: PW_ASSERTION:445c514c3015fe35636664b56188ab5cb586318f4e1327f5dc7f76f46be9cc60
   2) [chromium] › e2e/command-deadline.spec.mjs:126:1 › a send no answer comes for is given up at its deadline and sent again, its line shown meanwhile 
     Error: Expected: 1
     Received: 0
-    [cause]: Error: PW_ASSERTION:d11308edb0a32176861a1979f067382dd38229c244d1d4e7615c276d95328f89
+    [cause]: Error: PW_ASSERTION:445c514c3015fe35636664b56188ab5cb586318f4e1327f5dc7f76f46be9cc60
   3) [chromium] › e2e/command-deadline.spec.mjs:168:3 › a command whose connection is held before it runs is sent again at its deadline, and is one line 
     Error: Expected: 2
     Received: 1
-    [cause]: Error: PW_ASSERTION:d11308edb0a32176861a1979f067382dd38229c244d1d4e7615c276d95328f89
+    [cause]: Error: PW_ASSERTION:445c514c3015fe35636664b56188ab5cb586318f4e1327f5dc7f76f46be9cc60
   4) [chromium] › e2e/command-deadline.spec.mjs:168:3 › a command whose connection is held after it committed is sent again at its deadline, and is one line 
     Error: Expected: 2
     Received: 1
-    [cause]: Error: PW_ASSERTION:d11308edb0a32176861a1979f067382dd38229c244d1d4e7615c276d95328f89
+    [cause]: Error: PW_ASSERTION:445c514c3015fe35636664b56188ab5cb586318f4e1327f5dc7f76f46be9cc60
   5) [chromium] › e2e/command-deadline.spec.mjs:168:3 › a command whose connection is held partway through its answer's body is sent again at its deadline, and is one line 
     Error: Expected: 2
     Received: 1
-    [cause]: Error: PW_ASSERTION:d11308edb0a32176861a1979f067382dd38229c244d1d4e7615c276d95328f89
+    [cause]: Error: PW_ASSERTION:445c514c3015fe35636664b56188ab5cb586318f4e1327f5dc7f76f46be9cc60
   6) [chromium] › e2e/command-deadline.spec.mjs:192:1 › a press none of whose sends is answered fails at its last send's deadline, its line taken away 
     Error: expect(locator).toHaveCount(expected) failed
     Expected: 1
@@ -274,15 +274,15 @@ a send held for the one before it does not wait its turn [browser]: KILLED (1 of
       - Expect "toHaveCount" with timeout 12000ms
       - waiting for locator('[data-pw-handler-error]')
            - unexpected value "0"
-    [cause]: Error: PW_ASSERTION:d11308edb0a32176861a1979f067382dd38229c244d1d4e7615c276d95328f89
+    [cause]: Error: PW_ASSERTION:445c514c3015fe35636664b56188ab5cb586318f4e1327f5dc7f76f46be9cc60
   7) [chromium] › e2e/command-deadline.spec.mjs:235:1 › a press made after one never answered runs once that one is given up 
     Error: Expected: "order,none"
     Received: "order"
-    [cause]: Error: PW_ASSERTION:d11308edb0a32176861a1979f067382dd38229c244d1d4e7615c276d95328f89
+    [cause]: Error: PW_ASSERTION:445c514c3015fe35636664b56188ab5cb586318f4e1327f5dc7f76f46be9cc60
   8) [chromium] › e2e/command-deadline.spec.mjs:296:1 › a press made after one that declares no retry runs, though the host held it for that one 
     Error: Expected: "none,first,none"
     Received: "none,first"
-    [cause]: Error: PW_ASSERTION:d11308edb0a32176861a1979f067382dd38229c244d1d4e7615c276d95328f89
+    [cause]: Error: PW_ASSERTION:445c514c3015fe35636664b56188ab5cb586318f4e1327f5dc7f76f46be9cc60
   9) [chromium] › e2e/command-deadline.spec.mjs:271:1 › a send held for the one before it is no retry of its own 
     Error: expect(locator).toHaveCount(expected) failed
     Expected: 2
@@ -290,7 +290,7 @@ a send held for the one before it does not wait its turn [browser]: KILLED (1 of
       - Expect "toHaveCount" with timeout 20000ms
       - waiting for locator('[data-pw-handler-error]')
            - unexpected value "0"
-    [cause]: Error: PW_ASSERTION:d11308edb0a32176861a1979f067382dd38229c244d1d4e7615c276d95328f89
+    [cause]: Error: PW_ASSERTION:445c514c3015fe35636664b56188ab5cb586318f4e1327f5dc7f76f46be9cc60
   10) [chromium] › e2e/command-deadline.spec.mjs:328:1 › a command that declares no retry fails at its one send's deadline 
     Error: expect(locator).toHaveCount(expected) failed
     Expected: 1
@@ -298,9 +298,9 @@ a send held for the one before it does not wait its turn [browser]: KILLED (1 of
       - Expect "toHaveCount" with timeout 6000ms
       - waiting for locator('[data-pw-handler-error]')
            - unexpected value "0"
-    [cause]: Error: PW_ASSERTION:d11308edb0a32176861a1979f067382dd38229c244d1d4e7615c276d95328f89
+    [cause]: Error: PW_ASSERTION:445c514c3015fe35636664b56188ab5cb586318f4e1327f5dc7f76f46be9cc60
   10 failed
-  run_suite: kept 11 of 11 entries of its output (1.2 MiB) in kept-traces/e14-command-deadline/20261116T184948Z-40140/run-1
+  run_suite: kept 11 of 11 entries of its output (1.2 MiB) in kept-traces/e14-command-deadline/20261117T094622Z-57918/run-1
   run_suite: exit 1
 
 `?deadline=` is not read [browser]: KILLED (10 of 10 tests fail)
@@ -308,10 +308,10 @@ a send held for the one before it does not wait its turn [browser]: KILLED (1 of
     Error: expect(received).toBe(expected) // Object.is equality
     Expected: "500 500"
     Received: "1 1"
-    [cause]: Error: PW_ASSERTION:c0ed111ac83d49a55a3c6137fa0c485f80c11ed0bd8e5e591040b71e467ef46e
+    [cause]: Error: PW_ASSERTION:419bc8035145955a88f3c886f6251c99d0e1b603f50dfc1376423389d96f50bd
   1 failed
-  9 passed (26.9s)
-  run_suite: kept 2 of 2 entries of its output (276.4 KiB) in kept-traces/e14-command-deadline/20261116T185055Z-41075/run-1
+  9 passed (31.1s)
+  run_suite: kept 2 of 2 entries of its output (359.7 KiB) in kept-traces/e14-command-deadline/20261117T094738Z-58834/run-1
   run_suite: exit 1
 
 `?deadline=` and `?load-deadline=` take a time below half a second [browser]: KILLED (1 of 10 tests fail)
@@ -319,23 +319,23 @@ a send held for the one before it does not wait its turn [browser]: KILLED (1 of
     Error: expect(received).toBe(expected) // Object.is equality
     Expected: "1500 10000"
     Received: "10000 10000"
-    [cause]: Error: PW_ASSERTION:7ca3d7b73e24df85c764db90e51115dd92c02e68aff5ee8f0b4d688e6ca8dbb7
+    [cause]: Error: PW_ASSERTION:18f5b5ef53954d173f78c54ed08d697718ff5a13a5b07db2d8c4dcd0bd762cbd
   2) [chromium] › e2e/command-deadline.spec.mjs:126:1 › a send no answer comes for is given up at its deadline and sent again, its line shown meanwhile 
     Error: Expected: 1
     Received: 0
-    [cause]: Error: PW_ASSERTION:7ca3d7b73e24df85c764db90e51115dd92c02e68aff5ee8f0b4d688e6ca8dbb7
+    [cause]: Error: PW_ASSERTION:18f5b5ef53954d173f78c54ed08d697718ff5a13a5b07db2d8c4dcd0bd762cbd
   3) [chromium] › e2e/command-deadline.spec.mjs:168:3 › a command whose connection is held before it runs is sent again at its deadline, and is one line 
     Error: Expected: 2
     Received: 1
-    [cause]: Error: PW_ASSERTION:7ca3d7b73e24df85c764db90e51115dd92c02e68aff5ee8f0b4d688e6ca8dbb7
+    [cause]: Error: PW_ASSERTION:18f5b5ef53954d173f78c54ed08d697718ff5a13a5b07db2d8c4dcd0bd762cbd
   4) [chromium] › e2e/command-deadline.spec.mjs:168:3 › a command whose connection is held after it committed is sent again at its deadline, and is one line 
     Error: Expected: 2
     Received: 1
-    [cause]: Error: PW_ASSERTION:7ca3d7b73e24df85c764db90e51115dd92c02e68aff5ee8f0b4d688e6ca8dbb7
+    [cause]: Error: PW_ASSERTION:18f5b5ef53954d173f78c54ed08d697718ff5a13a5b07db2d8c4dcd0bd762cbd
   5) [chromium] › e2e/command-deadline.spec.mjs:168:3 › a command whose connection is held partway through its answer's body is sent again at its deadline, and is one line 
     Error: Expected: 2
     Received: 1
-    [cause]: Error: PW_ASSERTION:7ca3d7b73e24df85c764db90e51115dd92c02e68aff5ee8f0b4d688e6ca8dbb7
+    [cause]: Error: PW_ASSERTION:18f5b5ef53954d173f78c54ed08d697718ff5a13a5b07db2d8c4dcd0bd762cbd
   6) [chromium] › e2e/command-deadline.spec.mjs:192:1 › a press none of whose sends is answered fails at its last send's deadline, its line taken away 
     Error: expect(locator).toHaveCount(expected) failed
     Expected: 1
@@ -343,15 +343,15 @@ a send held for the one before it does not wait its turn [browser]: KILLED (1 of
       - Expect "toHaveCount" with timeout 12000ms
       - waiting for locator('[data-pw-handler-error]')
            - unexpected value "0"
-    [cause]: Error: PW_ASSERTION:7ca3d7b73e24df85c764db90e51115dd92c02e68aff5ee8f0b4d688e6ca8dbb7
+    [cause]: Error: PW_ASSERTION:18f5b5ef53954d173f78c54ed08d697718ff5a13a5b07db2d8c4dcd0bd762cbd
   7) [chromium] › e2e/command-deadline.spec.mjs:235:1 › a press made after one never answered runs once that one is given up 
     Error: Expected: "order,none"
     Received: "order"
-    [cause]: Error: PW_ASSERTION:7ca3d7b73e24df85c764db90e51115dd92c02e68aff5ee8f0b4d688e6ca8dbb7
+    [cause]: Error: PW_ASSERTION:18f5b5ef53954d173f78c54ed08d697718ff5a13a5b07db2d8c4dcd0bd762cbd
   8) [chromium] › e2e/command-deadline.spec.mjs:296:1 › a press made after one that declares no retry runs, though the host held it for that one 
     Error: Expected: "none,first,none"
     Received: "none,first"
-    [cause]: Error: PW_ASSERTION:7ca3d7b73e24df85c764db90e51115dd92c02e68aff5ee8f0b4d688e6ca8dbb7
+    [cause]: Error: PW_ASSERTION:18f5b5ef53954d173f78c54ed08d697718ff5a13a5b07db2d8c4dcd0bd762cbd
   9) [chromium] › e2e/command-deadline.spec.mjs:271:1 › a send held for the one before it is no retry of its own 
     Error: expect(locator).toHaveCount(expected) failed
     Expected: 2
@@ -359,7 +359,7 @@ a send held for the one before it does not wait its turn [browser]: KILLED (1 of
       - Expect "toHaveCount" with timeout 20000ms
       - waiting for locator('[data-pw-handler-error]')
            - unexpected value "0"
-    [cause]: Error: PW_ASSERTION:7ca3d7b73e24df85c764db90e51115dd92c02e68aff5ee8f0b4d688e6ca8dbb7
+    [cause]: Error: PW_ASSERTION:18f5b5ef53954d173f78c54ed08d697718ff5a13a5b07db2d8c4dcd0bd762cbd
   10) [chromium] › e2e/command-deadline.spec.mjs:328:1 › a command that declares no retry fails at its one send's deadline 
     Error: expect(locator).toHaveCount(expected) failed
     Expected: 1
@@ -367,27 +367,27 @@ a send held for the one before it does not wait its turn [browser]: KILLED (1 of
       - Expect "toHaveCount" with timeout 6000ms
       - waiting for locator('[data-pw-handler-error]')
            - unexpected value "0"
-    [cause]: Error: PW_ASSERTION:7ca3d7b73e24df85c764db90e51115dd92c02e68aff5ee8f0b4d688e6ca8dbb7
+    [cause]: Error: PW_ASSERTION:18f5b5ef53954d173f78c54ed08d697718ff5a13a5b07db2d8c4dcd0bd762cbd
   10 failed
-  run_suite: kept 11 of 11 entries of its output (1.2 MiB) in kept-traces/e14-command-deadline/20261116T185127Z-41608/run-1
+  run_suite: kept 11 of 11 entries of its output (1.2 MiB) in kept-traces/e14-command-deadline/20261117T094817Z-59374/run-1
   run_suite: exit 1
 
 a send's deadline is read from `?load-deadline=` [browser]: KILLED (10 of 10 tests fail)
   1) [chromium] › e2e/command-deadline.spec.mjs:168:3 › a command whose connection is held before it runs is sent again at its deadline, and is one line 
     Error: Expected: 2
     Received: 1
-    [cause]: Error: PW_ASSERTION:3004de7c6ff0577ea941eea1cda6bc0a798f7b957259c04a652d50aad9525720
+    [cause]: Error: PW_ASSERTION:9bd9dcc0e555380d2f322f9e461983cd277aeb76db7906484d82de7b728ef634
   2) [chromium] › e2e/command-deadline.spec.mjs:168:3 › a command whose connection is held after it committed is sent again at its deadline, and is one line 
     Error: Expected: 2
     Received: 1
-    [cause]: Error: PW_ASSERTION:3004de7c6ff0577ea941eea1cda6bc0a798f7b957259c04a652d50aad9525720
+    [cause]: Error: PW_ASSERTION:9bd9dcc0e555380d2f322f9e461983cd277aeb76db7906484d82de7b728ef634
   3) [chromium] › e2e/command-deadline.spec.mjs:168:3 › a command whose connection is held partway through its answer's body is sent again at its deadline, and is one line 
     Error: Expected: 2
     Received: 1
-    [cause]: Error: PW_ASSERTION:3004de7c6ff0577ea941eea1cda6bc0a798f7b957259c04a652d50aad9525720
+    [cause]: Error: PW_ASSERTION:9bd9dcc0e555380d2f322f9e461983cd277aeb76db7906484d82de7b728ef634
   3 failed
-  7 passed (35.4s)
-  run_suite: kept 4 of 4 entries of its output (397.1 KiB) in kept-traces/e14-command-deadline/20261116T185236Z-42794/run-1
+  7 passed (39.5s)
+  run_suite: kept 4 of 4 entries of its output (397.2 KiB) in kept-traces/e14-command-deadline/20261117T094937Z-60557/run-1
   run_suite: exit 1
 
 `/bench/hold` arms nothing [browser]: KILLED (3 of 10 tests fail)
@@ -399,7 +399,7 @@ failures:
 
 ---- tests::a_held_command_connection_is_answered_by_nothing_until_it_is_given_up stdout ----
 
-thread 'tests::a_held_command_connection_is_answered_by_nothing_until_it_is_given_up' (43644) panicked at spikes/own-renderer/server/src/main.rs:17959:9:
+thread 'tests::a_held_command_connection_is_answered_by_nothing_until_it_is_given_up' (61401) panicked at spikes/own-renderer/server/src/main.rs:17974:9:
 assertion `left == right` failed: no answer
   left: "HTTP/1.1 202 \r\ncontent-type: application/json; charset=utf-8\r\ncontent-length: 109\r\nx-content-type-options: nosniff\r\ncache-control: private, no-store\r\nconnection: keep-alive\r\nkeep-alive: timeout=75\r\n\r\n{\"basis\":[{\"entry\":\"28e1ce0a44fe600de647174348ceb48f\",\"version\":1}],\"committed\":true,\"result\":{\"$case\":\"ok\"}}"
  right: ""
@@ -409,7 +409,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::a_held_command_connection_is_answered_by_nothing_until_it_is_given_up
 
-test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1226 filtered out; finished in 1.06s
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1237 filtered out; finished in 1.92s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -422,7 +422,7 @@ failures:
 
 ---- tests::a_held_command_connection_is_answered_by_nothing_until_it_is_given_up stdout ----
 
-thread 'tests::a_held_command_connection_is_answered_by_nothing_until_it_is_given_up' (43932) panicked at spikes/own-renderer/server/src/main.rs:17971:9:
+thread 'tests::a_held_command_connection_is_answered_by_nothing_until_it_is_given_up' (61689) panicked at spikes/own-renderer/server/src/main.rs:17986:9:
 assertion `left == right` failed: no answer
   left: "HTTP/1.1 202 \r\ncontent-type: application/json; charset=utf-8\r\ncontent-length: 109\r\nx-content-type-options: nosniff\r\ncache-control: private, no-store\r\nconnection: keep-alive\r\nkeep-alive: timeout=75\r\n\r\n{\"basis\":[{\"entry\":\"28e1ce0a44fe600de647174348ceb48f\",\"version\":2}],\"committed\":true,\"result\":{\"$case\":\"ok\"}}"
  right: ""
@@ -432,7 +432,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::a_held_command_connection_is_answered_by_nothing_until_it_is_given_up
 
-test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1226 filtered out; finished in 2.13s
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1237 filtered out; finished in 2.91s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -445,7 +445,7 @@ failures:
 
 ---- tests::a_held_command_connection_is_answered_by_nothing_until_it_is_given_up stdout ----
 
-thread 'tests::a_held_command_connection_is_answered_by_nothing_until_it_is_given_up' (44221) panicked at spikes/own-renderer/server/src/main.rs:18003:9:
+thread 'tests::a_held_command_connection_is_answered_by_nothing_until_it_is_given_up' (61978) panicked at spikes/own-renderer/server/src/main.rs:18018:9:
 109 of 109 bytes: {"basis":[{"entry":"28e1ce0a44fe600de647174348ceb48f","version":3}],"committed":true,"result":{"$case":"ok"}}
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -453,7 +453,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::a_held_command_connection_is_answered_by_nothing_until_it_is_given_up
 
-test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1226 filtered out; finished in 4.13s
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1237 filtered out; finished in 4.93s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -466,7 +466,7 @@ failures:
 
 ---- tests::a_held_command_connection_is_answered_by_nothing_until_it_is_given_up stdout ----
 
-thread 'tests::a_held_command_connection_is_answered_by_nothing_until_it_is_given_up' (44511) panicked at spikes/own-renderer/server/src/main.rs:17972:9:
+thread 'tests::a_held_command_connection_is_answered_by_nothing_until_it_is_given_up' (62268) panicked at spikes/own-renderer/server/src/main.rs:17987:9:
 
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -474,7 +474,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::a_held_command_connection_is_answered_by_nothing_until_it_is_given_up
 
-test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1226 filtered out; finished in 32.13s
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1237 filtered out; finished in 32.95s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -487,7 +487,7 @@ failures:
 
 ---- tests::a_held_command_connection_is_answered_by_nothing_until_it_is_given_up stdout ----
 
-thread 'tests::a_held_command_connection_is_answered_by_nothing_until_it_is_given_up' (44799) panicked at spikes/own-renderer/server/src/main.rs:17969:9:
+thread 'tests::a_held_command_connection_is_answered_by_nothing_until_it_is_given_up' (62562) panicked at spikes/own-renderer/server/src/main.rs:17984:9:
 the hold ends with its connection
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -495,7 +495,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::a_held_command_connection_is_answered_by_nothing_until_it_is_given_up
 
-test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1226 filtered out; finished in 31.05s
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1237 filtered out; finished in 31.88s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
