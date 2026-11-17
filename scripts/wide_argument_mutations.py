@@ -15,14 +15,16 @@ anywhere but an assertion is no kill):
 3. an argument held flat stored at its own offset, not the tuple's start;
 4. an argument held in memory copied to its own offset;
 5. an argument held in memory copied whole;
-6. the tuple allocated at its own alignment.
+6. the tuple allocated at its own alignment;
+7. the call passed the tuple's own pointer.
 
 Not here, each for its reason: the call taking the one pointer at all (a
 core module that passes flat values to an import that takes one pointer
 does not validate, so no test runs it); the tuple's size (nothing is
 allocated between the stores and the call but the answer's area, which the
 host writes after it has read the arguments, so a tuple allocated short is
-read whole all the same, until the region's end, which a test cannot place).
+read whole all the same, until the region's end, which only a test that
+sized the region to the allocation, a fragile one, could place).
 
 Run whole from the repository root (`just e14-wide-parameters`). The source
 is restored in finally; the unmutated baseline must pass before any mutant
@@ -62,6 +64,9 @@ MUTANTS = [
     ("a call's arguments' tuple is allocated unaligned", WASM,
      "                        I::I32Const(align as i32),\n                        I::I32Const(end.next_multiple_of(align) as i32),\n",
      "                        I::I32Const(1),\n                        I::I32Const(end.next_multiple_of(align) as i32),\n"),
+    ("a call passes another pointer than its tuple's", WASM,
+     "                    self.ops.push(I::LocalGet(tuple));\n",
+     "                    self.ops.push(I::I32Const(8));\n"),
 ]
 
 TESTS = [

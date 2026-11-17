@@ -29,7 +29,8 @@ in order:
    every test file its filter runs.
 3. ~~**One contract suite for assets** over memory and PostgreSQL alike
    (L5a's review, a low finding)~~: done (2026-11-17, `wip/asset-parity`,
-   ADR-0440, amended): `tests::asset_contract`, five cases on each layer,
+   ADR-0440, amended): `tests::asset_contract`, five cases on each layer (six
+   since item 4),
    and four mutants. It found memory answering a commit refused before its
    publication unknown (now refused, as PostgreSQL), and that no compiled
    command can write a row wider than 16 flat values (item 4).

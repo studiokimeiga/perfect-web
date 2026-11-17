@@ -94,27 +94,34 @@ would be 17 too, and L7 ports it.
 
 **Acceptance.**
 
-- `compiler/pw-conformance/tests/wide_arguments.rs`, 4 tests, through the
-  host, which records what each operation received: seventeen `Int`s each in
-  its place, held in memory (the export's own arrived past the limit) and
-  computed in the body (each held flat), beside sixteen passed flat; a
-  `Bool`, a record of 17 built in
-  the body and a `String`, the record at the next multiple of its
-  alignment; the same call with each argument held in memory (the export's
-  own parameters arrived past the limit), after a name of odd length that
-  leaves the region's top unaligned; and an operation past the limit both
-  ways, its `String` answered through the return pointer.
-- `scripts/wide_argument_mutations.py`, 6 mutants, each killed at a test's
-  assertion (the strict producer): the arguments' alignment, their offsets'
-  accumulation, a flat argument's and a held one's offset, a held one copied
-  whole, and the tuple's alignment. Recorded by `just e14-wide-parameters`,
-  beside the export's four.
+- `compiler/pw-conformance/tests/wide_arguments.rs`, 6 tests, through the
+  host, which records what each operation received: seventeen `Int`s each
+  in its place, held in memory (the export's own arrived past the limit)
+  and computed in the body (each held flat), beside sixteen passed flat; a
+  `Bool`, a record of 17 built in the body and a `String`, the record at
+  the next multiple of its alignment; the same call with each argument held
+  in memory, after a name of odd length that leaves the region's top
+  unaligned; an operation past the limit both ways, its `String` answered
+  through the return pointer; and, against the same values passed to an
+  operation within the limit, which the host must receive alike, a sum
+  type's every case held flat (its joined slots: an `Int`'s, a `Float`'s,
+  `1.5` and `-0.0`, a `String`'s, and none), an option and a list, and a
+  type that contains itself, passed as its nodes and converted before it is
+  stored (the independent review's suggestion).
+- `scripts/wide_argument_mutations.py`, 7 mutants, each killed at a test's
+  assertion in a local run (the strict producer): the arguments' alignment,
+  their offsets' accumulation, a flat argument's and a held one's offset, a
+  held one copied whole, the tuple's alignment, and the call passing the
+  tuple's own pointer. `just e14-wide-parameters` records them, beside the
+  export's four, in the pull request's verify.
 - ADR-0440's asset contract suite keeps two images in its row (19 flat
   values), and holds a generation two fields name, kept while either does,
-  on memory and on PostgreSQL alike, through the compiled command.
+  in each order of clearing, the row kept, on memory and on PostgreSQL
+  alike, through the compiled command.
 
 **Not mutated, each for its reason**: the call taking the one pointer at
 all (a core module that passes flat values to an import that takes one
 pointer does not validate, so no test runs it), and the tuple's size
 (nothing is allocated between the stores and the call but the answer's
-area, which the host writes after it has read the arguments).
+area, which the host writes after it has read the arguments; only a test
+that sized the region to the allocation, a fragile one, could see it).

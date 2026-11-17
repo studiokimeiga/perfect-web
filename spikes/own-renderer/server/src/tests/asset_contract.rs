@@ -76,7 +76,7 @@ opaque type InteractionId = String
 command Keep(id: Int, alt: String) -> Result<Int,PostImage.Error>
     requires Anyone
     idempotent_by InteractionId
-    invalidates Attached(current_session()), Image(id), Thumb(id)
+    invalidates Attached(current_session()), Image(id), Thumb(id), Alt(id)
     transaction serializable
 {
     let claim = PostImage.claim(current_session())?
@@ -87,7 +87,7 @@ command Keep(id: Int, alt: String) -> Result<Int,PostImage.Error>
 command KeepBoth(id: Int, alt: String) -> Result<Int,PostImage.Error>
     requires Anyone
     idempotent_by InteractionId
-    invalidates Attached(current_session()), Image(id), Thumb(id)
+    invalidates Attached(current_session()), Image(id), Thumb(id), Alt(id)
     transaction serializable
 {
     let claim = PostImage.claim(current_session())?
@@ -98,7 +98,7 @@ command KeepBoth(id: Int, alt: String) -> Result<Int,PostImage.Error>
 command Unimage(id: Int) -> Int
     requires Anyone
     idempotent_by InteractionId
-    invalidates Image(id), Thumb(id)
+    invalidates Image(id), Thumb(id), Alt(id)
     transaction serializable
 {
     let thumb = match Assets.get(id) { Some(item) => item.thumb, None => None }
@@ -109,7 +109,7 @@ command Unimage(id: Int) -> Int
 command Unthumb(id: Int) -> Int
     requires Anyone
     idempotent_by InteractionId
-    invalidates Image(id), Thumb(id)
+    invalidates Image(id), Thumb(id), Alt(id)
     transaction serializable
 {
     let image = match Assets.get(id) { Some(item) => item.image, None => None }
@@ -120,7 +120,7 @@ command Unthumb(id: Int) -> Int
 command Remove(id: Int) -> ()
     requires Anyone
     idempotent_by InteractionId
-    invalidates Image(id), Thumb(id)
+    invalidates Image(id), Thumb(id), Alt(id)
     transaction serializable
 {
     Assets.delete(id)
@@ -157,6 +157,17 @@ public query Thumb(id: Int) -> Option<PostImage.Ref>
     timeout 2.seconds
 {
     match Assets.get(id) { Some(item) => item.thumb, None => None }
+}
+public query Alt(id: Int) -> Option<String>
+    freshness 0.seconds
+    consistency snapshot
+    cache shared
+    key id
+    concurrency one_per_key
+    on_key_change cancel
+    timeout 2.seconds
+{
+    match Assets.get(id) { Some(item) => Some(item.alt), None => None }
 }
 "#;
 
@@ -551,43 +562,65 @@ fn changed_bytes_are_answered_503_before_any_304(l: &Layered) {
 }
 
 /// **6. A generation two fields of a row name is kept while either does**:
-/// one image kept in both, the image cleared, it is served and kept, the
-/// thumb naming it still; the thumb cleared too, its last use ended, it is
-/// collected at that commit, and answered `404`, the row kept.
+/// one image kept in both, one field cleared, it is served and kept, the
+/// other naming it still; the other cleared too, its last use ended, it is
+/// collected at that commit and answered `404`, the row kept. In each order:
+/// the image first for row 1, the thumb first for row 2.
 fn a_generation_two_fields_name_is_kept_while_either_does(l: &Layered) {
-    assert!(l.keep("KeepBoth", 1, "keep-both").committed);
-    let (key, kind) = l.named("Image", 1).asserted_some("the image names it");
-    assert_eq!(
-        l.named("Thumb", 1),
-        Some((key.clone(), kind.clone())),
-        "the thumb names the same"
-    );
-    let generation = l.generation(&key, &kind);
-    let path = format!("/images/{key}.{kind}");
-    assert!(
-        l.command("Unimage", &[serde_json::json!(1)], "unimage-1")
-            .committed
-    );
-    assert_eq!(l.named("Image", 1), None, "the image cleared");
-    assert_eq!(
-        status(&get(&l.server, &path).0),
-        "200",
-        "the thumb names it still"
-    );
-    assert!(
-        l.kept(&key, generation.as_deref()),
-        "kept while the thumb names it"
-    );
-    assert!(
-        l.command("Unthumb", &[serde_json::json!(1)], "unthumb-1")
-            .committed
-    );
-    assert_eq!(l.named("Thumb", 1), None, "the thumb cleared");
-    assert_eq!(status(&get(&l.server, &path).0), "404", "named by no field");
-    assert!(
-        !l.kept(&key, generation.as_deref()),
-        "collected at the commit that cleared its last field"
-    );
+    for (id, first, second) in [(1, "Unimage", "Unthumb"), (2, "Unthumb", "Unimage")] {
+        assert!(l.keep("KeepBoth", id, &format!("keep-both-{id}")).committed);
+        let (key, kind) = l.named("Image", id).asserted_some("the image names it");
+        assert_eq!(
+            l.named("Thumb", id),
+            Some((key.clone(), kind.clone())),
+            "the thumb names the same"
+        );
+        let generation = l.generation(&key, &kind).asserted_some("its generation");
+        let path = format!("/images/{key}.{kind}");
+        let cleared = |command: &str| {
+            let interaction = format!("{command}-{id}");
+            assert!(
+                l.command(command, &[serde_json::json!(id)], &interaction)
+                    .committed
+            );
+        };
+        cleared(first);
+        let query = |command: &str| {
+            if command == "Unimage" {
+                "Image"
+            } else {
+                "Thumb"
+            }
+        };
+        assert_eq!(l.named(query(first), id), None, "{first} cleared its field");
+        assert_eq!(
+            status(&get(&l.server, &path).0),
+            "200",
+            "the other field names it still"
+        );
+        assert!(
+            l.kept(&key, Some(&generation)),
+            "kept while the other field names it"
+        );
+        cleared(second);
+        assert_eq!(
+            l.named(query(second), id),
+            None,
+            "{second} cleared its field"
+        );
+        assert_eq!(status(&get(&l.server, &path).0), "404", "named by no field");
+        assert!(
+            !l.kept(&key, Some(&generation)),
+            "collected at the commit that cleared its last field"
+        );
+        assert_eq!(
+            l.server
+                .query("photos.app.Alt", "anyone", &[Val::S64(id)])
+                .asserted("the Alt query"),
+            Val::Option(Some(Box::new(Val::String("a picture".into())))),
+            "the row kept"
+        );
+    }
 }
 
 /// Each case, on each layer: `$case_in_memory` and `$case_on_postgresql`,

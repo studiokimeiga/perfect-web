@@ -107,8 +107,11 @@ fn wide(v: &[i64]) -> Val {
     )
 }
 
+/// Each operation the host was called with, and its arguments, in order.
+type Received = Vec<(String, Vec<Val>)>;
+
 /// What `export` answered and what the host received, by `args`.
-fn called(export: &str, args: &[Val]) -> (Result<Vec<Val>, String>, Vec<(String, Vec<Val>)>) {
+fn called(export: &str, args: &[Val]) -> (Result<Vec<Val>, String>, Received) {
     let calls: Calls = Arc::new(Mutex::new(Vec::new()));
     let out = compiled(export).call(&host(&calls), args);
     let received = calls.lock().expect("calls").clone();
@@ -201,4 +204,141 @@ fn a_call_past_the_limit_takes_its_answer_through_a_pointer_too() {
         received,
         [("wa:data/wide#named".to_string(), vec![wide(&v), name])]
     );
+}
+
+// --- Each kind of value, past the limit and within it ----------------------
+//
+// The same values passed to an operation past the limit and to one within
+// it, which the host must receive alike: a sum type's case with its payload
+// (its joined slots, an `Int`'s, a `Float`'s and a `String`'s), an option and
+// a list, each held flat; and a type that contains itself, passed as its
+// nodes (ADR-0194), converted before it is stored.
+
+const KINDS: &str = r#"module wk
+
+type Mark =
+    | Plain
+    | Scored(Int)
+    | Weighed(Float)
+    | Named(String)
+
+type Comment = Comment { text: String, likes: Int, replies: List<Comment> }
+
+fn mixed_wide(m: Mark, o: Option<String>, l: List<Int>, a: Int, b: Int, c: Int, d: Int, e: Int, f: Int, g: Int, h: Int, i: Int, j: Int, k: Int, n: Int, q: Int) -> Int !{ database.read<Mark> }
+    host "wk:data/kinds#mixed-wide"
+
+fn mixed_narrow(m: Mark, o: Option<String>, l: List<Int>) -> Int !{ database.read<Mark> }
+    host "wk:data/kinds#mixed-narrow"
+
+fn thread_wide(c: Comment, a: Int, b: Int, d: Int, e: Int, f: Int, g: Int, h: Int, i: Int, j: Int, k: Int, n: Int, p: Int, q: Int, r: Int, s: Int) -> Int !{ database.read<Comment> }
+    host "wk:data/kinds#thread-wide"
+
+fn thread_narrow(c: Comment) -> Int !{ database.read<Comment> }
+    host "wk:data/kinds#thread-narrow"
+
+public query Mixed(m: Mark, o: Option<String>, l: List<Int>) -> Int {
+    mixed_wide(m, o, l, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13) + mixed_narrow(m, o, l)
+}
+
+public query Thread(c: Comment) -> Int {
+    thread_wide(c, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15) + thread_narrow(c)
+}
+"#;
+
+fn kinds(id: &str) -> Runnable {
+    Runnable::new(compile(&units(&[("wk.pw", KINDS)]), id))
+}
+
+/// What each of the two operations `wide` and `narrow` received when
+/// `export` was called with `args`, the call's answer checked.
+fn both(export: &str, args: &[Val], wide: &str, narrow: &str) -> (Vec<Val>, Vec<Val>) {
+    let calls: Calls = Arc::new(Mutex::new(Vec::new()));
+    let mut ops: BTreeMap<String, HostFn> = BTreeMap::new();
+    for op in [wide, narrow] {
+        let (name, f) = operation(&calls, &format!("wk:data/kinds#{op}"), |args| {
+            Val::S64(args.len() as i64)
+        });
+        ops.insert(name, f);
+    }
+    let out = kinds(export).call_untangled(&ops, args);
+    let received = calls.lock().expect("calls").clone();
+    assert_eq!(received.len(), 2, "both operations called: {out:?}");
+    let take = |op: &str| {
+        received
+            .iter()
+            .find(|(name, _)| name == &format!("wk:data/kinds#{op}"))
+            .map(|(_, args)| args.clone())
+            .unwrap_or_default()
+    };
+    (take(wide), take(narrow))
+}
+
+fn case(name: &str, payload: Option<Val>) -> Val {
+    Val::Variant(name.into(), payload.map(Box::new))
+}
+
+#[test]
+fn a_case_an_option_and_a_list_held_flat_reach_the_host_as_within_the_limit() {
+    let marks = [
+        case("plain", None),
+        case("scored", Some(Val::S64(-5))),
+        case("weighed", Some(Val::Float64(1.5))),
+        case("weighed", Some(Val::Float64(-0.0))),
+        case("named", Some(Val::String("odd".into()))),
+    ];
+    let options = [
+        Val::Option(None),
+        Val::Option(Some(Box::new(Val::String("x".into())))),
+    ];
+    let lists = [Val::List(Vec::new()), Val::List(ints(&[1, 2, 3]))];
+    for m in &marks {
+        for o in &options {
+            for l in &lists {
+                let (wide, narrow) = both(
+                    "wk.Mixed",
+                    &[m.clone(), o.clone(), l.clone()],
+                    "mixed-wide",
+                    "mixed-narrow",
+                );
+                assert_eq!(
+                    narrow,
+                    vec![m.clone(), o.clone(), l.clone()],
+                    "within the limit"
+                );
+                let mut expected = narrow.clone();
+                expected.extend(ints(&(1..=13).collect::<Vec<_>>()));
+                assert_eq!(wide, expected, "past the limit, as within it");
+            }
+        }
+    }
+}
+
+fn comment(text: &str, likes: i64, replies: Vec<Val>) -> Val {
+    Val::Record(vec![
+        ("text".into(), Val::String(text.into())),
+        ("likes".into(), Val::S64(likes)),
+        ("replies".into(), Val::List(replies)),
+    ])
+}
+
+#[test]
+fn a_type_that_contains_itself_is_passed_past_the_limit_as_within_it() {
+    let thread = comment(
+        "root",
+        3,
+        vec![
+            comment("a", 1, vec![comment("a.1", 0, Vec::new())]),
+            comment("b", 2, Vec::new()),
+        ],
+    );
+    let (wide, narrow) = both(
+        "wk.Thread",
+        std::slice::from_ref(&thread),
+        "thread-wide",
+        "thread-narrow",
+    );
+    assert_eq!(narrow, vec![thread.clone()], "within the limit");
+    let mut expected = vec![thread];
+    expected.extend(ints(&(1..=15).collect::<Vec<_>>()));
+    assert_eq!(wide, expected, "past the limit, as within it");
 }

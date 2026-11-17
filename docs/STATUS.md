@@ -6,15 +6,17 @@
 after the asset contract suite): a compiled command passes a host's
 operation arguments wider than the Canonical ABI's 16 flat values in its
 own memory, a tuple of them at one pointer, so a table's `put` of a wide
-row compiles (ADR-0266, amended). Four conformance tests hold it through
-the host, and six mutants (`e14-wide-parameters`). The asset contract
-suite's row keeps two images (19 flat values), and a generation the two
-name is kept while either does, on memory and on PostgreSQL alike.
+row compiles (ADR-0266, amended). Six conformance tests hold it through
+the host, and seven mutants, killed locally (`e14-wide-parameters`
+records them in the pull request's verify). The asset contract suite's
+row keeps two images (19 flat values), and its sixth case holds a
+generation the two name, kept while either does, on memory and on
+PostgreSQL alike.
 
 **One contract suite for assets, 2026-11-17** (`wip/asset-parity`, after
-L5 and its follow-up): `tests::asset_contract` runs five cases through the
-server on memory and on PostgreSQL alike. They cover the same bytes kept
-again as a new generation, a removed row's collection at its commit, a
+L5 and its follow-up): `tests::asset_contract` runs five cases (six since
+the wide arguments, above) through the server on memory and on PostgreSQL
+alike. They cover the same bytes kept again as a new generation, a removed row's collection at its commit, a
 failed collection made by housekeeping, and lost or changed bytes answered
 `503` before any `304`. Memory answered a commit refused before its
 publication "unknown", where PostgreSQL answered refused; memory now
