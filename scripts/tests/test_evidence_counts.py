@@ -386,7 +386,9 @@ an unfinished callback becomes an observed mismatch: KILLED by scripts.tests.tes
         # Two controls, three edits: the campaign counts its controls, each
         # said by its identifier; its unit tests' lines are no count of it.
         self.assertEqual(self.campaign(C_AGREES), {})
-        whats = lambda found: [what for _, _, what in found.get("e14-c", [])]
+        def whats(found: dict) -> list[str]:
+            return [what for _, _, what in found.get("e14-c", [])]
+
         short = C_AGREES.replace("controls=2/2", "controls=2/3")
         self.assertIn("c_mutations.py: counts 3 mutants; its campaign defines 2", whats(self.campaign(short)))
         # A run that was not whole, valid and restored is counted as none killed.
