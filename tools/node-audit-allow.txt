@@ -75,3 +75,33 @@ GHSA-6cf5-gc4q-fm3x
 
     Revisit: as GHSA-3r8g-jcqq-3p5j. No 2.x release is patched, only 3.1.1.
     Revisit sooner if the baseline enables remote functions.
+
+GHSA-fc5q-39xc-vjpf
+    picomatch through 4.0.7 — a glob pattern of single-branch repeated
+    extglobs (`+(*)`, `+(*a)`) makes its regular expression take exponential
+    time and blocks the event loop (high; updated 2026-11-17). No version is
+    patched: 4.0.7 and 2.3.2 are the latest of their lines (npm, 2026-11-17).
+    https://github.com/advisories/GHSA-fc5q-39xc-vjpf
+
+    Why accepted temporarily: the attack needs the pattern itself to be the
+    attacker's. picomatch is in the tree only under the three projects built
+    with Vite: the undeployed E14 benchmark baseline
+    (benchmarks/baselines/sveltekit) and the Marko spikes
+    (spikes/marko-stream-resume, spikes/pw-to-marko). 4.0.7 is Vite's own,
+    tinyglobby's, fdir's (svelte-check's among them), @rollup/pluginutils'
+    and @rollup/plugin-commonjs'; 2.3.2 is anymatch's and micromatch's
+    (through fast-glob), under @marko/vite. Each compiles patterns from this
+    repository's code and configuration (Vite's config and plugin filters,
+    `import.meta.glob`, which Vite compiles with `noextglob`, the Marko
+    templates' watch files and globs) or from the tools' own code and their
+    packages' manifests (adapter-node's `${entries}/**`, node-resolve's
+    `sideEffects`). No request reaches a pattern: the built outputs hold no
+    glob matcher, and the development servers (`vite dev`, `marko-run`) run
+    on a developer's own machine.
+
+    Revisit: remove this allowance when picomatch publishes a patched
+    release and the tree is updated to it (patch-level security updates are
+    under the owner's standing approval, 2026-11-17); `scripts/audit_node.py`
+    refuses it then, as an allowance no reported advisory matches. Sooner if
+    any of these consumers takes a pattern from anything but this
+    repository's code and configuration or the tools' own.

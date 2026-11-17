@@ -274,7 +274,64 @@ fn a_protected_relation_target_is_refused_beside_the_public_neighbor() {
     let owned = ROOTS
         .replace("    key id", "    key author, id")
         .replace("    order stamp", "    order stamp\n    owned by author");
-    refused(LINKS, &owned, DATA, "PW0368", "public");
+    refused(LINKS, &owned, DATA, "PW0368", "a target every reader reads");
+}
+
+/// The posts their authors own and write, which every reader reads: a
+/// `public table` owned by its author (ADR-0395's ruling 4).
+fn owned_public_roots() -> String {
+    ROOTS
+        .replace("table Roots", "public table Roots")
+        .replace("    key id", "    key author, id")
+        .replace("    order stamp", "    order stamp\n    owned by author")
+}
+
+/// **A window reads an owned `public table` as every reader reads it** (L7's
+/// G5, 2026-11-17), as the feed's subscriptions read their authors' posts.
+#[test]
+fn an_owned_public_relation_target_is_read_as_every_reader_reads_it() {
+    let got = diagnostics(LINKS, &owned_public_roots(), DATA);
+    assert!(got.is_empty(), "an owned public target's window: {got:#?}");
+}
+
+/// A target every reader reads (a `public table`, or one no one owns) that
+/// keeps a field private or shares its rows is refused by its own table's
+/// rule, once: never again as the window's (G5's review; ADR-0112's one
+/// defect, one diagnostic).
+#[test]
+fn a_target_its_own_rule_refuses_is_not_refused_again_as_a_window() {
+    let public = owned_public_roots();
+    let owned = "    owned by author";
+    let cases = [
+        (
+            public.replace(owned, "    owned by author\n    private text"),
+            "PW0369",
+            "keeps `text` private",
+        ),
+        (
+            public.replace(owned, "    owned by author\n    shares with author"),
+            "PW0370",
+            "shares its rows with `author`",
+        ),
+        (
+            ROOTS.replace("    order stamp", "    order stamp\n    private text"),
+            "PW0369",
+            "no one owns its rows",
+        ),
+        (
+            ROOTS.replace("    order stamp", "    order stamp\n    shares with author"),
+            "PW0370",
+            "no one owns them",
+        ),
+    ];
+    for (roots, code, says) in cases {
+        refused(LINKS, &roots, DATA, code, says);
+        let got = diagnostics(LINKS, &roots, DATA);
+        assert!(
+            !got.iter().any(|(c, _)| c == "PW0368"),
+            "one defect, one diagnostic: {got:#?}"
+        );
+    }
 }
 
 #[test]

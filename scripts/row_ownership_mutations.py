@@ -300,8 +300,31 @@ MUTANTS = [
      "                    || source.public\n",
      ""),
     ('relations protected targets are admitted', HOST_RELATIONS,
-     'if target.owner.is_some() || !target.private.is_empty() || !target.shares.is_empty() {',
-     'if false && (target.owner.is_some() || !target.private.is_empty() || !target.shares.is_empty()) {'),
+     '        if (target.owner.is_some() && !target.public)\n            || !target.private.is_empty()\n            || !target.shares.is_empty()\n        {',
+     '        if false\n        {'),
+    # L7's G5 (2026-11-17): a window's target is one every reader reads, an
+    # owned `public table` among them, never one read by its reader alone.
+    ("a window's owned target read by its reader alone is admitted", HOST_RELATIONS,
+     '        if (target.owner.is_some() && !target.public)\n',
+     '        if (target.owner.is_some() && false)\n'),
+    ("a window's owned public target is refused", HOST_RELATIONS,
+     '        if (target.owner.is_some() && !target.public)\n',
+     '        if target.owner.is_some()\n'),
+    ("a window's owned target read by its reader alone compiles", CORE_RELATIONS,
+     '        if target.read_by_its_reader() {\n',
+     '        if false {\n'),
+    ("a window's owned public target is refused at the compiler", CORE_RELATIONS,
+     '        if target.read_by_its_reader() {\n',
+     '        if target.owner.is_some() {\n'),
+    # G5's review: a public target that keeps a field private, or shares its
+    # rows, is refused by its own rule (PW0369, PW0370), never again as the
+    # window's (ADR-0112's one defect, one diagnostic).
+    ("a window's public target keeping a field private is refused twice", CORE_RELATIONS,
+     '        if target.read_by_its_reader() {\n',
+     '        if target.read_by_its_reader() || !target.private_fields().is_empty() {\n'),
+    ("a window's public target sharing its rows is refused twice", CORE_RELATIONS,
+     '        if target.read_by_its_reader() {\n',
+     '        if target.read_by_its_reader() || !target.sharers().is_empty() {\n'),
     ('relations different sources are admitted as colocated', HOST_RELATIONS,
      'if source.source.as_ref().is_none_or(|s| s.trim().is_empty())\n            || source.source != target.source',
      'if false && (source.source.as_ref().is_none_or(|s| s.trim().is_empty())\n            || source.source != target.source)'),

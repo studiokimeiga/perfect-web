@@ -1,11 +1,15 @@
 ADR-0371 - a Node audit passes only with a completed scan
 
 produced by: just e14-node-audit
-commit: 5543834a74c8dee4ba299c3a5170917adc709844
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/44012695432 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: f63b929b750e8b5c339508e71a814c6407a72df0
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/44143330318 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 python: Python 3.12.3
 
+test_a_finding_without_exactly_one_path_fails (scripts.tests.test_node_audit.NodeAudit.test_a_finding_without_exactly_one_path_fails) ... ok
+test_a_finding_without_its_version_fails (scripts.tests.test_node_audit.NodeAudit.test_a_finding_without_its_version_fails) ... ok
 test_advisory_shape_is_validated_before_allowance (scripts.tests.test_node_audit.NodeAudit.test_advisory_shape_is_validated_before_allowance) ... ok
+test_an_advisory_found_at_two_versions_counts_twice (scripts.tests.test_node_audit.NodeAudit.test_an_advisory_found_at_two_versions_counts_twice) ... ok
+test_an_advisory_without_findings_fails (scripts.tests.test_node_audit.NodeAudit.test_an_advisory_without_findings_fails) ... ok
 test_an_allowance_no_advisory_matches_fails_and_is_named (scripts.tests.test_node_audit.NodeAudit.test_an_allowance_no_advisory_matches_fails_and_is_named) ... ok
 test_clean_stdin_report_passes (scripts.tests.test_node_audit.NodeAudit.test_clean_stdin_report_passes) ... ok
 test_documented_advisory_passes (scripts.tests.test_node_audit.NodeAudit.test_documented_advisory_passes) ... ok
@@ -28,33 +32,41 @@ test_real_producer_advisory_exit_can_pass_documented_allowance (scripts.tests.te
 test_real_producer_clean_exit_and_exact_arguments (scripts.tests.test_node_audit.NodeAudit.test_real_producer_clean_exit_and_exact_arguments) ... ok
 test_severity_distribution_must_match_even_when_totals_match (scripts.tests.test_node_audit.NodeAudit.test_severity_distribution_must_match_even_when_totals_match) ... ok
 test_successful_producer_cannot_contradict_advisories (scripts.tests.test_node_audit.NodeAudit.test_successful_producer_cannot_contradict_advisories) ... ok
+test_two_findings_of_one_version_count_twice (scripts.tests.test_node_audit.NodeAudit.test_two_findings_of_one_version_count_twice) ... ok
 test_unexpected_producer_exit_fails_despite_valid_json (scripts.tests.test_node_audit.NodeAudit.test_unexpected_producer_exit_fails_despite_valid_json) ... ok
 test_unreviewed_advisory_fails (scripts.tests.test_node_audit.NodeAudit.test_unreviewed_advisory_fails) ... ok
 
 ----------------------------------------------------------------------
-Ran 25 tests in 0.839s
+Ran 30 tests in 1.316s
 
 OK
-structured instrument receipts: /tmp/pw-node-audit-controls-5mu0copu
-baseline: 25 executed; 0 failed; valid=True
+structured instrument receipts: /tmp/pw-node-audit-controls-824auvg7
+baseline: 30 executed; 0 failed; valid=True
 non-object report passes: KILLED by test_node_audit.NodeAudit.test_non_object_report_fails (1 actual body assertions)
 producer error object passes: KILLED by test_node_audit.NodeAudit.test_error_response_fails_even_with_empty_advisories (1 actual body assertions)
 missing advisory object passes: KILLED by test_node_audit.NodeAudit.test_missing_advisories_fails (2 actual body assertions)
 missing metadata passes: KILLED by test_node_audit.NodeAudit.test_missing_metadata_fails (1 actual body assertions)
 incomplete severity counts pass: KILLED by test_node_audit.NodeAudit.test_missing_severity_count_fails (1 actual body assertions)
 invalid count values pass: KILLED by test_node_audit.NodeAudit.test_invalid_vulnerability_counts_fail (1 actual body assertions)
-omitted advisories pass: KILLED by test_node_audit.NodeAudit.test_omitted_advisories_cannot_hide_reported_vulnerabilities (3 actual body assertions)
+omitted advisories pass: KILLED by test_node_audit.NodeAudit.test_omitted_advisories_cannot_hide_reported_vulnerabilities (5 actual body assertions)
 non-object advisory passes: KILLED by test_node_audit.NodeAudit.test_advisory_shape_is_validated_before_allowance (1 actual body assertions)
 advisory identity can be absent: KILLED by test_node_audit.NodeAudit.test_missing_advisory_identity_fails (1 actual body assertions)
 allowed advisory skips severity validation: KILLED by test_node_audit.NodeAudit.test_advisory_shape_is_validated_before_allowance (1 actual body assertions)
 producer status mismatch passes: KILLED by test_node_audit.NodeAudit.test_unexpected_producer_exit_fails_despite_valid_json (3 actual body assertions)
 duplicate keys hide earlier members: KILLED by test_node_audit.NodeAudit.test_duplicate_json_keys_fail (1 actual body assertions)
-invalid report earns a successful exit: KILLED by test_node_audit.NodeAudit.test_malformed_json_fails (19 actual body assertions)
+invalid report earns a successful exit: KILLED by test_node_audit.NodeAudit.test_malformed_json_fails (24 actual body assertions)
 unknown advisories are silently accepted: KILLED by test_node_audit.NodeAudit.test_unreviewed_advisory_fails (1 actual body assertions)
 missing advisory descriptive fields pass: KILLED by test_node_audit.NodeAudit.test_advisory_shape_is_validated_before_allowance (1 actual body assertions)
 shell loses the actual producer exit: KILLED by test_node_audit.NodeAudit.test_unexpected_producer_exit_fails_despite_valid_json (3 actual body assertions)
-nonempty incomplete reports pass their count check: KILLED by test_node_audit.NodeAudit.test_one_allowed_advisory_cannot_hide_a_missing_subset (2 actual body assertions)
+nonempty incomplete reports pass their count check: KILLED by test_node_audit.NodeAudit.test_one_allowed_advisory_cannot_hide_a_missing_subset (4 actual body assertions)
 total-only counts hide severity redistribution: KILLED by test_node_audit.NodeAudit.test_severity_distribution_must_match_even_when_totals_match (1 actual body assertions)
 an allowance no advisory matches passes: KILLED by test_node_audit.NodeAudit.test_an_allowance_no_advisory_matches_fails_and_is_named (1 actual body assertions)
-19 of 19 mutants killed; 0 refused; 0 survived
+an advisory counts once whatever its findings: KILLED by test_node_audit.NodeAudit.test_an_advisory_found_at_two_versions_counts_twice (2 actual body assertions)
+an advisory counts its distinct versions: KILLED by test_node_audit.NodeAudit.test_two_findings_of_one_version_count_twice (1 actual body assertions)
+an empty list of findings passes: KILLED by test_node_audit.NodeAudit.test_an_advisory_without_findings_fails (1 actual body assertions)
+a finding of a path that is no string passes: KILLED by test_node_audit.NodeAudit.test_a_finding_without_exactly_one_path_fails (1 actual body assertions)
+an advisory without findings passes: KILLED by test_node_audit.NodeAudit.test_an_advisory_without_findings_fails (1 actual body assertions)
+a finding without its version passes: KILLED by test_node_audit.NodeAudit.test_a_finding_without_its_version_fails (1 actual body assertions)
+a finding without exactly one path passes: KILLED by test_node_audit.NodeAudit.test_a_finding_without_exactly_one_path_fails (1 actual body assertions)
+26 of 26 mutants killed; 0 refused; 0 survived
 memory bound: no process was stopped

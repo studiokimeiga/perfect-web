@@ -343,8 +343,23 @@ fn relation_manifest_admission_holds_both_tables_and_both_grants_independently()
         );
         if kind == "target-owned" {
             assert!(
-                result.unwrap_err().contains("public target"),
+                result.unwrap_err().contains("a target every reader reads"),
                 "otherwise-valid owned target must fail the relation rule"
+            );
+            // The same target a `public table` (L7's G5): every reader reads
+            // it, and its window is admitted.
+            let mut public = value.clone();
+            let at = public["tables"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .position(|t| t["name"] == "Roots")
+                .unwrap();
+            public["tables"][at]["public"] = json!(true);
+            let admitted = pw_host::tables::Manifest::from_json(&public.to_string());
+            assert!(
+                admitted.is_ok(),
+                "an owned public target's window: {admitted:?}"
             );
         } else if kind == "target-order" {
             assert!(
@@ -686,6 +701,127 @@ fn public_relations_use_scalar_bool_group_keys_and_allow_anonymous_callers() {
             relation_public_group(false, &[3, 1]),
             relation_public_group(true, &[])
         ])])
+    );
+}
+
+/// **A window reads an owned `public table` as every reader reads it** (L7's
+/// G5, 2026-11-17): the same memberships and posts as
+/// `public_relations_use_scalar_bool_group_keys_and_allow_anonymous_callers`,
+/// the posts now owned by their authors, answer the same rows, each author's
+/// posts in the window of every reader, whoever asks.
+#[test]
+fn a_window_reads_an_owned_public_target_as_every_reader_reads_it() {
+    let program = relation_owned_target_program();
+    let tables = MemoryTables::new(program.tables.clone()).assert_ok("memory");
+    tables
+        .transaction(|tx| {
+            for row in relation_roots() {
+                tx.write("pw:tables/roots#insert", &[row])?;
+            }
+            for row in relation_public_links() {
+                tx.write("pw:tables/links#insert", &[row])?;
+            }
+            Ok(())
+        })
+        .assert_ok("posts their authors own, and public memberships");
+    for caller in [Caller::Nobody, as_user(ALICE), as_user(BOB)] {
+        assert_eq!(
+            query(
+                &program,
+                &tables,
+                "PlainLast",
+                &caller,
+                &[Val::Bool(false), Val::S64(2)]
+            ),
+            Ok(vec![Val::List(vec![
+                relation_root_value(3),
+                relation_root_value(1)
+            ])])
+        );
+    }
+    let args = [
+        Val::List(vec![Val::Bool(true), Val::Bool(false), Val::Bool(true)]),
+        Val::S64(2),
+    ];
+    assert_eq!(
+        query(&program, &tables, "PlainMany", &Caller::Nobody, &args),
+        Ok(vec![Val::List(vec![
+            relation_public_group(false, &[3, 1]),
+            relation_public_group(true, &[4, 3])
+        ])])
+    );
+}
+
+/// **The feed's own shape** (G5's review, 2026-11-17): each reader's
+/// window over the posts their authors own, by the reader's own handle, in
+/// the owner-led order (a stamp tie broken by author, then id); and a post
+/// its author writes in a command, read in that command's window before it
+/// commits, and every reader's after.
+#[test]
+fn the_feeds_shape_reads_each_readers_window_and_a_staged_post() {
+    let program = relation_feed_shape_program();
+    let tables = MemoryTables::new(program.tables.clone()).assert_ok("memory");
+    tables
+        .transaction(|tx| {
+            for row in relation_feed_posts() {
+                tx.write("pw:tables/roots#insert", &[row])?;
+            }
+            for row in relation_feed_links() {
+                tx.write("pw:tables/links#insert", &[row])?;
+            }
+            Ok(())
+        })
+        .assert_ok("posts their authors own, memberships their readers own");
+    let alice = [handle(ALICE), Val::S64(1), Val::S64(3)];
+    assert_eq!(
+        query(&program, &tables, "Feed", &as_user(ALICE), &alice),
+        Ok(vec![Val::List(vec![
+            relation_feed_post(3, CAROL, 7, "carol 3"),
+            relation_feed_post(2, CAROL, 5, "carol 2"),
+            relation_feed_post(9, BOB, 5, "bob 9"),
+        ])]),
+        "Alice's window, in the owner-led order"
+    );
+    assert_eq!(
+        query(
+            &program,
+            &tables,
+            "Feed",
+            &as_user(BOB),
+            &[handle(BOB), Val::S64(1), Val::S64(3)]
+        ),
+        Ok(vec![Val::List(vec![relation_feed_post(
+            4, ALICE, 2, "alice 4"
+        )])]),
+        "Bob's window, his own memberships alone"
+    );
+    let posted = command(
+        &program,
+        &tables,
+        "PostAndRead",
+        ALICE,
+        &[Val::S64(10), Val::S64(9), Val::S64(1), Val::S64(2)],
+    );
+    assert_eq!(
+        posted,
+        Ok(vec![Val::List(vec![
+            relation_feed_post(10, ALICE, 9, "staged"),
+            relation_feed_post(3, CAROL, 7, "carol 3"),
+        ])]),
+        "the post its author wrote, in the command's own window before it commits"
+    );
+    assert_eq!(
+        query(
+            &program,
+            &tables,
+            "Feed",
+            &as_user(BOB),
+            &[handle(BOB), Val::S64(1), Val::S64(1)]
+        ),
+        Ok(vec![Val::List(vec![relation_feed_post(
+            10, ALICE, 9, "staged"
+        )])]),
+        "and Bob's, once it committed"
     );
 }
 
