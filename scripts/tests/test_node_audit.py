@@ -23,8 +23,14 @@ def report(advisory=None):
 
 
 class NodeAudit(unittest.TestCase):
-    def run_audit(self, value, status=None, missing_allow=False, allow=ALLOWED):
+    def run_audit(self, value, status=None, missing_allow=False, allow=None):
         text = value if isinstance(value, str) else json.dumps(value)
+        # The fixture's one documented advisory is listed where the report
+        # holds it, and nothing otherwise: a listed allowance no advisory
+        # matches is refused on its own (2026-11-17), which would mask what
+        # each refusal below holds a report to.
+        if allow is None:
+            allow = ALLOWED if ALLOWED in text else ""
         with tempfile.TemporaryDirectory(prefix="pw-node-audit-") as temp:
             root = Path(temp)
             (root / "scripts").mkdir()
@@ -53,10 +59,14 @@ class NodeAudit(unittest.TestCase):
             invoked = (root / "args").read_text() if (root / "args").exists() else ""
             return run, invoked
 
-    def assert_refused(self, value, status=None, **kwargs):
+    def assert_refused(self, value, status=None, reason="audit-node: REFUSED (no completed audit)", **kwargs):
+        # Refused for its own reason: since an unmatched allowance is refused
+        # too (2026-11-17), a run refused for that would hide a check that
+        # let a broken report through (two audit mutants survived so).
         run, _ = self.run_audit(value, status, **kwargs)
         self.assertNotEqual(run.returncode, 0, run.stdout + run.stderr)
         self.assertNotIn("audit-node: OK", run.stdout + run.stderr)
+        self.assertIn(reason, run.stdout + run.stderr)
 
     def test_clean_stdin_report_passes(self):
         run, _ = self.run_audit(report(), allow="")
@@ -66,7 +76,7 @@ class NodeAudit(unittest.TestCase):
     def test_an_allowance_no_advisory_matches_fails_and_is_named(self):
         # 2026-11-17: the baselines' patches left four allowances no audit
         # reported, and the OK line counted the list, not what it matched.
-        run, _ = self.run_audit(report())
+        run, _ = self.run_audit(report(), allow=ALLOWED)
         self.assertEqual(run.returncode, 1, run.stdout + run.stderr)
         self.assertIn("allowances no reported advisory matches", run.stderr)
         self.assertIn(ALLOWED, run.stderr)
@@ -77,7 +87,7 @@ class NodeAudit(unittest.TestCase):
         self.assertEqual(run.returncode, 0, run.stderr)
 
     def test_unreviewed_advisory_fails(self):
-        self.assert_refused(report(NEW))
+        self.assert_refused(report(NEW), reason="advisories not on the allow list")
 
     def test_empty_response_fails(self):
         self.assert_refused("")

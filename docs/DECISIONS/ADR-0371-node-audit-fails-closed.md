@@ -159,5 +159,12 @@ advisory as it came with its reason; a corrected or withdrawn record fails
 the audit as a new advisory does, until the entry goes. Its OK line says
 each allowance was reported. Held by `scripts/tests/test_node_audit.py`
 (an unmatched allowance is refused and named; a clean report with an empty
-list passes).
+list passes) and a mutant of its own in `scripts/node_audit_mutations.py`,
+"an allowance no advisory matches passes", killed. The rule shadowed the
+others at first: the tests' fixture listed its one allowance for every
+report, so a mutant that let a broken report through was refused anyway,
+as an unmatched allowance, and 15 of the 19 mutants lived in the first run
+(`e14-node-audit`, verify 44011580223, refused its frozen inventory before
+that). The fixture now lists its allowance only where the report holds it,
+and each refusal is held to its own reason: 19 of 19 killed.
 
