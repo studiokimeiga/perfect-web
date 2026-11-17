@@ -1875,12 +1875,13 @@ run on each.
 - **A commit refused before its publication was answered unknown on
   memory**, and refused on PostgreSQL. Memory left
   `Staged::definitely_refused` at its default, though a commit that fails
-  before its rows are published rolls back whole, and memory keeps no
-  receipt to settle an unknown outcome from: its claims were given back
-  (`claims_kept_nothing`) while its answer said the outcome could not be
-  known. Memory now answers it refused, as PostgreSQL answers a refusal
+  before its rows are published rolls back whole: its claims were given
+  back (`claims_kept_nothing`) while its answer said the outcome could not
+  be known. Memory now answers it refused, as PostgreSQL answers a refusal
   before its `COMMIT`; a `COMMIT` that fails after the rows were published
-  may have kept them, and is answered unknown still. `upload_bridge`'s two
+  may have kept them, and is answered unknown still. It kept nothing a row
+  names: a generation it kept before a later refusal is an orphan its
+  namespace holds, as `publish_prepared` says, on either layer. `upload_bridge`'s two
   tests of a refused commit (`a_refused_commit_gives_its_claim_back`,
   `a_failed_keep_gives_its_claim_back`) had accepted either answer; on both
   layers they require refused now. The answer is every command's on
@@ -1894,11 +1895,20 @@ run on each.
   answered refused too, as the test's own account of it had said, where it
   was answered unknown (ADR-0325's rule for a commit whose outcome the route
   cannot tell); `an_outbox_that_refuses_a_signings_event_publishes_none_of_its_rows`
-  requires it.
-- **No compiled command can write a row wider than 16 flat values.** A
-  table's `put` takes its row, and the compiler refuses a call to a host's
-  operation whose arguments flatten past the Canonical ABI's 16 ("a call
-  whose arguments exceed the flat limit"; ADR-0266, "Not claimed": no
+  requires it. **But not where another attempt recorded its interaction
+  first** (the review below, its medium finding): the materializer refuses
+  a second record of one key, in the transaction that then rolls back, and
+  that first record, for the same request, is the interaction's answer, as
+  PostgreSQL's `Recorded` is reconciled. The host now answers any refused
+  commit from its interaction's record, where one is kept for this very
+  request, whichever layer refused it
+  (`a_commit_another_attempt_recorded_first_is_answered_from_its_record`,
+  and a mutant in `e14-data-path`).
+- **No compiled command can write a row wider than 16 flat values** (14
+  for an owned table, whose `put` takes its owner's handle beside the row).
+  A table's `put` takes its row, and the compiler refuses a call to a
+  host's operation whose arguments flatten past the Canonical ABI's 16 ("a
+  call whose arguments exceed the flat limit"; ADR-0266, "Not claimed": no
   operation needed it then). A `Ref` is seven (its key and generation, two
   each; its kind, width and height), an `Option<Ref>` eight, so a row of an
   id and two images is 17. The suite's table keeps one image, and each
@@ -1921,3 +1931,18 @@ its evidence of record is the pull request's verify. The mutant "a
 refused publication's claims are left pending in memory" is anchored on its
 own function now: `definitely_refused` reads the same flag, so its bare line
 matched twice.
+
+**Reviewed** independently (2026-11-17, `cb5d24ad`): no high finding.
+Its medium, a refused commit answered refused where another attempt's
+record of its interaction answers it, and the record's false reason for the
+change ("memory keeps no receipt": the host's materializer keeps memory's
+receipts, `recalled_interaction` reads them) are repaired above. Its lows:
+case 1's PostgreSQL half could not see a generation used again, memory's
+generation being the only one it named, so each layer now names the one
+that keeps a key's bytes (PostgreSQL's by its directory), and the first's
+bytes are held gone after the second keep; the limit is 14 for an owned
+table's row; a generation kept before a refusal is an orphan, which "kept
+nothing" overstated; case 4 sent no `HEAD`; the four mutants are the
+script's item 8 throughout; the PostgreSQL two-field test's account of
+memory's; `upload_bridge`'s list of the tests it owed; and NEXT's
+flat-limit item, its own now.

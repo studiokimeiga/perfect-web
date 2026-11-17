@@ -19,11 +19,7 @@ anywhere but an assertion is no kill):
 3. the bridge and staging: a query reading its session's leases by another
    handle; a lease keyed by another declaration than its route's; a lease
    claimed, or shown, whoever its reader;
-4. the memory layer: a new generation's bytes not kept before its rows; and
-   (ADR-0440's asset contract suite, 2026-11-17) its commit, or its
-   housekeeping, collecting no generation left unnamed, named bytes it lost
-   answered not found, and a commit that failed before its rows were
-   published answered unknown;
+4. the memory layer: a new generation's bytes not kept before its rows;
 5. the ledger: an absent receipt giving the claim back (absence is never
    rollback), a live attempt offered to the periodic pass, another attempt's
    receipt (alike but for its nonce) settling this one, an inspection that
@@ -34,7 +30,11 @@ anywhere but an assertion is no kill):
 7. the review of a7c3377b: a commit its ledger refused before its COMMIT
    answered unknown; the periodic pass leaving an absent receipt's claim due
    for ever; an attempt dropped uninspected never offered to the pass; each
-   pass taking up its turn from the first again.
+   pass taking up its turn from the first again;
+8. ADR-0440's asset contract suite (2026-11-17): memory's commit, or its
+   housekeeping, collecting no generation left unnamed, named bytes it lost
+   answered not found, and a commit that failed before its rows were
+   published answered unknown.
 
 Not here, each for its reason: the review's robustness repairs (a poisoned counter after a landed COMMIT,
 a ledger that fails while it reconciles, a removal racing memory's read)

@@ -967,8 +967,9 @@ source AssetData
 /// **A generation two fields of one row name is counted twice, and kept
 /// while either does**: committed in both, its references counted 2; one
 /// field cleared, 1, and served still; both cleared, its last use ended, it
-/// is collected at that commit and served no more. Memory's adapter holds the
-/// same (`duplicate_fields_...` in pw-table-memory's `asset_rows.rs`).
+/// is collected at that commit and served no more. Memory's adapter counts
+/// two fields of a row too (`duplicate_fields_...` in pw-table-memory's
+/// `asset_rows.rs`), though it never clears one of them alone.
 #[test]
 fn a_generation_two_fields_of_a_row_name_is_kept_while_either_does() {
     let Some(url) = common::database() else {

@@ -32,19 +32,23 @@ in order:
    ADR-0440, amended): `tests::asset_contract`, five cases on each layer,
    and four mutants. It found memory answering a commit refused before its
    publication unknown (now refused, as PostgreSQL), and that no compiled
-   command can write a row wider than 16 flat values (a table's `put`, a
-   call to a host's operation past the Canonical ABI's limit, which the
-   compiler refuses; ADR-0266, amended). That call's arguments in memory
-   are next, before L7 (item 6), whose feed post as a row would be 17.
-4. **WebKit's cut-off test** (`e2e/connections.spec.mjs`): in two of three
+   command can write a row wider than 16 flat values (item 4).
+4. **A call's arguments past the flat limit** (ADR-0266, amended; ADR-0440's
+   asset contract suite): a table's `put` takes its row, and the compiler
+   refuses a call to a host's operation whose arguments flatten past the
+   Canonical ABI's 16, so no compiled command can write a row wider (14 for
+   an owned table). The component stores them in its own memory, a tuple
+   at one pointer, as the host does for an export's. Before L7 (item 7),
+   whose feed post as a row would be 17.
+5. **WebKit's cut-off test** (`e2e/connections.spec.mjs`): in two of three
    runs of L5's full verify WebKit's network process failed after the
    server's forced reconnect, and the press's handler module, loaded at its
    first press, failed to import. The repairs' verify passed it in all
    three runs. It stays here until master's nightlies pass it too.
-5. **Public initialization, stable ids and private child deletion**, as the
+6. **Public initialization, stable ids and private child deletion**, as the
    ports need them.
-6. **L7, the canonical feed and store on tables**, as after L4 (item 4).
-7. **The benchmark baselines' Node patches, each the owner's call** (a
+7. **L7, the canonical feed and store on tables**, as after L4 (item 4).
+8. **The benchmark baselines' Node patches, each the owner's call** (a
    download), as after L4 (item 5).
 
 Keep the mixed-layer startup refusal until its replacement is real; a

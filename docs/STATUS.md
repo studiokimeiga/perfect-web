@@ -13,7 +13,10 @@ answers refused, for every command on its tables (the guestbook's refused
 outbox among them). The suite also found that no compiled command can write a
 row wider than 16 flat values, which is next, before L7 (ADR-0440 and
 ADR-0266, amended). Four new mutants hold the suite. Run whole
-locally, the claims script killed 34 of 34.
+locally, the claims script killed 34 of 34. Independently reviewed: no high
+finding. Its medium (a commit refused because another attempt recorded its
+interaction first was answered refused, where that record answers it) and
+its lows are repaired, each with its regression.
 
 **L5, declared uploads, 2026-11-17:** L5a and L5b land as one train from
 `wip/l5b-claims`, with master, #118 and #121 merged. Its full verify

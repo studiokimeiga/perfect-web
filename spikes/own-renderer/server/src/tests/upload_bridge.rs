@@ -316,8 +316,7 @@ fn a_refused_commit_gives_its_claim_back(s: &Server, fail: impl FnOnce(&Server))
     // Refused, on either layer: its rows were never published, so it kept
     // nothing, and its claim is given back (memory answered "unknown" until
     // ADR-0440's asset contract suite, 2026-11-17, though a commit that
-    // fails before its publication rolls back whole, and memory keeps no
-    // receipt to settle an unknown one from).
+    // fails before its publication rolls back whole).
     assert!(
         matches!(&refused, Ok(answer) if !answer.committed),
         "{refused:?}"
@@ -526,8 +525,9 @@ fn a_commit_that_never_arrived_holds_its_claim_on_postgresql() {
 // ---------------------------------------------------------------------------
 // The tests owed before L5b's landing (ADR-0440): another attempt's record
 // first, an equal-clock retry by another host, a reconcile the namespace lock
-// delayed, a rotated reader, a foreign declaration, a live generation's
-// corrupt bytes and a keep that fails.
+// delayed, a rotated reader, a foreign declaration and a keep that fails. A
+// live generation's corrupt bytes are the asset contract suite's since
+// 2026-11-17, on each layer (`changed_bytes_are_answered_503_before_any_304`).
 
 /// A second image, other than [`png`]'s, so two leases are told apart by
 /// what their rows name.

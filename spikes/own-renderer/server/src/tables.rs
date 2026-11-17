@@ -774,10 +774,11 @@ impl Staged for TablesStaging<'_> {
     /// `prepare`, or its records or keep or publication refused within the
     /// materializer's transaction, which then rolls back whole. Its host
     /// answers it refused, as PostgreSQL's answers a refusal before its
-    /// COMMIT. Until then memory left the default, and a refused commit was
-    /// answered unknown, though memory keeps no receipt to reconcile it from.
-    /// A COMMIT that failed after its rows were published may have kept
-    /// them, and is answered unknown still.
+    /// COMMIT, unless another attempt's record of its interaction, for the
+    /// same request, answers it. Until then memory left the default, and a
+    /// commit known to have rolled back was answered unknown. A COMMIT that
+    /// failed after its rows were published may have kept them, and is
+    /// answered unknown still.
     fn definitely_refused(&self) -> bool {
         !self.published
     }

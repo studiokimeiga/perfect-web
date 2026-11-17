@@ -4,7 +4,9 @@ Rust data layer): the development server serves a program's declared
 tables through the table gate alone, each component's host map its own,
 a command's rows published as the platform's transaction's last step
 before its COMMIT, after its every record and its outbox, with them or not
-at all, and the tables closed where the COMMIT fails after; a guarded
+at all, and the tables closed where the COMMIT fails after; a commit
+refused because another attempt recorded its interaction first answered
+from that record (the asset contract suite's review, 2026-11-17); a guarded
 command answered before its tables are linked; one render reading one
 state of the tables; the guestbook on the tables it declares, bounded,
 its refusals said, its composer an account's; the platform's reader's
@@ -178,6 +180,9 @@ MUTANTS = [
     ("a COMMIT that fails after the publication is told no one", MATERIALIZER,
      "            uncommitted(&why);\n",
      "            let _ = &uncommitted;\n"),
+    ("a commit another attempt recorded first is answered refused", MAIN,
+     "                    if refused && !recorded {\n",
+     "                    if refused {\n"),
     ("tables whose COMMIT failed after their publication stay open", LAYER,
      "        self.tables.fail_closed();\n",
      "        let _ = self.tables;\n"),

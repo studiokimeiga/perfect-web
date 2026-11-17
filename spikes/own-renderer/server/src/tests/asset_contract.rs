@@ -217,27 +217,33 @@ impl Layered {
         }
     }
 
-    /// Whether the layer keeps bytes of the generation `generation` (memory),
-    /// or of any generation of `key` (PostgreSQL, whose files are named by
-    /// their key).
+    /// Whether the layer keeps bytes of the generation `generation`: in
+    /// memory's storage, or in its own directory under PostgreSQL's blob root.
     fn kept(&self, key: &str, generation: Option<&str>) -> bool {
+        let generation = generation.asserted_some("a generation");
         match &self.keeps {
             Keeps::Memory(layer) => {
                 let (storage, namespace) = layer
                     .uploads_for_test()
                     .asserted_some("the layer's uploads");
-                storage.holds_generation(namespace, generation.asserted_some("memory's generation"))
+                storage.holds_generation(namespace, generation)
             }
-            Keeps::Postgres(blobs) => !generation_files(blobs, key).is_empty(),
+            Keeps::Postgres(blobs) => generation_files(blobs, key)
+                .iter()
+                .any(|file| directory_name(file).as_deref() == Some(generation)),
         }
     }
 
-    /// The generation memory names by `key` and `kind`; none on PostgreSQL,
-    /// whose files are found by their key.
+    /// The generation that keeps `key`'s bytes: the one memory's committed
+    /// row names by `key` and `kind`; on PostgreSQL, the one whose directory
+    /// holds the key's file, named by its generation.
     fn generation(&self, key: &str, kind: &str) -> Option<String> {
         match &self.keeps {
             Keeps::Memory(layer) => layer.generation_for_test("PostImage", key, kind),
-            Keeps::Postgres(_) => None,
+            Keeps::Postgres(blobs) => match generation_files(blobs, key).as_slice() {
+                [one] => directory_name(one),
+                _ => None,
+            },
         }
     }
 
@@ -350,6 +356,13 @@ impl Layered {
     }
 }
 
+/// The name of the directory a generation's file is kept in: its generation.
+fn directory_name(file: &std::path::Path) -> Option<String> {
+    file.parent()
+        .and_then(std::path::Path::file_name)
+        .map(|name| name.to_string_lossy().into_owned())
+}
+
 fn make_writable(path: &std::path::Path) {
     use std::os::unix::fs::PermissionsExt;
     std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o644))
@@ -366,13 +379,15 @@ fn status(head: &str) -> &str {
 fn the_same_bytes_kept_again_are_a_new_generation(l: &Layered) {
     assert!(l.keep("Keep", 1, "keep-1").committed);
     let (key, kind) = l.named("Image", 1).asserted_some("row 1 names its image");
-    let first = l.generation(&key, &kind);
+    let first = l
+        .generation(&key, &kind)
+        .asserted_some("the first generation");
     assert!(
         l.command("Remove", &[serde_json::json!(1)], "remove-1")
             .committed
     );
     assert!(
-        !l.kept(&key, first.as_deref()),
+        !l.kept(&key, Some(&first)),
         "the first generation collected at its commit"
     );
     assert!(l.keep("Keep", 2, "keep-2").committed);
@@ -382,14 +397,15 @@ fn the_same_bytes_kept_again_are_a_new_generation(l: &Layered) {
         (&key, &kind),
         "the same bytes, the same key"
     );
-    let second = l.generation(&again, &kind_again);
-    if let (Some(first), Some(second)) = (&first, &second) {
-        assert_ne!(first, second, "a generation of its own");
-    }
+    let second = l
+        .generation(&again, &kind_again)
+        .asserted_some("the second generation");
+    assert_ne!(first, second, "a generation of its own");
     let (head, body) = get(&l.server, &format!("/images/{key}.{kind}"));
     assert_eq!(status(&head), "200", "{head}");
     assert_eq!(body, png());
-    assert!(l.kept(&key, second.as_deref()), "the second kept");
+    assert!(l.kept(&key, Some(&second)), "the second kept");
+    assert!(!l.kept(&key, Some(&first)), "the first's bytes stay gone");
 }
 
 /// **2. A removed row's generation is collected at its commit**: `404`, and
@@ -456,8 +472,8 @@ fn a_collection_that_failed_is_made_by_housekeeping(l: &Layered) {
     );
 }
 
-/// **4. Named bytes lost are answered `503`**, a `GET`, a `HEAD` and one
-/// naming its `ETag` alike: a generation a committed row names and the layer
+/// **4. Named bytes lost are answered `503`**, a `GET` and one naming its
+/// `ETag` alike: a generation a committed row names and the layer
 /// cannot give whole is unavailable, never `404` or `304`.
 fn named_bytes_lost_are_answered_503(l: &Layered) {
     assert!(l.keep("Keep", 1, "keep-1").committed);
