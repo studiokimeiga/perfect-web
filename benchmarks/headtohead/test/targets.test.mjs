@@ -140,7 +140,7 @@ const STACKS = {
   "store/next-react": {
     label: "Next.js",
     who: "this project (benchmarks/baselines/next-react, ADR-0120)",
-    version: "Next.js 16.4.1, React 19.3.0",
+    version: "Next.js 16.4.5, React 19.3.0",
     path: "/stores/blue-bottle",
     ready: "next",
     minifies: true,
@@ -151,7 +151,7 @@ const STACKS = {
   "store/sveltekit": {
     label: "SvelteKit",
     who: "this project (benchmarks/baselines/sveltekit, ADR-0120)",
-    version: "SvelteKit 2.70.3, Svelte 5.57.1, adapter-node 5.5.7",
+    version: "SvelteKit 2.70.4, Svelte 5.57.1, adapter-node 5.5.8",
     path: "/stores/blue-bottle",
     ready: "sveltekit",
     minifies: true,
@@ -439,4 +439,24 @@ test("the store's add expects the cart count to be one above what the page shows
   const step = stepOf("store", "pleris", "add");
   assert.deepEqual(await Promise.all(pages.map((page) => step.before(page))), expected);
   assert.deepEqual(pages[0].calls, [["textContent", "#cart-count"]]);
+});
+
+// The store's framework stacks name the versions their baselines pin, read
+// from each baseline's package.json (2026-11-17: the baselines moved to
+// Next.js 16.4.5 and SvelteKit 2.70.4, and these labels, which the report
+// prints as its stacks line, still said 16.4.1 and 2.70.3 until review).
+test("the store's framework stacks name the versions their baselines pin", async () => {
+  const { readFileSync } = await import("node:fs");
+  const pins = (dir) => {
+    const pkg = JSON.parse(readFileSync(path.join(dir, "package.json"), "utf8"));
+    return { ...pkg.dependencies, ...pkg.devDependencies };
+  };
+  const next = pins(NEXT);
+  const svelte = pins(SVELTEKIT);
+  const label = (stack) => APPS.store.stacks[stack].version;
+  assert.equal(label("next-react"), `Next.js ${next.next}, React ${next.react}`);
+  assert.equal(
+    label("sveltekit"),
+    `SvelteKit ${svelte["@sveltejs/kit"]}, Svelte ${svelte.svelte}, adapter-node ${svelte["@sveltejs/adapter-node"]}`,
+  );
 });
