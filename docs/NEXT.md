@@ -59,9 +59,15 @@ in order:
      `wip/l7-owned-windows`; ADR-0440, amended). It went before G10, which
      the survey put first: a rule at admission that the port needs
      whatever G10's numbers say, and that takes no lock.
-   - **G10**, the upload namespace's lock on every command of a program
-     that declares uploads (KNOWN_LIMITATIONS): measure the feed's command
-     mix on two hosts, and narrow the lock if the numbers ask.
+   - ~~**G10**, the upload namespace's lock on every command of a program
+     that declares uploads (KNOWN_LIMITATIONS)~~: done (2026-11-17,
+     `wip/l7-upload-lock`; ADR-0440, amended). Measured first, through the
+     adapter and the server: an ordinary command ran nine statements where
+     three do, and waited five seconds behind a long upload command, then
+     failed. Only a command whose artifact claims, publishes or discards an
+     upload, or writes a table keeping an asset, holds the namespace now, and
+     is served its host's turn first; the port keeps its hot commands (likes)
+     off the tables that keep assets.
    - **G4**, an asset on an owned table (a post's image): refused by the
      compiler (`tables/assets.rs`) and the host (`tables.rs`).
    - **G1**, an id sequence never reused after a delete, a rollback, a

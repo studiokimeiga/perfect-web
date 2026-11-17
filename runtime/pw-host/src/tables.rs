@@ -96,6 +96,23 @@ struct Asset {
     upload: String,
 }
 
+/// **What a command works on**, as its layer begins it (L7's G10, ADR-0440
+/// amended 2026-11-17; [`Manifest::work`] answers it for a command).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Work {
+    /// The program's uploads, beside its tables: it claims, publishes or
+    /// discards an upload, or writes a table keeping an asset. On a
+    /// database it holds the uploads' namespace from before its turn to its
+    /// end (ADR-0440's "Exclusion and storage fencing"), as every command
+    /// of a program declaring uploads did before G10.
+    Uploads,
+    /// Its tables alone: it takes no namespace lock, and runs beside the
+    /// commands of every host, as a program declaring no upload's do. Its
+    /// layer refuses it asset work, so a command answered wrongly fails
+    /// closed.
+    Tables,
+}
+
 /// A fixed public-target relation declared by the source table.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 struct Window {
@@ -970,6 +987,30 @@ impl Manifest {
     pub fn uploads(&self) -> Option<&crate::assets::Manifest> {
         self.uploads.as_ref()
     }
+
+    /// **What a command importing `imports` works on** (L7's G10, ADR-0440
+    /// amended 2026-11-17): where the program declares uploads, a command
+    /// that claims, publishes or discards one (a `pw:uploads/` import but
+    /// `attached`, a session's read), or that writes a table keeping an
+    /// asset, works on them ([`Work::Uploads`]); any other, on its tables
+    /// alone. `imports` are its artifact's, what it can call.
+    pub fn work<'a>(&self, imports: impl IntoIterator<Item = &'a str>) -> Work {
+        if self.uploads.is_none() {
+            return Work::Tables;
+        }
+        let uploads = imports.into_iter().any(|key| {
+            if key.starts_with("pw:uploads/") {
+                return !key.ends_with("#attached");
+            }
+            self.tables
+                .iter()
+                .filter(|table| !table.assets.is_empty())
+                .flat_map(|table| &table.functions)
+                .any(|function| function.import == key && function.primitive.writes())
+        });
+        if uploads { Work::Uploads } else { Work::Tables }
+    }
+
     /// **`tables.json`, read and held whole** (see the module): a manifest
     /// that is not is refused here, not read past.
     pub fn from_json(text: &str) -> Result<Manifest, String> {

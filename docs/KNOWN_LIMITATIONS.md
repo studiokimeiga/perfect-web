@@ -13,11 +13,17 @@
 - **Leases are host-local.** An upload is staged on the host that received
   it, and the command that claims it must reach the same host: a deployment
   of several hosts needs affinity for a session's uploads (L6's deploy).
-- **The namespace lock serializes upload commands on PostgreSQL.** Every
-  command of a program that declares uploads takes the upload namespace's
-  advisory lock, and waits five seconds at most for it: measured before L7
-  ports the feed. An image read takes no lock, and holds a pool connection
-  only for its one statement (L5a's review).
+- **The namespace lock serializes the commands that work on uploads, on
+  PostgreSQL.** A command that claims, publishes or discards an upload, or
+  writes a table keeping an asset, takes the upload namespace's advisory
+  lock for its life, and waits five seconds at most for it: such commands
+  run one at a time across every host. Any other command of the program
+  takes none (L7's G10, ADR-0440 amended 2026-11-17), so a hot command kept
+  off the asset tables (a like in a table of its own, not in its post's
+  row) waits for no upload command of another host, and on its own host
+  for the one served its turn first at most, as it waits for any command.
+  An image read takes no lock, and holds a pool connection only for its
+  one statement (L5a's review).
 - **A physical copy of a database is its original, to its blob storage.** A
   namespace's storage names the database that recorded it: the cluster's
   system identifier and the database's and schema's OIDs. A copy restored
@@ -31,8 +37,9 @@
   socket (a partition, a NAT's timeout) holds it until the database notices
   the session is dead. Each connection sets the server's keepalives to
   notice within about a minute, not the operating system's two hours.
-  Meanwhile, every upload command and image read of the schema waits its
-  five seconds and fails.
+  Meanwhile, every command of the schema that works on uploads waits its
+  five seconds and fails; an image read, and a command working on its
+  tables alone, waits for nothing.
 - **An inspection the lock delays holds its session and the periodic
   pass.** A command whose outcome is unknown inspects its own receipt still
   holding its session's one-at-a-time lock, so that session's other

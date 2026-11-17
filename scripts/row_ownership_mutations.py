@@ -37,7 +37,13 @@ Each mutant undoes one guarantee and must be killed by a test:
    bounded, and written by its owner alone, its key still the owner's, and
    it shares with no one, keeps nothing private and refers as a table no
    one owns; `public` is the one word a table takes; the host holds a
-   public table's manifest whole by the same rules.
+   public table's manifest whole by the same rules;
+5. L7's G10 (ADR-0440 amended 2026-11-17): what a command works on, by its
+   artifact's imports (a claim, a publication or a discard, or a write of a
+   table keeping an asset, works on the uploads; an attached read, an asset
+   table's read and any other table's write do not; a program bound to no
+   upload works on its tables alone), and memory refusing a command begun
+   for its tables alone an asset's write and a publication.
 
 The review of the track (2026-11-02) found three of these unheld: an
 owner check reading a row's first field, and a predicate asked after the
@@ -759,6 +765,33 @@ MUTANTS = [
     ("the host's references read a public table as an owned one", HOST_TABLES,
      "                    t.owner.as_ref().filter(|_| !t.public)\n",
      "                    t.owner.as_ref()\n"),
+    # L7's G10 (ADR-0440 amended 2026-11-17): what a command works on, by its
+    # artifact's imports, and memory's refusals of a command begun for its
+    # tables alone, alike PostgreSQL's (d3's uploads' part holds those).
+    ("a claim is not upload work", HOST_TABLES,
+     '                return !key.ends_with("#attached");',
+     '                return false;'),
+    ("an attached read is upload work", HOST_TABLES,
+     '                return !key.ends_with("#attached");',
+     '                return true;'),
+    ("a write of a table keeping an asset is not upload work", HOST_TABLES,
+     '                .any(|function| function.import == key && function.primitive.writes())',
+     '                .any(|function| function.import == key && false)'),
+    ("an asset table's read is upload work", HOST_TABLES,
+     '                .any(|function| function.import == key && function.primitive.writes())',
+     '                .any(|function| function.import == key)'),
+    ("a write of any table is upload work", HOST_TABLES,
+     '                .filter(|table| !table.assets.is_empty())\n                .flat_map(|table| &table.functions)',
+     '                .flat_map(|table| &table.functions)'),
+    ("a program bound to no upload works on uploads", HOST_TABLES,
+     '        if self.uploads.is_none() {\n            return Work::Tables;\n        }\n        let uploads = imports',
+     '        let uploads = imports'),
+    ("memory writes a table keeping an asset from a command begun for its tables alone", MEMORY,
+     '        if open.work == Work::Tables\n            && let Ok((at, _)) = self.shape.function(import)',
+     '        if false\n            && open.work == Work::Tables\n            && let Ok((at, _)) = self.shape.function(import)'),
+    ("memory publishes from a command begun for its tables alone", ROOT / "runtime/pw-table-memory/src/assets.rs",
+     '        if open.work == crate::Work::Tables {',
+     '        if false && open.work == crate::Work::Tables {'),
 ]
 
 # Each Cargo test binary separately: names can repeat between binaries, and

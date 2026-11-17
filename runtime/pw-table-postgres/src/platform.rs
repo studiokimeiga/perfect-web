@@ -661,8 +661,18 @@ impl PgTables {
     /// transaction begun, the session's row locked in it, and the session
     /// held to `fence`'s `expected`, now and again just before the command
     /// commits ([`crate::Prepared::publish_with`]). The lock is held until
-    /// the command ends. Refused, nothing of it ran and nothing is kept.
+    /// the command ends. Refused, nothing of it ran and nothing is kept. It
+    /// works on the program's uploads ([`crate::Work::Uploads`]): a command
+    /// that does not is begun by [`PgTables::begin_fenced_for`].
     pub fn begin_fenced(&self, fence: Fence) -> Result<Command, Error> {
+        self.begin_fenced_for(fence, crate::Work::Uploads)
+    }
+
+    /// **A command fenced on its session, for what it works on** (L7's
+    /// G10): as [`PgTables::begin_fenced`], holding the uploads' namespace
+    /// only where `work` is theirs, after the session's lock and before the
+    /// turn.
+    pub fn begin_fenced_for(&self, fence: Fence, work: crate::Work) -> Result<Command, Error> {
         let key = session_key(&self.inner.names.schema, &fence.hash);
         let place = self.inner.lock_session(key)?;
         // The lock is the command's from here, given back as it ends, by
@@ -673,6 +683,7 @@ impl PgTables {
                 fence: fence.clone(),
                 key,
             }),
+            work,
         )?;
         {
             let mut open = command.state.lock().map_err(|_| Error::StoragePoisoned)?;

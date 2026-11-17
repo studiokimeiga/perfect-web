@@ -155,6 +155,10 @@ pub enum Isolation {
     ConnectionDefault,
 }
 
+/// **What a command works on** (L7's G10): the host's, as
+/// `pw_host::tables::Manifest::work` answers it for a command.
+pub use pw_host::tables::Work;
+
 /// How a render's read transaction opens (ADR-0354, decision 3): repeatable
 /// read, so every read of it reads its first statement's snapshot, and read
 /// only, so it never meets a serialization failure.
@@ -283,8 +287,8 @@ struct Inner {
     counters: Counters,
     pool: Arc<Pool>,
     seats: Arc<Pool>,
-    /// The open command, and the next command's id.
-    turn: Mutex<(Option<u64>, u64)>,
+    /// The host's turn: the open command, and who waits for it.
+    turn: Mutex<Turns>,
     turned: Condvar,
     told: Mutex<Option<Arc<dyn Fn() + Send + Sync>>>,
     /// Each table's version: this adapter's commits that wrote it.
@@ -493,7 +497,13 @@ impl PgTables {
                 counters,
                 pool,
                 seats,
-                turn: Mutex::new((None, 1)),
+                turn: Mutex::new(Turns {
+                    holder: None,
+                    next: 1,
+                    issued: 0,
+                    serving: 0,
+                    first: 0,
+                }),
                 turned: Condvar::new(),
                 told: Mutex::new(None),
                 versions: Mutex::new(versions),
@@ -602,10 +612,18 @@ impl PgTables {
     /// would hold. Its connection and `BEGIN` wait for its first statement,
     /// so a command that touches no table costs the database nothing. Its
     /// writes are kept only when it commits, and undone whole where it is
-    /// dropped instead.
+    /// dropped instead. It works on the program's uploads ([`Work::Uploads`]):
+    /// a command that does not is begun by [`PgTables::begin_for`].
     pub fn begin(&self) -> Result<Command, Error> {
+        self.begin_for(Work::Uploads)
+    }
+
+    /// **A command's transaction, for what it works on** (L7's G10): as
+    /// [`PgTables::begin`], holding the uploads' namespace only where `work`
+    /// is theirs and the program declares uploads.
+    pub fn begin_for(&self, work: Work) -> Result<Command, Error> {
         let place = self.inner.pool.take()?;
-        self.turn(place, None)
+        self.turn(place, None, work)
     }
 
     /// **The host's turn, for a command whose connection's place is
@@ -616,15 +634,21 @@ impl PgTables {
         &self,
         mut place: Lease,
         fenced: Option<platform::Fenced>,
+        work: Work,
     ) -> Result<Command, Error> {
-        let lifetime = match assets::lock_lifetime(&self.inner, &mut place) {
-            Ok(lifetime) => lifetime,
-            Err(error) => {
-                place.discard();
-                return Err(error);
-            }
+        // The uploads' namespace, held where the command works on them,
+        // before its turn (ADR-0440's order), and by no command otherwise.
+        let lifetime = match work {
+            Work::Uploads => match assets::lock_lifetime(&self.inner, &mut place) {
+                Ok(lifetime) => lifetime,
+                Err(error) => {
+                    place.discard();
+                    return Err(error);
+                }
+            },
+            Work::Tables => None,
         };
-        let id = match self.inner.take_turn() {
+        let id = match self.inner.take_turn(lifetime.is_some()) {
             Ok(id) => id,
             Err(error) => {
                 place.discard();
@@ -805,6 +829,24 @@ type Row = Map<String, Value>;
 /// What a write binds, and the key and row it writes where it writes one.
 type Bound = (Vec<Param>, Option<(Key, Row)>);
 
+/// **The host's turn** ([`Inner::take_turn`]): who holds it, and who
+/// waits for it.
+struct Turns {
+    /// The command holding it.
+    holder: Option<u64>,
+    /// The next command's id.
+    next: u64,
+    /// A command that holds no namespace waits in its arrival order: the
+    /// ticket the next one takes, and the one served next (L7's G10, the
+    /// review's M1).
+    issued: u64,
+    serving: u64,
+    /// The commands holding the uploads' namespace that wait for the turn,
+    /// served before any other: one at most, the namespace being one
+    /// command's at a time on every host.
+    first: usize,
+}
+
 /// The open command's state, shared with its host functions.
 struct Open {
     lifetime: Option<i64>,
@@ -829,9 +871,28 @@ struct Open {
 impl Inner {
     /// **The host's turn**, once the command holding it has ended: its id.
     /// A test that asked is told first where it waits ([`PgTables::tell_on_wait`]).
-    fn take_turn(&self) -> Result<u64, Error> {
+    /// **The host's turn** for a command, once the one holding it has ended:
+    /// its id. A command that holds the uploads' namespace (`first`) is
+    /// served before the others (L7's G10, the review's M1): every host's
+    /// commands working on the uploads wait for that namespace, five seconds
+    /// at most, so its holder waits for the command running now alone. The
+    /// others are served in their arrival order, so none is passed by a
+    /// later one.
+    fn take_turn(&self, first: bool) -> Result<u64, Error> {
         let mut turn = self.turn.lock().map_err(|_| Error::StoragePoisoned)?;
-        if turn.0.is_some() {
+        let ticket = if first {
+            turn.first += 1;
+            None
+        } else {
+            let ticket = turn.issued;
+            turn.issued += 1;
+            Some(ticket)
+        };
+        let waits = |turn: &Turns| {
+            turn.holder.is_some()
+                || ticket.is_some_and(|ticket| turn.first > 0 || turn.serving != ticket)
+        };
+        if waits(&turn) {
             let tell = self
                 .told
                 .lock()
@@ -843,12 +904,16 @@ impl Inner {
             }
             turn = self.turn.lock().map_err(|_| Error::StoragePoisoned)?;
         }
-        while turn.0.is_some() {
+        while waits(&turn) {
             turn = self.turned.wait(turn).map_err(|_| Error::StoragePoisoned)?;
         }
-        let id = turn.1;
-        turn.1 += 1;
-        turn.0 = Some(id);
+        match ticket {
+            None => turn.first -= 1,
+            Some(_) => turn.serving += 1,
+        }
+        let id = turn.next;
+        turn.next += 1;
+        turn.holder = Some(id);
         Ok(id)
     }
 
@@ -922,6 +987,20 @@ impl Inner {
             return Err(Error::Input(format!("{import} is not a table write")));
         }
         let table = &self.shape.tables[function.table];
+        // **Asset work is a command's that holds the namespace** (L7's
+        // G10): one begun for its tables alone writes no table keeping an
+        // asset, whatever it was linked to.
+        if !table.assets.is_empty() && open.lifetime.is_none() {
+            let refused = Error::Input(format!(
+                "{import} writes {}, which keeps an asset, in a command begun for its tables \
+                 alone",
+                table.name
+            ));
+            // It commits nothing it wrote before, whoever calls it (the
+            // review's L5): every later statement, and its commit, fail so.
+            open.failed.get_or_insert_with(|| refused.clone());
+            return Err(refused);
+        }
         let sql = self
             .statements
             .get(import)
@@ -1098,11 +1177,13 @@ impl Inner {
             Ok(turn) => turn,
             Err(poisoned) => poisoned.into_inner(),
         };
-        if turn.0 == Some(open.id) {
-            turn.0 = None;
+        if turn.holder == Some(open.id) {
+            turn.holder = None;
         }
         drop(turn);
-        self.turned.notify_one();
+        // Every waiter looks again: the one served next is told by its
+        // place, the namespace's holder or the next ticket, not by its wake.
+        self.turned.notify_all();
     }
 }
 

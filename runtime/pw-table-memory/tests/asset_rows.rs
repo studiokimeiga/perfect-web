@@ -4,6 +4,7 @@
 include!("support/owned.rs");
 include!("support/assets.rs");
 use pw_host::assets::{Descriptor, Reference};
+use pw_table_memory::Work;
 
 /// **A refusal held to its reason** (L5a's review, finding L9): `result` is
 /// an error whose words, as its `Debug` shows them, hold `why`. A refusal for
@@ -713,4 +714,88 @@ fn a_committed_generations_descriptor_is_its_publications_and_goes_with_its_last
             .assert_ok("resolve"),
         None
     );
+}
+
+/// **What each command works on** (L7's G10, ADR-0440 amended 2026-11-17),
+/// by its compiled artifact's imports: `Keep`, which claims and publishes,
+/// and `Forget`, which deletes an asset's row, work on the uploads; `Note`,
+/// which writes the notes alone, and `Attached`, a session's read of its
+/// uploads, on their tables alone. A program bound to no upload works on
+/// its tables alone, whatever its commands import.
+#[test]
+fn each_command_works_on_the_uploads_only_where_it_claims_or_writes_an_asset() {
+    let program = asset_work_program();
+    let bound = program
+        .manifest
+        .clone()
+        .with_uploads(&program.uploads)
+        .assert_ok("the compiler's upload binding");
+    let work = |manifest: &pw_host::tables::Manifest, id: &str| {
+        manifest.work(program.component(id).imports.iter().map(String::as_str))
+    };
+    for (id, expected) in [
+        ("Keep", Work::Uploads),
+        ("Forget", Work::Uploads),
+        ("Note", Work::Tables),
+        ("Attached", Work::Tables),
+    ] {
+        assert_eq!(work(&bound, id), expected, "{id}");
+    }
+    assert_eq!(
+        work(&program.manifest, "Keep"),
+        Work::Tables,
+        "a program bound to no upload works on its tables alone"
+    );
+    // Each import by itself: a discard works on the uploads as a claim
+    // does; an asset table's read, or a table's write that keeps no asset,
+    // does not.
+    for (import, expected) in [
+        ("pw:uploads/post-image#discard", Work::Uploads),
+        ("pw:uploads/post-image#attached", Work::Tables),
+        ("pw:tables/assets#put", Work::Uploads),
+        ("pw:tables/assets#get", Work::Tables),
+        ("pw:tables/notes#put", Work::Tables),
+    ] {
+        assert_eq!(bound.work([import]), expected, "{import}");
+    }
+}
+
+/// **A command begun for its tables alone is refused asset work** (L7's
+/// G10), as on PostgreSQL, where it holds no uploads' namespace: it writes
+/// no table keeping an asset, and publishes no upload, and what it wrote
+/// before either is undone with it. Its notes it writes and commits.
+#[test]
+fn a_command_begun_for_its_tables_alone_is_refused_asset_work_as_on_postgresql() {
+    let p = asset_work_program();
+    let db = MemoryTables::new_with_uploads(p.tables, &p.uploads).assert_ok("bound adapter");
+    let mut c = db.begin_for(Work::Tables).assert_ok("an ordinary command");
+    c.write("pw:tables/notes#put", &[json!({"id":1,"text":"kept"})])
+        .assert_ok("its notes");
+    refused(
+        c.write("pw:tables/assets#insert", &[row(1, None)]),
+        "which keeps an asset, in a command begun for its tables alone",
+    );
+    refused(
+        c.propose_asset("PostImage", candidate('b')),
+        "a command begun for its tables alone publishes no upload",
+    );
+    // Its commit is refused as its first refusal was, as on PostgreSQL
+    // (the review's L5): the note it wrote before is not kept.
+    refused(
+        c.commit(),
+        "which keeps an asset, in a command begun for its tables alone",
+    );
+    assert!(visible(&db).is_none(), "no generation was published");
+    let mut c = db.begin_for(Work::Tables).assert_ok("another");
+    c.write("pw:tables/notes#put", &[json!({"id":2,"text":"kept"})])
+        .assert_ok("its notes");
+    c.commit().assert_ok("an ordinary command commits");
+    let mut c = db.begin().assert_ok("a command working on the uploads");
+    let r = c
+        .propose_asset("PostImage", candidate('b'))
+        .assert_ok("publishes");
+    c.write("pw:tables/assets#insert", &[row(1, Some(&r))])
+        .assert_ok("writes an asset's row");
+    c.commit().assert_ok("and commits");
+    assert_eq!(visible(&db), Some(r));
 }

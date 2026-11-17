@@ -90,6 +90,18 @@ pub(crate) trait DataLayer: Send + Sync {
     /// commits nothing.
     fn begin<'a>(&'a self, session: &str) -> Box<dyn Staged + 'a>;
 
+    /// **A command's writes, for what the command works on** (L7's G10,
+    /// ADR-0440 amended 2026-11-17): as [`DataLayer::begin`], told whether
+    /// the command works on the program's uploads, as its artifact's imports
+    /// say (`pw_host::tables::Manifest::work`). A program's declared tables
+    /// hold the uploads' namespace only for a command that does, and refuse
+    /// any other asset work. By default [`DataLayer::begin`]: a hand-written
+    /// layer declares no upload.
+    fn begin_for<'a>(&'a self, session: &str, work: pw_host::tables::Work) -> Box<dyn Staged + 'a> {
+        let _ = work;
+        self.begin(session)
+    }
+
     /// **The program's declared tables, as the engine's gate reads them**
     /// (track `data-path`, ADR-0338 D2), where this layer serves them: every
     /// call of the program is then made through the gate with them

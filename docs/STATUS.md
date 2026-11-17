@@ -2,6 +2,22 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**L7's G10, 2026-11-17: the uploads' namespace held only by the commands
+that work on uploads** (`wip/l7-upload-lock`). On PostgreSQL every command
+of a program declaring uploads held the upload namespace's lock for its
+life: they ran one at a time across every host, each paid six statements
+more, and a note waited five seconds behind a long image post, then failed.
+A command now works on the uploads only where its artifact's imports claim,
+publish or discard one, or write a table keeping an asset
+(`Manifest::work`). Any other takes no lock, costs what it costs where no
+upload is declared, and is refused asset work by both layers, so a wrong
+answer fails closed (ADR-0440, amended). It is held on memory and on
+PostgreSQL, through the adapter and the server, and by nineteen mutants,
+killed locally (`e14-d3-postgres-3`, `e14-row-ownership-3` and
+`e14-generic-upload-claims` record them in the pull request's verify). Its
+review's medium is repaired: a command holding the namespace is served its
+host's turn first, never behind the commands without it.
+
 **L7 begun, 2026-11-17: a window over an owned public table** (G5,
 `wip/l7-owned-windows`). A relation window's target may be an owned `public
 table`, which its owner writes and every reader reads, as the feed's

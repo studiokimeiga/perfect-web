@@ -2179,3 +2179,193 @@ finding, and four lows, each repaired.
   NEXT says why G5 went before G10; STATUS says the mutants were killed
   locally, as above; the decisions index has this amendment's line and the
   asset suite's.
+
+## Amended 2026-11-17: the namespace held by the commands that work on uploads alone (L7's G10)
+
+On PostgreSQL every command of a program that declares uploads held the
+upload namespace's advisory lock, from before its turn to its end
+(`PgTables::turn`, `assets::lock_lifetime`), and was held to the storage's
+namespace marker. "Exclusion and storage fencing" above says so: it
+"serializes upload-program commands across hosts, with no throughput
+claim", to be measured before L7 ports the feed (KNOWN_LIMITATIONS). The
+feed's port declares an upload, a post's image, so every like, follow and
+message of the feed would have run one at a time across every host, and
+waited five seconds at most for a long image post before failing.
+
+**Measured** (2026-11-17, the tests below, on PostgreSQL 18.6):
+
+- A command that wrote a note and nothing else ran nine statements, five
+  of them operations, where the same command in a program declaring no
+  upload runs three, one of them an operation (its `BEGIN`, its `put` and
+  its `COMMIT`). The six were the lock's `BEGIN`, `SET LOCAL
+  lock_timeout`, `pg_advisory_lock` and `COMMIT`, its release, and the
+  commit's `SET CONSTRAINTS ALL IMMEDIATE`, besides the storage marker's
+  check. The cost test pins them.
+- While another session held the namespace, a command writing a note
+  through the server waited its five seconds and failed (PostgreSQL's
+  55P03, the lock's timeout).
+
+**What the lock gives, and to whom.** Read in the code, it gives six
+things:
+1. isolated registry updates: `prepare` reads a generation's counts and
+   `persist` writes them whole;
+2. a fresh snapshot for `propose_asset`'s live lookup and the tombstone's
+   refusal, the lock taken before `BEGIN`;
+3. collection after `COMMIT` on the same connection, still locked;
+4. an unanswered commit's proof (`inspect_asset_interaction` locks again);
+5. the storage marker's check;
+6. a migration's exclusion.
+
+A command that writes no table keeping an asset, and claims, publishes and
+discards no upload, needs none of them: `prepare` returns before any
+registry statement, and there is nothing to keep or collect.
+
+**Decision.** What a command works on is decided before its turn, from
+its artifact's imports, what it can call (`Manifest::work`, a
+`pw_host::tables::Work`):
+- **`Work::Uploads`**: where the program declares uploads, a command that
+  claims, publishes or discards one (a `pw:uploads/` import but
+  `attached`) or writes a table keeping an asset. It holds the namespace
+  as every command did.
+- **`Work::Tables`**: every other command. It takes no lock and is held
+  to no marker, and its commit runs no asset check: it costs what it costs
+  where no upload is declared.
+
+The server begins each command for its work (`DataLayer::begin_for`):
+- on PostgreSQL by `PgTables::begin_for` or, fenced on its session, by
+  `begin_fenced_for`;
+- on memory by `MemoryTables::begin_for`.
+
+`begin` and `begin_fenced` still begin for the uploads, so housekeeping,
+collection, inspection and a migration keep their exclusion. A scheduled
+run's error, recorded with no component run, works on its tables alone.
+
+**Fail closed.** A command begun for its tables alone is refused asset
+work, on both layers alike:
+- a write of a table keeping an asset;
+- a publication (`propose_asset`);
+- on PostgreSQL, a claim's receipt marker, and `prepare` behind them all.
+
+So an import the classifier answered wrongly fails that command every
+time it runs, and nothing it wrote is kept. It never runs unlocked.
+
+**Order.** The decision is made before the turn, and it only removes
+acquisitions from the order this decision states: place, session fence,
+namespace, turn, `BEGIN`. Nothing waits for the namespace after its turn,
+so no wait can close a cycle. One wait is new: a command holding the
+namespace can now find its host's turn held by a command that holds none,
+where before every turn's holder held the namespace too. Every host's
+upload commands wait for that namespace, five seconds at most, so its
+holder is served its host's turn before any other (`Inner::take_turn`), and
+waits for the command running now alone; the others are served in their
+arrival order. The namespace is one command's at a time on every host, so
+at most one such holder waits.
+
+**Consequences.**
+- Commands working on their tables alone now overlap across hosts, held
+  apart only by the database's row locks and its serializable checks, as
+  a program declaring no upload's are. A serialization failure between two
+  of them is answered as it is there.
+- So may a command working on the uploads and an ordinary one, where
+  before nothing else of the program ran beside it: a serialization
+  failure (40001) or a deadlock (40P01) refuses it as any command is
+  refused. One refused after its keep leaves its bytes kept and unserved,
+  the orphan "Exclusion and storage fencing" names.
+- The gain is at most the number of hosts: each host still runs one
+  command at a time (its turn).
+- L7's modeling keeps hot commands off the tables that keep assets. A like
+  is a row of its own table, not its post's: a like written into the
+  post's row would write a table keeping an asset, and hold the namespace.
+- G3's cascades must count a table a cascade reaches as written by the
+  command that starts it.
+- "Built" above says every command holds the namespace, so no other
+  command writes the asset registry meanwhile, and `persist`'s guard is
+  unreachable. That now holds of every command that writes a table keeping
+  an asset or publishes an upload, the only commands that write the
+  registry, each of which holds the namespace.
+
+**Not chosen.**
+- **A shared lock for the other commands, exclusive for upload work.**
+  The other commands would keep their round trips, their five seconds and
+  the marker's check. PostgreSQL queues a shared request behind a waiting
+  exclusive one, so one waiting image post would stall every like.
+- **The lock's four statements in one round trip.** Upload work is now
+  the rare command; left until a measure asks for it.
+- **A lock per generation**, for upload work in parallel. Each lock
+  would be taken after the transaction's snapshot, so a wait would become
+  a refusal and need new proofs. Left until upload commands are measured
+  to contend.
+
+**Acceptance.**
+
+- `runtime/pw-table-memory/tests/asset_rows.rs`:
+  - `each_command_works_on_the_uploads_only_where_it_claims_or_writes_an_asset`:
+    the classifier, by compiled commands and by each kind of import;
+  - `a_command_begun_for_its_tables_alone_is_refused_asset_work_as_on_postgresql`.
+- `runtime/pw-table-postgres/tests/asset_rows.rs`:
+  - `an_ordinary_command_waits_on_no_namespace_holder_where_an_uploads_one_does`,
+    on two hosts of one schema;
+  - `an_ordinary_command_costs_what_it_costs_where_no_upload_is_declared`;
+  - `a_command_begun_for_its_tables_alone_is_refused_asset_work`, its
+    commit refused after: the note it wrote before is not kept;
+  - `an_ordinary_command_commits_once_the_storage_marker_is_gone`;
+  - `a_namespace_holder_takes_its_hosts_turn_before_the_ordinary_commands_waiting`;
+  - `housekeepings_collection_waits_for_the_namespace_another_host_holds`.
+- `spikes/own-renderer/server/src/tests/upload_bridge.rs`:
+  `a_command_working_on_no_upload_is_not_held_up_by_the_namespace_lock_on_postgresql`.
+  While another session holds the namespace, an anonymous reader's note
+  and a signed-in reader's commit at once, each fenced on its session.
+  `Remove` still waits for the lock, and is not committed. The test fails
+  where every command holds the namespace.
+  `a_staging_for_its_tables_alone_is_refused_asset_work_in_memory` and
+  `..._on_postgresql`: the unfenced path, begun at its first need.
+- Mutants, nineteen, each killed locally (`e14-d3-postgres-3`,
+  `e14-row-ownership-3` and `e14-generic-upload-claims` record them in the
+  pull request's verify):
+  - `scripts/d3_postgres_mutations.py` (the uploads' part), seven: a
+    command working on its tables alone holding the namespace; its asset
+    write, its publication and its receipt admitted; its commit checking
+    asset rows; the namespace's holder served its host's turn in arrival
+    order; housekeeping's collection holding no namespace;
+  - `scripts/row_ownership_mutations.py`, eight: the classifier's six (a
+    claim not upload work, an attached read upload work, an asset table's
+    write not upload work, its read upload work, any table's write upload
+    work, an unbound program's commands working on uploads) and memory's
+    two refusals;
+  - `scripts/generic_upload_claims_mutations.py`, four: the server holding
+    the namespace for a command working on no upload, on its unfenced path
+    and its fenced one, and memory's staging not told what it works on.
+
+  Three are re-anchored on the lines this changed, and killed as before:
+  two of `scripts/durable_tables_mutations.py`'s (a command not fenced on
+  its reader's session; no staged predicate reads), and d3's "two commands
+  of a host run at once", on the turn's wait. `complete_scheduled_error`
+  working on its tables alone changes its cost alone, and no test holds
+  it.
+
+**Reviewed** independently (2026-11-17, at `b39d62cb`): no high finding,
+one medium and six lows, each repaired.
+
+- **M1, a command holding the namespace waited for its host's turn behind
+  ordinary commands.** The turn went to whichever waiter took it first,
+  arrivals among them, while the namespace stayed held and every other
+  host's upload commands waited for it, five seconds at most. The record
+  said no new wait appeared. The holder is now served first, the others in
+  their arrival order (Order, above). Cause: removing the namespace from
+  ordinary commands made the turn contended where its holders had been
+  alone. Prevention: the turn's test holds a holder to the next turn
+  behind two waiting commands, and a mutant serves it in arrival order.
+- **L1**: the row-ownership mutants are in that script's third part,
+  `e14-row-ownership-3`, which the record now names.
+- **L2**: `docs/DECISIONS.md` indexes this amendment.
+- **L3**: mutants for an asset table's read counted as upload work and for
+  housekeeping's collection holding no namespace, with collection's test;
+  the backstop in `prepare` and the scheduled error's work are named as
+  having none, and why.
+- **L4**: the ordinary command beside a held namespace is timed while it
+  runs; its count of waiters, asked once it had committed, said nothing.
+- **L5**: a command refused asset work is failed by its first refusal, on
+  both layers, so its commit is refused too, whoever calls the adapter;
+  the server's trap no longer stands alone behind it.
+- **L6**: the consequences above name the failures a command working on
+  the uploads can now meet, and which commands write the registry.

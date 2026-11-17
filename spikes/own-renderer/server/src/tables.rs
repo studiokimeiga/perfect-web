@@ -351,10 +351,20 @@ impl DataLayer for TablesLayer {
         read.map_err(|e| format!("`{}`'s tables: {e:?}", contract.component_id))
     }
 
-    fn begin<'a>(&'a self, _session: &str) -> Box<dyn Staged + 'a> {
+    fn begin<'a>(&'a self, session: &str) -> Box<dyn Staged + 'a> {
+        self.begin_for(session, pw_host::tables::Work::Uploads)
+    }
+
+    /// A command begun for what it works on (L7's G10): one for its tables
+    /// alone is refused asset work, as the PostgreSQL layer refuses it.
+    fn begin_for<'a>(
+        &'a self,
+        _session: &str,
+        work: pw_host::tables::Work,
+    ) -> Box<dyn Staged + 'a> {
         Box::new(TablesStaging {
             tables: &self.tables,
-            turn: match self.tables.begin() {
+            turn: match self.tables.begin_for(work) {
                 Ok(command) => Turn::Open(command),
                 Err(e) => Turn::Failed(format!("the tables began no command: {e:?}")),
             },

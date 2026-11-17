@@ -5,7 +5,7 @@ include!("../../pw-table-memory/tests/support/owned.rs");
 include!("../../pw-table-memory/tests/support/assets.rs");
 mod common;
 use pw_host::assets::{Descriptor, Namespace, Reference, Storage};
-use pw_table_postgres::{Interaction, Options, PgTables, Records, Uploads};
+use pw_table_postgres::{Interaction, Options, PgTables, Records, Uploads, Work};
 use sha2::{Digest, Sha256};
 use std::{collections::BTreeSet, io, sync::Mutex};
 
@@ -2104,4 +2104,282 @@ fn a_command_is_refused_once_its_storage_namespace_marker_is_gone() {
     seed(&db);
     store.names.lock().unwrap().clear();
     refused(db.begin(), "upload storage namespace: missing marker");
+}
+
+/// [`asset_work_program`]'s tables at `url`, bound to `store`, a namespace
+/// of `fresh`'s bytes where the schema records none yet.
+fn open_work(url: &str, s: &common::Scratch, store: &Arc<ByteStore>, fresh: u8) -> PgTables {
+    let p = asset_work_program();
+    PgTables::open_with_uploads(
+        url,
+        s.schema(),
+        p.tables,
+        Options::default(),
+        Uploads {
+            metadata: p.uploads,
+            store: store.clone(),
+            fresh_namespace: Namespace::from_bytes([fresh; 16]),
+        },
+    )
+    .assert_ok("the bound work program")
+}
+
+/// **A command begun for its tables alone waits on no namespace holder**
+/// (L7's G10, ADR-0440 amended 2026-11-17): while one host's command holds
+/// the uploads' namespace, another host's ordinary command writes its notes
+/// and commits, waiting on no advisory lock, where a command working on
+/// the uploads still waits for the namespace, and begins once it is given
+/// back.
+#[test]
+fn an_ordinary_command_waits_on_no_namespace_holder_where_an_uploads_one_does() {
+    let Some(url) = common::database() else {
+        return;
+    };
+    let s = common::Scratch::new(&url, "asset_ordinary");
+    let store = Arc::new(ByteStore::default());
+    let first = open_work(&s.url, &s, &store, 1);
+    let name = format!("asset_ordinary_{}", std::process::id());
+    let other = Arc::new(open_work(&common::named(&url, &name), &s, &store, 2));
+    let held = first.begin().assert_ok("a command holding the namespace");
+    let started = std::time::Instant::now();
+    let mut note = other
+        .begin_for(Work::Tables)
+        .assert_ok("an ordinary command begins beside it");
+    note.write("pw:tables/notes#put", &[json!({"id":1,"text":"beside"})])
+        .assert_ok("its notes");
+    note.commit()
+        .assert_ok("and commits, the namespace held on another host");
+    // Within the namespace lock's five seconds (the review's L4: asked once
+    // it had committed, the number of waiters said nothing).
+    let took = started.elapsed();
+    assert!(
+        took < std::time::Duration::from_secs(2),
+        "it waited on no namespace: {took:?}"
+    );
+    let waiter = {
+        let other = Arc::clone(&other);
+        std::thread::spawn(move || other.begin().map(drop))
+    };
+    assert!(
+        asset_until(|| common::waiting_on_advisory(&s, &name) == 1),
+        "a command working on the uploads still waits for the namespace"
+    );
+    drop(held);
+    waiter
+        .join()
+        .expect("the waiter exited")
+        .assert_ok("and begins once the namespace is given back");
+}
+
+/// **An ordinary command costs what it costs where no upload is declared**
+/// (L7's G10): the same note written and committed takes as many
+/// statements, and as many of them operations, in a program declaring
+/// uploads, begun for its tables alone, as in one declaring none. A command
+/// working on the uploads pays the namespace: its lock and its release,
+/// and the commit's checks of its asset rows.
+#[test]
+fn an_ordinary_command_costs_what_it_costs_where_no_upload_is_declared() {
+    let Some(url) = common::database() else {
+        return;
+    };
+    let store = Arc::new(ByteStore::default());
+    let bound_scratch = common::Scratch::new(&url, "asset_cost");
+    let bound = open_work(&bound_scratch.url, &bound_scratch, &store, 1);
+    let plain_scratch = common::Scratch::new(&url, "asset_cost_plain");
+    let plain = PgTables::open(
+        &plain_scratch.url,
+        plain_scratch.schema(),
+        notes_alone_program().tables,
+    )
+    .assert_ok("a program declaring no upload");
+    let cost = |db: &PgTables, work: Work, id: i64| {
+        let before = (db.statements(), db.operation_statements());
+        let mut c = db.begin_for(work).assert_ok("begins");
+        c.write("pw:tables/notes#put", &[json!({"id":id,"text":"a note"})])
+            .assert_ok("its note");
+        c.commit().assert_ok("commits");
+        (
+            db.statements() - before.0,
+            db.operation_statements() - before.1,
+        )
+    };
+    // Each kind measured after one of its own, its statements prepared.
+    cost(&bound, Work::Tables, 1);
+    cost(&plain, Work::Tables, 1);
+    cost(&bound, Work::Uploads, 100);
+    let ordinary = cost(&bound, Work::Tables, 2);
+    let without = cost(&plain, Work::Tables, 2);
+    let holding = cost(&bound, Work::Uploads, 3);
+    assert_eq!(
+        ordinary, without,
+        "an ordinary command pays for no namespace"
+    );
+    // G10's measure, every command's cost before it: the namespace's lock
+    // (`BEGIN`, `SET LOCAL lock_timeout`, `pg_advisory_lock`, `COMMIT`), its
+    // release, and the commit's `SET CONSTRAINTS ALL IMMEDIATE`; six
+    // statements, four of them operations, where the note itself is three.
+    assert_eq!(
+        (holding.0 - ordinary.0, holding.1 - ordinary.1),
+        (6, 4),
+        "a command working on the uploads holds the namespace: {holding:?}, an ordinary one {ordinary:?}"
+    );
+}
+
+/// **A command begun for its tables alone is refused asset work** (L7's
+/// G10): holding no namespace, it writes no table keeping an asset,
+/// publishes no upload and marks no claim's receipt; what it wrote before
+/// is undone with it, and nothing is kept.
+#[test]
+fn a_command_begun_for_its_tables_alone_is_refused_asset_work() {
+    let Some(url) = common::database() else {
+        return;
+    };
+    let s = common::Scratch::new(&url, "asset_tables_alone");
+    let store = Arc::new(ByteStore::default());
+    let db = open_work(&s.url, &s, &store, 1);
+    let mut c = db.begin_for(Work::Tables).assert_ok("an ordinary command");
+    c.write("pw:tables/notes#put", &[json!({"id":1,"text":"undone"})])
+        .assert_ok("its notes");
+    refused(
+        c.write("pw:tables/assets#insert", &[row(1, None)]),
+        "which keeps an asset, in a command begun for its tables alone",
+    );
+    refused(
+        c.propose_asset("PostImage", candidate('b'), Arc::from(b"abc".as_slice())),
+        "a command begun for its tables alone publishes no upload",
+    );
+    refused(
+        c.require_upload_receipt(),
+        "a command begun for its tables alone claims no upload",
+    );
+    // Its commit is refused as its first refusal was (the review's L5):
+    // whoever calls the adapter, the note it wrote before is not kept.
+    refused(
+        c.commit(),
+        "which keeps an asset, in a command begun for its tables alone",
+    );
+    assert_eq!(
+        s.texts("SELECT count(*)::text FROM \"Notes\""),
+        ["0"],
+        "its note is not kept"
+    );
+    assert_eq!(store.keeps.load(Ordering::SeqCst), 0, "nothing was kept");
+    assert!(
+        s.texts("SELECT generation FROM pw_asset_generations")
+            .is_empty(),
+        "no generation was recorded"
+    );
+}
+
+/// **An ordinary command needs no storage marker** (L7's G10): once the
+/// blob root's marker is gone, a command working on the uploads is refused
+/// before its turn, as before (L5a's review, finding L4), and one begun for
+/// its tables alone, which touches no blob, writes its notes and commits.
+#[test]
+fn an_ordinary_command_commits_once_the_storage_marker_is_gone() {
+    let Some(url) = common::database() else {
+        return;
+    };
+    let s = common::Scratch::new(&url, "asset_marker_ordinary");
+    let store = Arc::new(ByteStore::default());
+    let db = open_work(&s.url, &s, &store, 1);
+    store.names.lock().unwrap().clear();
+    refused(db.begin(), "upload storage namespace: missing marker");
+    let mut c = db.begin_for(Work::Tables).assert_ok("an ordinary command");
+    c.write("pw:tables/notes#put", &[json!({"id":1,"text":"no blob"})])
+        .assert_ok("its notes");
+    c.commit().assert_ok("commits, touching no blob");
+}
+
+/// **A command holding the namespace takes its host's turn first** (G10's
+/// review, M1): every host's commands working on the uploads wait for that
+/// namespace, five seconds at most, so its holder waits for the command
+/// running now alone, never behind commands without it that came before it,
+/// or after. While an ordinary command holds the turn and two more wait for
+/// it, a command working on the uploads begins next; the two, in their
+/// order, after it.
+#[test]
+fn a_namespace_holder_takes_its_hosts_turn_before_the_ordinary_commands_waiting() {
+    let Some(url) = common::database() else {
+        return;
+    };
+    let s = common::Scratch::new(&url, "asset_turn_first");
+    let store = Arc::new(ByteStore::default());
+    let db = Arc::new(open_work(&s.url, &s, &store, 1));
+    let waits = Arc::new(AtomicUsize::new(0));
+    let told = Arc::clone(&waits);
+    db.tell_on_wait(move || {
+        told.fetch_add(1, Ordering::SeqCst);
+    });
+    let running = db
+        .begin_for(Work::Tables)
+        .assert_ok("an ordinary command holds the turn");
+    let (began, order) = std::sync::mpsc::channel();
+    let mut children = Vec::new();
+    for (n, work) in [(1, Work::Tables), (2, Work::Tables), (3, Work::Uploads)] {
+        let db = Arc::clone(&db);
+        let began = began.clone();
+        // A child asserts nothing: its answer is the test's to hold, on the
+        // test's own thread, where the strict producer reads a failure.
+        children.push(std::thread::spawn(move || {
+            let command = db.begin_for(work)?;
+            let _ = began.send(n);
+            std::thread::sleep(std::time::Duration::from_millis(50));
+            drop(command);
+            Ok::<(), pw_table_postgres::Error>(())
+        }));
+        assert!(
+            asset_until(|| waits.load(Ordering::SeqCst) == n),
+            "command {n} waits for the turn"
+        );
+    }
+    drop(running);
+    let served: Vec<usize> = (0..3)
+        .map(|_| {
+            order
+                .recv_timeout(std::time::Duration::from_secs(10))
+                .expect("each begins")
+        })
+        .collect();
+    assert_eq!(
+        served,
+        [3, 1, 2],
+        "the namespace's holder first, then the others in their order"
+    );
+    for child in children {
+        child
+            .join()
+            .expect("each exited")
+            .assert_ok("each began its turn");
+    }
+}
+
+/// **Housekeeping's collection holds the namespace** (G10's review, L3):
+/// it deletes a generation's bytes once no row names it, which a command
+/// publishing the same generation must not race, so it waits for the
+/// namespace another host holds, and collects once it is given back.
+#[test]
+fn housekeepings_collection_waits_for_the_namespace_another_host_holds() {
+    let Some(url) = common::database() else {
+        return;
+    };
+    let s = common::Scratch::new(&url, "asset_collect_waits");
+    let store = Arc::new(ByteStore::default());
+    let first = open_work(&s.url, &s, &store, 1);
+    let name = format!("asset_collect_{}", std::process::id());
+    let other = Arc::new(open_work(&common::named(&url, &name), &s, &store, 2));
+    let held = first.begin().assert_ok("a command holding the namespace");
+    let collecting = {
+        let other = Arc::clone(&other);
+        std::thread::spawn(move || other.collect_assets(1))
+    };
+    assert!(
+        asset_until(|| common::waiting_on_advisory(&s, &name) == 1),
+        "the collection waits for the namespace"
+    );
+    drop(held);
+    collecting
+        .join()
+        .expect("the collection exited")
+        .assert_ok("and collects once it is given back");
 }
