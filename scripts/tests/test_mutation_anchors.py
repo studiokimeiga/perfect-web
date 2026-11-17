@@ -65,5 +65,55 @@ class UnreadTests(unittest.TestCase):
         self.assertEqual(problems, [])
 
 
+class UnreadWordTests(unittest.TestCase):
+    """A script that runs the server's tests by a word of their names
+    (`uploads`, `blob`) lists every file holding one (L5's second review:
+    `upload_metadata_mutations.py` ran seven files its `RUST_SOURCES` did not
+    list)."""
+
+    COMMAND = ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin",
+               "pw-dev-server", "--", "sniff", "--format=pretty"]
+
+    def test_a_file_a_word_reaches_and_the_sources_omit_is_named(self):
+        reached = mutation_anchors.reached("sniff")
+        self.assertIn(SERVER / "uploads/sniff.rs", reached)
+        found = mutation_anchors.unread_word_tests(
+            SCRIPT, types.SimpleNamespace(SERVER=self.COMMAND, RUST_SOURCES=[SERVER / "uploads.rs"]))
+        self.assertEqual(len(found), len(reached - {SERVER / "uploads.rs"}), found)
+        self.assertTrue(any("uploads/sniff.rs" in f and "`sniff`" in f for f in found), found)
+
+    def test_every_file_listed_is_none_and_a_suites_command_is_read_too(self):
+        listed = sorted(mutation_anchors.reached("sniff"))
+        self.assertEqual(mutation_anchors.unread_word_tests(
+            SCRIPT, types.SimpleNamespace(SERVER=self.COMMAND, RUST_SOURCES=listed)), [])
+        # `render_merge_mutations.py`'s shape: suites of (command, environment).
+        suites = {"unit": (self.COMMAND, {"PW_STORE_TEST_LAYER": "memory"})}
+        self.assertTrue(mutation_anchors.unread_word_tests(
+            SCRIPT, types.SimpleNamespace(CARGO=suites, SOURCES={"host": MAIN})))
+
+    def test_a_test_is_named_with_its_module_and_one_inline_in_its_file(self):
+        names = {name for name, _ in mutation_anchors.server_tests()}
+        self.assertTrue(any(n.startswith("uploads::sniff::tests::") for n in names))
+        self.assertTrue(any(n.startswith("tests::uploads::") for n in names))
+        self.assertEqual(
+            {path for name, path in mutation_anchors.server_tests() if name.startswith("blob::assets::")},
+            {SERVER / "blob/assets.rs"})
+
+    def test_a_script_whose_sources_name_no_server_file_is_left(self):
+        # Its server kills, if it has any, are read some other way.
+        self.assertEqual(mutation_anchors.unread_word_tests(
+            SCRIPT, types.SimpleNamespace(SERVER=self.COMMAND,
+                                          SOURCES=[mutation_anchors.ROOT / "compiler/pw-core/src/lib.rs"])), [])
+        self.assertEqual(mutation_anchors.unread_word_tests(
+            SCRIPT, types.SimpleNamespace(SERVER=self.COMMAND)), [])
+
+    def test_every_script_here_lists_what_its_words_run(self):
+        problems = []
+        for path in sorted((mutation_anchors.ROOT / "scripts").glob("*_mutations.py")):
+            _, found = mutation_anchors.problems_in(path)
+            problems.extend(p for p in found if "runs the server's tests by" in p)
+        self.assertEqual(problems, [])
+
+
 if __name__ == "__main__":
     unittest.main()

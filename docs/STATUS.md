@@ -9,7 +9,11 @@ Corpus C34 holds each upload and asset rule: R-119 to R-124, beside A-061 and
 A-062 (52 accepted programs, 112 rejected, every charter category covered),
 and six generality pairs (generality 82 / 82). Writing it found eight
 refusals of four rules that named no boundary (charter §16.3); each now
-points at its rule's other side (ADR-0440, amended).
+points at its rule's other side (ADR-0440, amended). And the second L5
+review's four lows of code are repaired, each with its regression: a failed
+upload recipe shows its evidence, the database rule reads a script's URL
+wherever it names one, a render is held to its connection's backend, and a
+mutation script's filter words reach only files its sources list.
 
 **L5, declared uploads, 2026-11-17:** L5a and L5b land as one train from
 `wip/l5b-claims`, with master, #118 and #121 merged. Its full verify

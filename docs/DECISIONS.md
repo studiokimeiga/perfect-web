@@ -3460,3 +3460,4 @@ Protected feed and store data use the declared-table gate, accepted in part, the
 - Amended 2026-11-16: an outbox row leaves by age alone; `PgTables::forget_outbox`, which no host called since L3, is gone.
 - Amended 2026-11-17: each upload and asset refusal is told by a rule of its own (PW5604, PW5605, PW0371), and each asset test's refusal by its reason.
 - Amended 2026-11-17: the corpus holds each upload and asset rule (C34: R-119 to R-124, A-061, A-062 and six generality pairs), and each of their refusals names its boundary.
+- Amended 2026-11-17: the second L5 review's four lows of code: a failed upload recipe shows its evidence, a script's database URL is read wherever it names one, a render is held to its connection's backend (a mutant only that kills), and a mutation script's filter words reach only files its sources list (`mutation_anchors.py`).

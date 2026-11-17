@@ -1944,3 +1944,49 @@ span, with three mutants); PW5604's note at an upload of the other's name
 that emits nothing; three notes whose labels said what was not so, or that
 spanned the declaration they were in; and two words of PROFILES' and
 R-124's.
+
+## Amended 2026-11-17: the second L5 review's four lows of code (L5's follow-up)
+
+The integrator's, under the owner's delegation, from the independent review
+of L5's repairs (`4d3f7ce5`, `41a73a48`; "Landing (L5)", above), whose four
+lows of code it sent here. Each is repaired with a regression that fails
+without it.
+
+- **A failed upload recipe shows its evidence.** The justfile runs recipes
+  under `bash -euo pipefail`, so the three upload recipes'
+  `{ ...; } > FILE 2>&1; status=$?; cat FILE` stopped the shell at a failed
+  group, and a failing run on a developer's machine said only just's own
+  error line. Each takes the status in the group's own `|| status=$?`.
+  `test_failed_recipes_show_their_evidence.py` runs each recipe by `just`
+  under the justfile's settings with its script's stand-in failing and holds
+  what the recipe says to its evidence's header and the script's words (it
+  fails on the three as they were), and refuses a `status=$?` that errexit
+  never lets a failure reach in any recipe.
+- **A script's database URL is read wherever it names one.** The database
+  rule (`test_a_recipe_that_reads_a_database_is_dealt_beside_one`) saw a
+  URL's name only as a call's literal argument, so the five scripts that
+  read theirs in a loop were found by their recipes' bodies alone, and
+  nothing showed the reading finds any. A script reads one where its code
+  holds a string that is exactly a name (`reads_a_database_url`), a longer
+  string being the code a mutant changes; a test of its own kills three
+  wrong readings (none, the old one, any substring).
+- **A render reuses its connection, not only its count.** The render-merge
+  test killed "an idle connection is never taken again" by the count of
+  open connections, which the mutant never lowers for the one it drops; a
+  render that closed its idle connection and opened another, keeping the
+  count right, passed. The test now holds each render to the backend
+  (`pg_backend_pid()`) the last one gave back, and a mutant of exactly that
+  fault, "an idle connection is closed and another opened, the count kept",
+  is killed by it alone (run locally on PostgreSQL 18.6: the count held at
+  one, the backend moved from 2233 to 2234). The comments say what the
+  first mutant does: it drops and reconnects, uncounted.
+- **upload-metadata's validator lists what its filter runs.** Its server
+  command runs the tests whose names hold `uploads` or `blob`, in thirteen
+  files; its `RUST_SOURCES` listed six, so a kill at an assertion in another
+  was INVALID (L5's verifies, at `uploads/generic_lease_tests.rs`). It lists
+  all thirteen, `tests/upload_bridge.rs` among them (one of its tests is
+  named for a blob). `mutation_anchors.py`, which preflight and `just ci`
+  run on every change, now reads a script's server filter words as it read
+  its module filters: each file holding a test a word runs must be one of
+  the script's sources, where those sources name a server file at all.
+

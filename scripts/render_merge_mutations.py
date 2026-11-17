@@ -49,7 +49,7 @@ served ones with the store on PostgreSQL, and NEXT 4b's counts
 (`render_merge::`, `tests::bounded_statements::`), which needs
 PW_STORE_DATABASE_URL and PW_FEED_DATABASE_URL; `resource`, pw-resource's
 `read_as_of` tests; `unit`, the merge's own tests alone; `bound`, the
-bound's own test alone (each of the last two for a control the whole suite
+bound's own tests alone (each of the last two for a control the whole suite
 cannot run safely: it says why); `debug`, the development server's debug
 build, its checks read from its binary (`debug_checks`). Each other suite's
 result is read by `cargo_test_results` (ADR-0352): a command that does not
@@ -372,6 +372,18 @@ MUTANTS = [
         "            while let Some(c) = seats.idle.pop() {\n",
         "            while let Some(c) = seats.idle.pop().filter(|_| false) {\n",
     ),
+    # The count kept right while the connection is not reused: each render
+    # closes the idle one and opens another (L5's second review). Only the
+    # backend each render reads on tells it.
+    (
+        "an idle connection is closed and another opened, the count kept",
+        "bound",
+        FEED_PG,
+        "                if !c.is_closed() {\n"
+        "                    return Ok(c);\n"
+        "                }\n",
+        "                drop(c);\n",
+    ),
     (
         "a render's transaction ends after every read",
         "postgres",
@@ -518,10 +530,12 @@ CARGO = {
     # past its end keeps its read transaction open on PostgreSQL, and a
     # served test's schema, dropped at its end, would wait for it for good.
     "unit": (TESTS + ["render_merge::tests::"], {}),
-    # The bound's own tests alone: connections never taken again from the
-    # idle ones pile up, one for each render, which the whole suite's renders
-    # would push past the shared database's 100. The second, renders one
-    # after another, each reading (L5's verify 43929087203: the first's
+    # The bound's own tests alone: an idle connection never taken again is
+    # dropped and another opened for each render, so the count of open ones,
+    # never told of the dropped, climbs past the bound, and the whole
+    # suite's renders would wait on a bound they never get back under. The
+    # second, renders one after another, each reading, holds them to one
+    # connection and one backend (L5's verify 43929087203: the first's
     # renders, one session's, mostly read nothing, and that mutant lived).
     "bound": (
         TESTS

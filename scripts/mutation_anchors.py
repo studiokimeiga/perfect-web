@@ -24,9 +24,15 @@ script whose `TESTS` filters the server's tests by module (`tests::owned_clock::
 must list that module's file in its `SOURCES`, since a failure is accepted
 only at an assertion of a file it lists. #116 added the filter alone, and its
 verify found three mutants INVALID (40 minutes of CI) where this finds it at
-once.
+once. So must a script that runs them by a word of their names (`uploads`,
+`a_condition_`): each file holding a test whose name, as cargo reads it with
+its module's, has that word (L5's second review, 2026-11-17:
+`upload_metadata_mutations.py`'s `uploads blob` ran seven files its
+`RUST_SOURCES` did not list, one of which made a kill INVALID in two full
+verifies).
 """
 
+import functools
 import importlib.util
 import pathlib
 import re
@@ -73,6 +79,7 @@ def problems_in(script):
                 f"{script.name}: {what}: applied in {path.relative_to(ROOT)}, and not restored"
             )
     problems.extend(unread_tests(script, module))
+    problems.extend(unread_word_tests(script, module))
     return len(mutants), problems
 
 
@@ -94,10 +101,82 @@ def module_file(filter_text):
 
 
 def flat(value):
-    """Every leaf of nested lists and tuples, in order."""
+    """Every leaf of nested lists, tuples and a dict's values, in order."""
+    if isinstance(value, dict):
+        return flat(list(value.values()))
     if isinstance(value, (list, tuple)):
         return [leaf for item in value for leaf in flat(item)]
     return [value]
+
+
+TEST_FN = re.compile(r"#\[test\]\s*(?:#\[[^\]]*\]\s*)*(?:pub(?:\([^)]*\))?\s+)?fn\s+(\w+)")
+INLINE_MOD = re.compile(r"^[ \t]*(?:pub(?:\([^)]*\))?\s+)?mod\s+(\w+)\s*\{", re.M)
+
+
+@functools.lru_cache(maxsize=None)
+def server_tests():
+    """Each of the server's tests as cargo names it, with its file: the
+    file's module (`uploads::sniff`), a module inline in it where the test
+    follows one (`tests`), and the test's own name. Read from the source, so
+    a module nested deeper than one inline level is read as its first."""
+    found = []
+    for path in sorted(SERVER.rglob("*.rs")):
+        text = path.read_text()
+        if "#[test]" not in text:
+            continue
+        parts = path.relative_to(SERVER).with_suffix("").parts
+        base = [p for p in parts if p not in ("main", "mod")]
+        mods = [(m.start(), m.group(1)) for m in INLINE_MOD.finditer(text)]
+        for test in TEST_FN.finditer(text):
+            inline = [name for at, name in mods if at < test.start()][-1:]
+            found.append(("::".join(base + inline + [test.group(1)]), path))
+    return tuple(found)
+
+
+def reached(word):
+    """The files of the server's tests a filter word runs: cargo runs each
+    test whose name, with its module's, holds the word."""
+    return {path for name, path in server_tests() if word in name}
+
+
+def commands(value):
+    """Each `cargo test` command naming the server, wherever a script's
+    value holds one: a list, or a suite's (command, environment) tuple."""
+    if isinstance(value, dict):
+        return [c for v in value.values() for c in commands(v)]
+    if isinstance(value, (list, tuple)):
+        if value[:2] in (["cargo", "test"], ("cargo", "test")) and all(isinstance(w, str) for w in value):
+            return [list(value)] if "pw-dev-server" in value else []
+        return [c for v in value for c in commands(v)]
+    return []
+
+
+def unread_word_tests(script, module):
+    """A server test a script runs by a word of its name whose file none of
+    its `*SOURCES` lists: its failures would be INVALID, never kills. Only a
+    script whose sources name a server file reads the server's kills by
+    them; another reads them some other way, and is left."""
+    lists = [v for k, v in vars(module).items() if k.endswith("SOURCES")]
+    listed = {pathlib.Path(s).resolve() for s in flat(lists) if isinstance(s, (str, pathlib.Path))}
+    server = SERVER.resolve()
+    if not any(server in p.parents for p in listed):
+        return []
+    words = set()
+    for value in vars(module).values():
+        for command in commands(value):
+            if "--" in command:
+                after = command[command.index("--") + 1:]
+                words.update(w for w in after if not w.startswith("-") and not MODULE_FILTER.match(w))
+    unlisted = {}
+    for word in sorted(words):
+        for path in reached(word):
+            if path.resolve() not in listed:
+                unlisted.setdefault(path, []).append(f"`{word}`")
+    return [
+        f"{script.name}: a command runs the server's tests by {' and '.join(by)}, and its "
+        f"sources list not {path.relative_to(ROOT)}: its failures would be INVALID"
+        for path, by in sorted(unlisted.items())
+    ]
 
 
 def unread_tests(script, module):

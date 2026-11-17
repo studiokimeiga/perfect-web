@@ -478,14 +478,18 @@ fn on_postgres_a_render_past_the_bound_waits_for_a_seat() {
 }
 
 /// **On PostgreSQL, a render takes an idle connection again**: renders one
-/// after another, each reading in a seat of its own, hold one connection
+/// after another, each reading in a seat of its own, read on one connection
 /// between them, each given back to the idle ones as its render ends and
-/// taken again by the next. Were an idle one never taken again, each render
-/// would open one more, past the bound, and the whole suite's renders past
-/// the database's connections. The bound's test below saw it only where
-/// enough of its renders reached the database: its renders are one
-/// session's, the render merge answers their reads together, and in L5's
-/// verify (43929087203) the mutant lived.
+/// taken again by the next: one connection is ever open, and one backend
+/// (`pg_backend_pid()`) answers every render. Were an idle one never taken
+/// again, each render would drop it, closing it, and open another: a new
+/// backend each time, and an open count never told of the dropped one,
+/// which reaches 25 here. The bound's test below saw that only where enough
+/// of its renders reached the database: its renders are one session's, the
+/// render merge answers their reads together, and in L5's verify
+/// (43929087203) the mutant lived. The backend is the reuse itself (L5's
+/// second review): a render that closed its idle connection and opened
+/// another, keeping the count right, would pass the count alone.
 #[test]
 fn on_postgres_a_render_takes_an_idle_connection_again() {
     let Some(url) = store_database() else { return };
@@ -500,6 +504,24 @@ fn on_postgres_a_render_takes_an_idle_connection_again() {
         open, 1,
         "one connection, taken again by each render, where {open} were opened"
     );
+    let backend = || -> i32 {
+        renders
+            .seat()
+            .read(|c| {
+                c.query_one("SELECT pg_backend_pid()", &[])
+                    .map(|row| row.get::<_, i32>(0))
+                    .map_err(|e| e.to_string())
+            })
+            .expect("a render's backend")
+    };
+    let first = backend();
+    for _ in 0..RENDER_CONNECTIONS {
+        assert_eq!(
+            backend(),
+            first,
+            "each render reads on the connection the last one gave back"
+        );
+    }
 }
 
 /// **On PostgreSQL, a render that waits past its limit for a seat fails,
