@@ -378,8 +378,11 @@ codes! {
     // by any key, index or whole where bounded, and written by its owner
     // alone; its key still leads with its owner, so no reader writes a key
     // another's row would hold.
+    // L7's G5 (ADR-0440, amended 2026-11-17): nor does a relation window
+    // read one, which would give its rows to other readers; a window reads
+    // a table no one owns, or a `public` one.
     OWNED_READ_BY_ITS_READER = "PW0368" / owned_read_by_its_reader / 1, DeclarationRules,
-        "an owned table's key leads with its owner, and one that is not `public` is read by its reader alone: each index leads with its owner or a field it shares with, a unique index holds its owner, no bound counts its rows across owners, and it is never read whole";
+        "an owned table's key leads with its owner, and one that is not `public` is read by its reader alone: each index leads with its owner or a field it shares with, a unique index holds its owner, no bound counts its rows across owners, it is never read whole, and no relation window reads it";
     PRIVATE_FIELD_UNSEEN = "PW0369" / private_field_unseen / 1, DeclarationRules,
         "a private field is read by its owner alone: a field of an owned table's row that is not `public`, never its owner, a field it shares with, in its key, its order where it shares, or an index another reads by; and its seen row is the table's own name";
 
