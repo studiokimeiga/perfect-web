@@ -78,7 +78,7 @@ pub(super) fn check(
             message,
             span,
             vec![],
-            "use the generated reference of an upload held by this public table's source".into(),
+            "use the generated reference of an upload held by this table's source".into(),
         )
     };
     for (field, ty) in row.into_iter().flatten() {
@@ -131,8 +131,28 @@ pub(super) fn check(
                 a.field
             )));
         }
-        if t.owner.is_some() || !t.sharers().is_empty() || !t.private_fields().is_empty() {
-            out.push(err("an asset requires a public asset-bearing table".into()));
+        // **An asset's table is one every reader reads** (L7's G4,
+        // 2026-11-17): a table no one owns, or a `public table` its owner
+        // writes and every reader reads (ADR-0395's ruling 4, the feed's
+        // posts and their images). Never one read by its reader alone: an
+        // image is served to anyone by its hash, cached immutably and kept
+        // as one generation with every row naming its bytes. A `public` or
+        // unowned table keeping fields private or rows shared is refused by
+        // its own rules (PW0369, PW0370): one defect, one diagnostic
+        // (ADR-0112).
+        if t.read_by_its_reader() {
+            out.push(asset_malformed(
+                format!(
+                    "asset field `{}` requires a table every reader reads, but `{}` is read by \
+                     its reader alone",
+                    a.field, t.name
+                ),
+                asset.span.clone(),
+                vec![],
+                "declare it a `public table`, read by every reader and written by its owner \
+                 alone, or keep the image in a table no one owns"
+                    .into(),
+            ));
         }
         let Some(upload) = ws.visible_module(unit, &a.upload) else {
             out.push(err(format!(

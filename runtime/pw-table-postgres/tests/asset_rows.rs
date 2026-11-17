@@ -2383,3 +2383,202 @@ fn housekeepings_collection_waits_for_the_namespace_another_host_holds() {
         .expect("the collection exited")
         .assert_ok("and collects once it is given back");
 }
+
+/// [`owned_asset_program`]'s posts on PostgreSQL, bound to `store` (L7's
+/// G4, ADR-0440 amended 2026-11-17): a `public table` owned by its author,
+/// keeping an image.
+fn open_owned(s: &common::Scratch, store: &Arc<ByteStore>) -> PgTables {
+    let p = owned_asset_program();
+    PgTables::open_with_uploads(
+        &s.url,
+        s.schema(),
+        p.tables,
+        Options::default(),
+        Uploads {
+            metadata: p.uploads,
+            store: store.clone(),
+            fresh_namespace: Namespace::from_bytes([1; 16]),
+        },
+    )
+    .assert_ok("an owned public table binds")
+}
+
+/// One post, its image `image` of `bytes`, committed with its receipt `key`.
+fn posted(
+    db: &PgTables,
+    author: &str,
+    id: i64,
+    (image, bytes): (Descriptor, &[u8]),
+    key: &str,
+) -> Reference {
+    let mut c = db.begin().assert_ok("an author's command");
+    let r = c
+        .propose_asset("PostImage", image, Arc::from(bytes))
+        .assert_ok("their image");
+    c.write(
+        "pw:tables/posts#insert",
+        &[owned_post(author, id, Some(&r))],
+    )
+    .assert_ok("their post");
+    c.prepare()
+        .assert_ok("prepare")
+        .publish_with(record(key))
+        .assert_ok("their post commits");
+    r
+}
+
+/// [`candidate`]'s descriptor of the bytes `xyz`: a second image.
+fn xyz(generation: char) -> Descriptor {
+    let mut d = candidate(generation);
+    d.reference.key = hash(b"xyz");
+    d
+}
+
+/// **Two owners' posts at one id each keep their own image, on
+/// PostgreSQL** (L7's G4): a post's key leads with its author, so alice's
+/// post 1 and bob's are two rows. Bob's insert is checked against the rows
+/// the database holds at his key alone, author and id, as each delete is:
+/// alice's ends her image's one use alone, collected at its commit, and
+/// bob's post, count and bytes stay, until his delete of every post of his
+/// ends his.
+#[test]
+fn two_owners_posts_at_one_id_each_keep_their_own_image_on_postgresql() {
+    let Some(url) = common::database() else {
+        return;
+    };
+    let s = common::Scratch::new(&url, "asset_owned_ids");
+    let store = Arc::new(ByteStore::default());
+    let db = open_owned(&s, &store);
+    let a = posted(&db, ALICE, 1, (candidate('b'), b"abc"), "alice");
+    let b = posted(&db, BOB, 1, (xyz('c'), b"xyz"), "bob");
+    for (author, image) in [(ALICE, &a), (BOB, &b)] {
+        assert_eq!(
+            db.read("pw:tables/posts#get", &[json!(author), json!(1)])
+                .assert_ok("a post"),
+            owned_post(author, 1, Some(image)),
+            "{author}'s post 1 keeps their own image"
+        );
+    }
+    let counts = || {
+        s.texts(
+            "SELECT generation || ':' || count::text FROM pw_asset_references ORDER BY generation",
+        )
+    };
+    assert_eq!(
+        counts(),
+        [format!("{}:1", a.generation), format!("{}:1", b.generation)]
+    );
+    let mut c = db.begin().assert_ok("alice's delete");
+    c.write("pw:tables/posts#delete", &[json!(ALICE), json!(1)])
+        .assert_ok("her post 1");
+    c.commit().assert_ok("her delete commits");
+    assert_eq!(counts(), [format!("{}:1", b.generation)]);
+    assert_eq!(store.collections.load(Ordering::SeqCst), 1);
+    assert!(
+        db.read_asset("PostImage", &a.key, "png")
+            .assert_ok("her image")
+            .is_none()
+    );
+    assert_eq!(
+        db.read_asset("PostImage", &b.key, "png")
+            .assert_ok("his image is served still"),
+        Some((xyz('c'), b"xyz".to_vec()))
+    );
+    assert_eq!(
+        db.read("pw:tables/posts#get", &[json!(BOB), json!(1)])
+            .assert_ok("his post"),
+        owned_post(BOB, 1, Some(&b))
+    );
+    let mut c = db.begin().assert_ok("bob's delete");
+    c.write("pw:tables/posts#delete-of-author", &[json!(BOB)])
+        .assert_ok("every post of his");
+    c.commit().assert_ok("his delete commits");
+    assert!(counts().is_empty(), "every use ended");
+    assert_eq!(store.collections.load(Ordering::SeqCst), 2);
+}
+
+/// **A reference copied into another owner's post keeps its image after
+/// the first owner deletes theirs, on PostgreSQL** (L7's G4): bob's post
+/// copies alice's LIVE reference with no claim, and counts it a second
+/// time; alice's delete is no erasure, her image counted once and served,
+/// its bytes kept; bob's delete ends its last use, and collects it.
+#[test]
+fn a_reference_copied_into_another_owners_post_keeps_its_image_on_postgresql() {
+    let Some(url) = common::database() else {
+        return;
+    };
+    let s = common::Scratch::new(&url, "asset_owned_copy");
+    let store = Arc::new(ByteStore::default());
+    let db = open_owned(&s, &store);
+    let r = posted(&db, ALICE, 1, (candidate('b'), b"abc"), "alice");
+    let mut c = db.begin().assert_ok("bob's command");
+    c.write("pw:tables/posts#insert", &[owned_post(BOB, 7, Some(&r))])
+        .assert_ok("his post, her image's reference copied");
+    c.commit().assert_ok("a copy needs no claim");
+    let count = || s.texts("SELECT count::text FROM pw_asset_references");
+    assert_eq!(count(), ["2"]);
+    assert_eq!(store.keeps.load(Ordering::SeqCst), 1, "kept once");
+    let mut c = db.begin().assert_ok("alice's delete");
+    c.write("pw:tables/posts#delete", &[json!(ALICE), json!(1)])
+        .assert_ok("her post");
+    c.commit().assert_ok("her delete commits");
+    assert_eq!(count(), ["1"]);
+    assert_eq!(store.collections.load(Ordering::SeqCst), 0);
+    assert_eq!(
+        db.read_asset("PostImage", &r.key, "png")
+            .assert_ok("served while his post names it"),
+        Some((candidate('b'), b"abc".to_vec()))
+    );
+    let mut c = db.begin().assert_ok("bob's delete");
+    c.write("pw:tables/posts#delete", &[json!(BOB), json!(7)])
+        .assert_ok("his post");
+    c.commit().assert_ok("his delete commits");
+    assert!(count().is_empty(), "its last use ended");
+    assert_eq!(store.collections.load(Ordering::SeqCst), 1);
+    assert!(
+        db.read_asset("PostImage", &r.key, "png")
+            .assert_ok("no post names it")
+            .is_none()
+    );
+}
+
+/// **An owned asset table's write works on the uploads, on PostgreSQL**
+/// (L7's G4; G10's classifier unchanged): what `Manifest::work` answers for
+/// a post's write is the uploads, and a command begun for them writes and
+/// commits a post; one begun for its tables alone, holding no namespace,
+/// is refused the write, and its commit.
+#[test]
+fn an_owned_asset_tables_write_works_on_the_uploads_on_postgresql() {
+    let Some(url) = common::database() else {
+        return;
+    };
+    let s = common::Scratch::new(&url, "asset_owned_work");
+    let store = Arc::new(ByteStore::default());
+    let db = open_owned(&s, &store);
+    let program = owned_asset_program();
+    let bound = program
+        .manifest
+        .clone()
+        .with_uploads(&program.uploads)
+        .assert_ok("the compiler's upload binding");
+    let work = bound.work(program.component("Keep").imports.iter().map(String::as_str));
+    assert_eq!(work, Work::Uploads, "a post's write works on the uploads");
+    let mut c = db.begin_for(work).assert_ok("a command for its work");
+    c.write("pw:tables/posts#put", &[owned_post(ALICE, 1, None)])
+        .assert_ok("a post");
+    c.commit().assert_ok("commits");
+    let mut c = db.begin_for(Work::Tables).assert_ok("an ordinary command");
+    refused(
+        c.write("pw:tables/posts#put", &[owned_post(BOB, 1, None)]),
+        "which keeps an asset, in a command begun for its tables alone",
+    );
+    refused(
+        c.commit(),
+        "which keeps an asset, in a command begun for its tables alone",
+    );
+    assert_eq!(
+        s.texts("SELECT count(*)::text FROM \"Posts\""),
+        ["1"],
+        "alice's post alone"
+    );
+}

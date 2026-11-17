@@ -369,8 +369,12 @@ codes! {
     // ADR-0440's L5 (L5a's review, finding L7; its follow-up's review, L1):
     // a table's assets, each told by a rule of its own, where PW0361's (the
     // row, its key and its indexes) told them until 2026-11-17.
+    // L7's G4 (ADR-0440, amended 2026-11-17): an asset's table is one every
+    // reader reads, no one's or an owned `public table` (ADR-0395's ruling
+    // 4), whose image is served to anyone by its hash; never one read by its
+    // reader alone.
     TABLE_ASSET_MALFORMED = "PW0371" / table_asset_malformed / 1, DeclarationRules,
-        "a table keeps an upload only as an asset of a public table: one top-level field of its row, holding the exact generated reference of a public upload its source holds, associated once, and never a claim";
+        "a table keeps an upload only as an asset of a table every reader reads, one no one owns or a `public` one: one top-level field of its row, holding the exact generated reference of a public upload its source holds, associated once, and never a claim";
     // Its bound too (the review of the track, finding 2): a bound counts
     // every owner's rows, so a write refused by it would tell one owner how
     // many rows the others hold.

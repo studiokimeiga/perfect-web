@@ -2369,3 +2369,190 @@ one medium and six lows, each repaired.
   the server's trap no longer stands alone behind it.
 - **L6**: the consequences above name the failures a command working on
   the uploads can now meet, and which commands write the registry.
+
+## Amended 2026-11-17: an asset on an owned public table (L7's G4)
+
+An asset (`asset image from PostImage`) required a table no one owns, that
+keeps no field private and shares its rows with no one, at the compiler
+(PW0371, `compiler/pw-core/src/tables/assets.rs`) and at the host
+(`Manifest::with_uploads`: "upload binding: asset tables must be public").
+The feed's port keeps a post's image in its post, and a post is its
+author's: a `public table` owned by its author, written by them alone and
+read by every reader (ADR-0395's ruling 4), as G5's windows read it. "Next
+seam" above scoped assets to "public asset-bearing tables only" (line 642),
+and the rule read public as owned by no one.
+
+**Why an image is public, and what that would leak.** An image is public by
+construction, whichever row names it:
+
+- served to anyone by its hash, with no session: the upload route hands a
+  path under `serves` to `serve` with none
+  (`spikes/own-renderer/server/src/uploads.rs:664-665`), and `serve` reads a
+  generation by its declaration, key and kind alone, `404` where none is
+  LIVE (`:998-1054`);
+- cached by any cache for a year, immutable (`:1056-1070`);
+- kept once for its bytes: a publication whose hash names a LIVE
+  generation takes that generation, whoever's row named it first
+  (PostgreSQL's `propose_asset`,
+  `runtime/pw-table-postgres/src/assets/command.rs:203-232`; memory's
+  registry, `runtime/pw-host/src/assets/memory.rs:80-99`);
+- counted per declaration, never per row or owner
+  (`runtime/pw-host/src/assets/registry.rs:113-154`).
+
+None of this tells a reader anything of an owned `public table` that its
+rows do not: every reader reads them, and the references in them. Of a
+table read by its reader alone each would leak. Its image would be served
+to anyone holding its hash, and kept by caches past its row; its route's
+`200` or `404` would answer anyone asking whether some private row names
+some bytes; and its generation would be one with any public row's naming
+the same bytes. Private records are never made public merely to make an
+operation expressible ("Application modeling", lines 76-79).
+
+**Ownership never reaches the asset machinery.** The engine holds an owned
+`insert` or `put` to a row whose owner is its writer, and gives a delete
+its writer's handle in its key's first place
+(`runtime/pw-host/src/engine/table_owners.rs:132-157`). The adapter is given
+a plain write, and counts its references by the row's whole key, its owner
+among it:
+
+- memory's `uses`, by each touched key
+  (`runtime/pw-table-memory/src/assets.rs:132-161`);
+- PostgreSQL's `uses`, by its touched rows
+  (`runtime/pw-table-postgres/src/assets/command.rs:310-332`), which
+  `verify_rows` reads back joined on every key field (`:855-999`, the join
+  at `:915-920`).
+
+G10's `Manifest::work` asks whether a table keeps an asset, not whose its
+rows are (`runtime/pw-host/src/tables.rs:1006-1021`). So neither adapter,
+nor the upload bridge, nor the classifier changes.
+
+**Decision.**
+
+1. **An asset's table is one every reader reads**: one no one owns, or an
+   owned `public table`. One read by its reader alone (owned, not
+   `public`, with or without a sharer) keeps none, PW0371, in the rule's
+   new words: "requires a table every reader reads". The compiler asks
+   `read_by_its_reader()` (`compiler/pw-core/src/tables.rs:383-385`) alone
+   (`tables/assets.rs:134-156`).
+2. **A reference copied between owners' rows is allowed.** A write may
+   copy an exact LIVE reference of its declaration under its table's own
+   write authority, with no claim (line 652), and every reader of an owned
+   `public table` reads its references. The copy keeps the image served
+   after the first owner deletes their row: a generation's references are
+   counted per declaration, and only its last row's delete collects it
+   (`registry.rs:120-154`). A delete is not an erasure. What a user's
+   erasure takes (ADR-0384's H9: "every blob only those rows named"), and
+   whether it reaches a copy, is H9's to design.
+3. **One defect, one diagnostic** (ADR-0112, as G5 ruled for windows): a
+   `public` or unowned table that keeps a field private or shares its rows
+   is told so by its own rule alone, PW0369 or PW0370
+   (`compiler/pw-core/src/tables.rs:2307-2332`, `2341-2369`), not PW0371
+   beside it. The host asks all three of `tables.json` (`owner` and not
+   `public`, `shares`, `private`; `runtime/pw-host/src/tables.rs:960-971`),
+   the defence G5 gave windows: a manifest is held to the rule whole,
+   whoever wrote it. `from_json` refuses a public or unowned table that
+   shares or keeps a field private before it (`:786-788`, `:901-905`), so
+   no manifest reaches the last two parts, and no mutant holds them.
+4. **G3's cascades** (a delete that takes other owners' rows, not built):
+   a cascade into a table keeping an asset goes through the adapters'
+   write path, which counts its references, and the command that starts it
+   works on the uploads (`Work::Uploads`, G10). A database's own `ON DELETE
+   CASCADE` would take rows whose references the registry still counts,
+   their images served and never collected.
+
+**Consequences.**
+
+- The feed's post keeps its image in its own row, written by its author
+  alone and read by every reader.
+- An image can outlive its author's row in another's: their delete does
+  not take it down while another row names it.
+- A reference moved between rows (a delete and an insert; the identity
+  lifecycle's merge among them, one transaction by "Identity lifecycle
+  authority") nets to no change within one command. Split over two
+  commands, the first collects the image and the second is refused, the
+  reference no longer LIVE, as on a table no one owns.
+- A command no reader runs (a Clock's) claims no upload, each upload import
+  refusing it by name (`spikes/own-renderer/server/src/uploads/bridge.rs:166-184`);
+  it copies or drops references as any write does.
+
+**Not chosen.**
+
+- **Counts per owner**, so that an author's delete took their image from
+  every row: a copy would hold a count it cannot see, or be refused. That
+  is an erasure, not a delete.
+- **A private serving policy** for tables read by their reader alone (an
+  image behind its reader's session, cached privately, shared with no
+  public row): no port needs one.
+
+**Acceptance.** Each test below failed on the code before it: the
+compiler's at the rule or its words, the others at their program's build
+or its binding ("asset tables must be public").
+
+- `compiler/pw-core/tests/table_assets.rs`:
+  - `an_owned_public_tables_asset_compiles_as_every_reader_reads_it`: with
+    a command that claims, publishes and puts its author's own post, it
+    compiles with no diagnostic and builds every component, its tables.json
+    naming the owner, the word and the asset;
+  - `an_asset_on_a_table_read_by_its_reader_alone_is_refused_beside_its_valid_neighbor`:
+    owned and not `public`, alone, shared or keeping a field private, it is
+    PW0371 alone, in its words; each neighbor, the image an ordinary field,
+    is valid;
+  - `a_tables_own_defect_is_not_refused_again_as_its_asset`: a `public` or
+    unowned table keeping a field private is PW0369 alone, and one sharing
+    its rows PW0370 alone;
+  - `assets_require_the_actual_public_reference_field_and_held_source`: its
+    case of an unowned table keeping its image private expected PW0371,
+    and is PW0369 alone.
+- `runtime/pw-table-memory/tests/compiled_assets.rs`:
+  - `an_owned_public_tables_asset_binds_at_the_host`: the compiler's
+    manifests bind, and a layer is made over them;
+  - `otherwise_valid_owned_data_cannot_be_forged_into_a_public_asset_binding`:
+    an association forged onto a table read by its reader alone is refused
+    in the host's new words, and its `public` neighbor binds it.
+- `runtime/pw-table-memory/tests/asset_rows.rs`, over an owned public
+  program (`owned_asset_program`, in `support/assets.rs`):
+  - `two_owners_posts_at_one_id_each_keep_their_own_image_until_its_owner_deletes`:
+    alice's post 1 and bob's keep their own images; her delete collects
+    hers alone, and his delete of every post of his, by his key's prefix,
+    his;
+  - `a_reference_copied_into_another_owners_post_keeps_its_image_after_the_first_deletes`:
+    counted twice; once, and served, after her delete; collected after his;
+  - `a_compiled_put_naming_another_author_is_refused_and_ones_own_copy_is_kept`:
+    the same through the compiled `Keep` and `TakeDown`, bob's post naming
+    alice its author refused before anything is written;
+  - `an_owned_asset_tables_write_works_on_the_uploads`: `Manifest::work` by
+    component and by import, and the write refused to a command begun for
+    its tables alone.
+- `runtime/pw-table-postgres/tests/asset_rows.rs`: the first two and the
+  last on PostgreSQL, the registry's counts, the store's bytes and its
+  collections read back
+  (`two_owners_posts_at_one_id_each_keep_their_own_image_on_postgresql`,
+  `a_reference_copied_into_another_owners_post_keeps_its_image_on_postgresql`,
+  `an_owned_asset_tables_write_works_on_the_uploads_on_postgresql`).
+- `spikes/own-renderer/server/src/tests/upload_bridge.rs`:
+  `an_owned_photos_image_is_every_readers_and_kept_by_its_copy_in_memory`
+  and `..._on_postgresql`, through the server. Ada attaches an image and
+  keeps it in her own photo; a reader signed in as no one is served it,
+  cached immutably. Bob's put of a photo naming Ada its author is refused,
+  hers unchanged; his own photo, copying her image's reference, is kept.
+  Her take-down leaves the image served, his photo naming it; his ends its
+  last use, and it is answered `404`.
+
+**Mutants**, eight, each killed locally (`e14-row-ownership`,
+`e14-row-ownership-3` and `e14-d3-postgres-3` record them in the pull
+request's verify):
+
+- `scripts/row_ownership_mutations.py`, seven, against its 27 suites (416
+  tests): at the compiler, a table read by its reader alone admitted, an
+  owned public one refused, and a public or unowned table's private field,
+  or its sharing, refused again as its asset's; at the host, a table read
+  by its reader alone admitted, and an owned public one refused; and an
+  owned table's write keeping an asset not upload work. The two that admit
+  are the old ones ("asset owned table accepted", "upload binding
+  associates owned rows with public assets"), re-anchored and renamed,
+  since an owned public table keeps an asset now; they are in the script's
+  first part, the five new ones in its third.
+- `scripts/d3_postgres_mutations.py` (the uploads' part), one, against the
+  crate's 17 test binaries: `verify_rows` matching an asset row by its key's
+  last field alone, not its owner, which refuses bob's post beside alice's
+  of the same id (and the prefix delete's untouched group).

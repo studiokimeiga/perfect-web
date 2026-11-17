@@ -2,6 +2,23 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**L7's G4, 2026-11-17: an asset on an owned public table**
+(`wip/l7-owned-assets`, on G10 and G5). The feed's post keeps its image in
+its own row, a `public table` owned by its author, written by them alone
+and read by every reader. An asset required a table no one owns, at the
+compiler (PW0371) and at the host. Its table is now one every reader reads,
+an owned `public table` among them, and never one read by its reader alone,
+whose image would be served to anyone by its hash, cached immutably and
+kept as one with public images (ADR-0440, amended). Ownership never reached
+the asset machinery, so neither adapter changed: two owners' posts at one
+id each keep their own image, a reference copied into another's post keeps
+the image after its author's delete, which is no erasure (H9's), and such a
+write works on the uploads (G10). A public or unowned table's own defect is
+told by its own rule alone. It is held on memory and on PostgreSQL, through
+the compiled commands and the server, and by eight mutants, killed locally
+(`e14-row-ownership`, `e14-row-ownership-3` and `e14-d3-postgres-3` record
+them in the pull request's verify).
+
 **L7's G10, 2026-11-17: the uploads' namespace held only by the commands
 that work on uploads** (`wip/l7-upload-lock`). On PostgreSQL every command
 of a program declaring uploads held the upload namespace's lock for its

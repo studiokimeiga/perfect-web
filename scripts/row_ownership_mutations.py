@@ -43,7 +43,13 @@ Each mutant undoes one guarantee and must be killed by a test:
    table keeping an asset, works on the uploads; an attached read, an asset
    table's read and any other table's write do not; a program bound to no
    upload works on its tables alone), and memory refusing a command begun
-   for its tables alone an asset's write and a publication.
+   for its tables alone an asset's write and a publication;
+6. L7's G4 (ADR-0440 amended 2026-11-17): an asset's table is one every
+   reader reads, no one's or an owned `public table`, never one read by its
+   reader alone, at the compiler (PW0371) and the host; a `public` or
+   unowned table keeping a field private or sharing its rows is told by its
+   own rule alone; and an owned table's write keeping an asset is upload
+   work.
 
 The review of the track (2026-11-02) found three of these unheld: an
 owner check reading a row's first field, and a predicate asked after the
@@ -182,8 +188,10 @@ MUTANTS = [
      '            if target.is_none()\n                && !contract', '            if false && target.is_none()\n                && !contract'),
     ('upload binding ordinary table roots ignore missing actual handles', ROOT / 'runtime/pw-host/src/tables.rs',
      '    let Some(first) = contract\n        .imports\n        .iter()\n        .find(|import| is_table_interface(&import.interface))\n        .map(|import| import.key())\n    else {\n        return Ok(BTreeMap::new());\n    };', '    let supplied = crate::linkable(contract, granted);\n    let Some(first) = supplied.iter().find(|key| is_table_import(key)) else {\n        return Ok(BTreeMap::new());\n    };'),
-    ('upload binding associates owned rows with public assets', ROOT / 'runtime/pw-host/src/tables.rs',
-     '                if table.owner.is_some() || !table.shares.is_empty() || !table.private.is_empty() {', '                if false && (table.owner.is_some() || !table.shares.is_empty() || !table.private.is_empty()) {'),
+    # Re-anchored and renamed by L7's G4 (2026-11-17), which admits an owned
+    # `public table`'s asset: it was "associates owned rows with public assets".
+    ('upload binding associates a table read by its reader alone with an asset', ROOT / 'runtime/pw-host/src/tables.rs',
+     '                if (table.owner.is_some() && !table.public)\n', '                if (table.owner.is_some() && false)\n'),
     ('upload binding skips whole argument checks', ROOT / 'runtime/pw-host/src/lib.rs',
      '                            upload_link::check_arguments(upload, &args)\n                                .map_err(wasmtime::Error::msg)?;', '                            let _ = (upload, &args);'),
     ('upload binding is bypassed for cached roots with no predicate', ROOT / 'spikes/own-renderer/server/src/main.rs',
@@ -252,8 +260,10 @@ MUTANTS = [
      'd.kind == DeclKind::Command && d.policy("idempotent_by").is_none()', 'd.kind == DeclKind::Command && false && d.policy("idempotent_by").is_none()'),
     ('asset source mismatch silent', ROOT / 'compiler/pw-core/src/tables/assets.rs',
      '        if source.is_none() || source != target_source {', '        if false && (source.is_none() || source != target_source) {'),
-    ('asset owned table accepted', ROOT / 'compiler/pw-core/src/tables/assets.rs',
-     '        if t.owner.is_some() || !t.sharers().is_empty() || !t.private_fields().is_empty() {', '        if false && (t.owner.is_some() || !t.sharers().is_empty() || !t.private_fields().is_empty()) {'),
+    # Re-anchored and renamed by L7's G4 (2026-11-17): it was "asset owned
+    # table accepted", and an owned `public table` keeps one now.
+    ('asset table read by its reader alone accepted', ROOT / 'compiler/pw-core/src/tables/assets.rs',
+     '        if t.read_by_its_reader() {\n', '        if false {\n'),
     ('asset nominal declaration ignored', ROOT / 'compiler/pw-core/src/tables/assets.rs',
      '        if field.def_id() != reference || !field.args().is_empty() {', '        if false && (field.def_id() != reference || !field.args().is_empty()) {'),
     ('asset mandatory binding omitted', ROOT / 'compiler/pw-core/src/tables/assets.rs',
@@ -792,6 +802,28 @@ MUTANTS = [
     ("memory publishes from a command begun for its tables alone", ROOT / "runtime/pw-table-memory/src/assets.rs",
      '        if open.work == crate::Work::Tables {',
      '        if false && open.work == crate::Work::Tables {'),
+    # L7's G4 (ADR-0440 amended 2026-11-17): an asset's table is one every
+    # reader reads, an owned `public table` among them, never one read by
+    # its reader alone; a `public` or unowned table's own defect (a private
+    # field, a sharer) is refused by its own rule alone (PW0369, PW0370);
+    # and an owned table's write keeping an asset is upload work, as any.
+    # The two that admit a table read by its reader alone are the old ones,
+    # re-anchored, above.
+    ("an asset's owned public table is refused at the compiler", ROOT / 'compiler/pw-core/src/tables/assets.rs',
+     '        if t.read_by_its_reader() {\n',
+     '        if t.owner.is_some() {\n'),
+    ("an asset's public table keeping a field private is refused twice", ROOT / 'compiler/pw-core/src/tables/assets.rs',
+     '        if t.read_by_its_reader() {\n',
+     '        if t.read_by_its_reader() || !t.private_fields().is_empty() {\n'),
+    ("an asset's public table sharing its rows is refused twice", ROOT / 'compiler/pw-core/src/tables/assets.rs',
+     '        if t.read_by_its_reader() {\n',
+     '        if t.read_by_its_reader() || !t.sharers().is_empty() {\n'),
+    ("an asset's owned public table is refused at the host", HOST_TABLES,
+     '                if (table.owner.is_some() && !table.public)\n',
+     '                if table.owner.is_some()\n'),
+    ("a write of an owned table keeping an asset is not upload work", HOST_TABLES,
+     '                .filter(|table| !table.assets.is_empty())\n                .flat_map(|table| &table.functions)',
+     '                .filter(|table| !table.assets.is_empty() && table.owner.is_none())\n                .flat_map(|table| &table.functions)'),
 ]
 
 # Each Cargo test binary separately: names can repeat between binaries, and

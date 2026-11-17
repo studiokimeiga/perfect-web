@@ -616,26 +616,53 @@ fn empty_session_inputs_and_empty_claim_answers_are_refused_before_the_next_call
     );
 }
 
+/// **An owned `public table`'s asset binds at the host** (L7's G4, ADR-0440
+/// amended 2026-11-17): every reader reads its rows, and their images. The
+/// compiler's tables.json and uploads.json bind as they are, the post's
+/// image its upload's; a layer is made over them. The host refused it
+/// ("asset tables must be public").
+#[test]
+fn an_owned_public_tables_asset_binds_at_the_host() {
+    let program = owned_asset_program();
+    let tables = serde_json::to_value(&program.tables).unwrap();
+    assert_eq!(tables["tables"][0]["owner"], "author");
+    assert_eq!(tables["tables"][0]["public"], true);
+    let bound = program
+        .manifest
+        .clone()
+        .with_uploads(&program.uploads)
+        .assert_ok("an owned public table's asset binds");
+    let image = bound.uploads().unwrap().declaration("PostImage").unwrap();
+    assert_eq!(image.source(), "AssetData");
+    MemoryTables::new_with_uploads(program.tables, &program.uploads)
+        .assert_ok("and a layer is made over it");
+}
+
+/// **A table read by its reader alone is refused an asset at the host**,
+/// whoever wrote its manifest: its image would be served to anyone (L7's
+/// G4). Its neighbor, the same rows made `public`, read by every reader,
+/// binds the same forged association.
 #[test]
 fn otherwise_valid_owned_data_cannot_be_forged_into_a_public_asset_binding() {
     let uploads = asset_program().uploads;
-    let program = built_from(&[
-        (
-            "PrivateAssets.pw",
+    let forged = |word: &str| {
+        let table = format!(
             r#"module PrivateAssets
-import capability.{ UserId }
+import capability.{{ UserId }}
 type Kind = Png | Jpeg
-type Data = Data { key: String, generation: String, kind: Kind, width: Int, height: Int }
-type Row = Row { owner: UserId, id: Int, image: Option<Data> }
-table PrivateAssets
+type Data = Data {{ key: String, generation: String, kind: Kind, width: Int, height: Int }}
+type Row = Row {{ owner: UserId, id: Int, image: Option<Data> }}
+{word}table PrivateAssets
     row Row
     key owner, id
     owned by owner
-"#,
-        ),
-        (
-            "AssetData.pw",
-            r#"module AssetData
+"#
+        );
+        let program = built_from(&[
+            ("PrivateAssets.pw", table.as_str()),
+            (
+                "AssetData.pw",
+                r#"module AssetData
 import PrivateAssets
 source AssetData
     holds PrivateAssets
@@ -644,10 +671,10 @@ source AssetData
     changes none
     sets one_call
 "#,
-        ),
-        (
-            "app.pw",
-            r#"module owned.app
+            ),
+            (
+                "app.pw",
+                r#"module owned.app
 public query Noop()->Int
     freshness 0.seconds
     consistency snapshot
@@ -657,20 +684,24 @@ public query Noop()->Int
     timeout 2.seconds
 { 1 }
 "#,
-        ),
-    ]);
-    // Plain owned data with the same structural fields is otherwise valid;
-    // declaring a public upload in this source grants it no asset association.
-    assert!(program.manifest.clone().with_uploads(&uploads).is_ok());
-    let mut tables = serde_json::to_value(&program.tables).unwrap();
-    tables["tables"][0]["assets"] = json!([{"field":"image","upload":"PostImage"}]);
-    let result = pw_host::tables::Manifest::from_json(&tables.to_string())
-        .unwrap()
-        .with_uploads(&uploads);
+            ),
+        ]);
+        // Plain owned data with the same structural fields is otherwise
+        // valid; declaring a public upload in this source grants it no asset
+        // association.
+        assert!(program.manifest.clone().with_uploads(&uploads).is_ok());
+        let mut tables = serde_json::to_value(&program.tables).unwrap();
+        tables["tables"][0]["assets"] = json!([{"field":"image","upload":"PostImage"}]);
+        pw_host::tables::Manifest::from_json(&tables.to_string())
+            .unwrap()
+            .with_uploads(&uploads)
+    };
+    let result = forged("");
     assert!(
-        matches!(result,Err(ref why) if why.contains("asset tables must be public")),
+        matches!(result,Err(ref why) if why.contains("an asset requires a table every reader reads")),
         "{result:?}"
     );
+    forged("public ").assert_ok("the same rows, read by every reader, bind the asset");
 }
 
 fn ordinary_table_root_axes(missing_contract: bool) {

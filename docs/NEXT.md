@@ -68,8 +68,14 @@ in order:
      upload, or writes a table keeping an asset, holds the namespace now, and
      is served its host's turn first; the port keeps its hot commands (likes)
      off the tables that keep assets.
-   - **G4**, an asset on an owned table (a post's image): refused by the
-     compiler (`tables/assets.rs`) and the host (`tables.rs`).
+   - ~~**G4**, an asset on an owned table (a post's image)~~: done
+     (2026-11-17, `wip/l7-owned-assets`; ADR-0440, amended). An asset's
+     table is one every reader reads, an owned `public table` among them,
+     never one read by its reader alone. No adapter changed: ownership
+     never reached the asset machinery. A reference copied into another
+     owner's row keeps its image after the author's delete, which is no
+     erasure (H9's); G3's cascades into a table keeping an asset go
+     through the adapters' write path, and work on the uploads.
    - **G1**, an id sequence never reused after a delete, a rollback, a
      restart or on a second host (the feed's post ids); **G2**, seed rows,
      applied once per database under a lock.

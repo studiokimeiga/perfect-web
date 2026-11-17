@@ -164,6 +164,16 @@ fn refused(posts: &str, image: &str, source: &str, app: &str, code: &str, says: 
         "expected {code} saying {says:?}, got {got:#?}"
     );
 }
+/// **One defect, one diagnostic** (ADR-0112; L7's G4, as G5 ruled for a
+/// window's target): the program's only diagnostic is a refusal of `code`
+/// whose message holds `says`, with no PW0371 beside it.
+fn alone(posts: &str, image: &str, source: &str, app: &str, code: &str, says: &str) {
+    let got = diagnostics(posts, image, source, app);
+    assert!(
+        matches!(got.as_slice(), [(c, m)] if c == code && m.contains(says)),
+        "only {code} saying {says:?}, got {got:#?}"
+    );
+}
 
 #[test]
 fn the_neighbor_without_an_asset_remains_a_valid_table_and_upload() {
@@ -350,13 +360,15 @@ fn assets_require_the_actual_public_reference_field_and_held_source() {
         "PW0371",
         "must be one top-level Ref or Option<Ref>",
     );
-    refused(
+    // A table no one owns keeps nothing private, which its own rule tells,
+    // and its asset is not refused again (L7's G4): it was PW0371 too.
+    alone(
         &POSTS.replace("    key id", "    key id\n    private image"),
         IMAGE,
         SOURCE,
         APP,
-        "PW0371",
-        "an asset requires a public asset-bearing table",
+        "PW0369",
+        "keeps fields private and no one owns its rows",
     );
     refused(
         POSTS,
@@ -724,33 +736,192 @@ fn a_command_claiming_an_upload_without_idempotent_by_is_pw5605() {
     }
 }
 
+/// **Posts owned by their author** (L7's G4): the feed's shape, a `public
+/// table` its author alone writes and every reader reads (ADR-0395's ruling
+/// 4), keeping its image. `friend` is a principal it may share a row with.
+const OWNED_POSTS: &str = r#"module Posts
+import PostImage
+import capability.{ UserId }
+type Post = Post { author: UserId, id: Int, friend: UserId, image: Option<PostImage.Ref>, alt: String }
+public table Posts
+    row Post
+    key author, id
+    bounded 100
+    owned by author
+    asset image from PostImage
+"#;
+/// [`APP`], its post written as its author's: `keep` claims the image the
+/// reader attached, publishes it and puts the reader's own post naming it,
+/// given the reader's handle.
+const OWNED_APP: &str = r#"module photos.app
+import PostImage
+import Posts
+import Posts.{ Post }
+import context.{ current_session, current_user }
+import capability.{ Session, SessionId, id_of }
+opaque type InteractionId = String
+command keep(id: Int, alt: String) -> Result<Int,PostImage.Error>
+    requires Anyone
+    idempotent_by InteractionId
+    invalidates Attached(current_session())
+    transaction serializable
+{
+    let me = current_user()
+    let claim = PostImage.claim(current_session())?
+    let image = PostImage.publish(current_session(),claim)?
+    let saved = Posts.put(me, Post { author: id_of(me), id: id, friend: id_of(me), image: Some(image), alt: alt })
+    Ok(id)
+}
+session query Attached(session: Session<SessionId>) -> List<PostImage.Attached>
+    freshness 0.seconds
+    consistency read_your_writes
+    cache private
+    key session
+    concurrency one_per_key
+    on_key_change cancel
+    timeout 2.seconds
+{
+    PostImage.attached(session)
+}
+"#;
+/// [`OWNED_POSTS`] read by its reader alone: owned, not `public` (and so
+/// with no bound, which would count every owner's rows).
+fn read_by_its_reader() -> String {
+    OWNED_POSTS
+        .replace("public table Posts", "table Posts")
+        .replace("    bounded 100\n", "")
+}
+
+/// **An owned `public table` keeps an asset** (L7's G4, ADR-0440 amended
+/// 2026-11-17): every reader reads its rows, and their images, which are
+/// public by construction. It compiles with no diagnostic, a command that
+/// claims, publishes and puts its author's own post among it, and its
+/// tables.json names the owner, the word and the asset. PW0371 refused it.
 #[test]
-fn the_public_asset_rule_refuses_an_otherwise_valid_owned_table() {
-    let owned = POSTS
+fn an_owned_public_tables_asset_compiles_as_every_reader_reads_it() {
+    for reverse in [false, true] {
+        let mut files = files(OWNED_POSTS, IMAGE, SOURCE, OWNED_APP);
+        if reverse {
+            files.reverse();
+        }
+        let got = check_sources(&files);
+        assert!(
+            got.iter().all(|(_, ds)| ds.is_empty()),
+            "an owned public table's asset: {got:#?}"
+        );
+        let build = pw_core::build::build(&units(&files));
+        assert!(build.is_ok(), "it builds: {:?}", build.as_ref().err());
+        let build = build.unwrap();
+        assert!(
+            build.refusals().is_empty(),
+            "each component is built: {:?}",
+            build.refusals()
+        );
+        let tables = serde_json::to_value(&build.tables).unwrap();
+        let posts = tables["tables"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|t| t["name"] == "Posts")
+            .unwrap();
+        assert_eq!(posts["owner"], "author");
+        assert_eq!(posts["public"], true);
+        assert_eq!(
+            posts["assets"],
+            serde_json::json!([{"field":"image","upload":"PostImage"}])
+        );
+    }
+}
+
+/// **A table read by its reader alone keeps no asset** (PW0371, in the
+/// rule's words since L7's G4): owned and not `public`, with or without a
+/// reader it shares its rows with, or a field it keeps private. Its image
+/// would be served to anyone by its hash, cached immutably and kept as one
+/// generation with public rows' (ADR-0440). Each neighbor, the image an
+/// ordinary field, is valid, and the asset is the one refusal.
+#[test]
+fn an_asset_on_a_table_read_by_its_reader_alone_is_refused_beside_its_valid_neighbor() {
+    let owned = read_by_its_reader();
+    for (shape, posts) in [
+        ("owned", owned.clone()),
+        (
+            "owned and shared",
+            owned.replace(
+                "    owned by author\n",
+                "    owned by author\n    shares with friend\n",
+            ),
+        ),
+        (
+            "owned, a field private",
+            owned.replace(
+                "    owned by author\n",
+                "    owned by author\n    private alt\n",
+            ),
+        ),
+    ] {
+        let neighbor = posts
+            .replace("Option<PostImage.Ref>", "Option<String>")
+            .replace("    asset image from PostImage\n", "");
+        let got = diagnostics(&neighbor, IMAGE, SOURCE, "module photos.app\n");
+        assert!(got.is_empty(), "{shape}: its neighbor is valid: {got:#?}");
+        let got = diagnostics(&posts, IMAGE, SOURCE, "module photos.app\n");
+        assert!(
+            matches!(got.as_slice(), [(code, m)] if code == "PW0371"
+                && m.contains("asset field `image` requires a table every reader reads")
+                && m.contains("`Posts` is read by its reader alone")),
+            "{shape}: PW0371 alone, in its words: {got:#?}"
+        );
+    }
+}
+
+/// **A table's own defect is not refused again as its asset's** (L7's G4,
+/// as G5 ruled for a window's target; ADR-0112): a `public table`, or a
+/// table no one owns, that keeps a field private is told PW0369, and one
+/// that shares its rows PW0370, alone. PW0371 told each a second time.
+#[test]
+fn a_tables_own_defect_is_not_refused_again_as_its_asset() {
+    let unowned = POSTS
         .replace(
             "import PostImage",
             "import PostImage\nimport capability.{ UserId }",
         )
-        .replace("id: Int, image:", "owner: UserId, id: Int, image:")
-        .replace(
-            "    key id\n    bounded 100",
-            "    key owner, id\n    owned by owner",
-        )
-        .replace("    written by anyone\n", "");
-    let neighbor = owned
-        .replace("Option<PostImage.Ref>", "Option<String>")
-        .replace("    asset image from PostImage\n", "");
-    let got = diagnostics(&neighbor, IMAGE, SOURCE, "module photos.app\n");
-    assert!(
-        got.is_empty(),
-        "ordinary owned neighbor is independently valid: {got:#?}"
-    );
-    refused(
-        &owned,
-        IMAGE,
-        SOURCE,
-        "module photos.app\n",
-        "PW0371",
-        "an asset requires a public asset-bearing table",
-    );
+        .replace("id: Int, image:", "id: Int, friend: UserId, image:");
+    for (shape, posts, code, says) in [
+        (
+            "public, a field private",
+            OWNED_POSTS.replace(
+                "    owned by author\n",
+                "    owned by author\n    private alt\n",
+            ),
+            "PW0369",
+            "`public table Posts` keeps `alt` private",
+        ),
+        (
+            "public and shared",
+            OWNED_POSTS.replace(
+                "    owned by author\n",
+                "    owned by author\n    shares with friend\n",
+            ),
+            "PW0370",
+            "`public table Posts` shares its rows with `friend`",
+        ),
+        (
+            "no one's, a field private",
+            unowned.replace("    key id\n", "    key id\n    private alt\n"),
+            "PW0369",
+            "keeps fields private and no one owns its rows",
+        ),
+        (
+            "no one's and shared",
+            unowned.replace("    key id\n", "    key id\n    shares with friend\n"),
+            "PW0370",
+            "shares its rows and no one owns them",
+        ),
+    ] {
+        let got = diagnostics(&posts, IMAGE, SOURCE, "module photos.app\n");
+        assert!(
+            matches!(got.as_slice(), [(c, m)] if c == code && m.contains(says)),
+            "{shape}: {code} alone, saying {says:?}: {got:#?}"
+        );
+    }
 }

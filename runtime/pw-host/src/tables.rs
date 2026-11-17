@@ -957,8 +957,17 @@ impl Manifest {
             sources.insert(table.source.clone());
             let mut fields = BTreeSet::new();
             for asset in &table.assets {
-                if table.owner.is_some() || !table.shares.is_empty() || !table.private.is_empty() {
-                    return Err("upload binding: asset tables must be public".into());
+                // A table every reader reads (L7's G4, 2026-11-17): unowned,
+                // or a `public table` its owner writes; never one read by
+                // its reader alone, nor one keeping fields private or rows
+                // shared, whose image would be served to anyone.
+                if (table.owner.is_some() && !table.public)
+                    || !table.shares.is_empty()
+                    || !table.private.is_empty()
+                {
+                    return Err(
+                        "upload binding: an asset requires a table every reader reads".into(),
+                    );
                 }
                 if !fields.insert(&asset.field) {
                     return Err("upload binding: field associated twice".into());

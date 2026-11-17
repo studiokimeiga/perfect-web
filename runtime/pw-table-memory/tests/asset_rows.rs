@@ -799,3 +799,232 @@ fn a_command_begun_for_its_tables_alone_is_refused_asset_work_as_on_postgresql()
     c.commit().assert_ok("and commits");
     assert_eq!(visible(&db), Some(r));
 }
+
+/// [`owned_asset_program`]'s posts, bound to its upload (L7's G4).
+fn owned_database() -> MemoryTables {
+    let p = owned_asset_program();
+    MemoryTables::new_with_uploads(p.tables, &p.uploads).assert_ok("an owned public table binds")
+}
+
+/// [`candidate`]'s descriptor for bytes of another hash: a second image.
+fn other(generation: char) -> Descriptor {
+    let mut d = candidate(generation);
+    d.reference.key = "d".repeat(64);
+    d
+}
+
+/// One post, its image `image`, committed through the adapter.
+fn posted(db: &MemoryTables, author: &str, id: i64, image: Descriptor) -> Reference {
+    let mut c = db.begin().assert_ok("an author's command");
+    let r = c.propose_asset("PostImage", image).assert_ok("their image");
+    c.write(
+        "pw:tables/posts#insert",
+        &[owned_post(author, id, Some(&r))],
+    )
+    .assert_ok("their post");
+    c.commit().assert_ok("their post commits");
+    r
+}
+
+/// **Two owners' posts at one id each keep their own image** (L7's G4,
+/// ADR-0440 amended 2026-11-17): a post's key leads with its author, so
+/// alice's post 1 and bob's are two rows, and each image is counted by its
+/// row's whole key. Alice's delete ends her image's one use alone, collected
+/// at its commit; bob's post and image stay, until his delete of every post
+/// of his (his key's prefix) ends his.
+#[test]
+fn two_owners_posts_at_one_id_each_keep_their_own_image_until_its_owner_deletes() {
+    let db = owned_database();
+    let a = posted(&db, ALICE, 1, candidate('b'));
+    let b = posted(&db, BOB, 1, other('c'));
+    assert_ne!(a.key, b.key);
+    for (author, image) in [(ALICE, &a), (BOB, &b)] {
+        assert_eq!(
+            db.read("pw:tables/posts#get", &[json!(author), json!(1)])
+                .assert_ok("a post"),
+            owned_post(author, 1, Some(image)),
+            "{author}'s post 1 keeps their own image"
+        );
+    }
+    let mut c = db.begin().assert_ok("alice's delete");
+    c.write("pw:tables/posts#delete", &[json!(ALICE), json!(1)])
+        .assert_ok("her post 1");
+    let p = c.prepare().assert_ok("prepare");
+    let plans = p.asset_plans().assert_ok("plans");
+    assert_eq!(plans.len(), 1, "her image's plan alone");
+    let plan = plans.first().assert_ok("a generation plan exists");
+    assert_eq!(plan.generation.descriptor.reference, a);
+    assert!(plan.collect, "her image's last use ends");
+    p.publish().assert_ok("commit");
+    assert!(
+        db.asset_reference("PostImage", &a.key, "png")
+            .assert_ok("resolve")
+            .is_none()
+    );
+    assert_eq!(
+        db.asset_reference("PostImage", &b.key, "png")
+            .assert_ok("resolve"),
+        Some(b.clone()),
+        "bob's image is served still"
+    );
+    assert_eq!(
+        db.pending_asset_collections(10).assert_ok("jobs"),
+        [candidate('b')]
+    );
+    assert_eq!(
+        db.read("pw:tables/posts#get", &[json!(BOB), json!(1)])
+            .assert_ok("bob's post"),
+        owned_post(BOB, 1, Some(&b))
+    );
+    let mut c = db.begin().assert_ok("bob's delete");
+    c.write("pw:tables/posts#delete-of-author", &[json!(BOB)])
+        .assert_ok("every post of his");
+    c.commit().assert_ok("commit");
+    assert!(
+        db.asset_reference("PostImage", &b.key, "png")
+            .assert_ok("resolve")
+            .is_none()
+    );
+    assert_eq!(
+        db.pending_asset_collections(10).assert_ok("jobs"),
+        [candidate('b'), other('c')]
+    );
+}
+
+/// **A reference copied into another owner's post keeps its image after the
+/// first owner deletes theirs** (L7's G4): a write may copy a LIVE reference
+/// of its declaration, with no claim, whoever's row named it first, and a
+/// generation's references are counted per declaration, never per owner.
+/// Alice's delete is no erasure: bob's post names her image still, and it is
+/// served; his delete ends its last use.
+#[test]
+fn a_reference_copied_into_another_owners_post_keeps_its_image_after_the_first_deletes() {
+    let db = owned_database();
+    let r = posted(&db, ALICE, 1, candidate('b'));
+    let mut c = db.begin().assert_ok("bob's command");
+    c.write("pw:tables/posts#insert", &[owned_post(BOB, 7, Some(&r))])
+        .assert_ok("his post, her image's reference copied");
+    let p = c.prepare().assert_ok("a copy needs no claim");
+    let plans = p.asset_plans().assert_ok("plans");
+    let plan = plans.first().assert_ok("a generation plan exists");
+    assert_eq!(plan.generation.references.get("PostImage"), Some(&2));
+    assert!(!plan.keep_new && !plan.collect);
+    p.publish().assert_ok("commit");
+    let mut c = db.begin().assert_ok("alice's delete");
+    c.write("pw:tables/posts#delete", &[json!(ALICE), json!(1)])
+        .assert_ok("her post");
+    let p = c.prepare().assert_ok("prepare");
+    let plans = p.asset_plans().assert_ok("plans");
+    let plan = plans.first().assert_ok("a generation plan exists");
+    assert_eq!(plan.generation.references.get("PostImage"), Some(&1));
+    assert!(!plan.collect, "not collected while bob's post names it");
+    p.publish().assert_ok("commit");
+    assert_eq!(visible(&db), Some(r.clone()), "served still");
+    assert!(
+        db.pending_asset_collections(10)
+            .assert_ok("jobs")
+            .is_empty()
+    );
+    let mut c = db.begin().assert_ok("bob's delete");
+    c.write("pw:tables/posts#delete", &[json!(BOB), json!(7)])
+        .assert_ok("his post");
+    c.commit().assert_ok("commit");
+    assert!(visible(&db).is_none(), "its last use ended");
+    assert_eq!(
+        db.pending_asset_collections(10).assert_ok("jobs"),
+        [candidate('b')]
+    );
+}
+
+/// **A post is written by its author alone, its image among it** (L7's G4),
+/// through the compiled commands: bob's `Keep` of a post naming alice its
+/// author is refused before anything is written; his own post, copying her
+/// image's reference, is kept. Alice's `TakeDown` leaves her image served
+/// while his post names it, and his ends its last use.
+#[test]
+fn a_compiled_put_naming_another_author_is_refused_and_ones_own_copy_is_kept() {
+    let program = owned_asset_program();
+    let db = MemoryTables::new_with_uploads(program.tables.clone(), &program.uploads)
+        .assert_ok("bound adapter");
+    let r = posted(&db, ALICE, 1, candidate('b'));
+    let post = |author: &str, id: i64| {
+        Val::Record(vec![
+            ("author".into(), Val::String(author.into())),
+            ("id".into(), Val::S64(id)),
+            (
+                "image".into(),
+                Val::Option(Some(Box::new(image_reference()))),
+            ),
+            ("alt".into(), Val::String(format!("{author}'s post {id}"))),
+        ])
+    };
+    let refused = command(&program, &db, "Keep", BOB, &[post(ALICE, 1)])
+        .assert_err("a post of another's is refused");
+    assert!(
+        refused.contains("whose `author` is not its writer"),
+        "{refused}"
+    );
+    assert_eq!(
+        db.read("pw:tables/posts#get", &[json!(ALICE), json!(1)])
+            .assert_ok("hers"),
+        owned_post(ALICE, 1, Some(&r)),
+        "her post is not rewritten"
+    );
+    assert_eq!(
+        command(&program, &db, "Keep", BOB, &[post(BOB, 7)]),
+        Ok(vec![])
+    );
+    assert_eq!(
+        db.read("pw:tables/posts#get", &[json!(BOB), json!(7)])
+            .assert_ok("his"),
+        owned_post(BOB, 7, Some(&r))
+    );
+    assert_eq!(
+        command(&program, &db, "TakeDown", ALICE, &[Val::S64(1)]),
+        Ok(vec![])
+    );
+    assert_eq!(visible(&db), Some(r), "his post names it still");
+    assert_eq!(
+        command(&program, &db, "TakeDown", BOB, &[Val::S64(7)]),
+        Ok(vec![])
+    );
+    assert!(visible(&db).is_none(), "its last use ended");
+}
+
+/// **An owned asset table's write works on the uploads** (L7's G4; G10's
+/// classifier, unchanged): `Keep` and `TakeDown`, which write the posts and
+/// claim nothing, work on the uploads as `Publish` does; `Attached`, and a
+/// post's read, on their tables alone. A command begun for its tables alone
+/// is refused an owned post's write, as any asset table's.
+#[test]
+fn an_owned_asset_tables_write_works_on_the_uploads() {
+    let program = owned_asset_program();
+    let bound = program
+        .manifest
+        .clone()
+        .with_uploads(&program.uploads)
+        .assert_ok("the compiler's upload binding");
+    for (id, expected) in [
+        ("Publish", Work::Uploads),
+        ("Keep", Work::Uploads),
+        ("TakeDown", Work::Uploads),
+        ("Attached", Work::Tables),
+    ] {
+        let imports = program.component(id).imports.iter().map(String::as_str);
+        assert_eq!(bound.work(imports), expected, "{id}");
+    }
+    for (import, expected) in [
+        ("pw:tables/posts#put", Work::Uploads),
+        ("pw:tables/posts#delete", Work::Uploads),
+        ("pw:tables/posts#delete-of-author", Work::Uploads),
+        ("pw:tables/posts#get", Work::Tables),
+    ] {
+        assert_eq!(bound.work([import]), expected, "{import}");
+    }
+    let db = owned_database();
+    let mut c = db.begin_for(Work::Tables).assert_ok("an ordinary command");
+    refused(
+        c.write("pw:tables/posts#insert", &[owned_post(ALICE, 1, None)]),
+        "which keeps an asset, in a command begun for its tables alone",
+    );
+}
