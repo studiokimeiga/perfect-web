@@ -779,7 +779,12 @@ fn a_command_begun_for_its_tables_alone_is_refused_asset_work_as_on_postgresql()
         c.propose_asset("PostImage", candidate('b')),
         "a command begun for its tables alone publishes no upload",
     );
-    drop(c);
+    // Its commit is refused as its first refusal was, as on PostgreSQL
+    // (the review's L5): the note it wrote before is not kept.
+    refused(
+        c.commit(),
+        "which keeps an asset, in a command begun for its tables alone",
+    );
     assert!(visible(&db).is_none(), "no generation was published");
     let mut c = db.begin_for(Work::Tables).assert_ok("another");
     c.write("pw:tables/notes#put", &[json!({"id":2,"text":"kept"})])

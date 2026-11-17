@@ -2141,6 +2141,7 @@ fn an_ordinary_command_waits_on_no_namespace_holder_where_an_uploads_one_does() 
     let name = format!("asset_ordinary_{}", std::process::id());
     let other = Arc::new(open_work(&common::named(&url, &name), &s, &store, 2));
     let held = first.begin().assert_ok("a command holding the namespace");
+    let started = std::time::Instant::now();
     let mut note = other
         .begin_for(Work::Tables)
         .assert_ok("an ordinary command begins beside it");
@@ -2148,10 +2149,12 @@ fn an_ordinary_command_waits_on_no_namespace_holder_where_an_uploads_one_does() 
         .assert_ok("its notes");
     note.commit()
         .assert_ok("and commits, the namespace held on another host");
-    assert_eq!(
-        common::waiting_on_advisory(&s, &name),
-        0,
-        "it waited on no advisory lock"
+    // Within the namespace lock's five seconds (the review's L4: asked once
+    // it had committed, the number of waiters said nothing).
+    let took = started.elapsed();
+    assert!(
+        took < std::time::Duration::from_secs(2),
+        "it waited on no namespace: {took:?}"
     );
     let waiter = {
         let other = Arc::clone(&other);
@@ -2249,7 +2252,17 @@ fn a_command_begun_for_its_tables_alone_is_refused_asset_work() {
         c.require_upload_receipt(),
         "a command begun for its tables alone claims no upload",
     );
-    drop(c);
+    // Its commit is refused as its first refusal was (the review's L5):
+    // whoever calls the adapter, the note it wrote before is not kept.
+    refused(
+        c.commit(),
+        "which keeps an asset, in a command begun for its tables alone",
+    );
+    assert_eq!(
+        s.texts("SELECT count(*)::text FROM \"Notes\""),
+        ["0"],
+        "its note is not kept"
+    );
     assert_eq!(store.keeps.load(Ordering::SeqCst), 0, "nothing was kept");
     assert!(
         s.texts("SELECT generation FROM pw_asset_generations")
@@ -2276,4 +2289,97 @@ fn an_ordinary_command_commits_once_the_storage_marker_is_gone() {
     c.write("pw:tables/notes#put", &[json!({"id":1,"text":"no blob"})])
         .assert_ok("its notes");
     c.commit().assert_ok("commits, touching no blob");
+}
+
+/// **A command holding the namespace takes its host's turn first** (G10's
+/// review, M1): every host's commands working on the uploads wait for that
+/// namespace, five seconds at most, so its holder waits for the command
+/// running now alone, never behind commands without it that came before it,
+/// or after. While an ordinary command holds the turn and two more wait for
+/// it, a command working on the uploads begins next; the two, in their
+/// order, after it.
+#[test]
+fn a_namespace_holder_takes_its_hosts_turn_before_the_ordinary_commands_waiting() {
+    let Some(url) = common::database() else {
+        return;
+    };
+    let s = common::Scratch::new(&url, "asset_turn_first");
+    let store = Arc::new(ByteStore::default());
+    let db = Arc::new(open_work(&s.url, &s, &store, 1));
+    let waits = Arc::new(AtomicUsize::new(0));
+    let told = Arc::clone(&waits);
+    db.tell_on_wait(move || {
+        told.fetch_add(1, Ordering::SeqCst);
+    });
+    let running = db
+        .begin_for(Work::Tables)
+        .assert_ok("an ordinary command holds the turn");
+    let (began, order) = std::sync::mpsc::channel();
+    let mut children = Vec::new();
+    for (n, work) in [(1, Work::Tables), (2, Work::Tables), (3, Work::Uploads)] {
+        let db = Arc::clone(&db);
+        let began = began.clone();
+        // A child asserts nothing: its answer is the test's to hold, on the
+        // test's own thread, where the strict producer reads a failure.
+        children.push(std::thread::spawn(move || {
+            let command = db.begin_for(work)?;
+            let _ = began.send(n);
+            std::thread::sleep(std::time::Duration::from_millis(50));
+            drop(command);
+            Ok::<(), pw_table_postgres::Error>(())
+        }));
+        assert!(
+            asset_until(|| waits.load(Ordering::SeqCst) == n),
+            "command {n} waits for the turn"
+        );
+    }
+    drop(running);
+    let served: Vec<usize> = (0..3)
+        .map(|_| {
+            order
+                .recv_timeout(std::time::Duration::from_secs(10))
+                .expect("each begins")
+        })
+        .collect();
+    assert_eq!(
+        served,
+        [3, 1, 2],
+        "the namespace's holder first, then the others in their order"
+    );
+    for child in children {
+        child
+            .join()
+            .expect("each exited")
+            .assert_ok("each began its turn");
+    }
+}
+
+/// **Housekeeping's collection holds the namespace** (G10's review, L3):
+/// it deletes a generation's bytes once no row names it, which a command
+/// publishing the same generation must not race, so it waits for the
+/// namespace another host holds, and collects once it is given back.
+#[test]
+fn housekeepings_collection_waits_for_the_namespace_another_host_holds() {
+    let Some(url) = common::database() else {
+        return;
+    };
+    let s = common::Scratch::new(&url, "asset_collect_waits");
+    let store = Arc::new(ByteStore::default());
+    let first = open_work(&s.url, &s, &store, 1);
+    let name = format!("asset_collect_{}", std::process::id());
+    let other = Arc::new(open_work(&common::named(&url, &name), &s, &store, 2));
+    let held = first.begin().assert_ok("a command holding the namespace");
+    let collecting = {
+        let other = Arc::clone(&other);
+        std::thread::spawn(move || other.collect_assets(1))
+    };
+    assert!(
+        asset_until(|| common::waiting_on_advisory(&s, &name) == 1),
+        "the collection waits for the namespace"
+    );
+    drop(held);
+    collecting
+        .join()
+        .expect("the collection exited")
+        .assert_ok("and collects once it is given back");
 }

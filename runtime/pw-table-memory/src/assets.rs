@@ -98,11 +98,13 @@ impl Command {
             .host
             .uploads()
             .ok_or_else(|| Error::Input("uploads are unbound".into()))?;
-        // A command begun for its tables alone publishes nothing (L7's G10).
+        // A command begun for its tables alone publishes nothing (L7's G10),
+        // and commits nothing once it tried.
         if open.work == crate::Work::Tables {
-            return Err(Error::Input(
-                "a command begun for its tables alone publishes no upload".into(),
-            ));
+            let refused =
+                Error::Input("a command begun for its tables alone publishes no upload".into());
+            open.refused.get_or_insert_with(|| refused.clone());
+            return Err(refused);
         }
         let draft = open.asset_draft.as_mut().ok_or(Error::Ended)?;
         self.inner.asset_operations.fetch_add(1, Ordering::SeqCst);

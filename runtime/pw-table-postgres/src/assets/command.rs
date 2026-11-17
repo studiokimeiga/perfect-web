@@ -187,11 +187,13 @@ impl Command {
         if open.ended || open.prepared {
             return Err(Error::Ended);
         }
-        // A command begun for its tables alone publishes nothing (L7's G10).
+        // A command begun for its tables alone publishes nothing (L7's G10),
+        // and commits nothing once it tried.
         if open.lifetime.is_none() {
-            return Err(Error::Input(
-                "a command begun for its tables alone publishes no upload".into(),
-            ));
+            let refused =
+                Error::Input("a command begun for its tables alone publishes no upload".into());
+            open.failed.get_or_insert_with(|| refused.clone());
+            return Err(refused);
         }
         if open.assets.publications.contains_key(declaration) {
             return Err(Error::Input(
@@ -283,9 +285,10 @@ impl Command {
         // A claim's receipt is a command's that holds the namespace (L7's
         // G10): the unknown outcome's proof relocks it (I4).
         if open.lifetime.is_none() {
-            return Err(Error::Input(
-                "a command begun for its tables alone claims no upload".into(),
-            ));
+            let refused =
+                Error::Input("a command begun for its tables alone claims no upload".into());
+            open.failed.get_or_insert_with(|| refused.clone());
+            return Err(refused);
         }
         open.assets.receipt_required = true;
         Ok(())

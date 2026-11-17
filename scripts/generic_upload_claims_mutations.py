@@ -40,7 +40,9 @@ anywhere but an assertion is no kill):
    path and its fenced one, and memory's staging not told what its command
    works on.
 
-Not here, each for its reason: the review's robustness repairs (a poisoned counter after a landed COMMIT,
+Not here, each for its reason: a scheduled run's error recorded for its
+tables alone (L7's G10) changes its cost alone, which no test of the
+server's measures; the review's robustness repairs (a poisoned counter after a landed COMMIT,
 a ledger that fails while it reconciles, a removal racing memory's read)
 need a panic or a race no test makes; a readerless command's refusing
 imports are held by `uploads::bridge`'s unit test, the server path by no

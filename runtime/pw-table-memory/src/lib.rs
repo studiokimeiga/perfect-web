@@ -332,6 +332,9 @@ struct Open {
     /// What it works on (L7's G10): asset work is refused a command begun
     /// for its tables alone, as the PostgreSQL adapter refuses it.
     work: Work,
+    /// The asset work refused it: it commits nothing once refused, as on
+    /// PostgreSQL (the review's L5).
+    refused: Option<Error>,
     /// Held to its commit's checks, and writing nothing more.
     prepared: bool,
     /// Each key it wrote, by its table, and the row it held before: what
@@ -594,6 +597,7 @@ impl MemoryTables {
             asset_patch: None,
             id,
             work,
+            refused: None,
             prepared: false,
             touched: BTreeMap::new(),
         });
@@ -792,6 +796,9 @@ impl Command {
                 ..
             } = &mut *working;
             let open = open.as_mut().ok_or(Error::Ended)?;
+            if let Some(refused) = &open.refused {
+                return Err(refused.clone());
+            }
             let changed = changed(tables, &open.touched);
             self.inner.held(tables, &changed)?;
             if let Some(manifest) = self.inner.host.uploads() {
@@ -1162,11 +1169,13 @@ impl Inner {
             && let Ok((at, _)) = self.shape.function(import)
             && !self.shape.tables[at].assets.is_empty()
         {
-            return Err(Error::Input(format!(
+            let refused = Error::Input(format!(
                 "{import} writes {}, which keeps an asset, in a command begun for its tables \
                  alone",
                 self.shape.tables[at].name
-            )));
+            ));
+            open.refused.get_or_insert_with(|| refused.clone());
+            return Err(refused);
         }
         write(&self.shape, tables, &mut open.touched, import, args)
     }

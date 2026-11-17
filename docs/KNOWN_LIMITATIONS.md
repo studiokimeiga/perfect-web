@@ -20,8 +20,10 @@
   run one at a time across every host. Any other command of the program
   takes none (L7's G10, ADR-0440 amended 2026-11-17), so a hot command kept
   off the asset tables (a like in a table of its own, not in its post's
-  row) is never held up by them. An image read takes no lock, and holds a
-  pool connection only for its one statement (L5a's review).
+  row) waits for no upload command of another host, and on its own host
+  for the one served its turn first at most, as it waits for any command.
+  An image read takes no lock, and holds a pool connection only for its
+  one statement (L5a's review).
 - **A physical copy of a database is its original, to its blob storage.** A
   namespace's storage names the database that recorded it: the cluster's
   system identifier and the database's and schema's OIDs. A copy restored

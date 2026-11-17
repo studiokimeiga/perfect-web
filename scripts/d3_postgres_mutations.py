@@ -170,9 +170,20 @@ UPLOADS = [
     ('upload lifecycle writes a table keeping an asset from a command begun for its tables alone', ROOT / 'runtime/pw-table-postgres/src/lib.rs',
      '        if !table.assets.is_empty() && open.lifetime.is_none() {', '        if false && !table.assets.is_empty() && open.lifetime.is_none() {'),
     ('upload lifecycle publishes from a command begun for its tables alone', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
-     "        // A command begun for its tables alone publishes nothing (L7's G10).\n        if open.lifetime.is_none() {", "        // A command begun for its tables alone publishes nothing (L7's G10).\n        if false && open.lifetime.is_none() {"),
+     "        // and commits nothing once it tried.\n        if open.lifetime.is_none() {", "        // and commits nothing once it tried.\n        if false && open.lifetime.is_none() {"),
     ('upload lifecycle marks a receipt for a command begun for its tables alone', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
      "        // G10): the unknown outcome's proof relocks it (I4).\n        if open.lifetime.is_none() {", "        // G10): the unknown outcome's proof relocks it (I4).\n        if false && open.lifetime.is_none() {"),
+    # G10's review (M1, L3): the namespace's holder served its host's turn
+    # first, and housekeeping's collection holding the namespace. The others
+    # are served in their arrival order so that the holder's priority is
+    # told deterministically; dropping that order alone would fail its test
+    # half the time, and has no mutant. `prepare`'s refusal of a command
+    # holding no namespace stands behind the refusals of its writes and its
+    # publications, unreachable while they hold, and has none either.
+    ('upload lifecycle serves the namespaces holder its hosts turn in arrival order', ROOT / 'runtime/pw-table-postgres/src/lib.rs',
+     '        let ticket = if first {\n            turn.first += 1;', '        let ticket = if { let _ = first; false } {\n            turn.first += 1;'),
+    ('upload lifecycle collects with no namespace held', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
+     '        let command = self.begin()?;\n        let mut open = command.state.lock().map_err(|_| Error::StoragePoisoned)?;\n        let conn = open.lease.as_mut().ok_or(Error::Ended)?.conn()?;\n        // In turn:', '        let command = self.begin_for(crate::Work::Tables)?;\n        let mut open = command.state.lock().map_err(|_| Error::StoragePoisoned)?;\n        let conn = open.lease.as_mut().ok_or(Error::Ended)?.conn()?;\n        // In turn:'),
     ('upload lifecycle checks an ordinary commands asset rows at its commit', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
      '    if inner.uploads.is_none() || open.lifetime.is_none() {\n        return Ok(());\n    }\n    let conn = inner.command_conn(open)?;\n    conn.batch(&inner.counters, "SET CONSTRAINTS ALL IMMEDIATE")', '    if inner.uploads.is_none() {\n        return Ok(());\n    }\n    let conn = inner.command_conn(open)?;\n    conn.batch(&inner.counters, "SET CONSTRAINTS ALL IMMEDIATE")'),
 ]
@@ -372,8 +383,8 @@ DECLARED = [
      "        let statement = match None::<&Statement> {\n"),
     # 4. the commands
     ("two commands of a host run at once", LIB,
-     "        while turn.0.is_some() {\n",
-     "        while false && turn.0.is_some() {\n"),
+     "        while waits(&turn) {\n",
+     "        while false && waits(&turn) {\n"),
     ("a command writes outside a transaction", LIB,
      "        if !open.begun {\n"
      "            if let Err(error) = self.begin_command(conn) {\n",

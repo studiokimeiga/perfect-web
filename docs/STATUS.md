@@ -12,9 +12,11 @@ publish or discard one, or write a table keeping an asset
 (`Manifest::work`). Any other takes no lock, costs what it costs where no
 upload is declared, and is refused asset work by both layers, so a wrong
 answer fails closed (ADR-0440, amended). It is held on memory and on
-PostgreSQL, through the adapter and the server, and by sixteen mutants,
-killed locally (`e14-d3-postgres-3`, `e14-row-ownership` and
-`e14-generic-upload-claims` record them in the pull request's verify).
+PostgreSQL, through the adapter and the server, and by nineteen mutants,
+killed locally (`e14-d3-postgres-3`, `e14-row-ownership-3` and
+`e14-generic-upload-claims` record them in the pull request's verify). Its
+review's medium is repaired: a command holding the namespace is served its
+host's turn first, never behind the commands without it.
 
 **A call's arguments past the flat limit, 2026-11-17** (`wip/wide-import-args`,
 one pull request with the asset contract suite, below, which found it): a compiled command passes a host's
