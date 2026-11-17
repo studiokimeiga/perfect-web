@@ -36,15 +36,38 @@ jobs:
           # (pnpm), and this job installs none: it runs `npx` alone.
           package-manager-cache: false
       - name: Generate full Fallow report
+        # `--score`: fallow's combined mode computes the health score only
+        # when asked (v3.23.0's `score: opts.score || opts.trend`), and
+        # without it the summary's health read "n/a" from 38126d5c on.
         run: |
           set +e
-          npx -y fallow@3.23.0 --format json --quiet > fallow-report.json
+          npx -y fallow@3.23.0 --score --format json --quiet > fallow-report.json
           status=$?
           if [ "$status" -gt 1 ]; then exit "$status"; fi
       - name: Summarize health
+        # Each figure is read where the report keeps it, and one that is
+        # missing fails the step, rather than reading "n/a" or 0.
         run: |
-          # shellcheck disable=SC2016 # JS template placeholders must reach Node unchanged
-          node -e 'const fs=require("fs"); const j=JSON.parse(fs.readFileSync("fallow-report.json","utf8")); const h=j.health?.health_score ?? {}; const s=j.check?.summary ?? {}; const d=j.dupes?.stats ?? {}; fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `# Fallow weekly report\n\n- Health: **${h.score ?? "n/a"} ${h.grade ?? ""}**\n- Issues: **${s.total_issues ?? 0}**\n- Dead files: **${s.unused_files ?? 0}**\n- Cycles: **${s.circular_dependencies ?? 0}**\n- Duplication: **${Number(d.duplication_percentage ?? 0).toFixed(1)}%**\n`);'
+          node - <<'EOF'
+          const fs = require("fs");
+          const j = JSON.parse(fs.readFileSync("fallow-report.json", "utf8"));
+          const f = {
+            score: j.health?.health_score?.score,
+            grade: j.health?.health_score?.grade,
+            issues: j.check?.summary?.total_issues,
+            dead: j.check?.summary?.unused_files,
+            cycles: j.check?.summary?.circular_dependencies,
+            duplication: j.dupes?.stats?.duplication_percentage,
+          };
+          const missing = Object.keys(f).filter((k) => f[k] === undefined || f[k] === null);
+          if (missing.length > 0) {
+            console.error(`fallow-report.json holds no ${missing.join(", ")}`);
+            process.exit(1);
+          }
+          const text = `# Fallow weekly report\n\n- Health: **${f.score} ${f.grade}**\n- Issues: **${f.issues}**\n- Dead files: **${f.dead}**\n- Cycles: **${f.cycles}**\n- Duplication: **${Number(f.duplication).toFixed(1)}%**\n`;
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, text);
+          console.log(text);
+          EOF
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: fallow-weekly-report
