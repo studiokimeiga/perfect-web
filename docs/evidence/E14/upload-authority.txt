@@ -1,9 +1,9 @@
 ADR0389 - private upload lease and preview authority
 produced by: just e14-upload-authority
-commit: 83ad1ab1f92c0bc4377dfc72df28643828771bb5
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43929087203 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: bc7c6b465b2ff4b7cbdcee04c3743742451c945e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/44004739300 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
-campaign: docs/evidence/E14/upload-authority.gKmnTT/campaign/report.json
+campaign: docs/evidence/E14/upload-authority.NzfZ5I/campaign/report.json
 test_actual_child_completion_and_timeout_retain_raw_logs_and_reap_receipts (scripts.tests.test_upload_authority_mutations.UploadAuthorityProducer.test_actual_child_completion_and_timeout_retain_raw_logs_and_reap_receipts) ... ok
 test_actual_sigterm_before_launch_during_restore_and_final_report_is_invalid (scripts.tests.test_upload_authority_mutations.UploadAuthorityProducer.test_actual_sigterm_before_launch_during_restore_and_final_report_is_invalid) ... ok
 test_baseexception_after_final_green_is_recorded_as_invalid (scripts.tests.test_upload_authority_mutations.UploadAuthorityProducer.test_baseexception_after_final_green_is_recorded_as_invalid) ... one: KILLED
@@ -36,7 +36,7 @@ test_source_inventory_refuses_missing_duplicate_and_macro_tests (scripts.tests.t
 test_survivor_or_invalid_native_run_is_never_credited (scripts.tests.test_upload_authority_mutations.UploadAuthorityProducer.test_survivor_or_invalid_native_run_is_never_credited) ... ok
 
 ----------------------------------------------------------------------
-Ran 20 tests in 0.554s
+Ran 20 tests in 0.529s
 
 OK
 http-admitted-reader: KILLED

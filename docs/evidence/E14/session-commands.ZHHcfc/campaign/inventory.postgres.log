@@ -1,0 +1,14 @@
+tests::session_commands_pg::a_false_advisory_unlock_is_not_release_proof: test
+tests::session_commands_pg::anonymous_authority_open_waits_for_its_admitted_store_transaction: test
+tests::session_commands_pg::feed_admitted_command_precedes_revocation: test
+tests::session_commands_pg::feed_expiry_after_evaluation_rolls_back: test
+tests::session_commands_pg::feed_lost_ack_and_hidden_receipt_remain_unknown: test
+tests::session_commands_pg::feed_receipts_keep_generation_across_hosts: test
+tests::session_commands_pg::feed_revoke_before_transaction_authority: test
+tests::session_commands_pg::feed_source_binding_and_repeated_acquisition_refuse: test
+tests::session_commands_pg::store_admitted_command_precedes_revocation: test
+tests::session_commands_pg::store_expiry_after_evaluation_rolls_back: test
+tests::session_commands_pg::store_lost_ack_and_hidden_receipt_remain_unknown: test
+tests::session_commands_pg::store_receipts_keep_generation_across_hosts: test
+tests::session_commands_pg::store_revoke_before_transaction_authority: test
+tests::session_commands_pg::store_source_binding_and_repeated_acquisition_refuse: test
