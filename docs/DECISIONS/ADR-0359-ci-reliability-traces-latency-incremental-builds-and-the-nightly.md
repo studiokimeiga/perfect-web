@@ -613,5 +613,11 @@ tests: `device_runtime_mutations.py`'s 225 mutants and
 - A part's shard gets browsers from the Playwright version in its record:
   `ci_plan.needs` reads a recipe's body, not the scripts it runs. Reading
   the scripts is NEXT's.
-- `ci_seconds.json`: projections of 3,300 s, 3,600 s and 3,600 s until a run
-  measures them.
+- Measured in dispatch 44057830231 at `a8b2679c`, every part killing every
+  mutant it holds: `e14-device-runtime` 3,867 s (31 of 31, and the planned
+  list's 127 of 127), `e14-device-runtime-2` 2,384 s (56 of 56) and
+  `e14-device-runtime-3` 4,411 s (138 of 138), where the whole took
+  9,425 s. The weights underrated part 3's 77 packaging and 23 host
+  mutants. Its 4,411 s is under five other recipes' (`e14-labels`,
+  `e14-statements-separated`, d3's first part, `e14-scheduled`,
+  `e14-durable-tables`), so the cut stays until it is the longest again.
