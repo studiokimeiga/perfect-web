@@ -269,3 +269,100 @@ gates run on every branch push too.
   short.
 - **Merge on `just ci` alone.** No mutation control would run before a
   merge, so a test that kills nothing could land.
+
+## Amended 2026-11-17: a recipe's body as `just` runs it
+
+The planner holds a recipe's evidence current where every file the recipe
+writes names one commit and nothing it reads changed since. It finds those
+files in the recipe's body (`evidence_files`: a `>` or a `mv` to
+`docs/evidence/`), and a recipe whose body names none is planned wherever a
+change reaches it. Four were so, whatever a commit changed: a pull
+request's verify ran them again after its evidence fetch, which changes
+nothing they read. Since 2026-11-17 the owner has granted CI speed-ups that
+give up no gate.
+
+- **`e10-browser` (3,920 s) writes `> {{out}}`**, a parameter's default
+  (`out="docs/evidence/E10/browser-suite.txt"`), which the body as written
+  does not name. The planner now reads each recipe's body as `just NAME`
+  runs it (`bodies`): each parameter's default, unquoted, in place of its
+  `{{name}}`. A parameter with no default, or a variadic one, is left as
+  it is written. `e10-browser`'s evidence is read, and held current as
+  every other recipe's is. It runs no mutation script, so
+  `evidence_counts`, which reads the same files, has nothing to count
+  there. Held by `test_a_recipes_body_is_read_as_just_runs_it_its_defaults_in_place`
+  and two mutants in `e14-dealt-by-time` (the defaults not read, read with
+  their quotes).
+- **The three campaign recipes** (`e14-upload-authority`,
+  `e14-session-command-authority` 2,676 s, `e14-session-receipt-recovery`)
+  copy (`cp`) their console's report to their evidence file. A copy is read
+  as a move is (`PUBLISHES`). Since both feed one discovery authority,
+  `evidence_counts`, which reads the same files, now reads a campaign's
+  counts:
+  - a block counted `scope=FULL, controls=K/N, valid=True, restored=True` is
+    a count of its script's controls (`CONTROLS`: an identifier, a
+    description and its edits each), not of its `MUTANTS` rows, which
+    flatten a control's edits;
+  - each control is named by its identifier alone (`lease-reader: KILLED`);
+  - a run not whole, not valid or not restored is counted as none killed;
+  - a block whose verdicts name no control of the recipe's scripts is not
+    its count. A campaign script's own unit tests print such lines
+    (`one: KILLED`, `controls=1/1`). Where the campaign's own count is not
+    read, the recipe counts none of its script's controls.
+
+  The three campaigns' evidence agrees with their scripts, and each
+  recipe's evidence is held current as every other's is. Held by
+  `test_a_campaigns_controls_are_counted_by_their_identifiers`, the
+  planner's test of the three copies, five mutants in `e14-evidence-integrity`
+  and one in `e14-dealt-by-time` (a copy not read as a write).
+
+**Reviewed** independently (2026-11-17, `1b9e70b8` and `46ec0229`). Its
+high finding: held current, the campaigns' evidence would be judged by a
+reach that misses the tests their kills are credited at. Uploads'
+session-authority and privacy tests are brought into `uploads::tests` by
+`include!`. pw-resource's command tests are an inline module named other
+than `tests`, which `session_command_mutations.py`'s filter names by a
+string (`LIB_MODULE`). pw-table-memory's compiled tests include their
+support files. On master a change to any of these planned nothing; a later
+commit could then have broken a witness, and a merge landed on a count
+recorded before it. The planner's reach now reads:
+- a file another `include!`s: under `tests/`, its includers' test targets;
+  elsewhere, the modules it opens and its includer's (`includers`,
+  `included_tests`);
+- an inline test module of any name, to its closing brace, by its file's
+  name and its own, which a filter may name alone (`test_modules`; a change
+  after the module is no longer read as its test's);
+- a module named by the string its filter is built from (`names_module`).
+
+Each of the four plans its recipes now
+(`test_a_test_included_or_inline_under_another_name_plans_its_recipes`).
+That closes the gap for every recipe, not only the campaigns'.
+
+Still owed: a filter that names a module by its whole path
+(`backend::lower::checked_input_tests` in `check_is_build_mutations.py`)
+reaches its script by no rule, on master or here (NEXT item 8).
+
+Its medium finding: any committed file naming a whole commit was a record,
+so a local run's (`just e10-browser chromium`, one engine, run once) could
+hold `e10-browser` current. A record is now a run's: `evidence_fetch.stamp`
+names the run on the line after the commit's, and the planner, and
+`evidence_counts` with it, holds current only a file so stamped
+(`STAMPED`, `recorded_commit`). Of the 476 evidence files that name a
+commit, the 92 unstamped are of recipes CI never runs, or of none.
+
+Its lows are repaired too:
+- a parameter's default is read from the header alone;
+- only a campaign's control is named by its identifier alone;
+- a control's description is the longest of its words before its edits,
+  as `session_command`'s rows are identifier, suite, description, edits;
+- tests now hold a control not killed as a verdict still, a table of prose
+  controls (`head_to_head`'s) as no campaign's, and a default
+  single-quoted or bare.
+
+Ten more mutants hold them: six in `e14-dealt-by-time` and four in
+`e14-evidence-integrity`, besides the one re-anchored.
+
+So an evidence-only commit plans none of the four, where its inputs are
+otherwise unchanged. A pull request's last round of CI, after its evidence
+is fetched, no longer runs some 65 minutes of recipes again. Every gate is
+kept: the evidence is held to its commit, its counts to its scripts, and a
+change to anything a recipe reads plans it.

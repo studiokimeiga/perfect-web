@@ -31,7 +31,13 @@ there is none, and (2026-11-17) one refused without one; and (the
 integrator's ruling 2 of 2026-10-17) a recipe
 recorded past a job's limit planned, its shard's setup not counted against
 it, a note in the seconds kept read as a recipe's, and a recipe run to its
-end keeping its lower bound. At least one test of
+end keeping its lower bound; and (ADR-0281, amended 2026-11-17) a recipe's
+body read as `just` runs it, each parameter's default in place, unquoted
+(`e10-browser`'s `> {{out}}`, and only from its header), a copy to its
+evidence read as a write (the campaign recipes'), a record held current
+only where a run stamped it, and a test brought in by `include!`, or inline
+under another name than `tests` (or named by a string its filter is built
+from), planning the recipes that run it. At least one test of
 `scripts/tests/test_ci_scripts.py` must then fail.
 
 Run from the repository root; `just e14-dealt-by-time` records the output.
@@ -69,8 +75,8 @@ MUTANTS = [
     (
         "a line before a source's test module is taken as its test's",
         PLAN,
-        "        if start is not None and any(last >= start for _, last in hunks):\n",
-        "        if start is not None:\n",
+        "            if any(first <= end and last >= i + 1 for first, last in hunks):\n",
+        "            if True:\n",
     ),
     # Train-6's finding: a server test module is run by its filter, and a
     # change to one plans what runs it.
@@ -414,6 +420,62 @@ MUTANTS = [
         PLAN,
         '        return path == pattern or path.startswith(pattern + "/")\n',
         "        return path == pattern\n",
+    ),
+    (
+        "a recipe's body is read without its parameters' defaults",
+        PLAN,
+        "                for key, value in given.items():\n",
+        "                for key, value in {}.items():\n",
+    ),
+    (
+        "a recipe's copy to its evidence is not read as a write",
+        PLAN,
+        "PUBLISHES = re.compile(r'\\b(?:mv|cp)[ \\t]+",
+        "PUBLISHES = re.compile(r'\\b(?:mv)[ \\t]+",
+    ),
+    # The review of the planner's reading (2026-11-17): a test included or
+    # inline under another name plans its recipes, and a record is a run's.
+    (
+        "an inline test module of another name is read as its file's alone",
+        PLAN,
+        '                if inline.group(1) != "tests":\n                    out.add(inline.group(1))\n',
+        "",
+    ),
+    (
+        "a change after an inline test module is read as its test's",
+        PLAN,
+        "            if any(first <= end and last >= i + 1 for first, last in hunks):\n",
+        "            if any(last >= i + 1 for first, last in hunks):\n",
+    ),
+    (
+        "a file another includes plans nothing",
+        PLAN,
+        "        found = includers(path)\n",
+        "        found = []\n",
+    ),
+    (
+        "a module named by the string its filter is built from names nothing",
+        PLAN,
+        "        or re.search(rf'\"{re.escape(module)}\"', text) is not None\n",
+        "        or False\n",
+    ),
+    (
+        "a record no run stamped is held current",
+        PLAN,
+        'STAMPED = re.compile(RECORDED_AT.pattern.removesuffix("$") + r"\\nci: \\S", re.M)\n',
+        "STAMPED = RECORDED_AT\n",
+    ),
+    (
+        "a parameter's default is read past its header",
+        PLAN,
+        '    rest = header[m.end(1) : m.end()] if m else ""\n',
+        '    rest = header[m.end(1) :] if m else ""\n',
+    ),
+    (
+        "a parameter's default is read with its quotes",
+        PLAN,
+        "        out[m.group(2)] = value[1:-1] if value[:1] in \"\\\"'\" else value\n",
+        "        out[m.group(2)] = value\n",
     ),
 ]
 

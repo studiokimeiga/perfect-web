@@ -253,18 +253,46 @@ def justfile_parts(root: pathlib.Path = ROOT) -> list[str]:
     return parts
 
 
+# **A parameter of a recipe's header and its default**, where it has one: a
+# variadic one (`*`, `+`) is no single value, and is left as it is written.
+PARAMETER = re.compile(r"""\s+(\$?)([A-Za-z_][A-Za-z0-9_-]*)=("[^"]*"|'[^']*'|[^\s'":=]+)""")
+
+
+def defaults(header: str) -> dict[str, str]:
+    """Each parameter of `header` that has a default, by name, its default
+    unquoted."""
+    out = {}
+    m = HEADER.match(header)
+    rest = header[m.end(1) : m.end()] if m else ""
+    for m in PARAMETER.finditer(rest):
+        value = m.group(3)
+        out[m.group(2)] = value[1:-1] if value[:1] in "\"'" else value
+    return out
+
+
 def bodies(root: pathlib.Path = ROOT) -> dict[str, str]:
-    """Each recipe's body, by name, in every part of the justfile."""
+    """**Each recipe's body, by name, as `just NAME` runs it**, in every
+    part of the justfile: each parameter's default in place of its
+    `{{name}}` (ADR-0281, amended 2026-11-17). Until then `e10-browser`'s
+    `> {{out}}` named no evidence file here, so the planner never held its
+    evidence current, and every pull request's verify ran it (3,920 s)
+    after a commit that changed nothing it reads. A parameter with no
+    default is left as it is written, and so is a variadic one, whose
+    default `just` would give (no recipe's evidence is named by one)."""
     out: dict[str, str] = {}
     for part in justfile_parts(root):
         name = None
+        given: dict[str, str] = {}
         for line in (root / part).read_text().splitlines():
             m = HEADER.match(line)
             if m and not line.startswith((" ", "\t")):
                 name = m.group(1)
+                given = defaults(line)
                 out[name] = ""
                 continue
             if name and (line.startswith((" ", "\t")) or not line.strip()):
+                for key, value in given.items():
+                    line = re.sub(r"\{\{\s*" + re.escape(key) + r"\s*\}\}", lambda _: value, line)
                 out[name] += line + "\n"
             else:
                 name = None
@@ -559,16 +587,21 @@ def test_modules(changed: dict[str, list[tuple[int, int]]]) -> set[str]:
         if not p.endswith(".rs") or "/tests/" in p or not (ROOT / p).is_file():
             continue
         lines = (ROOT / p).read_text().splitlines()
-        start = next(
-            (
-                i + 1
-                for i in range(1, len(lines))
-                if lines[i].strip() == "mod tests {" and lines[i - 1].strip() == "#[cfg(test)]"
-            ),
-            None,
-        )
-        if start is not None and any(last >= start for _, last in hunks):
-            out.add(pathlib.Path(p).stem)
+        # Each test module inline, by its name, where a changed line is in
+        # it (to its closing brace): `mod tests` is its file's (a filter
+        # `csp::`), and one of another name both its file's (`store::joins::`)
+        # and its own, which a filter may name alone (`invoked_tests`; the
+        # review of the planner's reading, 2026-11-17: only `mod tests` was
+        # read).
+        for i in range(1, len(lines)):
+            inline = INLINE_TEST_MODULE.fullmatch(lines[i].strip())
+            if not inline or lines[i - 1].strip() != "#[cfg(test)]":
+                continue
+            end = next((j + 1 for j in range(i + 1, len(lines)) if lines[j] == "}"), len(lines))
+            if any(first <= end and last >= i + 1 for first, last in hunks):
+                out.add(pathlib.Path(p).stem)
+                if inline.group(1) != "tests":
+                    out.add(inline.group(1))
     # And a whole test module, declared out of line: its own name, as a
     # filter, and its declaring module's, as an inline `mod tests` is its
     # file's; `tests` alone names every crate's, and its package reaches it
@@ -577,7 +610,63 @@ def test_modules(changed: dict[str, list[tuple[int, int]]]) -> set[str]:
         for name in (module_name(p), module_name(declarer)):
             if name is not None and name != "tests":
                 out.add(name)
+    out |= included_tests(changed)[1]
     return out
+
+
+# An inline module's opening line, `mod NAME {`.
+INLINE_TEST_MODULE = re.compile(r"(?:pub(?:\([\w: ]+\))?\s+)?mod\s+(\w+)\s*\{")
+# A file brought into another by `include!("path")`.
+INCLUDES = re.compile(r'^[ \t]*include!\(\s*"([^"]+)"\s*\)\s*;', re.M)
+
+
+def includers(path: str) -> list[str]:
+    """**The files that `include!` `path`** (the review of the planner's
+    reading, 2026-11-17): each in its directory or the one above, whose
+    `include!("...")` names it, as `rustc` resolves that path from the
+    including file's directory. `uploads.rs` brings its session-authority
+    tests in from `uploads/session_authority_tests.rs`, and each of
+    `pw-table-memory`'s compiled tests its `tests/support/*.rs`: a change to
+    one of them planned nothing, under no test module the planner read."""
+    p = ROOT / path
+    out = []
+    for directory in {p.parent, p.parent.parent}:
+        if not directory.is_dir():
+            continue
+        for candidate in sorted(directory.glob("*.rs")):
+            if candidate == p:
+                continue
+            for included in INCLUDES.findall(candidate.read_text(errors="replace")):
+                if (candidate.parent / included).resolve() == p.resolve():
+                    out.append(str(candidate.relative_to(ROOT)))
+                    break
+    return sorted(set(out))
+
+
+def included_tests(changed: dict[str, list[tuple[int, int]]]) -> tuple[set[str], set[str]]:
+    """What a changed file `include!`d into a test reaches: under a `tests/`
+    directory, the test targets that include it (by their names, as
+    `--test` gives them); elsewhere, the modules its own lines open and its
+    includer's, by name, as their filters name them."""
+    targets, modules = set(), set()
+    for path in changed:
+        if not path.endswith(".rs") or not (ROOT / path).is_file():
+            continue
+        found = includers(path)
+        if not found:
+            continue
+        if "/tests/" in path:
+            targets.update(pathlib.Path(f).stem for f in found if "/tests/" in f)
+            continue
+        for line in (ROOT / path).read_text(errors="replace").splitlines():
+            inline = INLINE_TEST_MODULE.fullmatch(line.strip())
+            if inline and inline.group(1) != "tests":
+                modules.add(inline.group(1))
+        for f in found:
+            name = module_name(f)
+            if name is not None:
+                modules.add(name)
+    return targets, modules
 
 
 def module_name(path: str) -> str | None:
@@ -629,8 +718,13 @@ def test_module_files(changed: dict[str, list[tuple[int, int]]]) -> dict[str, st
 
 def names_module(text: str, module: str) -> bool:
     """Whether `text` names `module`'s tests by its filter, `csp::`, and
-    not as the tail of another path, `pw_core::csp::`."""
-    return re.search(rf"(?<![\w:]){re.escape(module)}::", text) is not None
+    not as the tail of another path, `pw_core::csp::`; or by the string its
+    filter is built from (`LIB_MODULE = "fallible_command_tests"`, then
+    `LIB_MODULE + "::"`, as `session_command_mutations.py` builds its)."""
+    return (
+        re.search(rf"(?<![\w:]){re.escape(module)}::", text) is not None
+        or re.search(rf'"{re.escape(module)}"', text) is not None
+    )
 
 
 def root_test_packages(changed: dict[str, list[tuple[int, int]]]) -> set[str]:
@@ -723,6 +817,7 @@ def touched_scripts(changed: dict[str, list[tuple[int, int]]], near: int) -> set
     modules by its filter, `tests::store_scheduled::`, which planned nothing
     until train-6's fix to one."""
     tests = {pathlib.Path(p).stem for p in changed if "/tests/" in p and p.endswith(".rs")}
+    tests |= included_tests(changed)[0]
     modules = test_modules(changed)
     packages = root_test_packages(changed)
     specs = changed_specs(changed)
@@ -857,6 +952,7 @@ def recipes_for(changed: dict[str, list[tuple[int, int]]], near: int, names: lis
     body = bodies()
     specs = changed_specs(changed)
     tests = {pathlib.Path(p).stem for p in changed if "/tests/" in p and p.endswith(".rs")}
+    tests |= included_tests(changed)[0]
     modules = test_modules(changed)
     packages = root_test_packages(changed)
     every_spec = any(p.startswith(f"{SUITE_DIRECTORY}/e2e/") and p.endswith(".mjs") for p in changed)
@@ -896,11 +992,26 @@ def recipes_for(changed: dict[str, list[tuple[int, int]]], near: int, names: lis
 # written from a tree with changes says `+ uncommitted changes` after it,
 # and records no commit.
 RECORDED_AT = re.compile(r"^commit: ([0-9a-f]{40})[ \t]*$", re.M)
+# **A record is a run's** (the review of the planner's reading, 2026-11-17):
+# `evidence_fetch.stamp` names the run on the line after the commit's, so a
+# file a local run wrote (`just e10-browser chromium`, one engine, run once),
+# committed by mistake, is no record the planner holds current. A local run
+# is never the record (ADR-0281).
+STAMPED = re.compile(RECORDED_AT.pattern.removesuffix("$") + r"\nci: \S", re.M)
+
+
+def recorded_commit(text: str) -> str | None:
+    """The commit a record names, where a run stamped it (`STAMPED`)."""
+    m = STAMPED.search(text)
+    return m.group(1) if m else None
 
 # The evidence files a recipe writes directly or publishes after recording
-# beside its destination (ADR-0344). Both feed the same discovery authority.
+# beside its destination (ADR-0344): moved there, or copied (ADR-0281,
+# amended 2026-11-17: the three campaign recipes copy their console's
+# report, whose counts `evidence_counts` reads as a campaign's). Both feed
+# the same discovery authority.
 WRITES = re.compile(r">[ \t]*(docs/evidence/[\w./-]+\.txt)")
-PUBLISHES = re.compile(r'\bmv[ \t]+(?:"[^"\n]+"|[^ \t\r\n]+)[ \t]+(docs/evidence/[\w./-]+\.txt)')
+PUBLISHES = re.compile(r'\b(?:mv|cp)[ \t]+(?:"[^"\n]+"|[^ \t\r\n]+)[ \t]+(docs/evidence/[\w./-]+\.txt)')
 
 
 def evidence_files(body: str) -> list[str]:
@@ -913,8 +1024,7 @@ def recorded_at(head: str, path: str, root: pathlib.Path = ROOT) -> str | None:
     out = subprocess.run(["git", "show", f"{head}:{path}"], cwd=root, capture_output=True)
     if out.returncode != 0:
         return None
-    m = RECORDED_AT.search(out.stdout.decode("utf-8", errors="replace"))
-    return m.group(1) if m else None
+    return recorded_commit(out.stdout.decode("utf-8", errors="replace"))
 
 
 def descends(sha: str, head: str, root: pathlib.Path = ROOT) -> bool:
