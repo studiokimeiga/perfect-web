@@ -752,6 +752,79 @@ fn a_window_reads_an_owned_public_target_as_every_reader_reads_it() {
     );
 }
 
+/// **The feed's own shape** (G5's review, 2026-11-17): each reader's
+/// window over the posts their authors own, by the reader's own handle, in
+/// the owner-led order (a stamp tie broken by author, then id); and a post
+/// its author writes in a command, read in that command's window before it
+/// commits, and every reader's after.
+#[test]
+fn the_feeds_shape_reads_each_readers_window_and_a_staged_post() {
+    let program = relation_feed_shape_program();
+    let tables = MemoryTables::new(program.tables.clone()).assert_ok("memory");
+    tables
+        .transaction(|tx| {
+            for row in relation_feed_posts() {
+                tx.write("pw:tables/roots#insert", &[row])?;
+            }
+            for row in relation_feed_links() {
+                tx.write("pw:tables/links#insert", &[row])?;
+            }
+            Ok(())
+        })
+        .assert_ok("posts their authors own, memberships their readers own");
+    let alice = [handle(ALICE), Val::S64(1), Val::S64(3)];
+    assert_eq!(
+        query(&program, &tables, "Feed", &as_user(ALICE), &alice),
+        Ok(vec![Val::List(vec![
+            relation_feed_post(3, CAROL, 7, "carol 3"),
+            relation_feed_post(2, CAROL, 5, "carol 2"),
+            relation_feed_post(9, BOB, 5, "bob 9"),
+        ])]),
+        "Alice's window, in the owner-led order"
+    );
+    assert_eq!(
+        query(
+            &program,
+            &tables,
+            "Feed",
+            &as_user(BOB),
+            &[handle(BOB), Val::S64(1), Val::S64(3)]
+        ),
+        Ok(vec![Val::List(vec![relation_feed_post(
+            4, ALICE, 2, "alice 4"
+        )])]),
+        "Bob's window, his own memberships alone"
+    );
+    let posted = command(
+        &program,
+        &tables,
+        "PostAndRead",
+        ALICE,
+        &[Val::S64(10), Val::S64(9), Val::S64(1), Val::S64(2)],
+    );
+    assert_eq!(
+        posted,
+        Ok(vec![Val::List(vec![
+            relation_feed_post(10, ALICE, 9, "staged"),
+            relation_feed_post(3, CAROL, 7, "carol 3"),
+        ])]),
+        "the post its author wrote, in the command's own window before it commits"
+    );
+    assert_eq!(
+        query(
+            &program,
+            &tables,
+            "Feed",
+            &as_user(BOB),
+            &[handle(BOB), Val::S64(1), Val::S64(1)]
+        ),
+        Ok(vec![Val::List(vec![relation_feed_post(
+            10, ALICE, 9, "staged"
+        )])]),
+        "and Bob's, once it committed"
+    );
+}
+
 #[test]
 fn an_unchosen_relation_import_and_authorization_only_predicate_keep_both_grants() {
     let program = relation_program();

@@ -261,13 +261,11 @@ pub(super) fn check(
         // **A window reads its target as every reader reads it** (L7's G5,
         // 2026-11-17): a table no one owns, or a `public table` its owner
         // writes and every reader reads (ADR-0395's ruling 4, the feed's
-        // posts by their authors). A table read by its reader alone, or one
-        // that keeps fields private or rows shared, would give a window
-        // other readers' rows.
-        if target.read_by_its_reader()
-            || !target.private_fields().is_empty()
-            || !target.sharers().is_empty()
-        {
+        // posts by their authors); never one read by its reader alone, whose
+        // rows a window would give to other readers. A `public table`
+        // keeping fields private or rows shared is refused by its own rules
+        // (PW0369, PW0370): one defect, one diagnostic (ADR-0112).
+        if target.read_by_its_reader() {
             out.push(refusal(
                 codes::OWNED_READ_BY_ITS_READER,
                 "owned_read_by_its_reader",

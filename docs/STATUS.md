@@ -5,9 +5,11 @@
 **L7 begun, 2026-11-17: a window over an owned public table** (G5,
 `wip/l7-owned-windows`). A relation window's target may be an owned `public
 table`, which its owner writes and every reader reads, as the feed's
-subscriptions read their authors' posts. A target read by its reader alone,
-or one keeping fields private or rows shared, is still refused (ADR-0440,
-amended). It is held on memory and on PostgreSQL, and by four mutants. A
+subscriptions read their authors' posts. A target read by its reader alone
+is still refused, and one keeping fields private or rows shared is refused
+by its own table's rule, once (ADR-0440, amended). It is held on memory and
+on PostgreSQL, the feed's own shape among it, and by six mutants, killed
+locally (`e14-row-ownership` records them in the pull request's verify). A
 survey of the ports' other gaps is NEXT's L7 item.
 
 **A call's arguments past the flat limit, 2026-11-17** (`wip/wide-import-args`,

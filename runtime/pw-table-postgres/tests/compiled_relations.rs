@@ -746,6 +746,22 @@ fn a_window_reads_an_owned_public_target_as_every_reader_reads_it() {
             Ok(())
         })
         .assert_ok("posts their authors own, and public memberships");
+    for caller in [Caller::Nobody, as_user(ALICE), as_user(BOB)] {
+        assert_eq!(
+            q(
+                &program,
+                &tables,
+                "PlainLast",
+                &caller,
+                &[Val::Bool(false), Val::S64(2)]
+            ),
+            Ok(vec![Val::List(vec![
+                relation_root_value(3),
+                relation_root_value(1)
+            ])]),
+            "before the reopen"
+        );
+    }
     drop(tables);
     let tables = open();
     for caller in [Caller::Nobody, as_user(ALICE), as_user(BOB)] {
@@ -773,6 +789,111 @@ fn a_window_reads_an_owned_public_target_as_every_reader_reads_it() {
             relation_public_group(false, &[3, 1]),
             relation_public_group(true, &[4, 3])
         ])])
+    );
+}
+
+/// **A command, made as `user`**, as the platform runs one: in a command of
+/// its own, committed where it answers, undone where it fails or answers a
+/// declared error (memory's `command_as`, on PostgreSQL).
+fn pg_command(
+    program: &Program,
+    tables: &PgTables,
+    id: &str,
+    user: &str,
+    args: &[Val],
+) -> Result<Vec<Val>, String> {
+    let component = program.component(id);
+    let granted = component.granted();
+    let staged = tables.begin().assert_ok("its turn");
+    let mut host = staged
+        .host_fns(&component.contract, &granted)
+        .assert_ok("the gate admits the command's reads and writes");
+    host.extend(platform(component, user));
+    let answer = pw_host::engine::call_with_tables_as(
+        &component.bytes,
+        &component.contract,
+        &granted,
+        &pw_host::Limits::unbounded(),
+        &host,
+        &program.manifest,
+        &as_user(user),
+        &component.export(),
+        args,
+    );
+    let declared_error = matches!(answer.as_deref(), Ok([Val::Result(Err(_))]));
+    if answer.is_ok() && !declared_error {
+        staged
+            .commit()
+            .map_err(|error| format!("commit refused: {error:?}"))?;
+    }
+    answer
+}
+
+/// **The feed's own shape, on PostgreSQL** (G5's review, 2026-11-17): each
+/// reader's window by their own handle, in the owner-led order, and a post
+/// its author writes, read in its command's own window before it commits.
+#[test]
+fn the_feeds_shape_reads_each_readers_window_and_a_staged_post() {
+    let program = relation_feed_shape_program();
+    let Some(url) = common::database() else {
+        return;
+    };
+    let scratch = common::Scratch::new(&url, "feed_shape_window");
+    let tables =
+        PgTables::open(&url, scratch.schema(), program.tables.clone()).assert_ok("PostgreSQL");
+    tables
+        .transaction(|tx| {
+            for row in relation_feed_posts() {
+                tx.write("pw:tables/roots#insert", &[row])?;
+            }
+            for row in relation_feed_links() {
+                tx.write("pw:tables/links#insert", &[row])?;
+            }
+            Ok(())
+        })
+        .assert_ok("posts their authors own, memberships their readers own");
+    assert_eq!(
+        q(
+            &program,
+            &tables,
+            "Feed",
+            &as_user(ALICE),
+            &[handle(ALICE), Val::S64(1), Val::S64(3)]
+        ),
+        Ok(vec![Val::List(vec![
+            relation_feed_post(3, CAROL, 7, "carol 3"),
+            relation_feed_post(2, CAROL, 5, "carol 2"),
+            relation_feed_post(9, BOB, 5, "bob 9"),
+        ])]),
+        "Alice's window, in the owner-led order"
+    );
+    let posted = pg_command(
+        &program,
+        &tables,
+        "PostAndRead",
+        ALICE,
+        &[Val::S64(10), Val::S64(9), Val::S64(1), Val::S64(2)],
+    );
+    assert_eq!(
+        posted,
+        Ok(vec![Val::List(vec![
+            relation_feed_post(10, ALICE, 9, "staged"),
+            relation_feed_post(3, CAROL, 7, "carol 3"),
+        ])]),
+        "the post its author wrote, in the command's own window before it commits"
+    );
+    assert_eq!(
+        q(
+            &program,
+            &tables,
+            "Feed",
+            &as_user(BOB),
+            &[handle(BOB), Val::S64(1), Val::S64(1)]
+        ),
+        Ok(vec![Val::List(vec![relation_feed_post(
+            10, ALICE, 9, "staged"
+        )])]),
+        "and Bob's, once it committed"
     );
 }
 

@@ -54,12 +54,14 @@ in order:
    A survey of what the ports need (2026-11-17, at `2255b1c6`) found these
    gaps first, each its own pull request, in this order:
    - **G0**, a row past 16 flat values (the feed's post): done (#131).
+   - ~~**G5**, a window over an owned `public table` (the subscriptions'
+     window over their authors' posts)~~: done (2026-11-17,
+     `wip/l7-owned-windows`; ADR-0440, amended). It went before G10, which
+     the survey put first: a rule at admission that the port needs
+     whatever G10's numbers say, and that takes no lock.
    - **G10**, the upload namespace's lock on every command of a program
      that declares uploads (KNOWN_LIMITATIONS): measure the feed's command
      mix on two hosts, and narrow the lock if the numbers ask.
-   - ~~**G5**, a window over an owned `public table` (the subscriptions'
-     window over their authors' posts)~~: done (2026-11-17,
-     `wip/l7-owned-windows`; ADR-0440, amended).
    - **G4**, an asset on an owned table (a post's image): refused by the
      compiler (`tables/assets.rs`) and the host (`tables.rs`).
    - **G1**, an id sequence never reused after a delete, a rollback, a

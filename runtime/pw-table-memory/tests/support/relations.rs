@@ -231,6 +231,89 @@ public query PlainMany(topics: List<Bool>, n: Int) -> List<Links.LinksTopicPosts
 "#;
     built_from(&[("Roots.pw",roots),("Links.pw",links),("RelationData.pw",source),("app.pw",app)])
 }
+/// **The feed's own shape** (G5's review, 2026-11-17): a membership its
+/// reader owns, read by the reader's handle, over the posts their authors
+/// own, which every reader reads; and a command that writes its author's
+/// post and reads its own window before it commits.
+fn relation_feed_shape_program() -> Program {
+    let roots=r#"module Roots
+import capability.{ UserId }
+type Root = Root { id: Int, author: UserId, stamp: Int, text: String }
+public table Roots
+    row Root
+    key author, id
+    order stamp
+    index by_author on author
+    owned by author
+"#;
+    let links=r#"module Links
+import Roots
+import capability.{ UserId }
+type Link = Link { reader: UserId, topic: Int, author: UserId, edge: Int }
+table Links
+    row Link
+    key reader, topic, author, edge
+    order edge
+    owned by reader
+    window posts from Roots row Roots.Root on author to author
+"#;
+    let source=r#"module RelationData
+import Links
+import Roots
+source RelationData
+    holds Links, Roots
+    transactions serializable
+    reads strong
+    changes none
+    sets one_call
+"#;
+    let app=r#"module owned.app
+import Roots
+import Links
+import Roots.{ Root }
+import capability.{ User, UserId, id_of }
+import context.{ current_user }
+event Posted(author: UserId)
+user query Feed(reader: User<UserId>, topic: Int, n: Int) -> List<Roots.Root>
+    freshness 0.seconds
+    consistency read_your_writes
+    cache private
+    key reader,topic,n
+    invalidates_on Posted(_)
+    concurrency one_per_key
+    on_key_change cancel
+    timeout 2.seconds
+{
+    Links.last_posts_by_reader_topic(reader,topic,n)
+}
+command PostAndRead(id: Int, stamp: Int, topic: Int, n: Int) -> List<Roots.Root>
+    requires Anyone
+    transaction serializable
+    emits Posted(id_of(current_user()))
+{
+    let me = current_user()
+    let saved = Roots.insert(me, Root { id: id, author: id_of(me), stamp: stamp, text: "staged" })
+    Links.last_posts_by_reader_topic(me,topic,n)
+}
+"#;
+    built_from(&[("Roots.pw",roots),("Links.pw",links),("RelationData.pw",source),("app.pw",app)])
+}
+/// Its posts: a tie on stamp 5 that only the owner-led order (stamp, author,
+/// id) breaks as it should (Carol's 2 after Bob's 9), where the unowned key's
+/// (stamp, id) would put Bob's 9 after Carol's 2.
+fn relation_feed_posts()->Vec<serde_json::Value> {
+    [(1,BOB,1),(9,BOB,5),(2,CAROL,5),(3,CAROL,7),(4,ALICE,2)].into_iter()
+        .map(|(id,author,stamp)|json!({"id":id,"author":author,"stamp":stamp,"text":format!("{author} {id}")})).collect()
+}
+/// Alice follows Bob, Carol and herself under topic 1; Bob follows Alice.
+fn relation_feed_links()->Vec<serde_json::Value> {
+    [(ALICE,1,BOB,1),(ALICE,1,CAROL,2),(ALICE,1,ALICE,3),(BOB,1,ALICE,4)].into_iter()
+        .map(|(reader,topic,author,edge)|json!({"reader":reader,"topic":topic,"author":author,"edge":edge})).collect()
+}
+fn relation_feed_post(id:i64, author:&str, stamp:i64, text:&str)->Val {
+    Val::Record(vec![("id".into(),Val::S64(id)),("author".into(),Val::String(author.into())),
+        ("stamp".into(),Val::S64(stamp)),("text".into(),Val::String(text.into()))])
+}
 fn relation_public_links()->Vec<serde_json::Value> {
     [(false,BOB,1),(false,BOB,2),(true,BOB,3),(true,CAROL,4)].into_iter()
         .map(|(topic,author,edge)|json!({"topic":topic,"author":author,"edge":edge,"text":"public membership"})).collect()
