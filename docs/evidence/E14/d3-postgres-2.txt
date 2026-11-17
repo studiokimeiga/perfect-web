@@ -1,8 +1,8 @@
 D3 - any program's declared tables on PostgreSQL: its mutation controls, part 2 of 2, the uploads'
 
 produced by: just e14-d3-postgres-2
-commit: 83ad1ab1f92c0bc4377dfc72df28643828771bb5
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43929087203 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 41a73a48ab29a42cce090990051accd8278d6e0c
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43978661391 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 postgres: 18.6 (Debian 18.6-1.pgdg13+2)
 
@@ -14,7 +14,7 @@ upload lifecycle keeps without verifying exact receipt after immediate hooks: KI
 upload lifecycle commits without verifying exact receipt after deferred hooks: KILLED (1 of 171 tests fail)
 upload lifecycle acknowledges a reinserted captured cleanup job: KILLED (1 of 171 tests fail)
 upload lifecycle keeps the lock transactions old snapshot for the command: KILLED (36 of 171 tests fail)
-upload lifecycle migrates while another command owns the namespace: KILLED (1 of 171 tests fail)
+upload lifecycle migrates while another command owns the namespace: KILLED (2 of 171 tests fail)
 upload lifecycle commits claims without actual durable receipts: KILLED (1 of 171 tests fail)
 upload lifecycle forgets receipt requirements for held or discarded claims: KILLED (1 of 171 tests fail)
 upload lifecycle keeps before checking actual row asset fields: KILLED (1 of 171 tests fail)

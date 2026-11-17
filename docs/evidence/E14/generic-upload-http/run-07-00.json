@@ -1,0 +1,21 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "--quiet",
+    "--locked",
+    "-p",
+    "pw-dev-server",
+    "--bin",
+    "pw-dev-server",
+    "tests::upload_generations::",
+    "--",
+    "--format=pretty",
+    "--test-threads=2"
+  ],
+  "exit": 101,
+  "valid": true,
+  "passed": 5,
+  "failed": 1,
+  "sha256": "b8042a4d05f7fb882c11788a0f46de7e22bd0d82bf82af94f5a3acbf1323a05f"
+}

@@ -1,8 +1,8 @@
 ADR-0290 - a verification run is dealt by the seconds its recipes last took
 
 produced by: just e14-dealt-by-time
-commit: 83ad1ab1f92c0bc4377dfc72df28643828771bb5
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43929087203 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 41a73a48ab29a42cce090990051accd8278d6e0c
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43978661391 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 python: Python 3.12.3
 
 == the plan and the fetch (scripts/tests/test_ci_scripts.py)
@@ -105,7 +105,7 @@ test_master_plans_from_the_newest_commit_a_run_passed_at (scripts.tests.test_ci_
 test_the_browser_suites_run_again_only_where_more_than_records_changed (scripts.tests.test_ci_scripts.VerifiedBase.test_the_browser_suites_run_again_only_where_more_than_records_changed) ... ok
 test_the_runs_are_read_through_gh_by_their_commit (scripts.tests.test_ci_scripts.VerifiedBase.test_the_runs_are_read_through_gh_by_their_commit) ... ok
 test_where_no_run_passed_master_plans_from_the_commit_before (scripts.tests.test_ci_scripts.VerifiedBase.test_where_no_run_passed_master_plans_from_the_commit_before) ... ok
-Ran 98 tests in 43.066s
+Ran 98 tests in 35.867s
 OK
 
 == mutation controls (scripts/dealt_by_time_mutations.py)
@@ -152,7 +152,7 @@ more shards are taken where fewer end the run as soon: KILLED (3 of 98 tests fai
 a long singleton hides a multi-recipe shard past the ceiling: KILLED (6 of 98 tests fail)
 a recipe recorded past a job's limit is planned: KILLED (1 of 98 tests fail)
 a shard's setup is not counted against a job's limit: KILLED (1 of 98 tests fail)
-a note in the seconds kept is read as a recipe's: KILLED (6 of 98 tests fail)
+a note in the seconds kept is read as a recipe's: KILLED (1 of 98 tests fail)
 a recipe run to its end keeps its lower bound: KILLED (1 of 98 tests fail)
 a recipe that skips without a database is dealt where there is none: KILLED (2 of 98 tests fail)
 a recipe refused without a database is dealt where there is none: KILLED (1 of 98 tests fail)
