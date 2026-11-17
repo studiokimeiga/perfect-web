@@ -1,8 +1,8 @@
 ADR-0290 - a verification run is dealt by the seconds its recipes last took
 
 produced by: just e14-dealt-by-time
-commit: 6734ea7e5adedb90115a02c8db1d11e7d31fc860
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/44017699885 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: cff0368eb43da50ba24c8f41b4b83c5a3d448a7d
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/44077201637 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 python: Python 3.12.3
 
 == the plan and the fetch (scripts/tests/test_ci_scripts.py)
@@ -63,13 +63,16 @@ test_a_recipe_run_against_a_database_is_a_shard_of_its_own (scripts.tests.test_c
 test_a_recipe_that_reads_a_database_is_dealt_beside_one (scripts.tests.test_ci_scripts.Plan.test_a_recipe_that_reads_a_database_is_dealt_beside_one) ... ok
 test_a_recipe_that_skips_without_a_database_is_dealt_beside_one (scripts.tests.test_ci_scripts.Plan.test_a_recipe_that_skips_without_a_database_is_dealt_beside_one) ... ok
 test_a_recipe_whose_parameters_have_defaults_is_read (scripts.tests.test_ci_scripts.Plan.test_a_recipe_whose_parameters_have_defaults_is_read) ... ok
+test_a_recipes_body_is_read_as_just_runs_it_its_defaults_in_place (scripts.tests.test_ci_scripts.Plan.test_a_recipes_body_is_read_as_just_runs_it_its_defaults_in_place) ... ok
 test_a_recipes_cost_counts_the_mutants_it_plants (scripts.tests.test_ci_scripts.Plan.test_a_recipes_cost_counts_the_mutants_it_plants) ... ok
 test_a_run_is_planned_by_the_seconds_kept (scripts.tests.test_ci_scripts.Plan.test_a_run_is_planned_by_the_seconds_kept) ... ok
 test_a_run_takes_more_shards_than_it_asks_where_its_would_end_past_the_ceiling (scripts.tests.test_ci_scripts.Plan.test_a_run_takes_more_shards_than_it_asks_where_its_would_end_past_the_ceiling) ... ok
 test_a_safe_database_bundle_keeps_the_fewest_database_shards (scripts.tests.test_ci_scripts.Plan.test_a_safe_database_bundle_keeps_the_fewest_database_shards) ... ok
 test_a_script_that_reads_a_database_url_is_told_from_one_that_names_it (scripts.tests.test_ci_scripts.Plan.test_a_script_that_reads_a_database_url_is_told_from_one_that_names_it) ... ok
 test_a_shard_with_a_database_sets_up_what_its_recipe_needs (scripts.tests.test_ci_scripts.Plan.test_a_shard_with_a_database_sets_up_what_its_recipe_needs) ... ok
+test_a_test_included_or_inline_under_another_name_plans_its_recipes (scripts.tests.test_ci_scripts.Plan.test_a_test_included_or_inline_under_another_name_plans_its_recipes) ... ok
 test_a_todomvc_plan_writes_only_the_workflow_output (scripts.tests.test_ci_scripts.Plan.test_a_todomvc_plan_writes_only_the_workflow_output) ... ok
+test_an_inline_test_module_of_another_name_reaches_a_script_that_names_it (scripts.tests.test_ci_scripts.Plan.test_an_inline_test_module_of_another_name_reaches_a_script_that_names_it) ... ok
 test_an_out_of_line_test_module_reaches_what_runs_it (scripts.tests.test_ci_scripts.Plan.test_an_out_of_line_test_module_reaches_what_runs_it) ... ok
 test_bare_python_module_inventories_reach_their_campaigns (scripts.tests.test_ci_scripts.Plan.test_bare_python_module_inventories_reach_their_campaigns) ... ok
 test_main_deals_a_run_within_the_ceiling (scripts.tests.test_ci_scripts.Plan.test_main_deals_a_run_within_the_ceiling) ... ok
@@ -108,67 +111,76 @@ test_master_plans_from_the_newest_commit_a_run_passed_at (scripts.tests.test_ci_
 test_the_browser_suites_run_again_only_where_more_than_records_changed (scripts.tests.test_ci_scripts.VerifiedBase.test_the_browser_suites_run_again_only_where_more_than_records_changed) ... ok
 test_the_runs_are_read_through_gh_by_their_commit (scripts.tests.test_ci_scripts.VerifiedBase.test_the_runs_are_read_through_gh_by_their_commit) ... ok
 test_where_no_run_passed_master_plans_from_the_commit_before (scripts.tests.test_ci_scripts.VerifiedBase.test_where_no_run_passed_master_plans_from_the_commit_before) ... ok
-Ran 101 tests in 43.622s
+Ran 104 tests in 37.475s
 OK
 
 == mutation controls (scripts/dealt_by_time_mutations.py)
 
-baseline: 101 passed, 0 failed
-a source's own test module plans no script that runs it: KILLED (1 of 101 tests fail)
-a source's own test module plans no recipe that runs it: KILLED (3 of 101 tests fail)
-a line before a source's test module is taken as its test's: KILLED (3 of 101 tests fail)
-a server test module plans no script that runs it by its filter: KILLED (1 of 101 tests fail)
-a server test module plans no recipe that runs it by its filter: KILLED (1 of 101 tests fail)
-a recipe's evidence is current though what it reads changed since: KILLED (3 of 101 tests fail)
-evidence written from a tree with changes is current: KILLED (2 of 101 tests fail)
-evidence of a commit the head does not descend from is current: KILLED (1 of 101 tests fail)
-a recipe whose files were recorded at two commits is current: KILLED (1 of 101 tests fail)
-a recipe a file of which was not recorded is current: KILLED (4 of 101 tests fail)
-a plan drops what is current unasked: KILLED (1 of 101 tests fail)
-a push plans with no regard to the evidence: KILLED (2 of 101 tests fail)
-a shell script a recipe runs is not read: KILLED (1 of 101 tests fail)
-a dispatch's run counts as covering what it pushed: KILLED (1 of 101 tests fail)
-the nightly's run does not count: KILLED (1 of 101 tests fail)
-a merge's second parent counts: KILLED (1 of 101 tests fail)
-a run that did not pass counts: KILLED (1 of 101 tests fail)
-the oldest commit a run passed at is the base: KILLED (1 of 101 tests fail)
-the base is always the commit before the push: KILLED (5 of 101 tests fail)
-an error ends the plan: KILLED (1 of 101 tests fail)
-the browser suites run again where only records changed: KILLED (1 of 101 tests fail)
-the browser suites are skipped whatever changed: KILLED (1 of 101 tests fail)
-the runs are read by no commit: KILLED (1 of 101 tests fail)
-a file whose recipe reads what changed since its run is copied: KILLED (1 of 101 tests fail)
-what changed since a run is read between commits, not against the tree here: KILLED (1 of 101 tests fail)
-the tree here is read as its last commit: KILLED (2 of 101 tests fail)
-a recipe the fetch skips has its files judged: KILLED (1 of 101 tests fail)
-a file no recipe wrote is copied: KILLED (1 of 101 tests fail)
-a recipe costs its mutants again: KILLED (2 of 101 tests fail)
-a shard's setup is not counted: KILLED (2 of 101 tests fail)
-a recipe not yet measured is estimated at the rate where none is: KILLED (2 of 101 tests fail)
-a recipe not yet measured is estimated at the median: KILLED (2 of 101 tests fail)
-a recipe not yet measured is estimated at every recipe's rate: KILLED (1 of 101 tests fail)
-a script a recipe runs is not read for its kind: KILLED (1 of 101 tests fail)
-the host's tests are taken for a type check's: KILLED (1 of 101 tests fail)
-the recipes run against a database take a shard each: KILLED (3 of 101 tests fail)
-the recipes run against a database share one shard: KILLED (8 of 101 tests fail)
-more shards are taken where fewer end the run as soon: KILLED (3 of 101 tests fail)
-a long singleton hides a multi-recipe shard past the ceiling: KILLED (6 of 101 tests fail)
-a recipe recorded past a job's limit is planned: KILLED (1 of 101 tests fail)
-a shard's setup is not counted against a job's limit: KILLED (1 of 101 tests fail)
-a note in the seconds kept is read as a recipe's: KILLED (1 of 101 tests fail)
-a recipe run to its end keeps its lower bound: KILLED (1 of 101 tests fail)
-a recipe that skips without a database is dealt where there is none: KILLED (2 of 101 tests fail)
-a part of a script's mutants costs them all: KILLED (1 of 101 tests fail)
-a recipe refused without a database is dealt where there is none: KILLED (1 of 101 tests fail)
-a plan of nothing takes the longest of no shards: KILLED (2 of 101 tests fail)
-a recipe that failed has its seconds kept: KILLED (1 of 101 tests fail)
-the seconds kept replace every other recipe's: KILLED (2 of 101 tests fail)
-a run is dealt into the shards it asks for, past the ceiling: KILLED (5 of 101 tests fail)
-a recipe longer than the ceiling alone is paid for in shards: KILLED (1 of 101 tests fail)
-a run's plan is its asked shards' again: KILLED (1 of 101 tests fail)
-the ceiling is a shard's limit: KILLED (10 of 101 tests fail)
-a program a recipe's own lines name plans nothing: KILLED (1 of 101 tests fail)
-a glob's star crosses a directory: KILLED (1 of 101 tests fail)
-a path a recipe names is only itself: KILLED (1 of 101 tests fail)
-56 of 56 mutants killed
+baseline: 104 passed, 0 failed
+a source's own test module plans no script that runs it: KILLED (3 of 104 tests fail)
+a source's own test module plans no recipe that runs it: KILLED (3 of 104 tests fail)
+a line before a source's test module is taken as its test's: KILLED (4 of 104 tests fail)
+a server test module plans no script that runs it by its filter: KILLED (1 of 104 tests fail)
+a server test module plans no recipe that runs it by its filter: KILLED (1 of 104 tests fail)
+a recipe's evidence is current though what it reads changed since: KILLED (3 of 104 tests fail)
+evidence written from a tree with changes is current: KILLED (2 of 104 tests fail)
+evidence of a commit the head does not descend from is current: KILLED (1 of 104 tests fail)
+a recipe whose files were recorded at two commits is current: KILLED (1 of 104 tests fail)
+a recipe a file of which was not recorded is current: KILLED (4 of 104 tests fail)
+a plan drops what is current unasked: KILLED (1 of 104 tests fail)
+a push plans with no regard to the evidence: KILLED (2 of 104 tests fail)
+a shell script a recipe runs is not read: KILLED (1 of 104 tests fail)
+a dispatch's run counts as covering what it pushed: KILLED (1 of 104 tests fail)
+the nightly's run does not count: KILLED (1 of 104 tests fail)
+a merge's second parent counts: KILLED (1 of 104 tests fail)
+a run that did not pass counts: KILLED (1 of 104 tests fail)
+the oldest commit a run passed at is the base: KILLED (1 of 104 tests fail)
+the base is always the commit before the push: KILLED (5 of 104 tests fail)
+an error ends the plan: KILLED (1 of 104 tests fail)
+the browser suites run again where only records changed: KILLED (1 of 104 tests fail)
+the browser suites are skipped whatever changed: KILLED (1 of 104 tests fail)
+the runs are read by no commit: KILLED (1 of 104 tests fail)
+a file whose recipe reads what changed since its run is copied: KILLED (1 of 104 tests fail)
+what changed since a run is read between commits, not against the tree here: KILLED (1 of 104 tests fail)
+the tree here is read as its last commit: KILLED (2 of 104 tests fail)
+a recipe the fetch skips has its files judged: KILLED (1 of 104 tests fail)
+a file no recipe wrote is copied: KILLED (1 of 104 tests fail)
+a recipe costs its mutants again: KILLED (2 of 104 tests fail)
+a shard's setup is not counted: KILLED (2 of 104 tests fail)
+a recipe not yet measured is estimated at the rate where none is: KILLED (2 of 104 tests fail)
+a recipe not yet measured is estimated at the median: KILLED (2 of 104 tests fail)
+a recipe not yet measured is estimated at every recipe's rate: KILLED (1 of 104 tests fail)
+a script a recipe runs is not read for its kind: KILLED (1 of 104 tests fail)
+the host's tests are taken for a type check's: KILLED (1 of 104 tests fail)
+the recipes run against a database take a shard each: KILLED (3 of 104 tests fail)
+the recipes run against a database share one shard: KILLED (8 of 104 tests fail)
+more shards are taken where fewer end the run as soon: KILLED (3 of 104 tests fail)
+a long singleton hides a multi-recipe shard past the ceiling: KILLED (6 of 104 tests fail)
+a recipe recorded past a job's limit is planned: KILLED (1 of 104 tests fail)
+a shard's setup is not counted against a job's limit: KILLED (1 of 104 tests fail)
+a note in the seconds kept is read as a recipe's: KILLED (1 of 104 tests fail)
+a recipe run to its end keeps its lower bound: KILLED (1 of 104 tests fail)
+a recipe that skips without a database is dealt where there is none: KILLED (2 of 104 tests fail)
+a part of a script's mutants costs them all: KILLED (1 of 104 tests fail)
+a recipe refused without a database is dealt where there is none: KILLED (1 of 104 tests fail)
+a plan of nothing takes the longest of no shards: KILLED (2 of 104 tests fail)
+a recipe that failed has its seconds kept: KILLED (1 of 104 tests fail)
+the seconds kept replace every other recipe's: KILLED (2 of 104 tests fail)
+a run is dealt into the shards it asks for, past the ceiling: KILLED (5 of 104 tests fail)
+a recipe longer than the ceiling alone is paid for in shards: KILLED (1 of 104 tests fail)
+a run's plan is its asked shards' again: KILLED (1 of 104 tests fail)
+the ceiling is a shard's limit: KILLED (10 of 104 tests fail)
+a program a recipe's own lines name plans nothing: KILLED (1 of 104 tests fail)
+a glob's star crosses a directory: KILLED (1 of 104 tests fail)
+a path a recipe names is only itself: KILLED (1 of 104 tests fail)
+a recipe's body is read without its parameters' defaults: KILLED (1 of 104 tests fail)
+a recipe's copy to its evidence is not read as a write: KILLED (1 of 104 tests fail)
+an inline test module of another name is read as its file's alone: KILLED (1 of 104 tests fail)
+a change after an inline test module is read as its test's: KILLED (1 of 104 tests fail)
+a file another includes plans nothing: KILLED (1 of 104 tests fail)
+a module named by the string its filter is built from names nothing: KILLED (2 of 104 tests fail)
+a record no run stamped is held current: KILLED (2 of 104 tests fail)
+a parameter's default is read past its header: KILLED (1 of 104 tests fail)
+a parameter's default is read with its quotes: KILLED (1 of 104 tests fail)
+65 of 65 mutants killed
 memory bound: no process was stopped
