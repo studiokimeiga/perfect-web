@@ -33,13 +33,14 @@ in order:
    and four mutants. It found memory answering a commit refused before its
    publication unknown (now refused, as PostgreSQL), and that no compiled
    command can write a row wider than 16 flat values (item 4).
-4. **A call's arguments past the flat limit** (ADR-0266, amended; ADR-0440's
-   asset contract suite): a table's `put` takes its row, and the compiler
-   refuses a call to a host's operation whose arguments flatten past the
-   Canonical ABI's 16, so no compiled command can write a row wider (14 for
-   an owned table). The component stores them in its own memory, a tuple
-   at one pointer, as the host does for an export's. Before L7 (item 7),
-   whose feed post as a row would be 17.
+4. ~~**A call's arguments past the flat limit** (ADR-0266, amended;
+   ADR-0440's asset contract suite)~~: done (2026-11-17,
+   `wip/wide-import-args`, ADR-0266, amended): a table's `put` of a row
+   wider than 16 flat values (14 for an owned table) passes its arguments
+   in the component's own memory, a tuple at one pointer, as the host does
+   for an export's; the asset contract suite's row keeps two images (19
+   flat values) since, before L7 (item 7), whose feed post as a row would
+   be 17.
 5. **WebKit's cut-off test** (`e2e/connections.spec.mjs`): in two of three
    runs of L5's full verify WebKit's network process failed after the
    server's forced reconnect, and the press's handler module, loaded at its

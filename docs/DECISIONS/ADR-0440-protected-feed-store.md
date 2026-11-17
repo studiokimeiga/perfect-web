@@ -1919,7 +1919,10 @@ run on each.
   both cleared, collected at that commit). The compiler's half is NEXT's,
   before L7: the feed's post as a row, its id, its author's id and its words
   (two flat values each), its likes, and its image's `Option<Ref>` with the
-  image's words (eight and two), would be 17 (KNOWN_LIMITATIONS).
+  image's words (eight and two), would be 17. Made the same day (ADR-0266,
+  amended: a call's arguments past the limit are passed in memory), and the
+  suite's row keeps two images since, its sixth case a generation the two
+  name, kept while either does, on each layer through the compiled command.
 
 **Mutation controls**: four mutants in `e14-generic-upload-claims` (its
 item 8, `tests::asset_contract` among the script's tests): memory's commit

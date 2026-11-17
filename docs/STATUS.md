@@ -2,6 +2,15 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**A call's arguments past the flat limit, 2026-11-17** (`wip/wide-import-args`,
+after the asset contract suite): a compiled command passes a host's
+operation arguments wider than the Canonical ABI's 16 flat values in its
+own memory, a tuple of them at one pointer, so a table's `put` of a wide
+row compiles (ADR-0266, amended). Four conformance tests hold it through
+the host, and six mutants (`e14-wide-parameters`). The asset contract
+suite's row keeps two images (19 flat values), and a generation the two
+name is kept while either does, on memory and on PostgreSQL alike.
+
 **One contract suite for assets, 2026-11-17** (`wip/asset-parity`, after
 L5 and its follow-up): `tests::asset_contract` runs five cases through the
 server on memory and on PostgreSQL alike. They cover the same bytes kept

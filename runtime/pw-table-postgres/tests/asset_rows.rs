@@ -906,9 +906,10 @@ source AssetData
 }
 /// One upload in two fields of a row: memory's
 /// `duplicate_fields_and_independent_declarations_keep_exact_final_counts_and_serving`'s
-/// shape, which PostgreSQL never wrote (ADR-0440's asset contract suite: a
-/// compiled command cannot `put` such a row yet, its `Option<Ref>` pair past
-/// the Canonical ABI's 16 flat values, so only the adapters write one).
+/// shape, which PostgreSQL never wrote (ADR-0440's asset contract suite).
+/// Its `Option<Ref>` pair is past the Canonical ABI's 16 flat values, which
+/// until ADR-0266's amendment of 2026-11-17 no compiled command could `put`;
+/// the server's suite now writes one through a compiled command.
 fn two_fields(s: &common::Scratch, store: &Arc<ByteStore>) -> PgTables {
     let p = built_from(&[
         (

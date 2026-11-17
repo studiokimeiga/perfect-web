@@ -9,10 +9,12 @@
 //! [`Layered`] reaches its own to lose, change or look at a generation.
 //!
 //! What it adds: memory's collection at a commit and by its housekeeping,
-//! its verified read (bytes lost or changed: `503`, before any `304`), and
-//! the same bytes kept again as a new generation, each held on PostgreSQL
-//! too, where `upload_bridge` held three of them on PostgreSQL alone (those
-//! three are this suite's now). What both layers already shared stays in
+//! its verified read (bytes lost or changed: `503`, before any `304`), the
+//! same bytes kept again as a new generation, and one generation two fields
+//! of a row name, kept while either does, through a compiled command (a row
+//! past 16 flat values, ADR-0266, amended), each held on PostgreSQL too,
+//! where `upload_bridge` held three of them on PostgreSQL alone (those three
+//! are this suite's now). What both layers already shared stays in
 //! `upload_bridge`, run on each: a claimed image committed and served, a
 //! removed row's image not served, a discarded lease, a rotated reader, a
 //! foreign declaration's lease, and a commit refused before its rows were
@@ -36,18 +38,20 @@ upload PostImage
     max_height 4096
 "#;
 
-/// The bridge's table. Not two asset fields: a row of two `Option<Ref>` is
-/// more than the Canonical ABI's 16 flat values, which the compiler does not
-/// yet pass through memory, so no compiled command can `put` one (the
-/// adapters' own tests hold two fields, `duplicate_fields_...`).
+/// The suite's table, two images to a row: an id, two `Option<Ref>` (eight
+/// flat values each) and its words are 19, past the Canonical ABI's 16, so
+/// each `put` passes its arguments in memory (ADR-0266, amended 2026-11-17).
+/// Until then no compiled command could write this row, and the suite's kept
+/// one image.
 const ASSETS: &str = r#"module Assets
 import PostImage
-type Item = Item { id: Int, image: Option<PostImage.Ref>, alt: String }
+type Item = Item { id: Int, image: Option<PostImage.Ref>, thumb: Option<PostImage.Ref>, alt: String }
 table Assets
     row Item
     key id
     bounded 100
     asset image from PostImage
+    asset thumb from PostImage
     written by anyone
 "#;
 
@@ -72,18 +76,51 @@ opaque type InteractionId = String
 command Keep(id: Int, alt: String) -> Result<Int,PostImage.Error>
     requires Anyone
     idempotent_by InteractionId
-    invalidates Attached(current_session()), Image(id)
+    invalidates Attached(current_session()), Image(id), Thumb(id)
     transaction serializable
 {
     let claim = PostImage.claim(current_session())?
     let image = PostImage.publish(current_session(),claim)?
-    let saved = Assets.put(Item { id: id, image: Some(image), alt: alt })
+    let saved = Assets.put(Item { id: id, image: Some(image), thumb: None, alt: alt })
     Ok(id)
+}
+command KeepBoth(id: Int, alt: String) -> Result<Int,PostImage.Error>
+    requires Anyone
+    idempotent_by InteractionId
+    invalidates Attached(current_session()), Image(id), Thumb(id)
+    transaction serializable
+{
+    let claim = PostImage.claim(current_session())?
+    let image = PostImage.publish(current_session(),claim)?
+    let saved = Assets.put(Item { id: id, image: Some(image), thumb: Some(image), alt: alt })
+    Ok(id)
+}
+command Unimage(id: Int) -> Int
+    requires Anyone
+    idempotent_by InteractionId
+    invalidates Image(id), Thumb(id)
+    transaction serializable
+{
+    let thumb = match Assets.get(id) { Some(item) => item.thumb, None => None }
+    let alt = match Assets.get(id) { Some(item) => item.alt, None => "" }
+    let saved = Assets.put(Item { id: id, image: None, thumb: thumb, alt: alt })
+    id
+}
+command Unthumb(id: Int) -> Int
+    requires Anyone
+    idempotent_by InteractionId
+    invalidates Image(id), Thumb(id)
+    transaction serializable
+{
+    let image = match Assets.get(id) { Some(item) => item.image, None => None }
+    let alt = match Assets.get(id) { Some(item) => item.alt, None => "" }
+    let saved = Assets.put(Item { id: id, image: image, thumb: None, alt: alt })
+    id
 }
 command Remove(id: Int) -> ()
     requires Anyone
     idempotent_by InteractionId
-    invalidates Image(id)
+    invalidates Image(id), Thumb(id)
     transaction serializable
 {
     Assets.delete(id)
@@ -109,6 +146,17 @@ public query Image(id: Int) -> Option<PostImage.Ref>
     timeout 2.seconds
 {
     match Assets.get(id) { Some(item) => item.image, None => None }
+}
+public query Thumb(id: Int) -> Option<PostImage.Ref>
+    freshness 0.seconds
+    consistency snapshot
+    cache shared
+    key id
+    concurrency one_per_key
+    on_key_change cancel
+    timeout 2.seconds
+{
+    match Assets.get(id) { Some(item) => item.thumb, None => None }
 }
 "#;
 
@@ -502,6 +550,46 @@ fn changed_bytes_are_answered_503_before_any_304(l: &Layered) {
     assert_eq!(status(&again), "503", "before any 304: {again}");
 }
 
+/// **6. A generation two fields of a row name is kept while either does**:
+/// one image kept in both, the image cleared, it is served and kept, the
+/// thumb naming it still; the thumb cleared too, its last use ended, it is
+/// collected at that commit, and answered `404`, the row kept.
+fn a_generation_two_fields_name_is_kept_while_either_does(l: &Layered) {
+    assert!(l.keep("KeepBoth", 1, "keep-both").committed);
+    let (key, kind) = l.named("Image", 1).asserted_some("the image names it");
+    assert_eq!(
+        l.named("Thumb", 1),
+        Some((key.clone(), kind.clone())),
+        "the thumb names the same"
+    );
+    let generation = l.generation(&key, &kind);
+    let path = format!("/images/{key}.{kind}");
+    assert!(
+        l.command("Unimage", &[serde_json::json!(1)], "unimage-1")
+            .committed
+    );
+    assert_eq!(l.named("Image", 1), None, "the image cleared");
+    assert_eq!(
+        status(&get(&l.server, &path).0),
+        "200",
+        "the thumb names it still"
+    );
+    assert!(
+        l.kept(&key, generation.as_deref()),
+        "kept while the thumb names it"
+    );
+    assert!(
+        l.command("Unthumb", &[serde_json::json!(1)], "unthumb-1")
+            .committed
+    );
+    assert_eq!(l.named("Thumb", 1), None, "the thumb cleared");
+    assert_eq!(status(&get(&l.server, &path).0), "404", "named by no field");
+    assert!(
+        !l.kept(&key, generation.as_deref()),
+        "collected at the commit that cleared its last field"
+    );
+}
+
 /// Each case, on each layer: `$case_in_memory` and `$case_on_postgresql`,
 /// the PostgreSQL half returning where no database is named.
 macro_rules! on_both {
@@ -536,4 +624,7 @@ on_both! {
     changed_bytes_are_answered_503_before_any_304 =>
         changed_bytes_are_answered_503_before_any_304_in_memory,
         changed_bytes_are_answered_503_before_any_304_on_postgresql, "contract_changed";
+    a_generation_two_fields_name_is_kept_while_either_does =>
+        a_generation_two_fields_name_is_kept_while_either_does_in_memory,
+        a_generation_two_fields_name_is_kept_while_either_does_on_postgresql, "contract_two_fields";
 }
