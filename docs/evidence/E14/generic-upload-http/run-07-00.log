@@ -19,7 +19,7 @@ failures:
 
 ---- tests::upload_generations::generation_http_uses_each_routes_current_same_declaration_reference_counts stdout ----
 
-thread 'tests::upload_generations::generation_http_uses_each_routes_current_same_declaration_reference_counts' (307820) panicked at spikes/own-renderer/server/src/tests/upload_generations.rs:559:5:
+thread 'tests::upload_generations::generation_http_uses_each_routes_current_same_declaration_reference_counts' (481929) panicked at spikes/own-renderer/server/src/tests/upload_generations.rs:559:5:
 assertion `left == right` failed: other declaration's hash/bytes do not enroll this declaration
   left: 304
  right: 404
@@ -29,6 +29,6 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::upload_generations::generation_http_uses_each_routes_current_same_declaration_reference_counts
 
-test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 1222 filtered out; finished in 0.91s
+test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 1222 filtered out; finished in 0.94s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`

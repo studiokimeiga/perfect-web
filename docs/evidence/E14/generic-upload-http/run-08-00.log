@@ -11,7 +11,7 @@ failures:
 
 ---- tests::upload_generations::backend_death_stale_local_unlink_preserves_new_same_hash_generation_and_http stdout ----
 
-thread 'tests::upload_generations::backend_death_stale_local_unlink_preserves_new_same_hash_generation_and_http' (307979) panicked at spikes/own-renderer/server/src/tests/upload_generations.rs:443:5:
+thread 'tests::upload_generations::backend_death_stale_local_unlink_preserves_new_same_hash_generation_and_http' (482088) panicked at spikes/own-renderer/server/src/tests/upload_generations.rs:443:5:
 assertion `left == right` failed
   left: ["0"]
  right: ["1"]
@@ -21,6 +21,6 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::upload_generations::backend_death_stale_local_unlink_preserves_new_same_hash_generation_and_http
 
-test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 1222 filtered out; finished in 0.87s
+test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 1222 filtered out; finished in 0.83s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`

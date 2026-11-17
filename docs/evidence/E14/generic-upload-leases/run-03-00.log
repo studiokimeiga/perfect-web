@@ -15,7 +15,7 @@ failures:
 
 ---- uploads::generic_lease_tests::explicit_attachment_and_claim_lookups_use_declaration_and_captured_reader_without_recapture stdout ----
 
-thread 'uploads::generic_lease_tests::explicit_attachment_and_claim_lookups_use_declaration_and_captured_reader_without_recapture' (3120) panicked at spikes/own-renderer/server/src/uploads/generic_lease_tests.rs:202:5:
+thread 'uploads::generic_lease_tests::explicit_attachment_and_claim_lookups_use_declaration_and_captured_reader_without_recapture' (92424) panicked at spikes/own-renderer/server/src/uploads/generic_lease_tests.rs:202:5:
 assertion `left == right` failed
   left: "/uploads/post-image/up-2"
  right: "/uploads/avatar/up-2"

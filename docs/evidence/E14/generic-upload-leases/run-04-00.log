@@ -15,18 +15,18 @@ failures:
 
 ---- uploads::generic_lease_tests::claim_debug_never_prints_the_cookie_private_lease_id_or_private_image_key stdout ----
 
-thread 'uploads::generic_lease_tests::claim_debug_never_prints_the_cookie_private_lease_id_or_private_image_key' (3169) panicked at spikes/own-renderer/server/src/uploads/generic_lease_tests.rs:8:9:
+thread 'uploads::generic_lease_tests::claim_debug_never_prints_the_cookie_private_lease_id_or_private_image_key' (92474) panicked at spikes/own-renderer/server/src/uploads/generic_lease_tests.rs:8:9:
 a declaration-scoped claim must be available: own attachment
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- uploads::generic_lease_tests::claimed_lease_survives_expiry_and_sweep_until_an_explicit_outcome stdout ----
 
-thread 'uploads::generic_lease_tests::claimed_lease_survives_expiry_and_sweep_until_an_explicit_outcome' (3170) panicked at spikes/own-renderer/server/src/uploads/generic_lease_tests.rs:8:9:
+thread 'uploads::generic_lease_tests::claimed_lease_survives_expiry_and_sweep_until_an_explicit_outcome' (92475) panicked at spikes/own-renderer/server/src/uploads/generic_lease_tests.rs:8:9:
 a declaration-scoped claim must be available: held before expiry
 
 ---- uploads::generic_lease_tests::explicit_claims_block_only_their_own_declarations_replacement_and_release stdout ----
 
-thread 'uploads::generic_lease_tests::explicit_claims_block_only_their_own_declarations_replacement_and_release' (3175) panicked at spikes/own-renderer/server/src/uploads/generic_lease_tests.rs:8:9:
+thread 'uploads::generic_lease_tests::explicit_claims_block_only_their_own_declarations_replacement_and_release' (92480) panicked at spikes/own-renderer/server/src/uploads/generic_lease_tests.rs:8:9:
 a declaration-scoped claim must be available: own second declaration
 
 

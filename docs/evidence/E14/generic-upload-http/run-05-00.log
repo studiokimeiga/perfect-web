@@ -11,7 +11,7 @@ failures:
 
 ---- tests::upload_generations::generation_http_rejects_actual_file_kind_differing_from_the_descriptor stdout ----
 
-thread 'tests::upload_generations::generation_http_rejects_actual_file_kind_differing_from_the_descriptor' (307505) panicked at spikes/own-renderer/server/src/tests/upload_generations.rs:525:5:
+thread 'tests::upload_generations::generation_http_rejects_actual_file_kind_differing_from_the_descriptor' (481617) panicked at spikes/own-renderer/server/src/tests/upload_generations.rs:525:5:
 assertion `left == right` failed: HTTP must validate measured kind before cache validators even with hash-valid actual files
   left: 304
  right: 503
