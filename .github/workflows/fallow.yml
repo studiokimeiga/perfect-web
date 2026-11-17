@@ -32,6 +32,9 @@ jobs:
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: 24
+          # setup-node v5 caches for the package manager package.json names
+          # (pnpm), and this job installs none: it runs `npx` alone.
+          package-manager-cache: false
       - name: Generate full Fallow report
         run: |
           set +e
