@@ -257,7 +257,7 @@ export const APPS = {
       "next-react": {
         label: "Next.js",
         who: "this project (benchmarks/baselines/next-react, ADR-0120)",
-        version: "Next.js 16.4.1, React 19.3.0",
+        version: "Next.js 16.4.5, React 19.3.0",
         server: () => ({
           name: "next-store",
           cmd: process.execPath,
@@ -277,7 +277,7 @@ export const APPS = {
       sveltekit: {
         label: "SvelteKit",
         who: "this project (benchmarks/baselines/sveltekit, ADR-0120)",
-        version: "SvelteKit 2.70.3, Svelte 5.57.1, adapter-node 5.5.7",
+        version: "SvelteKit 2.70.4, Svelte 5.57.1, adapter-node 5.5.8",
         server: () => ({
           name: "sveltekit-store",
           cmd: process.execPath,

@@ -23,19 +23,24 @@ GHSA-pfhg-q3qv-9q6r
     and rerun the three-store contract; remove this allowance on migration.
 
 GHSA-27mw-82g8-phjj
-    SvelteKit <3.0.0 — untrusted cache-control passed to setHeaders while
+    SvelteKit <=2.70.3 — untrusted cache-control passed to setHeaders while
     prerendering can inject markup into the generated page (low severity).
     https://github.com/sveltejs/kit/security/advisories/GHSA-27mw-82g8-phjj
 
-    Why accepted temporarily: the same undeployed, locally exercised E14
-    baseline has no prerender setting and does not call setHeaders or forward
-    a request-supplied cache-control value. Its only configured adapter is
-    adapter-node for the benchmark contract. This exception is not a claim
-    that all SvelteKit 2.x applications are unaffected.
+    Fixed in 2.70.4, the baseline's pin since 2026-11-17: the maintainers'
+    advisory names <= 2.70.3 and patched >= 2.70.4, and 2.70.4 escapes a
+    prerendered page's cache-control (its `render.js`, `escape_html`). GitHub's
+    reviewed record still names < 3.0.0 (patched 3.0.0), so `pnpm audit`
+    reports 2.70.4, and the audit is refused without this entry.
 
-    Revisit: at E14-E, before deploying or exposing this baseline externally,
-    or if prerendering/setHeaders is introduced. Upgrade to compatible
-    SvelteKit >=3.0.0, rerun the contract and remove this allowance.
+    Why accepted: the record is wrong for this version, and the undeployed E14
+    baseline has no prerender setting and does not call setHeaders or forward
+    a request-supplied cache-control value besides.
+
+    Revisit: remove this allowance when GitHub's record names 2.70.4 as
+    patched; `scripts/audit_node.py` refuses it then, as an allowance no
+    reported advisory matches. Sooner if prerendering or setHeaders is
+    introduced.
 
 GHSA-3r8g-jcqq-3p5j
     SvelteKit 2.42.0 to 3.1.0 — a specially crafted request blocks the event

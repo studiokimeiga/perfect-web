@@ -3018,6 +3018,9 @@ the claim, measured: the bug museum and the head-to-head (track `proof`).
 - Amended 2026-10-22: its findings were read in Next.js 16.3.8; on 16.4.1
   the museum shows the same five, J01's stale page and its repair among
   them.
+- Amended 2026-11-17: on Next.js 16.4.5 and SvelteKit 2.70.4 the museum
+  shows the same five, and T09's `unstable_cache` reading holds (its files
+  unchanged since 16.4.1).
 [ADR-0343](DECISIONS/ADR-0343-a-guide-whose-examples-compile.md):
 a guide whose examples compile (track `guide`; NEXT's developer
 experience).
@@ -3215,6 +3218,7 @@ Vite uses the patched editor launcher on every dependency path (landed with trai
 [ADR-0371](DECISIONS/ADR-0371-node-audit-fails-closed.md):
 Dependency audits require a complete, internally consistent producer result (landed with train-12 at `e7664d2e`, 2026-10-21).
 - Reject empty, malformed, duplicate-key or inconsistent audit reports and producer failures; the pinned package manager's exit status must agree with its advisory report.
+- 2026-11-17: an allowance no reported advisory matches is refused, so each goes with its advisory.
 
 [ADR-0372](DECISIONS/ADR-0372-ci-test-reach.md):
 Changed test witnesses reach their verification recipes (landed with train-12 at `e7664d2e`, 2026-10-21).
@@ -3298,6 +3302,7 @@ Session authority is checked at delivery and commit (proposed; reproduced curren
 The head-to-head: TodoMVC against TodoMVC's own React and Svelte apps and the store against Next.js and SvelteKit, measured by one instrument on one machine, Pleris's losses first (track `head-to-head`; independently reviewed and landed 2026-11-02).
 - `just e14-head-to-head` (`benchmarks/headtohead`; local only, ADR-0281's decision 5): production builds, Lighthouse's Slow 4G as Lighthouse applies it through DevTools, seven runs a page cell and five rounds of each server measurement, medians with quartiles, a difference only where the spreads are apart by what the instrument tells apart; behaviour in three engines, source, the twelve tasks' changes and their checkers, the museum's classes; 41 mutants and 4 integrity controls.
 - Pleris loses on bytes (no minifier, compression or cache; the renderer fetched by the first press), every interaction's time, Slow 4G, open tabs and idle visitors, and the store's source (its data layer is Rust); it is best in behaviour, the changes' size and its checker's catch, the museum, and the store server's cost. The review corrected the shaping (a quarter of Lighthouse's request latency), single-run server numbers, idle pages capped by one browser's connections, wins over the instrument's own static host and the store's line count.
+- Amended 2026-11-17: the store's stacks name the baselines' new pins, each label held to its baseline's `package.json`.
 
 [ADR-0393](DECISIONS/ADR-0393-declared-tables-on-postgresql.md):
 Any program's declared tables on PostgreSQL, answering as the memory adapter does (ADR-0338's D3, track `d3-postgres`; independently reviewed and repaired 2026-11-02, its PR holds the landing record).

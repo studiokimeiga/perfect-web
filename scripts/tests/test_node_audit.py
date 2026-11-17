@@ -23,7 +23,7 @@ def report(advisory=None):
 
 
 class NodeAudit(unittest.TestCase):
-    def run_audit(self, value, status=None, missing_allow=False):
+    def run_audit(self, value, status=None, missing_allow=False, allow=ALLOWED):
         text = value if isinstance(value, str) else json.dumps(value)
         with tempfile.TemporaryDirectory(prefix="pw-node-audit-") as temp:
             root = Path(temp)
@@ -34,7 +34,8 @@ class NodeAudit(unittest.TestCase):
                 if source.exists():
                     shutil.copy(source, root / "scripts" / name)
             if not missing_allow:
-                (root / "tools/node-audit-allow.txt").write_text(ALLOWED + "\n  A documented fixture reason.\n")
+                text_of_allow = f"{allow}\n  A documented fixture reason.\n" if allow else "# nothing accepted\n"
+                (root / "tools/node-audit-allow.txt").write_text(text_of_allow)
             env = os.environ.copy()
             args = ["bash", str(root / "scripts/audit-node.sh")]
             if status is None:
@@ -58,9 +59,18 @@ class NodeAudit(unittest.TestCase):
         self.assertNotIn("audit-node: OK", run.stdout + run.stderr)
 
     def test_clean_stdin_report_passes(self):
-        run, _ = self.run_audit(report())
+        run, _ = self.run_audit(report(), allow="")
         self.assertEqual(run.returncode, 0, run.stderr)
         self.assertIn("audit-node: OK", run.stdout)
+
+    def test_an_allowance_no_advisory_matches_fails_and_is_named(self):
+        # 2026-11-17: the baselines' patches left four allowances no audit
+        # reported, and the OK line counted the list, not what it matched.
+        run, _ = self.run_audit(report())
+        self.assertEqual(run.returncode, 1, run.stdout + run.stderr)
+        self.assertIn("allowances no reported advisory matches", run.stderr)
+        self.assertIn(ALLOWED, run.stderr)
+        self.assertNotIn("audit-node: OK", run.stdout)
 
     def test_documented_advisory_passes(self):
         run, _ = self.run_audit(report(ALLOWED))
@@ -145,7 +155,7 @@ class NodeAudit(unittest.TestCase):
         self.assert_refused(text)
 
     def test_real_producer_clean_exit_and_exact_arguments(self):
-        run, invoked = self.run_audit(report(), 0)
+        run, invoked = self.run_audit(report(), 0, allow="")
         self.assertEqual(run.returncode, 0, run.stderr)
         self.assertEqual(invoked, "audit --json")
 

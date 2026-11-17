@@ -21,7 +21,8 @@ asserted in prose.
 2. **Versions**, verified on the npm registry on 2026-10-02 and pinned exactly:
    Next.js 16.3.8 (16.4.1 since 2026-10-22, 16.4.5 since 2026-11-17, below)
    with React 19.3.0; SvelteKit **2.70.3** (2.70.4 since 2026-11-17) with
-   Svelte 5.57.1, Vite 8.3.2 and adapter-node 5.5.7 (5.5.8 since 2026-11-17); TypeScript 6.0.3; Playwright 1.58.0, as
+   Svelte 5.57.1, Vite 8.3.2 (8.3.3 since 2026-10-20) and adapter-node 5.5.7
+   (5.5.8 since 2026-11-17); TypeScript 6.0.3; Playwright 1.58.0, as
    the own-renderer suite uses.
    - **Not SvelteKit 3.0.0**, released 2026-10-01. A benchmark of coding
      agents on a day-old major measures what the models have not seen, not
@@ -129,13 +130,18 @@ update to a benchmark baseline is downloaded and landed without asking,
 through the same gates (`just audit`, the builds and typechecks,
 `e14-contract`, and the pull request's verify).
 
-The versions, verified on the npm registry on 2026-11-17, each the newest
-patch of the line this ADR pins:
+The versions, verified on the npm registry on 2026-11-17: SvelteKit's and
+the adapter's the newest patch of the 2.x and 5.x lines this ADR pins,
+Next.js's the smallest move that fixes its advisories:
 
 - **@sveltejs/kit 2.70.4** (2026-11-05, npm's `version-2` tag) fixes
   GHSA-mw6w-2fmv-pvw3 (a `reroute` comparison that crashes adapter-node)
   and GHSA-rqp5-r3wg-vg35 (`router.resolution: 'server'` importing another
-  origin's module). Its dependencies are 2.70.3's.
+  origin's module), and GHSA-27mw-82g8-phjj too (it escapes a prerendered
+  page's cache-control; the maintainers' advisory names <= 2.70.3, though
+  GitHub's record still names < 3.0.0, so the audit reports it and its
+  allowance stays until the record is corrected). Its dependencies are
+  2.70.3's.
 - **@sveltejs/adapter-node 5.5.8** (2026-11-05, `version-2`) fixes
   GHSA-rqw3-x7hx-mm3p (a header added to an immutable request). Its
   dependencies are 5.5.7's.
@@ -143,11 +149,17 @@ patch of the line this ADR pins:
   advisories of that day: GHSA-mfr8-8qww-v76h, the one the audit reported
   (#124), and GHSA-vc7v-qv4w-wrv8, -vvgp-ww4w-46vf, -rhh4-g77r-r9qj,
   -pc58-hwjq-p385, -7qx7-33qx-rqx2 and -f3mh-rxg3-f5g2, which would each have
-  failed the audit once GitHub's database reviewed it. **Not 16.4.6** (2026-11-09, npm's `latest`,
-  Dependabot's #23): it fixes no advisory, and it backports bug fixes, among
-  them compressing a route handler's response where it was not already
-  compressed, a change in what this store's responses are that a comparison
-  should choose on purpose, at E14-E with the other baseline versions.
+  failed the audit once GitHub's database reviewed it. It is the smallest
+  move that clears them, and not small: 16.4.1 to 16.4.5 is 36 commits, and
+  three of the backports reach this store (#100423, the app-page runtime no
+  longer loaded in `proxy.ts`, which the store has; #100610, standalone
+  React no longer loaded in the server's bootstrap; and #100866, which
+  reverts an optimization of strict module chunks, so the bundle's bytes
+  change). **Not 16.4.6** (2026-11-09, npm's `latest`, Dependabot's #23): it
+  fixes no advisory, and its backports (route handlers' responses
+  compressed, Turbopack's garbage collection in development) reach nothing
+  this store runs, as it has no route handler; it adds commits to the move
+  and buys no fix, so it waits for E14-E with the other baseline versions.
   React stays 19.3.0, within 16.4.5's `^19.0.0`.
 
 `pnpm-lock.yaml` moves `next`, `@next/env` and the `@next/swc-*` binaries,
@@ -161,9 +173,16 @@ those packages alone: `next-react.pnpm-lock.yaml` from 16.3.8, which the
 it, once the store holds its packages. Both stores build and typecheck
 (Next.js 16.4.5 with Turbopack, `tsc` clean; svelte-check 0 errors, 0
 warnings), and `scripts/audit-node.sh` reports no advisory but the four it
-still documents: SvelteKit's GHSA-pfhg-q3qv-9q6r and GHSA-27mw-82g8-phjj
-(fixed only in 3.x) and GHSA-3r8g-jcqq-3p5j and GHSA-6cf5-gc4q-fm3x (no 2.x
-patch). Their reasons hold for 2.70.4 as for 2.70.3. The four fixed
-allowances are removed. `e14-contract` holds each store to the contract
-again in this pull request's verify. What was measured before this date was
-measured on 16.4.1 and 2.70.3.
+still documents: SvelteKit's GHSA-pfhg-q3qv-9q6r (fixed only in 3.x),
+GHSA-3r8g-jcqq-3p5j and GHSA-6cf5-gc4q-fm3x (no 2.x patch), and
+GHSA-27mw-82g8-phjj, fixed in 2.70.4 but not yet in GitHub's record. Their
+reasons hold for 2.70.4 as for 2.70.3. The four fixed allowances are
+removed, and the audit now refuses an allowance no reported advisory
+matches (ADR-0371, amended), so GHSA-27mw-82g8-phjj's goes once its record
+names 2.70.4. `e14-contract` holds each store to the contract again
+(verify 44009052256 at `8d74ea29`: both stores built and typechecked, the
+contract 81 of 81, every stack three times, and its five negative controls
+killed). The head-to-head's stacks are labelled with the new pins
+(ADR-0392, amended), and the harness's lockfiles are held to their
+baselines' (`scripts/tests/test_harness_locks.py`). What was measured
+before this date was measured on 16.4.1 and 2.70.3.
