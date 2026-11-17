@@ -305,9 +305,12 @@ fn an_outbox_that_refuses_a_signings_event_publishes_none_of_its_rows() {
         "CREATE TRIGGER refuse_outbox BEFORE INSERT ON outbox \
          BEGIN SELECT RAISE(ABORT, 'outbox refused'); END;",
     );
-    // As the browser's press is answered: an error, never a panic (the
-    // route answers any interaction whose commit failed as one whose
-    // outcome it cannot tell, ADR-0325).
+    // As the browser's press is answered: refused, never a panic. Its
+    // outbox was refused before its rows were published, so the
+    // materializer's transaction rolled back whole and it kept nothing
+    // (ADR-0440, amended 2026-11-17: the asset contract suite). Until then
+    // the route answered it as one whose outcome it cannot tell (ADR-0325),
+    // though its rollback was known.
     let pressed = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         s.command_answer(SIGN, "a", &[serde_json::json!("Second")], Some("i-2"))
     }));
@@ -315,7 +318,10 @@ fn an_outbox_that_refuses_a_signings_event_publishes_none_of_its_rows() {
     let Ok(pressed) = pressed else {
         unreachable!("asserted above")
     };
-    assert!(pressed.is_err(), "{pressed:?}");
+    assert!(
+        matches!(&pressed, Ok(answer) if !answer.committed),
+        "refused, not unknown: {pressed:?}"
+    );
     // And why, as the command's commit says it.
     let refused = signed_directly(&s, "Second", "i-3");
     assert!(
@@ -343,6 +349,57 @@ fn an_outbox_that_refuses_a_signings_event_publishes_none_of_its_rows() {
         s.recalled_interaction(&signing("i-4"))
             .asserted("recall")
             .is_some()
+    );
+}
+
+/// **A commit refused because another attempt recorded its interaction
+/// first is answered from that record** (the asset contract suite's review,
+/// its medium finding, 2026-11-17). A signing whose commit failed before its
+/// rows were published is refused: it kept nothing (ADR-0440, amended). But
+/// where it failed because the materializer holds its interaction's record
+/// already, another attempt's, for the same request, that record is the
+/// interaction's answer, as PostgreSQL reconciles its `Recorded`: the
+/// signing is answered from it, never refused, and what this attempt wrote
+/// is kept nowhere. Made by recording the interaction just before the
+/// commit, as another attempt committing meanwhile would.
+#[test]
+fn a_commit_another_attempt_recorded_first_is_answered_from_its_record() {
+    let s = served_guestbook();
+    s.identity.signed_in_for_test("a", "u-ada", "Ada");
+    assert!(sign(&s, "a", "First", "i-1").committed);
+    let key = signing("i-2");
+    let first = Answered {
+        committed: true,
+        result: Some(serde_json::json!(7)),
+        why: None,
+        refused: None,
+    }
+    .kept();
+    let at = u64::try_from(s.now()).unwrap_or_default();
+    let recorded = key.clone();
+    *s.before_commit.lock().expect("the hook") = Some(Box::new(move |s: &Server| {
+        let kept = s.materializer.command(|tx| {
+            Materializer::record_interaction(tx, &recorded, "[]", &first, at)?;
+            Ok::<_, String>(Vec::new())
+        });
+        assert!(kept.is_ok(), "another attempt's record: {kept:?}");
+    }));
+    let answered = s.command_recorded(
+        SIGN,
+        "a",
+        &[Val::String("Second".into())],
+        Some("i-2"),
+        Some((&key, "[]")),
+    );
+    assert!(
+        matches!(&answered, Ok(answer)
+            if answer.committed && answer.result == Some(serde_json::json!(7))),
+        "answered from the other attempt's record, not refused: {answered:?}"
+    );
+    assert_eq!(
+        texts(&s, "b"),
+        ["First"],
+        "what this attempt wrote is kept nowhere"
     );
 }
 

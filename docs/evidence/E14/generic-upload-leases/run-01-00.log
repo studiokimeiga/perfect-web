@@ -15,7 +15,7 @@ failures:
 
 ---- uploads::generic_lease_tests::explicit_claims_block_only_their_own_declarations_replacement_and_release stdout ----
 
-thread 'uploads::generic_lease_tests::explicit_claims_block_only_their_own_declarations_replacement_and_release' (2974) panicked at spikes/own-renderer/server/src/uploads/generic_lease_tests.rs:141:5:
+thread 'uploads::generic_lease_tests::explicit_claims_block_only_their_own_declarations_replacement_and_release' (218059) panicked at spikes/own-renderer/server/src/uploads/generic_lease_tests.rs:141:5:
 assertion `left == right` failed: another declaration is independent of this hold
   left: 409
  right: 303
@@ -23,21 +23,21 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- uploads::generic_lease_tests::identical_bytes_hold_one_staged_blob_until_both_declarations_release_their_own_lease stdout ----
 
-thread 'uploads::generic_lease_tests::identical_bytes_hold_one_staged_blob_until_both_declarations_release_their_own_lease' (2975) panicked at spikes/own-renderer/server/src/uploads/generic_lease_tests.rs:105:5:
+thread 'uploads::generic_lease_tests::identical_bytes_hold_one_staged_blob_until_both_declarations_release_their_own_lease' (218060) panicked at spikes/own-renderer/server/src/uploads/generic_lease_tests.rs:105:5:
 assertion `left == right` failed
   left: Some(1)
  right: Some(2)
 
 ---- uploads::generic_lease_tests::private_preview_route_cannot_borrow_another_declarations_lease stdout ----
 
-thread 'uploads::generic_lease_tests::private_preview_route_cannot_borrow_another_declarations_lease' (2976) panicked at spikes/own-renderer/server/src/uploads/generic_lease_tests.rs:90:5:
+thread 'uploads::generic_lease_tests::private_preview_route_cannot_borrow_another_declarations_lease' (218061) panicked at spikes/own-renderer/server/src/uploads/generic_lease_tests.rs:90:5:
 assertion `left == right` failed: the other declaration's private route is no lease authority
   left: 200
  right: 404
 
 ---- uploads::generic_lease_tests::two_declarations_stage_and_replace_independently_for_one_session stdout ----
 
-thread 'uploads::generic_lease_tests::two_declarations_stage_and_replace_independently_for_one_session' (2977) panicked at spikes/own-renderer/server/src/uploads/generic_lease_tests.rs:66:5:
+thread 'uploads::generic_lease_tests::two_declarations_stage_and_replace_independently_for_one_session' (218062) panicked at spikes/own-renderer/server/src/uploads/generic_lease_tests.rs:66:5:
 assertion `left == right` failed
   left: 404
  right: 200
@@ -49,6 +49,6 @@ failures:
     uploads::generic_lease_tests::private_preview_route_cannot_borrow_another_declarations_lease
     uploads::generic_lease_tests::two_declarations_stage_and_replace_independently_for_one_session
 
-test result: FAILED. 6 passed; 4 failed; 0 ignored; 0 measured; 1218 filtered out; finished in 0.00s
+test result: FAILED. 6 passed; 4 failed; 0 ignored; 0 measured; 1228 filtered out; finished in 0.00s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`

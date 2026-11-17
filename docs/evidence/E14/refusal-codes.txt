@@ -1,8 +1,8 @@
 ADR-0400 - a refusal has a code and a page, and the browser's decision carries no words
 
 produced by: just e14-refusal-codes
-commit: 83ad1ab1f92c0bc4377dfc72df28643828771bb5
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43929087203 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 44e55a2efe12de1ef6b7b0a63665f32e23adef2b
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/44051793903 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -30,7 +30,7 @@ EVIDENCE static-route-script-bytes=0 wasm-bytes=0
 EVIDENCE interactive-script-bytes=262839 brotli=67331
 EVIDENCE interactive-wasm-bytes=0 brotli=0
 EVIDENCE  script 262839 gzip=80439 brotli=67331 http://127.0.0.1:3148/pw-runtime.mjs
-  17 passed (19.8s)
+  17 passed (19.5s)
 
 == mutation controls (scripts/refusal_codes_mutations.py)
 

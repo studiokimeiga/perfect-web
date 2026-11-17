@@ -1,20 +1,20 @@
 every page decides in its runtime, held to pw-resume
 
 produced by: just e14-decision-in-js
-commit: 83ad1ab1f92c0bc4377dfc72df28643828771bb5
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43929087203 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 44e55a2efe12de1ef6b7b0a63665f32e23adef2b
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/44051793903 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
 
 == the two, asked the same (decision-agreement.test.mjs)
 
-✔ every change to one field of a manifest is answered as the module answers (31.643678ms)
-✔ every change to two fields is answered as the module answers (344.704395ms)
-✔ a walk over all nine fields is answered as the module answers (224.526019ms)
-✔ the manifests reach each answer this decision has (20.628652ms)
-✔ each recovery a refusal can name is one the module names (2.986773ms)
-✔ a handler's identity is not read as anything but the table's own lines (0.184561ms)
+✔ every change to one field of a manifest is answered as the module answers (37.083867ms)
+✔ every change to two fields is answered as the module answers (367.295444ms)
+✔ a walk over all nine fields is answered as the module answers (231.266534ms)
+✔ the manifests reach each answer this decision has (21.090148ms)
+✔ each recovery a refusal can name is one the module names (3.07933ms)
+✔ a handler's identity is not read as anything but the table's own lines (0.2323ms)
 ℹ tests 6
 ℹ suites 0
 ℹ pass 6
@@ -22,7 +22,7 @@ playwright: Version 1.58.0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 664.21788
+ℹ duration_ms 701.309735
 
 == the crate that specifies it (runtime/pw-resume-wasm)
 
@@ -31,8 +31,8 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 == what a document asks for and allows (the host's tests)
 
 test tests::a_document_preloads_what_its_runtime_boots_with ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1226 filtered out; finished in 1.50s
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 1217 filtered out; finished in 12.59s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1237 filtered out; finished in 1.54s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 1228 filtered out; finished in 12.42s
 
 == the pages that decide, in three engines
 

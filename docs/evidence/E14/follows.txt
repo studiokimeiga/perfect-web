@@ -1,8 +1,8 @@
 ADR-0257 - the follows timeline
 
 produced by: just e14-follows
-commit: 83ad1ab1f92c0bc4377dfc72df28643828771bb5
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43929087203 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 44e55a2efe12de1ef6b7b0a63665f32e23adef2b
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/44051793903 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -15,15 +15,15 @@ test tests::follows::a_users_page_counts_who_follows_them ... ok
 test tests::follows::following_brings_their_posts_into_your_timeline ... ok
 test tests::follows::on_postgres_a_users_page_counts_who_follows_them ... ok
 test tests::follows::the_button_is_what_the_reader_is_to_the_user ... ok
-test tests::follows::on_postgres_following_brings_their_posts_into_your_timeline ... ok
 test tests::follows::on_postgres_following_yourself_or_no_one_is_not_found ... ok
 test tests::follows::on_postgres_the_button_is_what_the_reader_is_to_the_user ... ok
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 1219 filtered out; finished in 3.51s
+test tests::follows::on_postgres_following_brings_their_posts_into_your_timeline ... ok
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 1230 filtered out; finished in 3.41s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
 
 == the feed in three engines (e2e/feed.spec.mjs)
 
-  72 passed (54.5s)
+  72 passed (1.0m)
 
 == mutation controls (scripts/follows_mutations.py)
 

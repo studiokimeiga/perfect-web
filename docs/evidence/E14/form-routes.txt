@@ -1,8 +1,8 @@
 ADR-0265 - a form goes where something answers it
 
 produced by: just e14-form-routes
-commit: 83ad1ab1f92c0bc4377dfc72df28643828771bb5
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43929087203 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 44e55a2efe12de1ef6b7b0a63665f32e23adef2b
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/44051793903 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the checker (compiler/pw-core/tests/form_routes.rs)
@@ -10,12 +10,12 @@ rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 test a_form_that_sends_a_file_is_the_uploads_to_check ... ok
 test a_link_reaches_what_answers_a_get ... ok
 test a_form_is_sent_where_its_method_is_answered ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.66s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.10s
 
 == the host's routes (spikes/own-renderer/server/src/tests/sign_in.rs)
 
 test tests::sign_in::the_relying_party_answers_the_routes_the_compiler_knows ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1226 filtered out; finished in 1.56s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1237 filtered out; finished in 2.35s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
 
 == mutation controls (scripts/form_route_mutations.py)

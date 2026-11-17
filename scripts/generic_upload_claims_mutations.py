@@ -30,23 +30,26 @@ anywhere but an assertion is no kill):
 7. the review of a7c3377b: a commit its ledger refused before its COMMIT
    answered unknown; the periodic pass leaving an absent receipt's claim due
    for ever; an attempt dropped uninspected never offered to the pass; each
-   pass taking up its turn from the first again.
+   pass taking up its turn from the first again;
+8. ADR-0440's asset contract suite (2026-11-17): memory's commit, or its
+   housekeeping, collecting no generation left unnamed, named bytes it lost
+   answered not found, and a commit that failed before its rows were
+   published answered unknown.
 
-Not here, each for its reason: memory's collection of an unnamed generation
-is storage-internal, unseen at the server (its bytes are its process's);
-the review's robustness repairs (a poisoned counter after a landed COMMIT,
+Not here, each for its reason: the review's robustness repairs (a poisoned counter after a landed COMMIT,
 a ledger that fails while it reconciles, a removal racing memory's read)
 need a panic or a race no test makes; a readerless command's refusing
 imports are held by `uploads::bridge`'s unit test, the server path by no
 fixture; the receipt marker is required by
 the ledger's own freeze anyway; the serving handler's check of a live
 generation's bytes and the storage's own (`check_bytes`) are each the
-other's backstop, so neither alone can be killed, and
-`a_live_generations_corrupt_bytes_are_answered_503_on_postgresql` holds the
-two together.
+other's backstop, on either layer, so neither alone can be killed, and
+`tests::asset_contract`'s `changed_bytes_are_answered_503_before_any_304`
+holds the two together, on each.
 
 The tests: `tests::upload_bridge` (the compiled program through the server,
-on memory and on PostgreSQL), `uploads::bridge` and `uploads::generic`. They
+on memory and on PostgreSQL), `tests::asset_contract` (one contract, each
+case on both layers), `uploads::bridge` and `uploads::generic`. They
 need a database for their PostgreSQL half: `PW_TABLES_DATABASE_URL` (or
 `PW_STORE_DATABASE_URL`, `PW_FEED_DATABASE_URL`), a throwaway one; without
 it this refuses to run.
@@ -105,8 +108,8 @@ MUTANTS = [
      "        self.refused || self.recorded\n",
      "        self.recorded\n"),
     ("a refused publication's claims are left pending in memory", LAYER_MEMORY,
-     "        !self.published\n",
-     "        false\n"),
+     "    fn claims_kept_nothing(&self) -> bool {\n        !self.published\n",
+     "    fn claims_kept_nothing(&self) -> bool {\n        false\n"),
     ("a commit another attempt recorded first leaves its claims pending", LAYER_PG,
      "        self.refused || self.recorded\n",
      "        self.refused\n"),
@@ -182,16 +185,32 @@ MUTANTS = [
     ("a keep that fails does not refuse its commit on PostgreSQL", PG_ASSETS,
      '                .map_err(|e| Error::Refused(format!("upload keep: {e}")))?;\n',
      "                .ok();\n"),
+    # 8. the asset contract suite (`tests::asset_contract`, 2026-11-17):
+    # memory's collection and its verified read, seen at the server through
+    # the test's hands on its storage, and its refused commit's answer.
+    ("memory's commit collects no generation left unnamed", LAYER_MEMORY,
+     "        for descriptor in std::mem::take(&mut self.collect) {\n",
+     "        for descriptor in std::mem::take(&mut self.collect).into_iter().filter(|_| false) {\n"),
+    ("memory's housekeeping collects no generation a commit left", LAYER_MEMORY,
+     "        let pending = match self.tables.pending_asset_collections(500) {\n",
+     "        let pending = match self.tables.pending_asset_collections(0) {\n"),
+    ("memory answers named bytes it lost not found", LAYER_MEMORY,
+     "                    Some(_) => Err(missing(&descriptor)),\n",
+     "                    Some(_) => Ok(None),\n"),
+    ("memory answers a commit refused before its publication unknown", LAYER_MEMORY,
+     "    fn definitely_refused(&self) -> bool {\n        !self.published\n",
+     "    fn definitely_refused(&self) -> bool {\n        false\n"),
 ]
 
 # One command, its filters, as the inventory is kept per command.
 TESTS = [
     (["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server"],
-     ["tests::upload_bridge::", "uploads::bridge::", "uploads::generic::"]),
+     ["tests::upload_bridge::", "tests::asset_contract::", "uploads::bridge::", "uploads::generic::"]),
 ]
 
 SOURCES = [
     SERVER / "tests/upload_bridge.rs",
+    SERVER / "tests/asset_contract.rs",
     SERVER / "tests/tables.rs",
     SERVER / "tests/uploads.rs",
     BRIDGE,

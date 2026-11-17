@@ -1,12 +1,11 @@
 UI component identities retain their namespace
 
 produced by: just e14-wit-unique
-commit: 83ad1ab1f92c0bc4377dfc72df28643828771bb5
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43929087203 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 44e55a2efe12de1ef6b7b0a63665f32e23adef2b
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/44051793903 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
    Compiling pw-core v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-core)
-   Compiling pw-render v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-render)
-    Finished `test` profile [unoptimized] target(s) in 17.65s
+    Finished `test` profile [unoptimized] target(s) in 19.10s
      Running tests/component_names.rs (target/debug/deps/component_names-2398c60249980cea)
 
 running 11 tests
@@ -15,14 +14,14 @@ test distinct_names_that_mangle_together_are_refused_instead_of_aliased ... ok
 test a_page_and_its_query_keep_distinct_graph_template_and_value_identities ... ok
 test same_named_query_cannot_hide_an_unbounded_view_cycle ... ok
 test a_same_named_event_never_replaces_the_executable_query ... ok
-test order_and_file_boundaries_do_not_choose_a_same_named_signature ... ok
 test semantic_review_keeps_same_named_query_policies_in_both_orders ... ok
+test order_and_file_boundaries_do_not_choose_a_same_named_signature ... ok
 test semantic_review_keeps_type_and_term_namespaces_without_rewriting_type_shapes ... ok
-test view_tags_choose_the_ui_namespace_beside_same_named_queries ... ok
 test accepted_a008_builds_its_real_query_and_view ... ok
+test view_tags_choose_the_ui_namespace_beside_same_named_queries ... ok
 test store_speculations_and_handlers_name_their_ui_contracts_and_templates ... ok
 
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.43s
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.18s
 
 baseline: 11 passed, 0 failed
 component IDs erase the UI namespace: KILLED (7 of 11 tests fail)

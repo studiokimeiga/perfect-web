@@ -1992,3 +1992,110 @@ without it.
   includer's module: each file holding a test a filter runs must be one of
   the script's sources, where those sources name a server file at all.
 
+## Amended 2026-11-17: one contract suite for assets
+
+L5a's review found memory and PostgreSQL not alike (its M3). L5b gave memory
+its keep, its collection and its verified read, and left the suite that
+holds the two layers to one contract to NEXT (the L5 landing, "Left to
+NEXT"). It is `tests::asset_contract`, among the server's tests: one
+compiled program (an upload, a table that keeps one image, `Keep` and
+`Remove`), each case written once and run through the server on memory and
+on PostgreSQL, to the same answers, each layer reaching its own storage to
+lose, change or look at a generation:
+
+1. the same bytes kept again, for another row, are a generation of their
+   own, served, the first's bytes gone with its row;
+2. a removed row's generation is collected at its commit, and answered
+   `404`;
+3. a collection that fails at its commit is made by the next housekeeping
+   pass, and its route answered `404` meanwhile, a request naming the `ETag`
+   it was served with too;
+4. named bytes the layer lost are answered `503`, a request naming its
+   `ETag` too;
+5. changed bytes are answered `503` before any `304`.
+
+Ten tests. Three of the cases were held on PostgreSQL alone, by
+`upload_bridge`'s tests of a commit's collection, housekeeping and corrupt
+bytes; those three tests are removed, the suite's PostgreSQL halves holding
+each and more. What both layers already shared stays in `upload_bridge`,
+run on each.
+
+**What it found:**
+
+- **A commit refused before its publication was answered unknown on
+  memory**, and refused on PostgreSQL. Memory left
+  `Staged::definitely_refused` at its default, though a commit that fails
+  before its rows are published rolls back whole: its claims were given
+  back (`claims_kept_nothing`) while its answer said the outcome could not
+  be known. Memory now answers it refused, as PostgreSQL answers a refusal
+  before its `COMMIT`; a `COMMIT` that fails after the rows were published
+  may have kept them, and is answered unknown still. It kept nothing a row
+  names: a generation it kept before a later refusal is an orphan its
+  namespace holds, as `publish_prepared` says, on either layer. `upload_bridge`'s two
+  tests of a refused commit (`a_refused_commit_gives_its_claim_back`,
+  `a_failed_keep_gives_its_claim_back`) had accepted either answer; on both
+  layers they require refused now. The answer is every command's on
+  memory's tables, not only a claiming one's: `published` is false only
+  where the commit failed before the materializer's `COMMIT` (a refusal at
+  `prepare`, or a record, a run, the outbox or the keep refused in its
+  transaction, which rolls back whole; a command that wrote, scheduled and
+  claimed nothing makes no transaction at all), and `publish_within` sets
+  it, as the transaction's last step, for every other (a Clock's completion
+  is answered from its queue, never by this). So the guestbook's outbox refused a signing is
+  answered refused too, as the test's own account of it had said, where it
+  was answered unknown (ADR-0325's rule for a commit whose outcome the route
+  cannot tell); `an_outbox_that_refuses_a_signings_event_publishes_none_of_its_rows`
+  requires it. **But not where another attempt recorded its interaction
+  first** (the review below, its medium finding): the materializer refuses
+  a second record of one key, in the transaction that then rolls back, and
+  that first record, for the same request, is the interaction's answer, as
+  PostgreSQL's `Recorded` is reconciled. The host now answers any refused
+  commit from its interaction's record, where one is kept for this very
+  request, whichever layer refused it
+  (`a_commit_another_attempt_recorded_first_is_answered_from_its_record`,
+  and a mutant in `e14-data-path`).
+- **No compiled command can write a row wider than 16 flat values** (14
+  for an owned table, whose `put` takes its owner's handle beside the row).
+  A table's `put` takes its row, and the compiler refuses a call to a
+  host's operation whose arguments flatten past the Canonical ABI's 16 ("a
+  call whose arguments exceed the flat limit"; ADR-0266, "Not claimed": no
+  operation needed it then). A `Ref` is seven (its key and generation, two
+  each; its kind, width and height), an `Option<Ref>` eight, so a row of an
+  id and two images is 17. The suite's table keeps one image, and each
+  adapter's own test holds two in one row: memory's
+  `duplicate_fields_and_independent_declarations_keep_exact_final_counts_and_serving`,
+  and PostgreSQL's `a_generation_two_fields_of_a_row_name_is_kept_while_either_does`,
+  new here (its references counted 2; one field cleared, 1, and served;
+  both cleared, collected at that commit). The compiler's half is NEXT's,
+  before L7: the feed's post as a row, its id, its author's id and its words
+  (two flat values each), its likes, and its image's `Option<Ref>` with the
+  image's words (eight and two), would be 17. Made the same day (ADR-0266,
+  amended: a call's arguments past the limit are passed in memory), and the
+  suite's row keeps two images since, its sixth case a generation the two
+  name, kept while either does, on each layer through the compiled command.
+
+**Mutation controls**: four mutants in `e14-generic-upload-claims` (its
+item 8, `tests::asset_contract` among the script's tests): memory's commit
+collecting no generation left unnamed, its housekeeping collecting none,
+named bytes it lost answered not found, and a commit refused before its
+publication answered unknown. Run whole on PostgreSQL 18.6 locally, the
+script killed 34 of 34, each at a test's assertion (its baseline 54 tests);
+its evidence of record is the pull request's verify. The mutant "a
+refused publication's claims are left pending in memory" is anchored on its
+own function now: `definitely_refused` reads the same flag, so its bare line
+matched twice.
+
+**Reviewed** independently (2026-11-17, `cb5d24ad`): no high finding.
+Its medium, a refused commit answered refused where another attempt's
+record of its interaction answers it, and the record's false reason for the
+change ("memory keeps no receipt": the host's materializer keeps memory's
+receipts, `recalled_interaction` reads them) are repaired above. Its lows:
+case 1's PostgreSQL half could not see a generation used again, memory's
+generation being the only one it named, so each layer now names the one
+that keeps a key's bytes (PostgreSQL's by its directory), and the first's
+bytes are held gone after the second keep; the limit is 14 for an owned
+table's row; a generation kept before a refusal is an orphan, which "kept
+nothing" overstated; case 4 sent no `HEAD`; the four mutants are the
+script's item 8 throughout; the PostgreSQL two-field test's account of
+memory's; `upload_bridge`'s list of the tests it owed; and NEXT's
+flat-limit item, its own now.

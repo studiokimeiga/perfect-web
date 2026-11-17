@@ -1,8 +1,8 @@
 ADR-0364 - a train is pre-verified locally
 
 produced by: just e14-preverify
-commit: 83ad1ab1f92c0bc4377dfc72df28643828771bb5
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43929087203 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: ed8e4bb9d9378dc1f1df03d868f888c6f3270750
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/44090232150 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 python: Python 3.12.3
 just: just 1.58.0
 git: git version 2.56.1
@@ -188,7 +188,7 @@ test_the_toolchain_is_copied_into_the_lanes_and_not_downloaded (scripts.tests.te
 test_when_no_lane_can_set_up_what_is_left_is_not_run (scripts.tests.test_preverify.Setup.test_when_no_lane_can_set_up_what_is_left_is_not_run) ... ok
 test_the_status_says_what_each_lane_runs_and_how_far_the_queue_is (scripts.tests.test_preverify.Status.test_the_status_says_what_each_lane_runs_and_how_far_the_queue_is) ... ok
 test_the_default_steps_are_a_shards (scripts.tests.test_preverify.Steps.test_the_default_steps_are_a_shards) ... ok
-Ran 179 tests in 47.817s
+Ran 179 tests in 48.379s
 OK
 
 == mutation controls (scripts/preverify_mutations.py)
@@ -419,7 +419,7 @@ a recipe is told of every failing line: KILLED (1 of 42 tests fail)
 a recipe is never told there are more: KILLED (1 of 42 tests fail)
 a recipe is told of six lines: KILLED (1 of 36 tests fail)
 the evidence is looked at every quarter of an hour: KILLED (1 of 36 tests fail)
-a running recipe's evidence is not looked at: KILLED (1 of 174 tests fail)
+a running recipe's evidence is not looked at: KILLED (1 of 98 tests fail)
 what the tree carried is taken for the recipe's: KILLED (1 of 174 tests fail)
 a watched process is never looked at: KILLED (1 of 95 tests fail)
 a watched process is looked at at every wait: KILLED (1 of 95 tests fail)

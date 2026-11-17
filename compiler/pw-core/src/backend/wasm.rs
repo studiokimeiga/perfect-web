@@ -291,16 +291,10 @@ pub fn core_module_with(
     let mut import_section = ImportSection::new();
     let mut import_index: BTreeMap<String, (u32, WasmSignature, WitFunction)> = BTreeMap::new();
     for (n, (id, key, func)) in used.iter().enumerate() {
+        // Past the flat limit, a call's arguments are passed in the
+        // component's own memory, at the one pointer the core import takes
+        // (ADR-0266, amended 2026-11-17; `Instr::ImportCall`).
         let sig = resolve.wasm_signature(AbiVariant::GuestImport, func);
-        if sig.indirect_params {
-            refuse!(
-                "a call whose arguments exceed the flat limit",
-                "`{}` takes more than {} flat values, which the Canonical ABI passes \
-                 through memory",
-                id.qualified(),
-                Resolve::MAX_FLAT_PARAMS
-            );
-        }
         let (module_name, field) = resolve.wasm_import_name(
             MANGLING,
             WasmImport::Func {
@@ -3091,6 +3085,7 @@ impl Enc<'_> {
                         func.params.len()
                     );
                 }
+                let mut passed = Vec::with_capacity(args.len());
                 for (a, param) in args.iter().zip(&func.params) {
                     let Some(h) = self.held.get(a).cloned() else {
                         blocked!(
@@ -3121,9 +3116,78 @@ impl Enc<'_> {
                             import.qualified()
                         );
                     };
-                    match push_flat_values(resolve, sizes, &mut self.locals, &h, &mut self.ops) {
-                        Encoding::Encoded(()) => {}
-                        other => return other,
+                    passed.push((h, param.ty));
+                }
+                if sig.indirect_params {
+                    // **Past the flat limit** (`MAX_FLAT_PARAMS`, 16), the
+                    // arguments are one tuple in the component's own memory,
+                    // laid out as a record is: each at its offset, the
+                    // offsets accumulated in order, each rounded up to its
+                    // type's alignment; the call takes the one pointer, which
+                    // the host reads them from (ADR-0266, amended 2026-11-17:
+                    // a table's `put` of a row wider than 16 flat values).
+                    let (mut end, mut align) = (0u32, 1u32);
+                    let mut places = Vec::with_capacity(passed.len());
+                    for (_, t) in &passed {
+                        let (size, a) = self.layout(t);
+                        end = end.next_multiple_of(a);
+                        places.push(end);
+                        end += size;
+                        align = align.max(a);
+                    }
+                    let tuple = self.locals.fresh(ValType::I32);
+                    self.ops.extend([
+                        I::I32Const(0),
+                        I::I32Const(0),
+                        I::I32Const(align as i32),
+                        I::I32Const(end.next_multiple_of(align) as i32),
+                        I::Call(self.realloc_index),
+                        I::LocalSet(tuple),
+                    ]);
+                    for ((h, t), at) in passed.iter().zip(&places) {
+                        match h {
+                            Held::Flat { locals, .. } => match store(
+                                resolve,
+                                sizes,
+                                &mut self.locals,
+                                t,
+                                tuple,
+                                u64::from(*at),
+                                locals,
+                                &mut self.ops,
+                            ) {
+                                Encoding::Encoded(_) => {}
+                                other => return other.map(|_| ()),
+                            },
+                            // Held in its canonical layout already: its bytes
+                            // copied to its place, a string's or a list's
+                            // pointer among them, into the same memory.
+                            Held::Memory { ptr, .. } => {
+                                let (size, _) = self.layout(t);
+                                self.ops.extend([
+                                    I::LocalGet(tuple),
+                                    I::I32Const(*at as i32),
+                                    I::I32Add,
+                                    I::LocalGet(*ptr),
+                                    I::I32Const(size as i32),
+                                    I::MemoryCopy {
+                                        src_mem: 0,
+                                        dst_mem: 0,
+                                    },
+                                ]);
+                            }
+                            Held::Nothing => {
+                                blocked!("`{}` passes a call with no result", self.export)
+                            }
+                        }
+                    }
+                    self.ops.push(I::LocalGet(tuple));
+                } else {
+                    for (h, _) in &passed {
+                        match push_flat_values(resolve, sizes, &mut self.locals, h, &mut self.ops) {
+                            Encoding::Encoded(()) => {}
+                            other => return other,
+                        }
                     }
                 }
                 let out = match (&func.result, sig.retptr) {

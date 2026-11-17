@@ -27,26 +27,39 @@ in order:
    evidence shown when they fail, the render-merge test holding a render
    to its connection's backend, and upload-metadata's validator listing
    every test file its filter runs); and `e14-row-ownership` and d3 in three
-   parts each (item 8).
-3. **One contract suite for assets** over memory and PostgreSQL alike
-   (L5a's review, a low finding).
-4. **WebKit's cut-off test** (`e2e/connections.spec.mjs`): in two of three
+   parts each (item 9).
+3. ~~**One contract suite for assets** over memory and PostgreSQL alike
+   (L5a's review, a low finding)~~: done (2026-11-17, `wip/asset-parity`,
+   ADR-0440, amended): `tests::asset_contract`, five cases on each layer (six
+   since item 4),
+   and four mutants. It found memory answering a commit refused before its
+   publication unknown (now refused, as PostgreSQL), and that no compiled
+   command can write a row wider than 16 flat values (item 4).
+4. ~~**A call's arguments past the flat limit** (ADR-0266, amended;
+   ADR-0440's asset contract suite)~~: done (2026-11-17,
+   `wip/wide-import-args`, ADR-0266, amended): a table's `put` of a row
+   wider than 16 flat values (14 for an owned table) passes its arguments
+   in the component's own memory, a tuple at one pointer, as the host does
+   for an export's; the asset contract suite's row keeps two images (19
+   flat values) since, before L7 (item 7), whose feed post as a row would
+   be 17.
+5. **WebKit's cut-off test** (`e2e/connections.spec.mjs`): in two of three
    runs of L5's full verify WebKit's network process failed after the
    server's forced reconnect, and the press's handler module, loaded at its
    first press, failed to import. The repairs' verify passed it in all
    three runs. It stays here until master's nightlies pass it too.
-5. **Public initialization, stable ids and private child deletion**, as the
+6. **Public initialization, stable ids and private child deletion**, as the
    ports need them.
-6. **L7, the canonical feed and store on tables**, as after L4 (item 4).
-7. **The benchmark baselines' Node patches**: landed (#127, 2026-11-17;
+7. **L7, the canonical feed and store on tables**, as after L4 (item 4).
+8. **The benchmark baselines' Node patches**: landed (#127, 2026-11-17;
    ADR-0120, amended), as after L4 (item 5); the owner's standing approval
    takes each later patch-level security update through the same gates.
-8. **CI's wall-clock, with no gate given up** (the owner's grant of
+9. **CI's wall-clock, with no gate given up** (the owner's grant of
    2026-11-17; no paid runners). A pull request's verify takes the longest
    recipe it reaches; a full verify its longest shard, 10,192 s of the
    plan's 27 after the splits (11,009 s before), near the floor that 74.3
-   hours of recipes set (ADR-0359, amended). Done here, verified in this
-   pull request's verify: `e14-row-ownership` and d3 in three parts each.
+   hours of recipes set (ADR-0359, amended). Done in #129, verified in its
+   verify: `e14-row-ownership` and d3 in three parts each.
    Next, in order:
    - **every recipe under about 75 minutes**, by `scripts/mutation_parts.py`:
      ~~`e14-device-runtime` (9,425 s)~~ (`wip/device-runtime-parts`: its

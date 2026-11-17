@@ -1,8 +1,8 @@
 
 running 6 tests
 test tests::upload_generations::current_generation_http_validates_real_png_and_jpeg_files_before_304_and_head ... ok
-test tests::upload_generations::generation_http_rejects_actual_file_dimensions_differing_from_the_descriptor ... ok
 test tests::upload_generations::backend_death_stale_local_unlink_preserves_new_same_hash_generation_and_http ... ok
+test tests::upload_generations::generation_http_rejects_actual_file_dimensions_differing_from_the_descriptor ... ok
 test tests::upload_generations::generation_http_rejects_actual_file_kind_differing_from_the_descriptor ... ok
 test tests::upload_generations::generation_http_uses_each_routes_current_same_declaration_reference_counts ... FAILED
 test tests::upload_generations::retired_generation_http_is_404_before_304_even_while_actual_payload_waits_for_collection ... FAILED
@@ -11,7 +11,7 @@ failures:
 
 ---- tests::upload_generations::generation_http_uses_each_routes_current_same_declaration_reference_counts stdout ----
 
-thread 'tests::upload_generations::generation_http_uses_each_routes_current_same_declaration_reference_counts' (4543) panicked at spikes/own-renderer/server/src/tests/upload_generations.rs:559:5:
+thread 'tests::upload_generations::generation_http_uses_each_routes_current_same_declaration_reference_counts' (311741) panicked at spikes/own-renderer/server/src/tests/upload_generations.rs:559:5:
 assertion `left == right` failed: other declaration's hash/bytes do not enroll this declaration
   left: 304
  right: 404
@@ -19,7 +19,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::upload_generations::retired_generation_http_is_404_before_304_even_while_actual_payload_waits_for_collection stdout ----
 
-thread 'tests::upload_generations::retired_generation_http_is_404_before_304_even_while_actual_payload_waits_for_collection' (4552) panicked at spikes/own-renderer/server/src/tests/upload_generations.rs:391:5:
+thread 'tests::upload_generations::retired_generation_http_is_404_before_304_even_while_actual_payload_waits_for_collection' (311750) panicked at spikes/own-renderer/server/src/tests/upload_generations.rs:391:5:
 assertion `left == right` failed: physical bytes and matching validators confer no authority
   left: 304
  right: 404
@@ -29,6 +29,6 @@ failures:
     tests::upload_generations::generation_http_uses_each_routes_current_same_declaration_reference_counts
     tests::upload_generations::retired_generation_http_is_404_before_304_even_while_actual_payload_waits_for_collection
 
-test result: FAILED. 4 passed; 2 failed; 0 ignored; 0 measured; 1222 filtered out; finished in 1.23s
+test result: FAILED. 4 passed; 2 failed; 0 ignored; 0 measured; 1232 filtered out; finished in 1.23s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`

@@ -11,5 +11,5 @@ test uploads::generic_lease_tests::explicit_claims_block_only_their_own_declarat
 test uploads::generic_lease_tests::private_preview_route_cannot_borrow_another_declarations_lease ... ok
 test uploads::generic_lease_tests::two_declarations_stage_and_replace_independently_for_one_session ... ok
 
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 1218 filtered out; finished in 0.00s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 1228 filtered out; finished in 0.00s
 
