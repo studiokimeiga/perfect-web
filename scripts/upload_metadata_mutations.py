@@ -885,7 +885,35 @@ SPEC = ["pnpm", "exec", "playwright", "test", "e2e/upload-metadata.spec.mjs", "-
 BOUND = 900
 
 
-RUST_SOURCES = [STRIP, ICC, UPLOADS, ROOT / "spikes/own-renderer/server/src/uploads/png_state.rs", ROOT / "spikes/own-renderer/server/src/uploads/privacy_tests.rs", ROOT / "spikes/own-renderer/server/src/uploads/privacy_lifecycle_tests.rs", ROOT / "spikes/own-renderer/server/src/uploads/generic_lease_tests.rs", ROOT / "spikes/own-renderer/server/src/tests/uploads.rs", ROOT / "spikes/own-renderer/server/src/blob.rs"]
+# Every file holding a test the server command's `uploads blob` runs: a
+# failure is a kill only at an assertion of a file listed here
+# (`cargo_assertion_results`). L5's verifies found a kill INVALID at
+# `generic_lease_tests.rs` before it was listed, and its second review six
+# more files the filter runs (`tests/upload_bridge.rs` by one test's name);
+# `mutation_anchors.py` now names any file the filter reaches and this omits.
+RUST_SOURCES = [
+    STRIP,
+    ICC,
+    UPLOADS,
+    *(
+        ROOT / "spikes/own-renderer/server/src" / name
+        for name in (
+            "uploads/png_state.rs",
+            "uploads/privacy_tests.rs",
+            "uploads/privacy_lifecycle_tests.rs",
+            "uploads/generic_lease_tests.rs",
+            "uploads/session_authority_tests.rs",
+            "uploads/multipart.rs",
+            "uploads/sniff.rs",
+            "uploads/generic/tests.rs",
+            "uploads/bridge/tests.rs",
+            "tests/uploads.rs",
+            "tests/upload_bridge.rs",
+            "blob.rs",
+            "blob/assets.rs",
+        )
+    ),
+]
 RUST_INVENTORY = None
 
 

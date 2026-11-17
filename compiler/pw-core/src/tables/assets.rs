@@ -74,7 +74,7 @@ pub(super) fn check(
             _ => None,
         });
     let bad = |message: String, span: Span| {
-        malformed(
+        asset_malformed(
             message,
             span,
             vec![],

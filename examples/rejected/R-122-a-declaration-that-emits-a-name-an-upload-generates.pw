@@ -1,0 +1,29 @@
+// @corpus: rejected
+// @id: R-122
+// @category: a declaration that emits a name an upload generates
+// @rule: PW5604
+// @invariant: upload_identity_taken
+// @charter: §9.2
+// @milestone: 14
+// @expect-error: `Kind` is a generated upload declaration and the program declares its emitted identity
+//
+// ADR-0440's L5: an upload's module holds the declarations the upload
+// generates (its `Claim`, `Ref`, `Kind`, `Attached` and `Error`, and its
+// `claim`, `publish`, `discard`, `attached` and `src`), each with one
+// emitted name and one meaning. `kind`, a function of the program's,
+// emits `kind`, the name of the generated `Kind`, the kinds the upload's
+// files may be. A-061 declares nothing beside its upload but a page.
+
+module Avatar
+
+upload Avatar
+    route      "/uploads/avatar"
+    serves     "/avatars"
+    max_bytes  1_000_000
+    types      png, jpeg
+    max_width  512
+    max_height 512
+
+fn kind(name: String) -> String {
+    name
+}

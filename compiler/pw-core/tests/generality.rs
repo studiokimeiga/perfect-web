@@ -590,11 +590,15 @@ fn generality_is_reported_separately_from_conformance() {
     // `required_query_unshared`, and its second review's
     // `required_query_bound_by_a_page`. 76 / 76 with L2's own:
     // `who_may_write`, a table a reader's command writes says who may
-    // write its rows (PW6920). Measured below; update STATUS and NEXT with
-    // the integrated result.
+    // write its rows (PW6920). 82 / 82 at L5's follow-up (corpus C34,
+    // 2026-11-17): track `uploads`' `upload_malformed`,
+    // `upload_route_taken` and `file_form_posts_to_no_upload` (ADR-0260),
+    // and ADR-0440's `upload_identity_taken`, `upload_claim_not_idempotent`
+    // and `table_asset_malformed`, which no fixture exercised until then.
+    // Measured below; update STATUS and NEXT with the integrated result.
     assert_eq!(
         (general.len(), narrow.len(), untested.len()),
-        (76, 0, 0),
+        (82, 0, 0),
         "the published figure moved. If that is intended, update
          docs/STATUS.md and docs/NEXT.md in the same commit — a number in a
          status report that no test holds is a number that drifts."

@@ -3,7 +3,7 @@
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
 **A call's arguments past the flat limit, 2026-11-17** (`wip/wide-import-args`,
-after the asset contract suite): a compiled command passes a host's
+one pull request with the asset contract suite, below, which found it): a compiled command passes a host's
 operation arguments wider than the Canonical ABI's 16 flat values in its
 own memory, a tuple of them at one pointer, so a table's `put` of a wide
 row compiles (ADR-0266, amended). Six conformance tests hold it through
@@ -13,8 +13,8 @@ row keeps two images (19 flat values), and its sixth case holds a
 generation the two name, kept while either does, on memory and on
 PostgreSQL alike.
 
-**One contract suite for assets, 2026-11-17** (`wip/asset-parity`, after
-L5 and its follow-up): `tests::asset_contract` runs five cases (six since
+**One contract suite for assets, 2026-11-17** (after L5's follow-up, in
+one pull request with the call past the flat limit it found, above): `tests::asset_contract` runs five cases (six since
 the wide arguments, above) through the server on memory and on PostgreSQL
 alike. They cover the same bytes kept again as a new generation, a removed row's collection at its commit, a
 failed collection made by housekeeping, and lost or changed bytes answered
@@ -28,6 +28,23 @@ locally, the claims script killed 34 of 34. Independently reviewed: no high
 finding. Its medium (a commit refused because another attempt recorded its
 interaction first was answered refused, where that record answers it) and
 its lows are repaired, each with its regression.
+
+**L5's follow-up, 2026-11-17 (built, not landed):** on L5
+(`wip/l5-followups`). Each upload and asset refusal is told by a rule of its
+own (PW5604, PW5605, PW0371), and each asset test's refusal by its reason.
+Corpus C34 holds each upload and asset rule: R-119 to R-124, beside A-061 and
+A-062 (52 accepted programs, 112 rejected, every charter category covered),
+and six generality pairs (generality 82 / 82). Writing it found eight
+refusals of four rules that named no boundary (charter §16.3); each now
+points at its rule's other side (ADR-0440, amended). And the second L5
+review's four lows of code are repaired, each with its regression: a failed
+upload recipe shows its evidence, the database rule reads a script's URL
+wherever it names one, a render is held to its connection's backend, and the
+server's tests a mutation script runs by a filter are held to the files its
+sources list. And
+`e14-row-ownership`, every full verify's longest recipe (11,009 s), runs in
+three parts, each a shard's, and d3's first part (9,710 s) in two (ADR-0359,
+amended).
 
 **L5, declared uploads, 2026-11-17:** L5a and L5b land as one train from
 `wip/l5b-claims`, with master, #118 and #121 merged. Its full verify
@@ -103,6 +120,18 @@ reader's command writes now `written by anyone` (PW6920) and each such
 command `requires Anyone` (PW0367). At the merge the workspace's 4,438
 tests pass on PostgreSQL 18.6 (26 ignored), and every mutation anchor
 matches once (6,253).
+
+**The benchmark baselines' patches, 2026-11-17 (#127):** on
+the owner's approval of the downloads, SvelteKit 2.70.4, adapter-node 5.5.8
+and Next.js 16.4.5 (ADR-0120, amended), in the workspace's lockfile and the
+harness's own, whose Next sandbox installs frozen again. Both stores build
+and typecheck, and the contract holds each (81 of 81, its five controls
+killed; the museum the same five exhibits). The Node audit reports four
+advisories, each still documented: three SvelteKit 2.x has no patch for,
+and one 2.70.4 fixes that GitHub's record does not yet say so; the four the
+patches fix leave the allow list, and an allowance no advisory matches is
+now refused. The owner's standing approval takes each later patch-level
+security update to a baseline through the same gates.
 
 **L4, bounded reads, 2026-11-16:** on L3 (`f375b92d`), the fourth train
 of the declared data layer's landing (`wip/l4-bounded`): the integration

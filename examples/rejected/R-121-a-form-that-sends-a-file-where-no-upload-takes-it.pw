@@ -1,0 +1,32 @@
+// @corpus: rejected
+// @id: R-121
+// @category: a form that sends a file where no upload takes it
+// @rule: PW5603
+// @invariant: file_form_posts_to_no_upload
+// @charter: §8.2
+// @milestone: 14
+// @expect-error: a form in `Profile` that sends a file posts to `/profile`, which no upload declares
+//
+// Track `uploads` (ADR-0260): a file is taken only by an upload, which
+// states the most it may be, so a form that sends one posts it, as
+// multipart/form-data, to an upload's route. `Profile`'s form posts its
+// file to the page's own path, where nothing bounds or keeps it. A-061's
+// form posts to its upload's route.
+
+module Profile
+
+page Profile() {
+    route     "/profile"
+    placement origin
+
+    view {
+        <title>Your profile</title>
+        <main>
+            <h1>Your profile</h1>
+            <form method="post" action="/profile" enctype="multipart/form-data">
+                <label>Avatar <input type="file" name="avatar" accept="image/png"></label>
+                <button type="submit">Save</button>
+            </form>
+        </main>
+    }
+}

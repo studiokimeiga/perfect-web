@@ -22,6 +22,7 @@
   and from the commit before the push where none did, or on any error.
 """
 
+import ast
 import importlib.util
 import json
 import pathlib
@@ -47,6 +48,22 @@ plan = load("ci_plan")
 recipes = load("ci_recipes")
 fetch = load("evidence_fetch")
 vbase = load("verified_base")
+
+DATABASE_URLS = ("PW_TABLES_DATABASE_URL", "PW_STORE_DATABASE_URL", "PW_FEED_DATABASE_URL")
+
+
+def reads_a_database_url(source: str) -> bool:
+    """Whether a script's code names a database's URL by itself: a string
+    that is exactly one of the names, as `os.environ.get(...)` takes it, or a
+    tuple of them that a loop reads each of (`d3_postgres`, `render_merge`,
+    `second_host`). A name inside a longer string is the code a mutant
+    changes, or prose, and reads none. Until L5's second review only a name
+    given as the call's own argument was seen, and the five scripts that read
+    theirs in a loop were found by their recipes' bodies alone."""
+    return any(
+        isinstance(node, ast.Constant) and node.value in DATABASE_URLS
+        for node in ast.walk(ast.parse(source))
+    )
 
 
 class Plan(unittest.TestCase):
@@ -169,6 +186,25 @@ class Plan(unittest.TestCase):
         self.assertGreaterEqual(len(skips), 10, skips)
         self.assertEqual(sorted(set(skips) - set(plan.NEEDS_DATABASE)), [])
 
+    def test_a_part_of_a_scripts_mutants_costs_its_mutants_alone(self) -> None:
+        # The second review of L5 (2026-11-17): `--part i/n` ran one part,
+        # and the plan costed it as the script's every mutant, so both of
+        # d3's parts cost 136; a measured part's unit then looked cheaper
+        # than it was, and every estimate of its kind with it.
+        import d3_postgres_mutations as d3
+        import refusal_mutations as refusal
+
+        body = plan.bodies()
+        for recipe, (start, end) in zip(("e14-d3-postgres", "e14-d3-postgres-2", "e14-d3-postgres-3"), d3.PARTS):
+            self.assertEqual(plan.cost(body[recipe]), 1 + end - start, recipe)
+        self.assertEqual(d3.PARTS[-1], (len(d3.DECLARED), len(d3.MUTANTS)), "the uploads' alone")
+        first, second = refusal.PARTS
+        self.assertEqual(plan.cost(body["e14-refusal-2"]), 1 + second[1] - second[0])
+        # A part a script does not define costs the whole, as before.
+        self.assertEqual(
+            plan.cost("python3 scripts/d3_postgres_mutations.py --part 3/2"), 1 + len(d3.MUTANTS)
+        )
+
     def test_a_recipe_that_reads_a_database_is_dealt_beside_one(self) -> None:
         # Found before L5's full verify (2026-11-17): `e14-generic-upload-claims`
         # is refused without a database ("refused, it needs
@@ -182,34 +218,21 @@ class Plan(unittest.TestCase):
         # recipe names none while its script reads one and refuses without
         # it: a recipe whose script reads a database's URL is too. A script
         # that names one only in the code it mutates reads none.
-        import ast
         import evidence_counts
 
-        named = ("PW_TABLES_DATABASE_URL", "PW_STORE_DATABASE_URL", "PW_FEED_DATABASE_URL")
+        def by_script(body: str) -> bool:
+            return any(
+                reads_a_database_url((plan.ROOT / "scripts" / s).read_text())
+                for s in evidence_counts.executed_scripts(body)
+            )
 
-        def reads_one(script: str) -> bool:
-            tree = ast.parse((plan.ROOT / "scripts" / script).read_text())
-            for node in ast.walk(tree):
-                if (
-                    isinstance(node, ast.Call)
-                    and isinstance(node.func, ast.Attribute)
-                    and node.func.attr in ("get", "getenv")
-                    and node.args
-                    and isinstance(node.args[0], ast.Constant)
-                    and node.args[0].value in named
-                ):
-                    return True
-                if isinstance(node, ast.Subscript) and isinstance(node.slice, ast.Constant) and node.slice.value in named:
-                    return True
-            return False
-
-        reads = sorted(
-            name
+        planned = {
+            name: body
             for name, body in plan.bodies().items()
-            if plan.EVIDENCE_RECIPE.match(name)
-            and name not in plan.LOCAL_ONLY
-            and (any(v in body for v in named) or any(reads_one(s) for s in evidence_counts.executed_scripts(body)))
-        )
+            if plan.EVIDENCE_RECIPE.match(name) and name not in plan.LOCAL_ONLY
+        }
+        scripts = {name for name, body in planned.items() if by_script(body)}
+        reads = sorted({name for name, body in planned.items() if any(v in body for v in DATABASE_URLS)} | scripts)
         for name in (
             "e14-generic-upload-claims",
             "e14-generic-upload-http",
@@ -222,11 +245,64 @@ class Plan(unittest.TestCase):
         self.assertNotIn("e14-preverify", reads)
         self.assertNotIn("e14-browser-host-map", reads)
         self.assertEqual(sorted(set(reads) - set(plan.NEEDS_DATABASE)), [])
+        # Each script that reads its URL in a loop is found by its script, not
+        # only by its recipe's body (the second review: five were not).
+        for name in (
+            "e14-d3-postgres",
+            "e14-d3-postgres-2",
+            "e14-durable-tables",
+            "e14-generic-upload-claims",
+            "e14-render-merge",
+            "e14-second-host",
+        ):
+            self.assertIn(name, scripts)
+
+    def test_a_script_that_reads_a_database_url_is_told_from_one_that_names_it(self) -> None:
+        # The reading's own witness: each way a script reads a URL, and the
+        # two ways a script names one without reading it.
+        self.assertTrue(reads_a_database_url('import os\nurl = os.environ.get("PW_TABLES_DATABASE_URL")\n'))
+        self.assertTrue(reads_a_database_url('import os\nurl = os.environ["PW_STORE_DATABASE_URL"]\n'))
+        self.assertTrue(reads_a_database_url('import os\nurl = os.getenv("PW_FEED_DATABASE_URL")\n'))
+        self.assertTrue(
+            reads_a_database_url(
+                'import os\nfor need in ("PW_STORE_DATABASE_URL", "PW_FEED_DATABASE_URL"):\n'
+                "    if not os.environ.get(need):\n        raise SystemExit(1)\n"
+            )
+        )
+        self.assertTrue(
+            reads_a_database_url(
+                "import os\nurl = next((os.environ[n] for n in\n"
+                '    ("PW_TABLES_DATABASE_URL", "PW_STORE_DATABASE_URL") if os.environ.get(n)), None)\n'
+            )
+        )
+        self.assertFalse(reads_a_database_url('"""It needs PW_TABLES_DATABASE_URL, a throwaway database."""\n'))
+        self.assertFalse(
+            reads_a_database_url(
+                'MUTANTS = [("main.rs", \'std::env::var("PW_TABLES_DATABASE_URL")\', \'std::env::var("X")\')]\n'
+            )
+        )
 
     def test_a_measurement_of_the_machine_is_not_planned(self) -> None:
         self.assertIn("e10-close-bench", plan.LOCAL_ONLY)
         self.assertTrue(plan.EVIDENCE_RECIPE.match("e14-feed"))
         self.assertFalse(plan.EVIDENCE_RECIPE.match("ci"))
+
+    def test_a_change_to_a_helper_that_chooses_mutants_reaches_its_scripts(self) -> None:
+        # #126's follow-up review (2026-11-17): a change to
+        # `mutation_parts.py` alone planned nothing, though it deals
+        # row_ownership's mutants to its three recipes.
+        reached = plan.touched_scripts({"scripts/mutation_parts.py": [(1, 1)]}, 30)
+        self.assertIn("row_ownership_mutations.py", reached)
+        self.assertNotIn("d3_postgres_mutations.py", reached, "d3 keeps its own copy")
+        recipes = plan.recipes_for({"scripts/mutation_parts.py": [(1, 1)]}, 30, list(plan.bodies()))
+        for name in ("e14-row-ownership", "e14-row-ownership-2", "e14-row-ownership-3"):
+            self.assertIn(name, recipes)
+        # An instrument helper every script imports reaches no script by its
+        # import alone (row_ownership imports producer_process, and does not
+        # mutate it; guide_ownership's mutants do, so it is reached).
+        instrument = plan.touched_scripts({"scripts/producer_process.py": [(1, 1)]}, 30)
+        self.assertNotIn("row_ownership_mutations.py", instrument)
+        self.assertLess(len(instrument), 5, instrument)
 
     def test_a_change_reaches_the_scripts_it_touches(self) -> None:
         # The script itself.

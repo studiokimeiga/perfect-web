@@ -1,8 +1,8 @@
 ADR-0065 - a value that holds at every type
 
 produced by: just e10-any
-commit: 83ad1ab1f92c0bc4377dfc72df28643828771bb5
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43929087203 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6734ea7e5adedb90115a02c8db1d11e7d31fc860
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/44017699885 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == None, [], Err, todo, a free parameter, a let mut (compiler/pw-core/tests/any_type.rs)
@@ -13,13 +13,13 @@ test a_generic_case_nothing_fixes_is_any_instance ... ok
 test a_mutable_binding_is_one_type ... ok
 test a_seed_its_context_does_not_type_is_built_at_the_folds_type ... ok
 test an_early_return_is_any_success ... ok
-test a_folds_accumulator_is_what_its_function_builds ... ok
 test a_parameter_no_field_mentions_is_any_type ... ok
 test a_value_of_any_type_fixes_no_variable ... ok
+test a_folds_accumulator_is_what_its_function_builds ... ok
 test todo_is_any_value ... ok
 test none_is_an_option_of_anything ... ok
 test an_empty_list_is_a_list_of_anything ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.33s
 
 == what the value relations decide: the store program
 
@@ -69,29 +69,29 @@ test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fin
 
 == what the value relations decide: the accepted corpus as one program
 
-99 file(s)
-  Arity       agree                            195
-  Argument    agree                            275
+101 file(s)
+  Arity       agree                            202
+  Argument    agree                            283
   Argument    undecided: Unknown               6
-  Field       agree                            81
-  Return      agree                            186
+  Field       agree                            84
+  Return      agree                            193
   Return      undecided: Unknown               1
   Binding     agree                            3
   Binding     undecided: Unknown               3
-  Annotation  agree                            1327
-  Operand     agree                            248
+  Annotation  agree                            1387
+  Operand     agree                            250
   Operand     undecided: Unknown               3
   Assignment  agree                            5
-  Member      agree                            169
+  Member      agree                            172
   Case        agree                            7
-  Fields      agree                            23
-  Branches    agree                            12
+  Fields      agree                            24
+  Branches    agree                            13
   Branches    undecided: Unknown               1
   Items       agree                            4
   Literal     agree                            98
   Handler     agree                            4
   Truth       agree                            4
-  Text        agree                            51
+  Text        agree                            53
   Text        undecided: Unknown               2
   Invariant   agree                            9
   Transition  agree                            1

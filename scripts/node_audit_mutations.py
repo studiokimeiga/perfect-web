@@ -48,11 +48,15 @@ MUTANTS = [
      '    if observed != counts:\n', '    if bool(advisories) != any(counts.values()):\n'),
     ('total-only counts hide severity redistribution', 'NodeAudit.test_severity_distribution_must_match_even_when_totals_match', AUDIT,
      '    if observed != counts:\n', '    if sum(observed.values()) != sum(counts.values()):\n'),
+    # 2026-11-17: an allowance no reported advisory matches is refused
+    # (ADR-0371, amended), so each goes with its advisory.
+    ('an allowance no advisory matches passes', 'NodeAudit.test_an_allowance_no_advisory_matches_fails_and_is_named', AUDIT,
+     '    if stale:\n', '    if False and stale:\n'),
 ]
 SELECTOR = "test_node_audit"
 SEARCH = ROOT / "scripts/tests"
 PATTERN = "test_node_audit.py"
-EXPECTED_COUNT = 24
+EXPECTED_COUNT = 25
 TIMEOUT = 120
 
 

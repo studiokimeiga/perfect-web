@@ -1,0 +1,23 @@
+// @status: NEIGHBOUR
+// @invariant: file_form_posts_to_no_upload
+//
+// The same form, multipart, posting its file to A-061's upload from a
+// page the upload's module does not declare.
+
+module generality.file_form_elsewhere
+
+page Retitle() {
+    route     "/retitle"
+    placement origin
+
+    view {
+        <title>Attach</title>
+        <main>
+            <h1>Attach</h1>
+            <form method="post" action="/uploads/post-image" enctype="multipart/form-data">
+                <label>Image <input type="file" name="image" accept="image/png"></label>
+                <button type="submit">Attach</button>
+            </form>
+        </main>
+    }
+}

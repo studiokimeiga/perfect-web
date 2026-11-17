@@ -1,8 +1,8 @@
 Track evidence-integrity - six ways evidence could be wrong, or a gate fail for the wrong reason
 
 produced by: just e14-evidence-integrity
-commit: 41a73a48ab29a42cce090990051accd8278d6e0c
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43978661391 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6734ea7e5adedb90115a02c8db1d11e7d31fc860
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/44017699885 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 python: Python 3.12.3
 node: v22.21.1
@@ -39,7 +39,7 @@ test_a_complete_report_stays_visible_until_success (scripts.tests.test_atomic_ev
 test_a_failed_run_keeps_the_previous_complete_report (scripts.tests.test_atomic_evidence.AtomicEvidence.test_a_failed_run_keeps_the_previous_complete_report) ... ok
 test_a_first_run_publishes_only_the_complete_report (scripts.tests.test_atomic_evidence.AtomicEvidence.test_a_first_run_publishes_only_the_complete_report) ... ok
 test_the_published_report_remains_a_planned_evidence_output (scripts.tests.test_atomic_evidence.AtomicEvidence.test_the_published_report_remains_a_planned_evidence_output) ... ok
-Ran 30 tests in 5.490s
+Ran 30 tests in 5.492s
 OK
 
 == 2. stale evidence planned, an evidence file's counts its script's (test_ci_scripts.py, test_evidence_counts.py)
@@ -75,6 +75,7 @@ test_what_a_failed_recipe_wrote_is_not_copied (scripts.tests.test_ci_scripts.Fet
 test_what_changed_since_a_run_is_the_planners_against_the_tree_here (scripts.tests.test_ci_scripts.Fetch.test_what_changed_since_a_run_is_the_planners_against_the_tree_here) ... ok
 test_a_binary_changed_in_a_range_or_the_tree_here_is_changed_where_it_is_read (scripts.tests.test_ci_scripts.Plan.test_a_binary_changed_in_a_range_or_the_tree_here_is_changed_where_it_is_read) ... ok
 test_a_change_reaches_the_scripts_it_touches (scripts.tests.test_ci_scripts.Plan.test_a_change_reaches_the_scripts_it_touches) ... ok
+test_a_change_to_a_helper_that_chooses_mutants_reaches_its_scripts (scripts.tests.test_ci_scripts.Plan.test_a_change_to_a_helper_that_chooses_mutants_reaches_its_scripts) ... ok
 test_a_change_to_a_sources_own_tests_reaches_what_runs_them (scripts.tests.test_ci_scripts.Plan.test_a_change_to_a_sources_own_tests_reaches_what_runs_them) ... ok
 test_a_change_to_the_suites_configuration_plans_every_recipe_that_runs_a_suite_under_it (scripts.tests.test_ci_scripts.Plan.test_a_change_to_the_suites_configuration_plans_every_recipe_that_runs_a_suite_under_it) ... ok
 test_a_changed_binary_is_named_where_a_line_names_it (scripts.tests.test_ci_scripts.Plan.test_a_changed_binary_is_named_where_a_line_names_it) ... ok
@@ -86,6 +87,7 @@ test_a_diff_that_is_no_utf8_is_still_read (scripts.tests.test_ci_scripts.Plan.te
 test_a_long_database_singleton_does_not_hide_its_other_database_shard (scripts.tests.test_ci_scripts.Plan.test_a_long_database_singleton_does_not_hide_its_other_database_shard) ... ok
 test_a_long_singleton_does_not_hide_a_database_shard_past_the_ceiling (scripts.tests.test_ci_scripts.Plan.test_a_long_singleton_does_not_hide_a_database_shard_past_the_ceiling) ... ok
 test_a_measurement_of_the_machine_is_not_planned (scripts.tests.test_ci_scripts.Plan.test_a_measurement_of_the_machine_is_not_planned) ... ok
+test_a_part_of_a_scripts_mutants_costs_its_mutants_alone (scripts.tests.test_ci_scripts.Plan.test_a_part_of_a_scripts_mutants_costs_its_mutants_alone) ... ok
 test_a_plan_is_the_same_every_time (scripts.tests.test_ci_scripts.Plan.test_a_plan_is_the_same_every_time) ... ok
 test_a_recipe_costs_the_seconds_it_last_took (scripts.tests.test_ci_scripts.Plan.test_a_recipe_costs_the_seconds_it_last_took) ... ok
 test_a_recipe_in_an_imported_file_is_read_and_planned (scripts.tests.test_ci_scripts.Plan.test_a_recipe_in_an_imported_file_is_read_and_planned) ... ok
@@ -104,6 +106,7 @@ test_a_recipes_cost_counts_the_mutants_it_plants (scripts.tests.test_ci_scripts.
 test_a_run_is_planned_by_the_seconds_kept (scripts.tests.test_ci_scripts.Plan.test_a_run_is_planned_by_the_seconds_kept) ... ok
 test_a_run_takes_more_shards_than_it_asks_where_its_would_end_past_the_ceiling (scripts.tests.test_ci_scripts.Plan.test_a_run_takes_more_shards_than_it_asks_where_its_would_end_past_the_ceiling) ... ok
 test_a_safe_database_bundle_keeps_the_fewest_database_shards (scripts.tests.test_ci_scripts.Plan.test_a_safe_database_bundle_keeps_the_fewest_database_shards) ... ok
+test_a_script_that_reads_a_database_url_is_told_from_one_that_names_it (scripts.tests.test_ci_scripts.Plan.test_a_script_that_reads_a_database_url_is_told_from_one_that_names_it) ... ok
 test_a_shard_with_a_database_sets_up_what_its_recipe_needs (scripts.tests.test_ci_scripts.Plan.test_a_shard_with_a_database_sets_up_what_its_recipe_needs) ... ok
 test_a_todomvc_plan_writes_only_the_workflow_output (scripts.tests.test_ci_scripts.Plan.test_a_todomvc_plan_writes_only_the_workflow_output) ... ok
 test_an_out_of_line_test_module_reaches_what_runs_it (scripts.tests.test_ci_scripts.Plan.test_an_out_of_line_test_module_reaches_what_runs_it) ... ok
@@ -164,7 +167,7 @@ test_evidence_whose_script_changed_in_the_tree_here_is_planned_again (scripts.te
 test_the_repositorys_evidence_agrees_with_its_scripts_or_is_planned_again (scripts.tests.test_evidence_counts.Repository.test_the_repositorys_evidence_agrees_with_its_scripts_or_is_planned_again) ... ok
 
 ----------------------------------------------------------------------
-Ran 115 tests in 33.902s
+Ran 118 tests in 35.376s
 
 OK
   not copied, its recipe failed: docs/evidence/E14/stopped.txt
@@ -176,13 +179,234 @@ evidence-fetch: run 1 failed only in summary, known (ADR-0281)
   not copied, its recipe failed: docs/evidence/E14/stopped.wasm
   docs/evidence/E14/good.txt
 evidence-fetch: 1 files from https://example.invalid/run/1; 1 recipes' seconds kept
-docs/evidence/E14/generic-upload-http.txt:0: no such file: the recipe's evidence is not recorded
-  e14-generic-upload-http: stale, and planned at a train's push (ci_plan.py --stale)
-docs/evidence/E14/generic-upload-leases.txt:0: no such file: the recipe's evidence is not recorded
-  e14-generic-upload-leases: stale, and planned at a train's push (ci_plan.py --stale)
-docs/evidence/E14/row-ownership.txt:451: row_ownership_mutations.py: counts 145 mutants; its script defines 234
+docs/evidence/E14/d3-postgres.txt:326: d3_postgres_mutations.py: counts 96 mutants; its part 1 of 3 holds 48
+docs/evidence/E14/d3-postgres.txt:278: d3_postgres_mutations.py: 'a unique value is left to the database, which aborts the transaction' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:279: d3_postgres_mutations.py: 'a growth write passes the bound' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:280: d3_postgres_mutations.py: 'all answers past its bound' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:281: d3_postgres_mutations.py: 'a selector is not held to its declared type' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:282: d3_postgres_mutations.py: "a range request is not held to its fields' types" names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:283: d3_postgres_mutations.py: 'a set request that is no record is refused in other words' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:284: d3_postgres_mutations.py: "a relation's refusal names no import" names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:285: d3_postgres_mutations.py: 'a written row is not held to its table' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:286: d3_postgres_mutations.py: 'a stored row is answered unchecked' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:287: d3_postgres_mutations.py: 'a statement is prepared on every call' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:288: d3_postgres_mutations.py: 'two commands of a host run at once' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:289: d3_postgres_mutations.py: 'a command writes outside a transaction' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:290: d3_postgres_mutations.py: 'a command reads outside its transaction' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:291: d3_postgres_mutations.py: 'a prepared command writes on' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:292: d3_postgres_mutations.py: 'a row put back as it was is a write' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:293: d3_postgres_mutations.py: 'references are held at the commit, not where the command prepares' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:294: d3_postgres_mutations.py: 'references are held at each write' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:295: d3_postgres_mutations.py: "the records commit outside the command's transaction" names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:296: d3_postgres_mutations.py: 'an interaction is recorded twice' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:297: d3_postgres_mutations.py: "a live interaction's record is overwritten" names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:298: d3_postgres_mutations.py: 'a refused commit is answered as committed' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:299: d3_postgres_mutations.py: 'a commit never answered is answered refused' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:300: d3_postgres_mutations.py: 'a serialization failure is taken for another error' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:301: d3_postgres_mutations.py: 'a serialization failure is not run again' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:302: d3_postgres_mutations.py: "the outbox's ids are taken out of commit order" names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:303: d3_postgres_mutations.py: 'render seats are unbounded' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:304: d3_postgres_mutations.py: "a render's snapshot reads the latest commit" names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:305: d3_postgres_mutations.py: "the migration reads at the connection's default isolation" names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:306: d3_postgres_mutations.py: 'a key field retyped is taken for a field retyped' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:307: d3_postgres_mutations.py: "a backfilled string is a literal the server's string syntax reads" names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:308: d3_postgres_mutations.py: 'the least Int backfilled is a negated literal' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:309: d3_postgres_mutations.py: 'a rule is no drift' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:310: d3_postgres_mutations.py: 'a table inheriting one is no drift' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:311: d3_postgres_mutations.py: 'triggers not firing are no drift' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:312: d3_postgres_mutations.py: 'an unlogged table is no drift' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:313: d3_postgres_mutations.py: 'two objects given one name are made, one replacing the other' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:314: d3_postgres_mutations.py: 'a write whose answer cannot be read leaves its command whole' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:315: d3_postgres_mutations.py: 'a commit keeps fewer outbox rows than it carries' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:316: d3_postgres_mutations.py: "a nested float is read back by serde_json's inexact parser" names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:317: d3_postgres_mutations.py: 'an owned command predicate reads published rows instead of staging' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:318: d3_postgres_mutations.py: 'an owned query predicate reads published rows instead of its snapshot' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:319: d3_postgres_mutations.py: 'an owned query body reads published rows instead of its snapshot' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:320: d3_postgres_mutations.py: 'postgres predicate callbacks accept a nonpredicate contract' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:321: d3_postgres_mutations.py: 'postgres operation accounting hides a data statement' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:322: d3_postgres_mutations.py: "a connection keeps the operating system's keepalives" names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:323: d3_postgres_mutations.py: 'postgres operation accounting counts a transaction boundary as data' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:324: d3_postgres_mutations.py: 'a deletion from the outbox moves no trim watermark' names no mutant of its script
+docs/evidence/E14/d3-postgres.txt:325: d3_postgres_mutations.py: 'a truncation of the outbox moves no trim watermark' names no mutant of its script
+  e14-d3-postgres: stale, and planned at a train's push (ci_plan.py --stale)
+docs/evidence/E14/d3-postgres-2.txt:52: its verdicts name the mutants of none of d3_postgres_mutations.py
+docs/evidence/E14/d3-postgres-2.txt:0: counts none of d3_postgres_mutations.py's mutants, which the recipe runs
+  e14-d3-postgres-2: stale, and planned at a train's push (ci_plan.py --stale)
+docs/evidence/E14/d3-postgres-3.txt:0: no such file: the recipe's evidence is not recorded
+  e14-d3-postgres-3: stale, and planned at a train's push (ci_plan.py --stale)
+docs/evidence/E14/dealt-by-time.txt:169: dealt_by_time_mutations.py: counts 55 mutants; its script defines 56
+  e14-dealt-by-time: stale, and planned at a train's push (ci_plan.py --stale)
+docs/evidence/E14/render-merge.txt:217: render_merge_mutations.py: counts 49 mutants; its script defines 50
+  e14-render-merge: stale, and planned at a train's push (ci_plan.py --stale)
+docs/evidence/E14/row-ownership.txt:583: row_ownership_mutations.py: counts 234 mutants; its part 1 of 3 holds 81
+docs/evidence/E14/row-ownership.txt:423: row_ownership_mutations.py: 'asset claim escape accepted' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:424: row_ownership_mutations.py: 'upload pure URI key and kind swapped' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:425: row_ownership_mutations.py: 'upload imports owned by application' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:426: row_ownership_mutations.py: 'closed cases accept payloads' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:427: row_ownership_mutations.py: 'closed cases accept normalized aliases' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:428: row_ownership_mutations.py: 'closed cases accept an empty domain' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:429: row_ownership_mutations.py: 'closed cases skip nested metadata' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:430: row_ownership_mutations.py: 'closed cases ignore actual variant ABI order' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:431: row_ownership_mutations.py: 'closed cases accept unknown component tags' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:432: row_ownership_mutations.py: 'closed cases compare no variant atoms' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:433: row_ownership_mutations.py: 'closed cases decode no scalar variant selectors' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:434: row_ownership_mutations.py: 'closed cases answer a string instead of a variant' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:435: row_ownership_mutations.py: 'closed cases store source spelling instead of wire tags' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:436: row_ownership_mutations.py: 'closed cases memory accepts unknown stored tags' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:437: row_ownership_mutations.py: 'closed cases memory serves assets without a binding' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:438: row_ownership_mutations.py: 'relations contract dual grant requirement is omitted' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:439: row_ownership_mutations.py: 'relations actual secondary grant requirement is omitted' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:440: row_ownership_mutations.py: "a public table's relation is refused through an index its owner does not lead" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:441: row_ownership_mutations.py: 'relations protected targets are admitted' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:442: row_ownership_mutations.py: 'relations different sources are admitted as colocated' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:443: row_ownership_mutations.py: 'relations target order declaration is not required' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:444: row_ownership_mutations.py: 'relations match stored kinds and refinements need not agree' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:445: row_ownership_mutations.py: 'relations target nominal row annotation is ignored' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:446: row_ownership_mutations.py: 'relations target row visibility is ignored' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:447: row_ownership_mutations.py: 'relations identity transition uses the public target key as owner authority' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:448: row_ownership_mutations.py: 'relations missing empty groups are accepted' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:449: row_ownership_mutations.py: 'relations reversed source groups are accepted' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:450: row_ownership_mutations.py: 'ranges reader-only sets are refused' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:451: row_ownership_mutations.py: 'ranges result identities omit their mark' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:452: row_ownership_mutations.py: 'ranges unused scalar import bypasses its order ABI' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:453: row_ownership_mutations.py: 'ranges heterogeneous requests use another readers identity' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:454: row_ownership_mutations.py: 'ranges reader and list formal names alias' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:455: row_ownership_mutations.py: 'ranges mark field aliases a stored field' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:456: row_ownership_mutations.py: 'ranges malformed set members silently disappear' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:457: row_ownership_mutations.py: 'ranges marks lose their actual order type and refinement' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:458: row_ownership_mutations.py: 'ranges missing declared order is admitted' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:459: row_ownership_mutations.py: 'counts repair omits the zero entries' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:460: row_ownership_mutations.py: 'windows repair puts the reader in every selector key' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:461: row_ownership_mutations.py: 'windows varying bound offers the shared bound set as replacement' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:462: row_ownership_mutations.py: 'windows answer more rows than a selector allows' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:463: row_ownership_mutations.py: 'windows last answers are checked as ascending' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:464: row_ownership_mutations.py: 'windows set group order is reversed with rows' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:465: row_ownership_mutations.py: 'windows ignore malformed selectors at zero' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:466: row_ownership_mutations.py: 'windows reader and list parameter names alias' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:467: row_ownership_mutations.py: 'windows owner and written row parameter names alias' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:468: row_ownership_mutations.py: 'windows bound parameter aliases a selector' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:469: row_ownership_mutations.py: 'counts scalar and set function names silently alias' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:470: row_ownership_mutations.py: 'counts manifest admits a set with no selector after its reader' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:471: row_ownership_mutations.py: 'counts generated record aliases are accepted' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:472: row_ownership_mutations.py: 'counts negative scalar answers are accepted' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:473: row_ownership_mutations.py: 'counts missing result keys are accepted' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:474: row_ownership_mutations.py: 'counts reversed selector order is accepted' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:475: row_ownership_mutations.py: 'counts selector results are projected as stored shared rows' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:476: row_ownership_mutations.py: 'identity transition authority escapes its lifecycle root' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:477: row_ownership_mutations.py: 'identity transition may put the previous guests rows' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:478: row_ownership_mutations.py: 'identity transition source uses its public presentation field' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:479: row_ownership_mutations.py: 'identity transition target uses its public presentation field' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:480: row_ownership_mutations.py: 'identity transition scope is never retired' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:481: row_ownership_mutations.py: 'identity lifecycle skips its real target actor fence' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:482: row_ownership_mutations.py: 'identity lifecycle receipt replay skips target authority' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:483: row_ownership_mutations.py: 'identity lifecycle treats an authenticated admission as a guest' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:484: row_ownership_mutations.py: 'a local guest command ignores changed authority' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:485: row_ownership_mutations.py: 'anonymous guest rows lose their admitted caller' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:486: row_ownership_mutations.py: 'anonymous row authority borrows the mutable cache' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:487: row_ownership_mutations.py: 'an owned read takes a plain id' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:488: row_ownership_mutations.py: 'a sharer is answered the whole row' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:489: row_ownership_mutations.py: 'an owned table gives all' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:490: row_ownership_mutations.py: 'tables.json names no reader' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:491: row_ownership_mutations.py: "PW0370 an owner may be no principal's id" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:492: row_ownership_mutations.py: 'PW0368 an owned key may lead with another' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:493: row_ownership_mutations.py: 'PW0368 an owned index may lead with no reader' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:494: row_ownership_mutations.py: 'PW0368 a unique index may hold no owner' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:495: row_ownership_mutations.py: 'PW0368 all of an owned table is not refused' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:496: row_ownership_mutations.py: 'PW0369 a private field may be the order of a shared table' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:497: row_ownership_mutations.py: 'PW0369 a private field may be the owner' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:498: row_ownership_mutations.py: "private before a declaration's word heads a clause" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:499: row_ownership_mutations.py: 'PW0368 an owned table may state a bound' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:500: row_ownership_mutations.py: "PW6924 an owned table refers to another's rows by any field" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:501: row_ownership_mutations.py: 'PW6924 a table no one owns refers into an owned one' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:502: row_ownership_mutations.py: 'PW6924 an owned table refers to one no one owns' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:503: row_ownership_mutations.py: 'a forged handle is believed' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:504: row_ownership_mutations.py: 'a call no one makes reads owned rows' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:505: row_ownership_mutations.py: 'an owned row may be written for another' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:506: row_ownership_mutations.py: "the owner check reads a row's first field" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:507: row_ownership_mutations.py: "a row not exactly its table's is passed" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:508: row_ownership_mutations.py: "a set form's handle is not given back to its keys" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:509: row_ownership_mutations.py: 'a sharer is answered the private fields' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:510: row_ownership_mutations.py: 'the manifest holds no owners' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:511: row_ownership_mutations.py: 'the manifest holds no bound of an owned table' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:512: row_ownership_mutations.py: 'the manifest lets an owned table refer by any field' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:513: row_ownership_mutations.py: 'the manifest lets a reference cross into or out of an owned table' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:514: row_ownership_mutations.py: 'an owned import is typed as an unowned one' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:515: row_ownership_mutations.py: 'the engine admits no handle' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:516: row_ownership_mutations.py: "a predicate's body is not held to its Bool" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:517: row_ownership_mutations.py: "PW6905 a predicate's body may write" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:518: row_ownership_mutations.py: 'a query may not require a predicate' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:519: row_ownership_mutations.py: 'a requirement names no component' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:520: row_ownership_mutations.py: "PW6925 a requires that sees no body is the deployment's" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:521: row_ownership_mutations.py: 'PW6925 a page asks a predicate with a body' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:522: row_ownership_mutations.py: "a page asking a predicate is charged its body's reads" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:523: row_ownership_mutations.py: "a predicate with parameters is passed over as a page's ask" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:524: row_ownership_mutations.py: 'PW6907 a query that requires a predicate is cached shared' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:525: row_ownership_mutations.py: 'PW6907 a query that requires a predicate is keyed without its reader' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:526: row_ownership_mutations.py: 'PW6907 a materialization depends on a query that requires' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:527: row_ownership_mutations.py: 'PW6926 a query that requires is called or named anywhere' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:528: row_ownership_mutations.py: 'PW6926 a name a body binds is taken for the query' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:529: row_ownership_mutations.py: 'PW6926 a query that requires is bound outside a page' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:530: row_ownership_mutations.py: "PW6926 a page's binding is refused too" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:531: row_ownership_mutations.py: "the ABI names no requirement's answerer" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:532: row_ownership_mutations.py: "the deployment is asked the program's predicate" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:533: row_ownership_mutations.py: "a program predicate missing from the call is the deployment's" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:534: row_ownership_mutations.py: "the deployment's path answers the program's predicate" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:535: row_ownership_mutations.py: 'a program predicate runs unbounded' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:536: row_ownership_mutations.py: "a predicate's fuel is not the export's" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:537: row_ownership_mutations.py: 'a predicate is asked after the export runs' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:538: row_ownership_mutations.py: "a table's function among the platform's is linked" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:539: row_ownership_mutations.py: "a predicate's reads leave its command's transaction" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:540: row_ownership_mutations.py: "a predicate's reads are given to a command" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:541: row_ownership_mutations.py: "a program predicate's contract may hold several exports" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:542: row_ownership_mutations.py: "a program predicate's contract may be another export's" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:543: row_ownership_mutations.py: 'a program predicate may require one itself' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:544: row_ownership_mutations.py: 'a second command begins while one is open' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:545: row_ownership_mutations.py: "a query snapshot's body reads the published state" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:546: row_ownership_mutations.py: "a query snapshot's predicate reads the published state" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:547: row_ownership_mutations.py: 'a denied compiled predicate loses its typed refusal' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:548: row_ownership_mutations.py: 'an evaluation error becomes an explicit refusal' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:549: row_ownership_mutations.py: 'the server runs a reader as nobody' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:550: row_ownership_mutations.py: 'the server loses a compiled predicate refusal' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:551: row_ownership_mutations.py: 'the server gives a predicate its command write callbacks' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:552: row_ownership_mutations.py: 'a standalone table query is given no snapshot' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:553: row_ownership_mutations.py: 'a qualified compiled predicate loses its declared name' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:554: row_ownership_mutations.py: 'a reused guarded value bypasses its current predicate' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:555: row_ownership_mutations.py: 'a joined guarded flight bypasses its current predicate' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:556: row_ownership_mutations.py: 'a query denial contaminates its refreshing command' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:557: row_ownership_mutations.py: 'a typed query denial is flattened before its page' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:558: row_ownership_mutations.py: 'a refused query loses its authored words' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:559: row_ownership_mutations.py: 'a failed joined query loses its typed denial' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:560: row_ownership_mutations.py: "PW6920 a reader's command writes no table" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:561: row_ownership_mutations.py: "PW6920 a write a reader's schedule makes is no reader's" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:562: row_ownership_mutations.py: 'PW6920 a table a reader writes may say nothing' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:563: row_ownership_mutations.py: 'PW6920 an owned table may be written by anyone too' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:564: row_ownership_mutations.py: 'PW6920 is never asked' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:565: row_ownership_mutations.py: 'written by reads any word' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:566: row_ownership_mutations.py: 'written is no clause of a table' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:567: row_ownership_mutations.py: 'written heads a clause where no name follows' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:568: row_ownership_mutations.py: "a public table's reads take a handle" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:569: row_ownership_mutations.py: 'a public table gives no all' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:570: row_ownership_mutations.py: "an owned table's deletes take a plain id" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:571: row_ownership_mutations.py: "tables.json gives a public table's read a handle" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:572: row_ownership_mutations.py: "a public table's index is held to a reader" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:573: row_ownership_mutations.py: "a public table's bound is refused" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:574: row_ownership_mutations.py: 'a public table may share its rows' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:575: row_ownership_mutations.py: 'a public table may keep a field private' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:576: row_ownership_mutations.py: 'a private table is read as a table' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:577: row_ownership_mutations.py: 'PW6924 a public table refers as an owned one' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:578: row_ownership_mutations.py: "the host gives a public table's read a handle" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:579: row_ownership_mutations.py: "the host lets a public table's write go without its owner's handle" names no mutant of its script
+docs/evidence/E14/row-ownership.txt:580: row_ownership_mutations.py: 'the host reads a public table as one read by its reader' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:581: row_ownership_mutations.py: 'the host lets a public table share its rows' names no mutant of its script
+docs/evidence/E14/row-ownership.txt:582: row_ownership_mutations.py: "the host's references read a public table as an owned one" names no mutant of its script
   e14-row-ownership: stale, and planned at a train's push (ci_plan.py --stale)
-evidence counts: 3 recipes disagree with their scripts, 3 of them stale and planned, 0 failing
+docs/evidence/E14/row-ownership-2.txt:0: no such file: the recipe's evidence is not recorded
+  e14-row-ownership-2: stale, and planned at a train's push (ci_plan.py --stale)
+docs/evidence/E14/row-ownership-3.txt:0: no such file: the recipe's evidence is not recorded
+  e14-row-ownership-3: stale, and planned at a train's push (ci_plan.py --stale)
+docs/evidence/E14/uploads.txt:248: uploads_mutations.py: counts 33 mutants; its script defines 40
+  e14-uploads: stale, and planned at a train's push (ci_plan.py --stale)
+evidence counts: 9 recipes disagree with their scripts, 9 of them stale and planned, 0 failing
 
 == 3. a rejected fixture's @rule is the code pw check reports (compiler/pw-core/tests/checking_source.rs)
 
@@ -191,13 +415,13 @@ test a_match_whose_scrutinee_type_is_unknown_is_not_reported ... ok
 test an_unmodelled_capability_family_never_manufactures_a_placement_error ... ok
 test a_nullary_constructor_is_not_read_as_a_binding ... ok
 test constructor_arity_is_respected ... ok
-test every_body_level_rejection_matches_its_declared_rule ... ok
 test corpus_enforcement_is_reported_as_three_numbers_not_one ... ok
 test a_caught_file_conveys_every_fact_its_expect_error_lines_declare ... ok
+test every_body_level_rejection_matches_its_declared_rule ... ok
 test a_fixtures_declared_symbol_matches_the_symbol_it_is_caught_by has been running for over 60 seconds
 test a_fixtures_declared_symbol_matches_the_symbol_it_is_caught_by ... ok
-test every_rejected_fixtures_rule_is_a_code_its_check_reports ... ok
 test every_rejected_fixture_emits_only_its_own_defect ... ok
+test every_rejected_fixtures_rule_is_a_code_its_check_reports ... ok
 test no_accepted_corpus_file_reports_a_body_level_error ... ok
 test every_diagnostic_carries_what_charter_16_3_requires has been running for over 60 seconds
 test no_diagnostic_restates_its_invariant_in_its_own_words ... ok
@@ -208,21 +432,21 @@ test the_unhandled_variant_case_is_caught_at_its_real_span ... ok
 test the_structured_concurrency_rules_run_on_real_bodies ... ok
 test every_diagnostic_carries_what_charter_16_3_requires ... ok
 test the_privacy_and_placement_rules_catch_their_corpus_cases ... ok
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 122.16s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 128.10s
 
 == 4. check_latency bounds its thread's CPU time (compiler/pw-core/tests/check_latency.rs)
 
-load: 4.01 2.14 0.89 1/292 3605
-check-latency reject 1102.18 ms   (cpu 1102.12 ms; clean 2075.57 ms, cpu 2075.36 ms; the fastest of 7 and 7 checks, which the ratio bounds: cpu 1095.53 ms, clean cpu 2069.61 ms)
-check-latency cold   2061.31 ms   (cpu 2061.10 ms; 6659 lines, cpu 309.52 ms a thousand lines; the fastest of 7 checks, which the ceiling bounds: cpu 2055.15 ms, 308.63 ms a thousand lines)
-check-latency edit   2067.33 ms   (cpu 2067.16 ms; 57 files, no query system: an edit costs a full check)
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 51.13s
+load: 3.94 2.54 1.21 1/289 14474
+check-latency reject 1079.01 ms   (cpu 1078.62 ms; clean 2030.07 ms, cpu 2029.97 ms; the fastest of 7 and 7 checks, which the ratio bounds: cpu 1074.56 ms, clean cpu 2027.00 ms)
+check-latency cold   2029.85 ms   (cpu 2029.77 ms; 6659 lines, cpu 304.82 ms a thousand lines; the fastest of 7 checks, which the ceiling bounds: cpu 2027.52 ms, 304.48 ms a thousand lines)
+check-latency edit   2028.81 ms   (cpu 2028.74 ms; 57 files, no query system: an edit costs a full check)
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 50.20s
 
-beside 8 busy loops, load: 3.40 2.22 1.00 11/302 3665
-check-latency reject 4060.69 ms   (cpu 1595.18 ms; clean 7224.17 ms, cpu 2996.19 ms; the fastest of 7 and 7 checks, which the ratio bounds: cpu 1588.44 ms, clean cpu 2988.81 ms)
-check-latency cold   7584.61 ms   (cpu 3021.55 ms; 6659 lines, cpu 453.75 ms a thousand lines; the fastest of 7 checks, which the ceiling bounds: cpu 3013.37 ms, 452.53 ms a thousand lines)
-check-latency edit   6854.46 ms   (cpu 3001.41 ms; 57 files, no query system: an edit costs a full check)
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 172.77s
+beside 8 busy loops, load: 3.38 2.53 1.28 11/299 14530
+check-latency reject 3767.51 ms   (cpu 1575.81 ms; clean 7195.28 ms, cpu 2965.63 ms; the fastest of 7 and 7 checks, which the ratio bounds: cpu 1574.93 ms, clean cpu 2960.39 ms)
+check-latency cold   7542.78 ms   (cpu 2977.15 ms; 6659 lines, cpu 447.09 ms a thousand lines; the fastest of 7 checks, which the ceiling bounds: cpu 2970.75 ms, 446.13 ms a thousand lines)
+check-latency edit   7179.88 ms   (cpu 2979.79 ms; 57 files, no query system: an edit costs a full check)
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 171.01s
 
 == 5. a browser suite runs on what its recipe built (test_builds_before_suites.py)
 
@@ -232,7 +456,7 @@ test_the_stand_ins_tell_a_build_that_stops_its_recipe_from_one_that_does_not (sc
 test_a_build_of_another_runtime_or_of_changed_sources_is_refused (scripts.tests.test_builds_before_suites.DistIsWhole.test_a_build_of_another_runtime_or_of_changed_sources_is_refused) ... ok
 test_a_build_stopped_part_way_or_never_made_is_refused (scripts.tests.test_builds_before_suites.DistIsWhole.test_a_build_stopped_part_way_or_never_made_is_refused) ... ok
 test_a_whole_build_is_served (scripts.tests.test_builds_before_suites.DistIsWhole.test_a_whole_build_is_served) ... ok
-Ran 5 tests in 38.097s
+Ran 5 tests in 37.663s
 OK
 
 == 6. master holds no unnumbered ADR (test_unnumbered_adrs.py; the repository's own on master's CI and a train's)
@@ -241,14 +465,14 @@ test_a_mention_outside_code_and_an_unnumbered_file_are_named (scripts.tests.test
 test_master_and_a_train_are_held_and_a_tracks_branch_is_not (scripts.tests.test_unnumbered_adrs.Unnumbered.test_master_and_a_train_are_held_and_a_tracks_branch_is_not) ... ok
 test_the_control_a_mention_of_the_placeholder_in_code_and_a_numbered_adr_name_nothing (scripts.tests.test_unnumbered_adrs.Unnumbered.test_the_control_a_mention_of_the_placeholder_in_code_and_a_numbered_adr_name_nothing) ... ok
 test_the_repository_holds_no_unnumbered_adr (scripts.tests.test_unnumbered_adrs.Unnumbered.test_the_repository_holds_no_unnumbered_adr) ... skipped "a track keeps its ADRs unnumbered until its merge; master's CI and a train's hold them"
-Ran 4 tests in 0.010s
+Ran 4 tests in 0.009s
 OK (skipped=1)
 
 == mutation controls (scripts/evidence_integrity_mutations.py)
 
 baseline (atomic): 4 passed, 0 failed
 baseline (baseline): 26 passed, 0 failed
-baseline (plan): 115 passed, 0 failed
+baseline (plan): 118 passed, 0 failed
 baseline (corpus): 2 passed, 0 failed
 baseline (latency): 11 passed, 0 failed
 baseline (builds): 5 passed, 0 failed
@@ -259,34 +483,34 @@ a published report disappears from evidence planning [atomic]: KILLED (1 of 4 te
 a mutation script's children write bytecode [baseline]: KILLED (2 of 26 tests fail)
 a mutation script's own process writes bytecode [baseline]: KILLED (1 of 26 tests fail)
 bytecode left before for a source a mutant changes is read [baseline]: KILLED (1 of 26 tests fail)
-a train's push plans no stale evidence [plan]: KILLED (1 of 115 tests fail)
-the planner adds no stale evidence where asked [plan]: KILLED (1 of 115 tests fail)
-evidence that names no commit is judged stale [plan]: KILLED (1 of 115 tests fail)
-evidence the head does not hold is not stale [plan]: KILLED (2 of 115 tests fail)
-an evidence file's count is not compared with its script's mutants [plan]: KILLED (2 of 115 tests fail)
-an evidence file's killed is not compared with its verdicts [plan]: KILLED (3 of 115 tests fail)
-a part's count is held to its whole script's [plan]: KILLED (2 of 115 tests fail)
-a script's parts may leave a mutant to none [plan]: KILLED (1 of 115 tests fail)
-a script's parts may hold a mutant twice [plan]: KILLED (1 of 115 tests fail)
-a part no recipe runs is let be [plan]: KILLED (1 of 115 tests fail)
-a verdict that names no mutant of its script is let be [plan]: KILLED (3 of 115 tests fail)
-a verdict that names a mutant named before is let be [plan]: KILLED (1 of 115 tests fail)
-a script the recipe runs may be counted in no block [plan]: KILLED (8 of 115 tests fail)
-a verdict that says only KILLED is read as none [plan]: KILLED (1 of 115 tests fail)
-a verdict that says what killed its mutant is read as none [plan]: KILLED (2 of 115 tests fail)
-a suite's tag is taken as part of a mutant's name [plan]: KILLED (12 of 115 tests fail)
-a description inside a longer one names its mutant [plan]: KILLED (1 of 115 tests fail)
-a disagreement is planned again though its recipe is the development machine's [plan]: KILLED (1 of 115 tests fail)
-a disagreement is planned again though its evidence is current [plan]: KILLED (1 of 115 tests fail)
-a disagreement's staleness is read at the head, not in the tree here [plan]: KILLED (1 of 115 tests fail)
-a binary file's change is read as no change [plan]: KILLED (1 of 115 tests fail)
-the diff's binary files are not read [plan]: KILLED (2 of 115 tests fail)
-a changed binary's readers are not changes [plan]: KILLED (2 of 115 tests fail)
-a binary's directory named whole does not name it [plan]: KILLED (2 of 115 tests fail)
-a placeholder names no file [plan]: KILLED (2 of 115 tests fail)
-a directory in the binary's names it [plan]: KILLED (1 of 115 tests fail)
-another directory ending in the binary's names it [plan]: KILLED (1 of 115 tests fail)
-a record reads a binary [plan]: KILLED (1 of 115 tests fail)
+a train's push plans no stale evidence [plan]: KILLED (1 of 118 tests fail)
+the planner adds no stale evidence where asked [plan]: KILLED (1 of 118 tests fail)
+evidence that names no commit is judged stale [plan]: KILLED (1 of 118 tests fail)
+evidence the head does not hold is not stale [plan]: KILLED (2 of 118 tests fail)
+an evidence file's count is not compared with its script's mutants [plan]: KILLED (2 of 118 tests fail)
+an evidence file's killed is not compared with its verdicts [plan]: KILLED (3 of 118 tests fail)
+a part's count is held to its whole script's [plan]: KILLED (2 of 118 tests fail)
+a script's parts may leave a mutant to none [plan]: KILLED (1 of 118 tests fail)
+a script's parts may hold a mutant twice [plan]: KILLED (1 of 118 tests fail)
+a part no recipe runs is let be [plan]: KILLED (1 of 118 tests fail)
+a verdict that names no mutant of its script is let be [plan]: KILLED (3 of 118 tests fail)
+a verdict that names a mutant named before is let be [plan]: KILLED (1 of 118 tests fail)
+a script the recipe runs may be counted in no block [plan]: KILLED (8 of 118 tests fail)
+a verdict that says only KILLED is read as none [plan]: KILLED (1 of 118 tests fail)
+a verdict that says what killed its mutant is read as none [plan]: KILLED (2 of 118 tests fail)
+a suite's tag is taken as part of a mutant's name [plan]: KILLED (12 of 118 tests fail)
+a description inside a longer one names its mutant [plan]: KILLED (1 of 118 tests fail)
+a disagreement is planned again though its recipe is the development machine's [plan]: KILLED (1 of 118 tests fail)
+a disagreement is planned again though its evidence is current [plan]: KILLED (1 of 118 tests fail)
+a disagreement's staleness is read at the head, not in the tree here [plan]: KILLED (1 of 118 tests fail)
+a binary file's change is read as no change [plan]: KILLED (1 of 118 tests fail)
+the diff's binary files are not read [plan]: KILLED (2 of 118 tests fail)
+a changed binary's readers are not changes [plan]: KILLED (2 of 118 tests fail)
+a binary's directory named whole does not name it [plan]: KILLED (2 of 118 tests fail)
+a placeholder names no file [plan]: KILLED (2 of 118 tests fail)
+a directory in the binary's names it [plan]: KILLED (1 of 118 tests fail)
+another directory ending in the binary's names it [plan]: KILLED (1 of 118 tests fail)
+a record reads a binary [plan]: KILLED (1 of 118 tests fail)
 a header's alias passes [corpus]: KILLED (1 of 2 tests fail)
 a header's retired code passes [corpus]: KILLED (1 of 2 tests fail)
 a header's code its check does not report passes [corpus]: KILLED (1 of 2 tests fail)

@@ -94,8 +94,8 @@ mutation and integrity controls, and this ADR.
 | TodoMVC | React 19.2.5 | `benchmarks/headtohead/todomvc/react`, its committed webpack/Terser production build (the bundle says `version:"19.2.5"`) | TodoMVC's maintainers (tastejs/todomvc@ff43b02e) |
 | TodoMVC | Svelte 5.55.5 | `benchmarks/headtohead/todomvc/svelte`, its committed Vite production build | TodoMVC's maintainers (tastejs/todomvc@ff43b02e) |
 | the store | Pleris | `benchmarks/baselines/pleris` (ADR-0156), `dist-baseline`, the host's release build | this project |
-| the store | Next.js 16.4.1 | `benchmarks/baselines/next-react`, `next build` + `next start` | this project (ADR-0120) |
-| the store | SvelteKit 2.70.3 | `benchmarks/baselines/sveltekit`, `vite build` + adapter-node | this project (ADR-0120) |
+| the store | Next.js 16.4.1 (16.4.5 since 2026-11-17) | `benchmarks/baselines/next-react`, `next build` + `next start` | this project (ADR-0120) |
+| the store | SvelteKit 2.70.3 (2.70.4 since 2026-11-17) | `benchmarks/baselines/sveltekit`, `vite build` + adapter-node | this project (ADR-0120) |
 
 TodoMVC's apps are never rewritten here (ADR-0342 §4): their builds are
 measured as their repository commits them, each file held to its upstream
@@ -674,3 +674,16 @@ Answered at the landing (2026-11-02), under the owner's delegation:
    (ADR-0281's decision 5), recorded on the development machine in a quiet
    window and never fetched from a runner; its instrument's tests run in
    `just ci`. It is recorded again when a loss it names is worked on.
+
+## Amended 2026-11-17: the store's stacks name the baselines' new pins
+
+The baselines moved to Next.js 16.4.5 and SvelteKit 2.70.4 with
+adapter-node 5.5.8 (ADR-0120, amended). `targets.mjs` names each store
+stack's versions, which the report prints as its stacks line, and its
+header reads the installed `node_modules`; the labels still said 16.4.1 and
+2.70.3 until the move's review, so the next run would have printed both.
+Each now names the new pins, and `test/targets.test.mjs` holds each label to
+its baseline's `package.json`. What `head-to-head.txt` measured was measured
+on 16.4.1 and 2.70.3; the recipe is local only and is recorded again when a
+loss it names is worked on.
+

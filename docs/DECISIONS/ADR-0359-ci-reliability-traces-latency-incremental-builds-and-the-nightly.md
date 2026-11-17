@@ -529,3 +529,49 @@ the incremental builds.
   merged from `54be8c66` (`track/ci-diagnostics`). `ADR-XXXX` reads
   `ADR-0359` in `just/ci-diagnostics.just`, as in this file's name and
   title.
+
+## Amended 2026-11-17: the longest recipe runs in parts
+
+The integrator's, under the owner's grant of 2026-11-17 to make CI faster
+with no gate given up (no paid runners: the account keeps its plan). A
+verify deals recipes to shards, each runs its recipes in turn, and the run
+takes its slowest shard's time. No recipe is split across shards, so no run
+is shorter than the longest recipe it runs. In L5's repairs' verify
+(43978661391) `e14-row-ownership` took 11,009 s on a shard by itself, its
+234 mutants (241 with this follow-up's) about 45 s each over the 27 commands
+of `row_ownership_mutations.py`. The next longest, `e14-d3-postgres` (9,710 s),
+had been split into two parts for the same reason (ADR-0393, amended).
+
+`row_ownership_mutations.py` runs in three parts (`PARTS`, three even
+ranges of `MUTANTS`, `scripts/mutation_parts.py`): `e14-row-ownership` runs
+the tests, the browser suite and part 1, `e14-row-ownership-2` and
+`e14-row-ownership-3` parts 2 and 3. Each part runs the unmutated baseline
+first, as a whole run does, so each part's kills mean what a whole run's do.
+`evidence_counts.py` holds the three recipes to every mutant once, as it
+held d3's two (`split`). The plan deals the three to three shards, and
+`ci_seconds.json` carries projections (4,400 s, 3,800 s and 3,800 s) until a
+run measures them. `mutation_parts.chosen` is d3's `chosen`, shared (d3's
+own copy stays, so its recipes' inputs do not change). A word given to the
+script that names no mutant refuses to run, as d3's does (L5's second
+review): the baseline alone would pass.
+
+**And d3's first part in two.** With row ownership in three, the longest
+recipe a data-layer change reaches is `e14-d3-postgres`, D3's own 96 mutants
+in 9,710 s. Its `PARTS` are three: the first and second halves of D3's own
+(48 each, `e14-d3-postgres` and `e14-d3-postgres-2`) and the uploads' (39,
+`e14-d3-postgres-3`, which `e14-d3-postgres-2` was), each beside a database
+(`NEEDS_DATABASE`). Projections: 5,000 s, 4,900 s and the uploads' measured
+2,868 s.
+
+**What the splits shorten, by the plan.** A pull request's verify is
+bounded by the longest recipe it reaches, which the splits cut from 11,009 s
+to about 5,000 s for a data-layer change. A full verify (`ci_plan.py --all`,
+which deals 27 shards whether asked for 17 or 24) is bounded by its longest
+shard and by its total: before the splits its longest shard was
+`e14-row-ownership`'s 11,009 s at any count of shards, and after them it is
+10,192 s, near the floor that every recipe together sets (74.3 hours over
+365 recipes, 9,900 s a shard over 27). At 40 shards it would be 9,425 s,
+`e14-device-runtime` alone (#126's follow-up review measured the same).
+More shards, and the long recipes left in parts, are what shorten a full
+verify further (NEXT).
+

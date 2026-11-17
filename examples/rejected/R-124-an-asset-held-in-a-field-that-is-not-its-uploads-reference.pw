@@ -1,0 +1,35 @@
+// @corpus: rejected
+// @id: R-124
+// @category: an asset held in a field that is not its upload's reference
+// @rule: PW0371
+// @invariant: table_asset_malformed
+// @charter: §7.8, §9.2
+// @milestone: 14
+// @expect-error: asset field `image` must have the exact generated upload reference type
+//
+// ADR-0440's L5: a table keeps an upload's committed image only as the
+// reference the upload generates, `PostImage.Ref`, public by
+// construction, naming one stored generation. `Covers` associates
+// `image`, an `Option<String>`, with A-061's upload, so its rows would hold
+// as an image whatever text a command writes there. A-062's `Photos` holds
+// an `Option<PostImage.Ref>`.
+
+module Covers
+
+import PostImage
+
+type Cover = Cover { id: Int, image: Option<String> }
+
+table Covers
+    row     Cover
+    key     id
+    bounded 100
+    asset   image from PostImage
+    written by anyone
+
+source CoverData
+    holds        PostImage, Covers
+    transactions serializable
+    reads        strong
+    changes      none
+    sets         one_call

@@ -45,17 +45,20 @@ body, each survived every test; its findings' regressions hold them now.
 Its second review found two more ways past a query's predicate, the ABI
 blind to who answers one, and `Predicate::new` unheld by any test.
 
-Run whole from the repository root (`just e14-row-ownership`). Every source
-is restored in finally; the unmutated baseline must pass before any mutant
-means anything. Words given as arguments run only the mutants whose
-description holds one of them, for a quick look while working; the record is
-a whole run.
+Run from the repository root: `just e14-row-ownership` records part 1 of
+`PARTS`, `just e14-row-ownership-2` part 2 and `just e14-row-ownership-3`
+part 3, each `--part i/3` (`mutation_parts.py`); with no part, every mutant
+runs. Every source is restored in finally; the unmutated baseline must pass
+before any mutant means anything, and each part runs it. Words given as
+arguments run only the mutants whose description holds one of them, for a
+quick look while working; the record is a whole part.
 """
 import pathlib
 import subprocess
 import sys
 
 import cargo_assertion_results
+import mutation_parts
 import mutation_source
 import producer_process
 
@@ -221,6 +224,24 @@ MUTANTS = [
      '            !hir.generated_uploads.contains_key(&other) && crate::wit::ident(&decl.name) == identity', '            false && !hir.generated_uploads.contains_key(&other) && crate::wit::ident(&decl.name) == identity'),
     ('upload interface alias silent', ROOT / 'compiler/pw-core/src/uploads/declared.rs',
      '                && other.name != d.name', '                && false && other.name != d.name'),
+    # L5a's review, finding L7: each refusal told by its own rule, where
+    # PW5601's (an upload's clauses and limits) told them.
+    ('upload interface collision told as a malformed upload', ROOT / 'compiler/pw-core/src/uploads/declared.rs',
+     '                codes::UPLOAD_IDENTITY_TAKEN,\n                "upload_interface_collision",', '                codes::UPLOAD_MALFORMED,\n                "upload_interface_collision",'),
+    ('upload generated identity collision told as a malformed upload', ROOT / 'compiler/pw-core/src/uploads/declared.rs',
+     'diagnostic(codes::UPLOAD_IDENTITY_TAKEN,"upload_generated_collision",', 'diagnostic(codes::UPLOAD_MALFORMED,"upload_generated_collision",'),
+    ('a table asset refusal told as a malformed table', ROOT / 'compiler/pw-core/src/tables.rs',
+     '        codes::TABLE_ASSET_MALFORMED,\n        "table_asset_malformed",', '        codes::TABLE_MALFORMED,\n        "table_asset_malformed",'),
+    ('upload claim without idempotency told as a malformed upload', ROOT / 'compiler/pw-core/src/uploads/declared.rs',
+     '                codes::UPLOAD_CLAIM_NOT_IDEMPOTENT,\n                "upload_without_idempotency",', '                codes::UPLOAD_MALFORMED,\n                "upload_without_idempotency",'),
+    # Charter §16.3's boundary of each refusal (the L5 corpus, 2026-11-17:
+    # these named none): its note dropped.
+    ('upload interface collision names no other upload', ROOT / 'compiler/pw-core/src/uploads/declared.rs',
+     '                        && read(o).is_some()\n                    {', '                        && read(o).is_some()\n                        && false\n                    {'),
+    ('upload generated identity collision names no declaration of the program', ROOT / 'compiler/pw-core/src/uploads/declared.rs',
+     '                format!("`{}` is declared here, and emits `{identity}`", decl.name),\n            )];', '                format!("`{}` is declared here, and emits `{identity}`", decl.name),\n            )][..0].to_vec();'),
+    ('upload claim without idempotency names no upload', ROOT / 'compiler/pw-core/src/uploads/declared.rs',
+     '                format!("`{upload}` is the upload whose claim `{}` takes", d.name),\n            )];', '                format!("`{upload}` is the upload whose claim `{}` takes", d.name),\n            )][..0].to_vec();'),
     ('upload claim consuming command lacks receipt', ROOT / 'compiler/pw-core/src/uploads/declared.rs',
      'd.kind == DeclKind::Command && d.policy("idempotent_by").is_none()', 'd.kind == DeclKind::Command && false && d.policy("idempotent_by").is_none()'),
     ('asset source mismatch silent', ROOT / 'compiler/pw-core/src/tables/assets.rs',
@@ -719,6 +740,14 @@ MUTANTS = [
 
 # Each Cargo test binary separately: names can repeat between binaries, and
 # the shared native assertion validator expects one complete inventory.
+# **Three recipes, each a part** (ADR-0359, amended 2026-11-17): whole, the
+# script took 11,009 s in L5's repairs' verify (43978661391), a shard by
+# itself and the longest recipe of every full verify, about 45 s a mutant over
+# the 27 commands below. Three even ranges of `MUTANTS`, half open, each run
+# after a baseline of its own; `evidence_counts.py` holds the three to every
+# mutant once. A run with no part runs every mutant.
+PARTS = mutation_parts.even(len(MUTANTS), 3)
+
 TESTS = [
     # The grammar's own tests, its `should panic` test left out by the
     # filter: the strict producer reads each test's line as `test NAME ...
@@ -819,13 +848,15 @@ def run_tests():
 
 def main():
     import mutation_baseline  # keeps every command and reports a red baseline
+    chosen, which = mutation_parts.chosen(sys.argv[1:], MUTANTS, PARTS, "row_ownership_mutations.py")
+    if which:
+        print(which, flush=True)
     built, passed, failed = run_tests()
     print(f"baseline: {passed} passed, {failed} failed", flush=True)
     if not built or failed or not passed:
         print("FAIL: the unmutated baseline is not green; no mutant can mean anything")
         mutation_baseline.explain()
         return 1
-    chosen = [m for m in MUTANTS if not sys.argv[1:] or any(w in m[0] for w in sys.argv[1:])]
     survivors = 0
     for what, path, anchor, replacement in chosen:
         original = path.read_text()

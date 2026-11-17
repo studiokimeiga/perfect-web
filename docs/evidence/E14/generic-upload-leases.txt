@@ -1,8 +1,8 @@
 generic-upload-leases - a generic upload's staging, its leases per session and declaration, each held by a mutant
 
 produced by: just e14-generic-upload-leases
-commit: 8a95c57488531bec2fe92e382692fc4c74099a5c
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/44006404872 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 288e9b33b349fd65827ff0c16880ba823d625a64
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/44043343887 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 baseline 11 native assertions, complete inventories

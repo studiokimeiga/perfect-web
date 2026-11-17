@@ -882,7 +882,7 @@ models and budget.
 store in Next.js 16.3.8 and SvelteKit 2.70.3 (not the day-old 3.0.0) beside
 the Pleris store, held to one behavioural contract with mutant stores as
 negative controls. Found that the Pleris store's `optimistic` and
-`idempotent_by` are checked and not executed; the contract excludes both. Amended 2026-10-11: svelte-check is asked for its machine output, which it wrote by default only in an agent's session (`CLAUDECODE=1`), so every runner failed the recipe. Amended 2026-10-22: Next.js 16.4.1, for three advisories in 16.3.8 (two unauthenticated remote code executions, one denial of service) that no 16.3.x fixes.
+`idempotent_by` are checked and not executed; the contract excludes both. Amended 2026-10-11: svelte-check is asked for its machine output, which it wrote by default only in an agent's session (`CLAUDECODE=1`), so every runner failed the recipe. Amended 2026-10-22: Next.js 16.4.1, for three advisories in 16.3.8 (two unauthenticated remote code executions, one denial of service) that no 16.3.x fixes. Amended 2026-11-17: SvelteKit 2.70.4, adapter-node 5.5.8 and Next.js 16.4.5 (not 16.4.6, whose backported response compression a comparison should choose on purpose), the patches of four accepted advisories, which go; the harness's lockfiles move with them, and the owner's standing approval takes each later patch-level security update.
 
 ## 2026-10-02: an idempotent command runs once per interaction (E14)
 
@@ -2343,6 +2343,9 @@ a merge is held to CI's verification run.
 - Amended 2026-10-12: a fetch takes no file whose recipe reads what
   changed between its run's commit and the tree it joins (the planner's
   rule): the branch merges master and is verified again.
+- Amended 2026-11-17: Ruff's and Fallow's new-only gates run on every
+  branch push too, against where the branch left master, so a branch is
+  shown what its pull request would be refused for before it has one.
 [ADR-0282](DECISIONS/ADR-0282-what-a-value-holds-is-one-label.md):
 what a value holds is one label (amends ADR-0118, corrects ADR-0128).
 - A secret a declaration answers is held, and one it only uses as a key is
@@ -3018,6 +3021,9 @@ the claim, measured: the bug museum and the head-to-head (track `proof`).
 - Amended 2026-10-22: its findings were read in Next.js 16.3.8; on 16.4.1
   the museum shows the same five, J01's stale page and its repair among
   them.
+- Amended 2026-11-17: on Next.js 16.4.5 and SvelteKit 2.70.4 the museum
+  shows the same five, and T09's `unstable_cache` reading holds (its files
+  unchanged since 16.4.1).
 [ADR-0343](DECISIONS/ADR-0343-a-guide-whose-examples-compile.md):
 a guide whose examples compile (track `guide`; NEXT's developer
 experience).
@@ -3128,6 +3134,10 @@ head (track `ci-diagnostics`; train-11).
   ms a thousand lines); `PW_MUTANT_INCREMENTAL` on verify's recipe step; the
   nightly skips a head a run passed at, its recipes and browsers, never on
   Sunday.
+- Amended 2026-11-17: the longest recipe runs in parts. `e14-row-ownership`
+  (11,009 s whole) is three recipes, each a third of its mutants after a
+  baseline of its own (`scripts/mutation_parts.py`), and d3's first part
+  (9,710 s) is two halves, the uploads' a third recipe.
 [ADR-0360](DECISIONS/ADR-0360-the-coverage-guided-fuzzer-measures-or-fails.md):
 the coverage-guided fuzzer measures, or it fails (track `fuzz-floor`;
 train-11).
@@ -3215,6 +3225,7 @@ Vite uses the patched editor launcher on every dependency path (landed with trai
 [ADR-0371](DECISIONS/ADR-0371-node-audit-fails-closed.md):
 Dependency audits require a complete, internally consistent producer result (landed with train-12 at `e7664d2e`, 2026-10-21).
 - Reject empty, malformed, duplicate-key or inconsistent audit reports and producer failures; the pinned package manager's exit status must agree with its advisory report.
+- 2026-11-17: an allowance no reported advisory matches is refused, so each goes with its advisory.
 
 [ADR-0372](DECISIONS/ADR-0372-ci-test-reach.md):
 Changed test witnesses reach their verification recipes (landed with train-12 at `e7664d2e`, 2026-10-21).
@@ -3298,9 +3309,10 @@ Session authority is checked at delivery and commit (proposed; reproduced curren
 The head-to-head: TodoMVC against TodoMVC's own React and Svelte apps and the store against Next.js and SvelteKit, measured by one instrument on one machine, Pleris's losses first (track `head-to-head`; independently reviewed and landed 2026-11-02).
 - `just e14-head-to-head` (`benchmarks/headtohead`; local only, ADR-0281's decision 5): production builds, Lighthouse's Slow 4G as Lighthouse applies it through DevTools, seven runs a page cell and five rounds of each server measurement, medians with quartiles, a difference only where the spreads are apart by what the instrument tells apart; behaviour in three engines, source, the twelve tasks' changes and their checkers, the museum's classes; 41 mutants and 4 integrity controls.
 - Pleris loses on bytes (no minifier, compression or cache; the renderer fetched by the first press), every interaction's time, Slow 4G, open tabs and idle visitors, and the store's source (its data layer is Rust); it is best in behaviour, the changes' size and its checker's catch, the museum, and the store server's cost. The review corrected the shaping (a quarter of Lighthouse's request latency), single-run server numbers, idle pages capped by one browser's connections, wins over the instrument's own static host and the store's line count.
+- Amended 2026-11-17: the store's stacks name the baselines' new pins, each label held to its baseline's `package.json`.
 
 [ADR-0393](DECISIONS/ADR-0393-declared-tables-on-postgresql.md):
-Any program's declared tables on PostgreSQL, answering as the memory adapter does (ADR-0338's D3, track `d3-postgres`; independently reviewed and repaired 2026-11-02, its PR holds the landing record; amended 2026-11-17: its mutation controls run in two recipes, the uploads' and every other).
+Any program's declared tables on PostgreSQL, answering as the memory adapter does (ADR-0338's D3, track `d3-postgres`; independently reviewed and repaired 2026-11-02, its PR holds the landing record; amended 2026-11-17: its mutation controls run in two recipes, the uploads' and every other; in three since, every other in two halves, ADR-0359, amended).
 - `runtime/pw-table-postgres` behind the memory adapter's interface: the schema made from tables.json once under an advisory lock and recorded, an unstated destructive change or a drifted catalog refused at start; one prepared statement per primitive (`= ANY`, `unnest`); a command one serializable transaction with the interaction's record and the outbox in commit order; a `COMMIT` never answered an unknown outcome. The review's eight repairs: nested floats exact (serde_json `float_roundtrip`, workspace-wide), a key field's retype and two objects of one name refused, the migration at read committed, backfills as hex or quoted, five more drifts seen, a write whose answer is unread failing its command, a lost outbox row refusing the commit. The development server does not serve it yet (`data-path`); a shared trait, scheduled runs and the outbox's reader are its follow-ups.
 
 **2026-11-07 — Train-14.** Eleven decisions land together, numbered by the integrator at the merge: E14's agent telemetry (0391, numbered 2026-11-02), the data path (0394, reserved 2026-11-02), the week's performance, refusal and compiler changes (0398-0400, 0403-0406), and the ruling on row ownership (0407). ADR-0395 to ADR-0397 stay reserved for row ownership, deploy and durable tables, and ADR-0401 and ADR-0402 for keep-alive (#86) and longer holds (#87), which a review held for repair; none of these landed with it (ADR-0401 lands with train-15).
@@ -3458,3 +3470,6 @@ A list's own code finds its rows where they were: a row whose item is the very o
 Protected feed and store data use the declared-table gate, accepted in part, the platform's three prerequisites landed: a generic PostgreSQL host retains the outbox rows it delivers for every host sharing the database until the shared retention age, tails them, and trims by age with a watermark a reader that missed rows sees, which every removal of an outbox row moves, by the database's own triggers (platform 0004); an `invoked_by Identity` command runs only on a checked transition of the reader's session, reading and deleting the previous guest's owner-keyed rows and writing the account's in one transaction with its record and outbox, and an unconfirmed outcome claims no rollback; admitted anonymous callers keep their guest-owned rows; owned Clock actions keep the authority of the run that scheduled them. Bounded reads (L4) landed: a declared selector's rows counted, windowed by a limit per distinct selector, counted after a typed order mark, and read through a fixed public-target relation window, on memory and PostgreSQL, each under the read's own grant and owner. Declared uploads (L5) landed: an upload declared in the module of its name, its committed image kept as a public table's asset reference, generations immutable in enrolled storage, and a compiled command's claims bound to its invocation's ledger and settled once by its interaction. The apps' port (L7) stays proposed.
 - Amended 2026-11-16: a lifecycle the database could not serialize (SQLSTATE 40001 or 40P01 at any statement of it or its commit, the account's own write on another host) runs again, at most four times, while its proof holds; the interaction's reserved outcome is let go between attempts.
 - Amended 2026-11-16: an outbox row leaves by age alone; `PgTables::forget_outbox`, which no host called since L3, is gone.
+- Amended 2026-11-17: each upload and asset refusal is told by a rule of its own (PW5604, PW5605, PW0371), and each asset test's refusal by its reason.
+- Amended 2026-11-17: the corpus holds each upload and asset rule (C34: R-119 to R-124, A-061, A-062 and six generality pairs), and each of their refusals names its boundary.
+- Amended 2026-11-17: the second L5 review's four lows of code: a failed upload recipe shows its evidence, a script's database URL is read wherever it names one, a render is held to its connection's backend (a mutant only that kills), and the server's tests a mutation script runs by a filter are held to the files its sources list (`mutation_anchors.py`).
