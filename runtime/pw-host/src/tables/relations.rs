@@ -62,8 +62,14 @@ impl Manifest {
             .iter()
             .find(|target| target.name == window.target)
             .ok_or_else(|| refused("names no declared target table"))?;
-        if target.owner.is_some() || !target.private.is_empty() || !target.shares.is_empty() {
-            return Err(refused("requires a public target table"));
+        // A target every reader reads (L7's G5, 2026-11-17): unowned, or a
+        // `public table` its owner writes; never one read by its reader
+        // alone, nor one keeping fields private or rows shared.
+        if (target.owner.is_some() && !target.public)
+            || !target.private.is_empty()
+            || !target.shares.is_empty()
+        {
+            return Err(refused("requires a target every reader reads"));
         }
         if source.source.as_ref().is_none_or(|s| s.trim().is_empty())
             || source.source != target.source

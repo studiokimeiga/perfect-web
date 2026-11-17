@@ -343,8 +343,23 @@ fn relation_manifest_admission_holds_both_tables_and_both_grants_independently()
         );
         if kind == "target-owned" {
             assert!(
-                result.unwrap_err().contains("public target"),
+                result.unwrap_err().contains("a target every reader reads"),
                 "otherwise-valid owned target must fail the relation rule"
+            );
+            // The same target a `public table` (L7's G5): every reader reads
+            // it, and its window is admitted.
+            let mut public = value.clone();
+            let at = public["tables"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .position(|t| t["name"] == "Roots")
+                .unwrap();
+            public["tables"][at]["public"] = json!(true);
+            let admitted = pw_host::tables::Manifest::from_json(&public.to_string());
+            assert!(
+                admitted.is_ok(),
+                "an owned public target's window: {admitted:?}"
             );
         } else if kind == "target-order" {
             assert!(
@@ -685,6 +700,54 @@ fn public_relations_use_scalar_bool_group_keys_and_allow_anonymous_callers() {
         Ok(vec![Val::List(vec![
             relation_public_group(false, &[3, 1]),
             relation_public_group(true, &[])
+        ])])
+    );
+}
+
+/// **A window reads an owned `public table` as every reader reads it** (L7's
+/// G5, 2026-11-17): the same memberships and posts as
+/// `public_relations_use_scalar_bool_group_keys_and_allow_anonymous_callers`,
+/// the posts now owned by their authors, answer the same rows, each author's
+/// posts in the window of every reader, whoever asks.
+#[test]
+fn a_window_reads_an_owned_public_target_as_every_reader_reads_it() {
+    let program = relation_owned_target_program();
+    let tables = MemoryTables::new(program.tables.clone()).assert_ok("memory");
+    tables
+        .transaction(|tx| {
+            for row in relation_roots() {
+                tx.write("pw:tables/roots#insert", &[row])?;
+            }
+            for row in relation_public_links() {
+                tx.write("pw:tables/links#insert", &[row])?;
+            }
+            Ok(())
+        })
+        .assert_ok("posts their authors own, and public memberships");
+    for caller in [Caller::Nobody, as_user(ALICE), as_user(BOB)] {
+        assert_eq!(
+            query(
+                &program,
+                &tables,
+                "PlainLast",
+                &caller,
+                &[Val::Bool(false), Val::S64(2)]
+            ),
+            Ok(vec![Val::List(vec![
+                relation_root_value(3),
+                relation_root_value(1)
+            ])])
+        );
+    }
+    let args = [
+        Val::List(vec![Val::Bool(true), Val::Bool(false), Val::Bool(true)]),
+        Val::S64(2),
+    ];
+    assert_eq!(
+        query(&program, &tables, "PlainMany", &Caller::Nobody, &args),
+        Ok(vec![Val::List(vec![
+            relation_public_group(false, &[3, 1]),
+            relation_public_group(true, &[4, 3])
         ])])
     );
 }

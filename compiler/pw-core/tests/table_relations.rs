@@ -274,7 +274,32 @@ fn a_protected_relation_target_is_refused_beside_the_public_neighbor() {
     let owned = ROOTS
         .replace("    key id", "    key author, id")
         .replace("    order stamp", "    order stamp\n    owned by author");
-    refused(LINKS, &owned, DATA, "PW0368", "public");
+    refused(LINKS, &owned, DATA, "PW0368", "a target every reader reads");
+}
+
+/// **A window reads an owned `public table` as every reader reads it** (L7's
+/// G5, 2026-11-17): the posts their authors own and write, which every reader
+/// reads, as the feed's subscriptions read their authors' posts. One that
+/// keeps a field private stays refused: a window would give it to others.
+#[test]
+fn an_owned_public_relation_target_is_read_as_every_reader_reads_it() {
+    let owned_public = ROOTS
+        .replace("table Roots", "public table Roots")
+        .replace("    key id", "    key author, id")
+        .replace("    order stamp", "    order stamp\n    owned by author");
+    let got = diagnostics(LINKS, &owned_public, DATA);
+    assert!(got.is_empty(), "an owned public target's window: {got:#?}");
+    let private = owned_public.replace(
+        "    owned by author",
+        "    owned by author\n    private text",
+    );
+    refused(
+        LINKS,
+        &private,
+        DATA,
+        "PW0368",
+        "a target every reader reads",
+    );
 }
 
 #[test]

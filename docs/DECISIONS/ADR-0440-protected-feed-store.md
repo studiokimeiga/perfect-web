@@ -2099,3 +2099,45 @@ nothing" overstated; case 4 sent no `HEAD`; the four mutants are the
 script's item 8 throughout; the PostgreSQL two-field test's account of
 memory's; `upload_bridge`'s list of the tests it owed; and NEXT's
 flat-limit item, its own now.
+
+## Amended 2026-11-17: a window's target is one every reader reads (L7's G5)
+
+A relation window (`window posts from Roots row Roots.Root on author to
+author`) required a target owned by no one, at the compiler (PW0368) and at
+the host (`tables.json`'s relation rule). The feed's subscriptions read
+their authors' posts through one, and a post is its author's: written by
+its author alone and read by every reader, a `public table` owned by its
+author (ADR-0395's ruling 4). The rule protected readers, but it caught
+every owned table, a public one too.
+
+**Decision.** A window's target is a table every reader reads: one no one
+owns, or a `public table` its owner writes. It is never a table read by its
+reader alone (owned, not `public`), nor one that keeps fields private or
+rows shared, whose rows a window would give to other readers. The compiler
+asks `read_by_its_reader()` beside the private fields and the sharers, and
+the host asks the same of `tables.json` (`owner` and not `public`, `private`,
+`shares`).
+
+**Acceptance.**
+
+- `compiler/pw-core/tests/table_relations.rs`:
+  - `an_owned_public_relation_target_is_read_as_every_reader_reads_it`: such
+    a window compiles with no diagnostic, and the same target keeping a
+    field private is refused (PW0368).
+  - `a_protected_relation_target_is_refused_beside_the_public_neighbor`:
+    the target read by its reader alone, refused as before, in the rule's
+    new words.
+- `runtime/pw-table-memory/tests/compiled_relations.rs`:
+  - `a_window_reads_an_owned_public_target_as_every_reader_reads_it`: the
+    plain public program's memberships and posts, the posts now owned by
+    their authors, answer the same rows to every caller.
+  - The forged-manifest test admits the owned target once it is `public`,
+    and still refuses it otherwise.
+- `runtime/pw-table-postgres/tests/compiled_relations.rs`: the same window
+  on PostgreSQL, and again after the tables are reopened.
+- `scripts/row_ownership_mutations.py`: four mutants (a target read by its
+  reader alone admitted, and an owned public target refused, at the host
+  and at the compiler), and the old one re-anchored. Each was applied by
+  hand and killed by those tests; the pull request's verify runs the script
+  whole.
+

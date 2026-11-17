@@ -2,6 +2,14 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**L7 begun, 2026-11-17: a window over an owned public table** (G5,
+`wip/l7-owned-windows`). A relation window's target may be an owned `public
+table`, which its owner writes and every reader reads, as the feed's
+subscriptions read their authors' posts. A target read by its reader alone,
+or one keeping fields private or rows shared, is still refused (ADR-0440,
+amended). It is held on memory and on PostgreSQL, and by four mutants. A
+survey of the ports' other gaps is NEXT's L7 item.
+
 **A call's arguments past the flat limit, 2026-11-17** (`wip/wide-import-args`,
 one pull request with the asset contract suite, below, which found it): a compiled command passes a host's
 operation arguments wider than the Canonical ABI's 16 flat values in its

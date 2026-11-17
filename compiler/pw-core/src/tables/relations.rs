@@ -258,19 +258,28 @@ pub(super) fn check(
             )));
             continue;
         };
-        if target.owner.is_some() || !target.private_fields().is_empty() {
+        // **A window reads its target as every reader reads it** (L7's G5,
+        // 2026-11-17): a table no one owns, or a `public table` its owner
+        // writes and every reader reads (ADR-0395's ruling 4, the feed's
+        // posts by their authors). A table read by its reader alone, or one
+        // that keeps fields private or rows shared, would give a window
+        // other readers' rows.
+        if target.read_by_its_reader()
+            || !target.private_fields().is_empty()
+            || !target.sharers().is_empty()
+        {
             out.push(refusal(
                 codes::OWNED_READ_BY_ITS_READER,
                 "owned_read_by_its_reader",
                 Severity::Error,
                 format!(
-                    "window `{}` requires a public target table, but `{}` is protected",
+                    "window `{}` requires a target every reader reads, but `{}` is protected",
                     w.name, w.target
                 ),
                 window.span.clone(),
                 Vec::new(),
                 READ_BY_ITS_READER,
-                "use a public target table".into(),
+                "target a table no one owns, or a `public table` its owner writes".into(),
             ));
         }
         if source.is_none() || source != source_of(hirs, &target.name) {

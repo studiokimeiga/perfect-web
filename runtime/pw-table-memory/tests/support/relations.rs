@@ -168,6 +168,69 @@ public query PlainMany(topics: List<Bool>, n: Int) -> List<Links.LinksTopicPosts
 "#;
     built_from(&[("Roots.pw",roots),("Links.pw",links),("RelationData.pw",source),("app.pw",app)])
 }
+/// **A window whose target is an owned `public table`** (L7's G5,
+/// 2026-11-17): the posts its authors own, which every reader reads, as the
+/// feed's subscriptions read their authors' posts. Until then a window's
+/// target had to be owned by no one.
+fn relation_owned_target_program() -> Program {
+    let roots=r#"module Roots
+import capability.{ UserId }
+type Root = Root { id: Int, author: UserId, stamp: Int, text: String }
+public table Roots
+    row Root
+    key author, id
+    order stamp
+    index by_author on author
+    owned by author
+"#;
+    let links=r#"module Links
+import Roots
+import capability.{ UserId }
+type Link = Link { topic: Bool, author: UserId, edge: Int, text: String }
+table Links
+    row Link
+    key topic, author, edge
+    order edge
+    window posts from Roots row Roots.Root on author to author
+"#;
+    let source=r#"module RelationData
+import Links
+import Roots
+source RelationData
+    holds Links, Roots
+    transactions serializable
+    reads strong
+    changes none
+    sets one_call
+"#;
+    let app=r#"module owned.app
+import Roots
+import Links
+public query PlainLast(topic: Bool, n: Int) -> List<Roots.Root>
+    freshness 0.seconds
+    consistency snapshot
+    cache shared
+    key topic,n
+    concurrency one_per_key
+    on_key_change cancel
+    timeout 2.seconds
+{
+    Links.last_posts_by_topic(topic,n)
+}
+public query PlainMany(topics: List<Bool>, n: Int) -> List<Links.LinksTopicPostsWindow>
+    freshness 0.seconds
+    consistency snapshot
+    cache shared
+    key topics,n
+    concurrency one_per_key
+    on_key_change cancel
+    timeout 2.seconds
+{
+    Links.last_posts_by_topic_many(topics,n)
+}
+"#;
+    built_from(&[("Roots.pw",roots),("Links.pw",links),("RelationData.pw",source),("app.pw",app)])
+}
 fn relation_public_links()->Vec<serde_json::Value> {
     [(false,BOB,1),(false,BOB,2),(true,BOB,3),(true,CAROL,4)].into_iter()
         .map(|(topic,author,edge)|json!({"topic":topic,"author":author,"edge":edge,"text":"public membership"})).collect()
