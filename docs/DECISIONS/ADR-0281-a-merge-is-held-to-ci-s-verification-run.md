@@ -292,16 +292,31 @@ give up no gate.
   there. Held by `test_a_recipes_body_is_read_as_just_runs_it_its_defaults_in_place`
   and two mutants in `e14-dealt-by-time` (the defaults not read, read with
   their quotes).
-- **Not yet the three campaign recipes** (`e14-upload-authority`,
-  `e14-session-command-authority`, `e14-session-receipt-recovery`). Each
-  copies (`cp`) its console's report to its evidence file, and that
-  report's counts are the campaign's own: a verdict per control by its
-  identifier, and `controls=k/n, valid=..., restored=...`. Read as a copy,
-  their evidence would be held current, but `evidence_counts`, which reads
-  the same files (both feed one discovery authority), counts none of their
-  mutants. It would fail on them, and nothing would check that a committed
-  campaign's counts are its script's. They stay planned wherever reached,
-  as before. A test holds that the planner does not read their copies yet.
-  `evidence_counts` must first read a campaign's counts, and then the
-  planner a copy as it reads a move (NEXT item 8).
+- **The three campaign recipes** (`e14-upload-authority`,
+  `e14-session-command-authority` 2,676 s, `e14-session-receipt-recovery`)
+  copy (`cp`) their console's report to their evidence file. A copy is read
+  as a move is (`PUBLISHES`). Since both feed one discovery authority,
+  `evidence_counts`, which reads the same files, now reads a campaign's
+  counts:
+  - a block counted `scope=FULL, controls=K/N, valid=True, restored=True` is
+    a count of its script's controls (`CONTROLS`: an identifier, a
+    description and its edits each), not of its `MUTANTS` rows, which
+    flatten a control's edits;
+  - each control is named by its identifier alone (`lease-reader: KILLED`);
+  - a run not whole, not valid or not restored is counted as none killed;
+  - a block whose verdicts name no control of the recipe's scripts is not
+    its count. A campaign script's own unit tests print such lines
+    (`one: KILLED`, `controls=1/1`). Where the campaign's own count is not
+    read, the recipe counts none of its script's controls.
 
+  The three campaigns' evidence agrees with their scripts, and each
+  recipe's evidence is held current as every other's is. Held by
+  `test_a_campaigns_controls_are_counted_by_their_identifiers`, the
+  planner's test of the three copies, five mutants in `e14-evidence-integrity`
+  and one in `e14-dealt-by-time` (a copy not read as a write).
+
+So an evidence-only commit plans none of the four, where its inputs are
+otherwise unchanged. A pull request's last round of CI, after its evidence
+is fetched, no longer runs some 65 minutes of recipes again. Every gate is
+kept: the evidence is held to its commit, its counts to its scripts, and a
+change to anything a recipe reads plans it.

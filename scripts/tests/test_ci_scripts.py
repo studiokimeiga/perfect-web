@@ -808,11 +808,20 @@ class Plan(unittest.TestCase):
         self.assertEqual(
             plan.evidence_files(plan.bodies()["e10-browser"]), ["docs/evidence/E10/browser-suite.txt"]
         )
-        # A campaign's copied report is not read yet: its counts are the
-        # campaign's own, which `evidence_counts` does not read, so it is
-        # planned wherever it is reached, as before.
-        for name in ("e14-upload-authority", "e14-session-command-authority", "e14-session-receipt-recovery"):
-            self.assertEqual(plan.evidence_files(plan.bodies()[name]), [], name)
+        # And each campaign's copied report (`cp "$report" docs/evidence/...`),
+        # whose counts `evidence_counts` reads as a campaign's.
+        for name, file in (
+            ("e14-upload-authority", "upload-authority"),
+            ("e14-session-command-authority", "session-command-authority"),
+            ("e14-session-receipt-recovery", "session-receipt-recovery"),
+        ):
+            self.assertEqual(
+                plan.evidence_files(plan.bodies()[name]), [f"docs/evidence/E14/{file}.txt"], name
+            )
+        self.assertEqual(
+            plan.evidence_files('    @cp "$report" docs/evidence/E14/a.txt\n    @mv b docs/evidence/E14/b.txt\n'),
+            ["docs/evidence/E14/a.txt", "docs/evidence/E14/b.txt"],
+        )
 
     def test_a_todomvc_plan_writes_only_the_workflow_output(self) -> None:
         done = subprocess.run(

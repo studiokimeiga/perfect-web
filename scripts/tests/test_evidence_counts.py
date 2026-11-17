@@ -102,6 +102,39 @@ Y_AGREES = (
 )
 
 
+# **A campaign** (ADR-0389's producers; ADR-0281, amended 2026-11-17): its
+# controls, an identifier, a description and its edits each, flattened into
+# `MUTANTS` an edit a row; its recipe copies its console's report.
+C = """\
+import pathlib
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+CONTROLS = [
+    ("lease-reader", "a preview accepts another reader's lease", [(ROOT / "a.rs", "a", "b"), (ROOT / "b.rs", "c", "d")], []),
+    ("live-inspection", "frozen bytes skip the live inspection", [(ROOT / "a.rs", "e", "f")], []),
+]
+MUTANTS = [(identifier, description, path, anchor, replacement)
+           for identifier, description, edits, _ in CONTROLS
+           for path, anchor, replacement in edits]
+"""
+CAMPAIGN_RECIPE = (
+    "e14-c:\n"
+    '    @bundle="$(mktemp -d docs/evidence/E14/c.XXXXXX)"; report="$bundle/console.txt"; \\\n'
+    '     { echo "commit: $(git rev-parse HEAD)"; python3 -m unittest -v scripts/tests/test_c_mutations.py; \\\n'
+    '       python3 scripts/c_mutations.py --output "$bundle/campaign"; } > "$report" 2>&1; \\\n'
+    '     cp "$report" docs/evidence/E14/c.txt\n'
+)
+# Its own unit tests print a campaign's lines of a control it does not
+# define, before the campaign runs.
+C_AGREES = (
+    "test_a_kill_is_recorded (scripts.tests.test_c_mutations.C) ... one: KILLED\n"
+    "scope=FULL, controls=1/1, valid=True, restored=True\n"
+    "ok\n"
+    "lease-reader: KILLED\n"
+    "live-inspection: KILLED\n"
+    "scope=FULL, controls=2/2, valid=True, restored=True\n"
+)
+
+
 class Counts(unittest.TestCase):
     def test_historical_browser_assertion_verdicts_match_frozen_mutants(self):
         module = counts.load(SCRIPTS / "playwright_assertion_mutations.py")
@@ -337,6 +370,40 @@ an unfinished callback becomes an observed mismatch: KILLED by scripts.tests.tes
         svelte = ("sveltekit", "the count is distinct items", pathlib.Path("s.ts"), "i", "j")
         self.assertTrue(counts.names("next-react: the count is distinct items", react))
         self.assertFalse(counts.names("next-react: the count is distinct items", svelte))
+
+    def campaign(self, evidence: str) -> dict:
+        root = self.tree(
+            {
+                "justfile": CAMPAIGN_RECIPE,
+                "scripts/c_mutations.py": C,
+                "docs/evidence/E14/c.txt": evidence,
+            }
+        )
+        return counts.disagreements(root, plan)
+
+    def test_a_campaigns_controls_are_counted_by_their_identifiers(self):
+        # Two controls, three edits: the campaign counts its controls, each
+        # said by its identifier; its unit tests' lines are no count of it.
+        self.assertEqual(self.campaign(C_AGREES), {})
+        whats = lambda found: [what for _, _, what in found.get("e14-c", [])]
+        short = C_AGREES.replace("controls=2/2", "controls=2/3")
+        self.assertIn("c_mutations.py: counts 3 mutants; its campaign defines 2", whats(self.campaign(short)))
+        # A run that was not whole, valid and restored is counted as none killed.
+        whole = "scope=FULL, controls=2/2, valid=True, restored=True"
+        for bad in (
+            "scope=PARTIAL, controls=2/2, valid=True, restored=True",
+            "scope=FULL, controls=2/2, valid=False, restored=True",
+            "scope=FULL, controls=2/2, valid=True, restored=False",
+        ):
+            told = whats(self.campaign(C_AGREES.replace(whole, bad)))
+            self.assertIn("c_mutations.py: counts 0 killed; 2 verdicts say KILLED", told, bad)
+        failed = C_AGREES.replace("live-inspection: KILLED", "live-inspection: INVALID OR SURVIVED")
+        self.assertIn("c_mutations.py: counts 2 killed; 1 verdicts say KILLED", whats(self.campaign(failed)))
+        unknown = C_AGREES.replace("live-inspection: KILLED", "an-other-control: KILLED")
+        self.assertTrue(any("names no mutant of its script" in w for w in whats(self.campaign(unknown))))
+        # And where the campaign's own count is missing, none of its controls are.
+        gone = C_AGREES.replace("scope=FULL, controls=2/2, valid=True, restored=True\n", "")
+        self.assertIn("counts none of c_mutations.py's mutants, which the recipe runs", whats(self.campaign(gone)))
 
     def test_a_disagreement_fails_unless_a_trains_push_records_it_again(self):
         found = {"e14-x": [("x.txt", 1, "?")], "e14-y": [("y.txt", 1, "?")]}

@@ -924,14 +924,12 @@ def recipes_for(changed: dict[str, list[tuple[int, int]]], near: int, names: lis
 RECORDED_AT = re.compile(r"^commit: ([0-9a-f]{40})[ \t]*$", re.M)
 
 # The evidence files a recipe writes directly or publishes after recording
-# beside its destination (ADR-0344). Both feed the same discovery authority.
-# Not a copy (`cp`), on purpose: the three campaign recipes copy their
-# console's report there, whose counts are the campaign's own
-# (`controls=k/n`), which `evidence_counts` cannot read yet; found, their
-# evidence would be held current with no count checked (ADR-0281, amended
-# 2026-11-17).
+# beside its destination (ADR-0344): moved there, or copied (ADR-0281,
+# amended 2026-11-17: the three campaign recipes copy their console's
+# report, whose counts `evidence_counts` reads as a campaign's). Both feed
+# the same discovery authority.
 WRITES = re.compile(r">[ \t]*(docs/evidence/[\w./-]+\.txt)")
-PUBLISHES = re.compile(r'\bmv[ \t]+(?:"[^"\n]+"|[^ \t\r\n]+)[ \t]+(docs/evidence/[\w./-]+\.txt)')
+PUBLISHES = re.compile(r'\b(?:mv|cp)[ \t]+(?:"[^"\n]+"|[^ \t\r\n]+)[ \t]+(docs/evidence/[\w./-]+\.txt)')
 
 
 def evidence_files(body: str) -> list[str]:

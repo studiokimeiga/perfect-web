@@ -33,7 +33,8 @@ recorded past a job's limit planned, its shard's setup not counted against
 it, a note in the seconds kept read as a recipe's, and a recipe run to its
 end keeping its lower bound; and (ADR-0281, amended 2026-11-17) a recipe's
 body read as `just` runs it, each parameter's default in place, unquoted
-(`e10-browser`'s `> {{out}}`). At least one test of
+(`e10-browser`'s `> {{out}}`), and a copy to its evidence read as a write
+(the campaign recipes'). At least one test of
 `scripts/tests/test_ci_scripts.py` must then fail.
 
 Run from the repository root; `just e14-dealt-by-time` records the output.
@@ -422,6 +423,12 @@ MUTANTS = [
         PLAN,
         "                for key, value in given.items():\n",
         "                for key, value in {}.items():\n",
+    ),
+    (
+        "a recipe's copy to its evidence is not read as a write",
+        PLAN,
+        "PUBLISHES = re.compile(r'\\b(?:mv|cp)[ \\t]+",
+        "PUBLISHES = re.compile(r'\\b(?:mv)[ \\t]+",
     ),
     (
         "a parameter's default is read with its quotes",
