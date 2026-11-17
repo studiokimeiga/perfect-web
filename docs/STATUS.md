@@ -8,8 +8,11 @@
 five that failed were the recipes L5a's verify had failed, whose repairs the
 run predates. The other two were a render-merge mutant that one session's
 merged reads let live, and WebKit's cut-off test, the known intermittent
-failure. Each is repaired or run again at the head (ADR-0440, "Landing
-(L5)").
+failure. Each is repaired or run again at the head: the repairs' verify
+(43978661391 at `41a73a48`) passed all 15 recipes they reach (ADR-0440,
+"Landing (L5)"). Independently reviewed twice more: no high finding is left open; the second review's medium (the
+record's order of repairs and verifies) and its lows of the record are
+repaired, and its four lows of code are `wip/l5-followups`'.
 
 **L5b, the server's claim bridge, 2026-11-16:** on L5a (`wip/l5b-claims`). A compiled command claims, publishes and commits a
 declared upload through the server, on memory and on PostgreSQL: its

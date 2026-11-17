@@ -16,19 +16,24 @@ in order:
 1. **L5's record**: the full verify 43929087203 at `83ad1ab1`, fetched
    (`e0377273`, 356 of 361 recipes); its five failures repaired or run
    again at the head (`ci_plan.py --changed e0377273 HEAD`, and
-   `e10-browser`) before the PR merges (ADR-0440, "Landing (L5)").
+   `e10-browser`): the repairs' verify 43978661391 at `41a73a48`, 15 of 15
+   (`94d1f8ab`; ADR-0440, "Landing (L5)").
 2. **L5's follow-up** (`wip/l5-followups`, its own PR after L5): each upload
    and asset refusal told by a rule of its own (PW5604, PW5605, PW0371),
    the asset tests' refusals held to their reasons, a d3 part refused where
    it holds no mutant and costed by its own, and corpus cases for each
-   upload and asset rule.
+   upload and asset rule; and the second L5 review's four lows of code: a
+   script's database URL read wherever it names one, the upload recipes'
+   evidence shown when they fail, the render-merge test holding a render
+   to its connection's backend, and upload-metadata's validator listing
+   every test file its filter runs.
 3. **One contract suite for assets** over memory and PostgreSQL alike
    (L5a's review, a low finding).
 4. **WebKit's cut-off test** (`e2e/connections.spec.mjs`): in two of three
    runs of L5's full verify WebKit's network process failed after the
    server's forced reconnect, and the press's handler module, loaded at its
-   first press, failed to import. It stays here until master's nightlies
-   pass it too.
+   first press, failed to import. The repairs' verify passed it in all
+   three runs. It stays here until master's nightlies pass it too.
 5. **Public initialization, stable ids and private child deletion**, as the
    ports need them.
 6. **L7, the canonical feed and store on tables**, as after L4 (item 4).

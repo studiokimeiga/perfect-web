@@ -428,10 +428,11 @@ every binary: at L4's merge the script took 4,708 s (88 mutants over 101
 tests); L5a's full verify (43860567064) took 16,275 s (132 mutants over
 168 tests, 122 s a run) on a runner that took its shard's other recipes 1.6
 to 2.2 times as long as L4's verify had: 79% of the 20,700 s a job runs, by
-itself. Its shard was stopped at the limit, on the recipe after it, because
-the plan, from L4's 4,708 s, had dealt five recipes beside it, and a stopped
-shard keeps nothing of its run. Measured, the whole would be dealt alone;
-two parts keep a slower runner's whole within a job.
+itself. Its shard was stopped at the limit, during the fifth recipe after
+it (`e14-second-host`), because the plan, from L4's 4,708 s, had dealt five
+recipes beside it, and a stopped shard keeps nothing of its run. Measured,
+the whole would be dealt alone; two parts keep a slower runner's whole
+within a job.
 
 So the script's mutants are two lists, each a part (the integrator's ruling
 2 of 2026-10-17, as `e14-refusal`'s): `DECLARED`, every mutant but the

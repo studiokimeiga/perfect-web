@@ -1705,19 +1705,23 @@ it, each independently reviewed and its findings repaired (above). Before
 its full verify, L5 merged master (#119, #120, #122 and #123, in `e13b81e4`)
 and the two pull requests landing just before it, #118 (`26935dd8`, a test's
 places on PostgreSQL) and #121 (`2d18777e`, a predicate asked once), so that
-one verify records what all three reach: #118's test harness alone reaches
-164 recipes. Only `ci_seconds.json` conflicted; it is merged by key, a recipe
-both sides measured keeping the longer.
+one verify records what all three reach: #118's test harness alone reached
+164 recipes in its own CI. Only `ci_seconds.json` conflicted; it is merged
+by key, a recipe both sides measured keeping the longer.
 
 **L5a's full verify** (43860567064, at `014439c5`): 358 recipes, 3 failed,
-and its shard 20 stopped at the 345-minute limit. Repaired before L5's:
+and its shard 20 stopped at the 345-minute limit. Items 1 and 5, and item
+2's first part, were repaired before L5's full verify; item 2's HTTP
+recipe and items 3 and 4 failed in it again (below), and are repaired after
+it, in `4d3f7ce5`:
 
 1. **The stopped shard.** `e14-d3-postgres` took 16,275 s there (132 mutants
    over 168 tests, 122 s a run; L4's 88 over 101 took 4,708 s) on a runner
    that took the shard's other recipes 1.6 to 2.2 times as long as L4's
    verify had: 79% of a job by itself, and the plan, from L4's 4,708 s, had
-   dealt five recipes beside it. d3's mutation controls run in two recipes
-   (ADR-0393, amended): `e14-d3-postgres`, every mutant but the uploads'
+   dealt five recipes beside it: four ran, and the job reached its limit
+   during the fifth, `e14-second-host`. d3's mutation controls run in two
+   recipes (ADR-0393, amended): `e14-d3-postgres`, every mutant but the uploads'
    (96), and `e14-d3-postgres-2`, the uploads' (39), each with the baseline
    of every test binary, as `e14-refusal`'s parts are (the integrator's
    ruling 2 of 2026-10-17). L5's verify measured them at 11,989 s and 2,962 s.
@@ -1753,9 +1757,13 @@ and its shard 20 stopped at the 345-minute limit. Repaired before L5's:
    could: the guard is the table's own check against it, and stays.
 
 **The full verify** 43929087203 at `83ad1ab1`: 361 recipes, 5 failed; the
-other 356 recipes' evidence (673 files, `e0377273`) is the merge's record.
-Three are item 2's HTTP recipe and item 4's two, which the verify ran before
-their repairs. Two are new, and one failure is no recipe's:
+other 356 recipes' evidence (673 files, `e0377273`) is the merge's record,
+but for `e14-generic-upload-leases`' 27 files, in words no count reads and
+naming no commit, which the repairs remove and record again (item 3).
+Three are item 2's HTTP recipe and item 4's two, failing as they had in
+L5a's (`e14-row-ownership` 233 of 234 this time, `e14-upload-metadata` 145
+of 146), the run before their repairs. Two are new, and one failure is no
+recipe's:
 
 6. **`e14-render-merge`, 48 of 49**: "an idle connection is never taken
    again" lived. The bound's test holds 24 renders of one session's cart
@@ -1780,7 +1788,19 @@ their repairs. Two are new, and one failure is no recipe's:
    test (item 5's, `83ad1ab1`), which the verify does not build and its
    preflight, not run, would have refused. It passes.
 
-**The repairs** (`REPAIRS`) and what they reach, run again: REPAIR-VERIFY.
+**The repairs** (`4d3f7ce5`, merged with master at `41a73a48`) and what
+they reach, run again: the recipes `ci_plan.py --changed e0377273 HEAD`
+plans, and `e10-browser`, dispatched as 43978661391 at `41a73a48`: 15
+recipes, 0 failed (`94d1f8ab`). `e14-generic-upload-http` killed 10 of 10
+on its shard's database and `e14-generic-upload-leases` 11 of 11, each
+verdict a line the count reads and each file naming its commit;
+`e14-row-ownership` 234 of 234 and `e14-upload-metadata` 146 of 146, the
+kills item 4 found INVALID now counted; `e14-render-merge` 49 of 49, the
+idle-connection mutant killed at the new test's assertion; and
+`e10-browser` passed its 1,452 tests in each of its three runs, WebKit's
+cut-off test among them. `e14-row-ownership`'s planned seconds are its
+measured 11,009, where 5,890 would have planned the next full verify at
+half its cost.
 
 **Reviewed** independently (2026-11-17, `3403758e`, `83ad1ab1` and the
 merge's resolution of `ci_seconds.json`): one high finding, the HTTP
@@ -1790,6 +1810,31 @@ scripts and only planned recipes; the split's reason and the guard's are as
 above. What both d3 recipes read (an empty part refused, a part's cost,
 comments) is repaired on `wip/l5-followups`, which records those recipes
 again.
+
+**Reviewed again** independently (2026-11-17, `4d3f7ce5` and `41a73a48`): no
+high finding, and one medium: the heading of items 1 to 5 said each was
+repaired before L5's full verify, where item 2's HTTP recipe and items 3
+and 4 were repaired after it; it now says which came when. Its lows of the
+record are repaired here too: the full verify's evidence counted with the
+leases' 27 files the repairs remove; the two placeholders left where the
+repairs' record now is; ADR-0393's stopped shard, stopped during the fifth
+recipe after d3 (`e14-second-host`), not the first; and
+`e14-row-ownership`'s planned seconds, above. Its four lows of code go,
+with the corpus work, to `wip/l5-followups`, the pull request after this
+one: the database rule's
+reading of a script saw a URL's name only as a literal argument, so five
+scripts that read theirs in a loop were found by their recipe's body alone,
+and nothing showed the reading finds one; the three upload recipes read
+`status=$?` where errexit never lets a failure reach it, so a failing run
+printed no evidence on a developer's machine; the render-merge test kills
+its mutant by the connection count, not by the connection's reuse, and its
+comments said connections pile up where the mutant closes each and opens
+another; and upload-metadata's validator lists one of the test files its
+filter runs, so the next kill in another is INVALID again. Two commit
+messages are corrected here, not rewritten: `4d3f7ce5` puts L5a's 231 of
+232 under L5's verify, whose count was 233 of 234, and `41a73a48` names
+five recipes whose longer time the merge kept, where there were seven
+(`e10-derived` and `e10-effects-through-values` too).
 
 **Left to NEXT**, each low: one contract suite for assets over both
 adapters. L5a's other lows (refusals filed under PW5601's invariant, the bare
