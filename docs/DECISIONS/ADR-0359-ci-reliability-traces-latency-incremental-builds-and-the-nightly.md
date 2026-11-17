@@ -529,3 +529,29 @@ the incremental builds.
   merged from `54be8c66` (`track/ci-diagnostics`). `ADR-XXXX` reads
   `ADR-0359` in `just/ci-diagnostics.just`, as in this file's name and
   title.
+
+## Amended 2026-11-17: the longest recipe runs in parts
+
+The integrator's, under the owner's grant of 2026-11-17 to make CI faster
+with no gate given up (no paid runners: the account keeps its plan). A
+verify deals recipes to shards, each runs its recipes in turn, and the run
+takes its slowest shard's time. No recipe is split across shards, so the
+longest recipe sets every full verify's length. In L5's repairs' verify
+(43978661391) `e14-row-ownership` took 11,009 s on a shard by itself, its
+241 mutants about 45 s each over the 27 commands of
+`row_ownership_mutations.py`. The next longest, `e14-d3-postgres` (9,710 s),
+had been split into two parts for the same reason (ADR-0393, amended).
+
+`row_ownership_mutations.py` runs in three parts (`PARTS`, three even
+ranges of `MUTANTS`, `scripts/mutation_parts.py`): `e14-row-ownership` runs
+the tests, the browser suite and part 1, `e14-row-ownership-2` and
+`e14-row-ownership-3` parts 2 and 3. Each part runs the unmutated baseline
+first, as a whole run does, so each part's kills mean what a whole run's do.
+`evidence_counts.py` holds the three recipes to every mutant once, as it
+held d3's two (`split`). The plan deals the three to three shards, and
+`ci_seconds.json` carries projections (4,400 s, 3,800 s and 3,800 s) until a
+run measures them. `mutation_parts.chosen` is d3's `chosen`, shared (d3's
+own copy stays, so its recipes' inputs do not change). A word given to the
+script that names no mutant refuses to run, as d3's does (L5's second
+review): the baseline alone would pass.
+

@@ -45,17 +45,20 @@ body, each survived every test; its findings' regressions hold them now.
 Its second review found two more ways past a query's predicate, the ABI
 blind to who answers one, and `Predicate::new` unheld by any test.
 
-Run whole from the repository root (`just e14-row-ownership`). Every source
-is restored in finally; the unmutated baseline must pass before any mutant
-means anything. Words given as arguments run only the mutants whose
-description holds one of them, for a quick look while working; the record is
-a whole run.
+Run from the repository root: `just e14-row-ownership` records part 1 of
+`PARTS`, `just e14-row-ownership-2` part 2 and `just e14-row-ownership-3`
+part 3, each `--part i/3` (`mutation_parts.py`); with no part, every mutant
+runs. Every source is restored in finally; the unmutated baseline must pass
+before any mutant means anything, and each part runs it. Words given as
+arguments run only the mutants whose description holds one of them, for a
+quick look while working; the record is a whole part.
 """
 import pathlib
 import subprocess
 import sys
 
 import cargo_assertion_results
+import mutation_parts
 import mutation_source
 import producer_process
 
@@ -737,6 +740,14 @@ MUTANTS = [
 
 # Each Cargo test binary separately: names can repeat between binaries, and
 # the shared native assertion validator expects one complete inventory.
+# **Three recipes, each a part** (ADR-0359, amended 2026-11-17): whole, the
+# script took 11,009 s in L5's repairs' verify (43978661391), a shard by
+# itself and the longest recipe of every full verify, about 45 s a mutant over
+# the 27 commands below. Three even ranges of `MUTANTS`, half open, each run
+# after a baseline of its own; `evidence_counts.py` holds the three to every
+# mutant once. A run with no part runs every mutant.
+PARTS = mutation_parts.even(len(MUTANTS), 3)
+
 TESTS = [
     # The grammar's own tests, its `should panic` test left out by the
     # filter: the strict producer reads each test's line as `test NAME ...
@@ -837,13 +848,15 @@ def run_tests():
 
 def main():
     import mutation_baseline  # keeps every command and reports a red baseline
+    chosen, which = mutation_parts.chosen(sys.argv[1:], MUTANTS, PARTS, "row_ownership_mutations.py")
+    if which:
+        print(which, flush=True)
     built, passed, failed = run_tests()
     print(f"baseline: {passed} passed, {failed} failed", flush=True)
     if not built or failed or not passed:
         print("FAIL: the unmutated baseline is not green; no mutant can mean anything")
         mutation_baseline.explain()
         return 1
-    chosen = [m for m in MUTANTS if not sys.argv[1:] or any(w in m[0] for w in sys.argv[1:])]
     survivors = 0
     for what, path, anchor, replacement in chosen:
         original = path.read_text()

@@ -3128,6 +3128,9 @@ head (track `ci-diagnostics`; train-11).
   ms a thousand lines); `PW_MUTANT_INCREMENTAL` on verify's recipe step; the
   nightly skips a head a run passed at, its recipes and browsers, never on
   Sunday.
+- Amended 2026-11-17: the longest recipe runs in parts. `e14-row-ownership`
+  (11,009 s whole) is three recipes, each a third of its mutants after a
+  baseline of its own (`scripts/mutation_parts.py`).
 [ADR-0360](DECISIONS/ADR-0360-the-coverage-guided-fuzzer-measures-or-fails.md):
 the coverage-guided fuzzer measures, or it fails (track `fuzz-floor`;
 train-11).
