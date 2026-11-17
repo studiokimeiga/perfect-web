@@ -19480,6 +19480,7 @@ public query Store(",
     mod protected_migration;
     mod upload_claims_pg;
     // ADR-0440, L5b: the server's claim bridge, through a compiled program.
+    mod asset_contract;
     mod upload_bridge;
     mod upload_generations;
 

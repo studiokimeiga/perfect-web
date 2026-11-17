@@ -53,3 +53,14 @@ Milestone: E14.
 - **The feed's image as a list stays**: `images: List<Image>` is the
   uploads track's choice, Twitter's own model, and a handler still takes no
   `Option` apart (ADR-0033).
+
+## Amended 2026-11-17: an operation that needs a call past the limit
+
+ADR-0440's asset contract suite found the first: a table's `put` takes its
+row, so no compiled command can write a row wider than 16 flat values. A
+row of an id and two `Option<PostImage.Ref>` (a `Ref` is seven, its option
+eight) is 17, and is refused at build ("a call whose arguments exceed the
+flat limit"). The feed's post as a table's row would be 17 too, so L7 needs
+a call's arguments past the limit: the component stores them in its own
+memory, a tuple laid out as a record is, and passes the one pointer, as the
+host does for an export here. It is NEXT's, before L7.

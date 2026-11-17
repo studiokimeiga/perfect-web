@@ -433,7 +433,6 @@ impl DataLayer for TablesLayer {
     /// The generations a commit left unnamed whose collection failed, tried
     /// again a bounded batch at a time.
     fn housekeeping(&self, _now_ms: i64, _sessions: &crate::identity::SessionLifetimes) {
-        use pw_host::assets::Storage;
         let Some(uploads) = &self.uploads else { return };
         let pending = match self.tables.pending_asset_collections(500) {
             Ok(pending) => pending,
@@ -442,15 +441,11 @@ impl DataLayer for TablesLayer {
             }
         };
         for descriptor in pending {
-            let collected = uploads
-                .storage
-                .collect_generation(&uploads.namespace, &descriptor)
-                .map_err(|e| e.to_string())
-                .and_then(|()| {
-                    self.tables
-                        .asset_collected(&descriptor.reference.generation)
-                        .map_err(|e| format!("{e:?}"))
-                });
+            let collected = collect_bytes(uploads, &descriptor).and_then(|()| {
+                self.tables
+                    .asset_collected(&descriptor.reference.generation)
+                    .map_err(|e| format!("{e:?}"))
+            });
             if let Err(why) = collected {
                 eprintln!("pw dev server: an upload generation was not collected: {why}");
             }
@@ -481,6 +476,51 @@ thread_local! {
     /// fails**, as the layer's storage would where it had failed.
     pub(crate) static FAIL_NEXT_KEEP: std::cell::Cell<bool> =
         const { std::cell::Cell::new(false) };
+    /// **A test's: the next collection of a generation's bytes on this
+    /// thread fails**, at a commit or a housekeeping pass, as the layer's
+    /// storage would where it had failed (ADR-0440's asset contract suite).
+    pub(crate) static FAIL_NEXT_COLLECT: std::cell::Cell<bool> =
+        const { std::cell::Cell::new(false) };
+}
+
+/// A generation's bytes collected from `uploads`, or a test's failure.
+fn collect_bytes(
+    uploads: &MemoryUploads,
+    descriptor: &pw_host::assets::Descriptor,
+) -> Result<(), String> {
+    use pw_host::assets::Storage;
+    #[cfg(test)]
+    if FAIL_NEXT_COLLECT.with(|fail| fail.replace(false)) {
+        return Err("the upload generation was not collected: a test's failure".into());
+    }
+    uploads
+        .storage
+        .collect_generation(&uploads.namespace, descriptor)
+        .map_err(|e| e.to_string())
+}
+
+/// **A test's hands on the layer's uploads** (ADR-0440's asset contract
+/// suite): the generation a committed row of `declaration` names by `key`
+/// and `kind`, and the storage that keeps its bytes.
+#[cfg(test)]
+impl TablesLayer {
+    pub(crate) fn generation_for_test(
+        &self,
+        declaration: &str,
+        key: &str,
+        kind: &str,
+    ) -> Option<String> {
+        self.tables
+            .asset_descriptor(declaration, key, kind)
+            .ok()
+            .flatten()
+            .map(|d| d.reference.generation)
+    }
+    pub(crate) fn uploads_for_test(
+        &self,
+    ) -> Option<(&crate::blob::MemoryBlobs, &pw_host::assets::Namespace)> {
+        self.uploads.as_ref().map(|u| (&u.storage, &u.namespace))
+    }
 }
 
 /// **Where one command's transaction is.**
@@ -568,17 +608,12 @@ impl TablesStaging<'_> {
     /// housekeeping, as the adapter keeps its job.
     fn collect_unnamed(&mut self) {
         let Some(uploads) = self.uploads else { return };
-        use pw_host::assets::Storage;
         for descriptor in std::mem::take(&mut self.collect) {
-            let collected = uploads
-                .storage
-                .collect_generation(&uploads.namespace, &descriptor)
-                .map_err(|e| e.to_string())
-                .and_then(|()| {
-                    self.tables
-                        .asset_collected(&descriptor.reference.generation)
-                        .map_err(|e| format!("{e:?}"))
-                });
+            let collected = collect_bytes(uploads, &descriptor).and_then(|()| {
+                self.tables
+                    .asset_collected(&descriptor.reference.generation)
+                    .map_err(|e| format!("{e:?}"))
+            });
             if let Err(why) = collected {
                 eprintln!("pw dev server: an upload generation was not collected: {why}");
             }
@@ -731,6 +766,19 @@ impl Staged for TablesStaging<'_> {
     /// Kept nothing, unless its rows were published: a commit that failed
     /// after them may have kept them (the tables close), so its claims stay.
     fn claims_kept_nothing(&self) -> bool {
+        !self.published
+    }
+
+    /// **A commit that failed before its rows were published kept nothing**
+    /// (ADR-0440, amended 2026-11-17: the asset contract suite): refused at
+    /// `prepare`, or its records or keep or publication refused within the
+    /// materializer's transaction, which then rolls back whole. Its host
+    /// answers it refused, as PostgreSQL's answers a refusal before its
+    /// COMMIT. Until then memory left the default, and a refused commit was
+    /// answered unknown, though memory keeps no receipt to reconcile it from.
+    /// A COMMIT that failed after its rows were published may have kept
+    /// them, and is answered unknown still.
+    fn definitely_refused(&self) -> bool {
         !self.published
     }
 

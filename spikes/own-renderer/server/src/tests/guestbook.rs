@@ -305,9 +305,12 @@ fn an_outbox_that_refuses_a_signings_event_publishes_none_of_its_rows() {
         "CREATE TRIGGER refuse_outbox BEFORE INSERT ON outbox \
          BEGIN SELECT RAISE(ABORT, 'outbox refused'); END;",
     );
-    // As the browser's press is answered: an error, never a panic (the
-    // route answers any interaction whose commit failed as one whose
-    // outcome it cannot tell, ADR-0325).
+    // As the browser's press is answered: refused, never a panic. Its
+    // outbox was refused before its rows were published, so the
+    // materializer's transaction rolled back whole and it kept nothing
+    // (ADR-0440, amended 2026-11-17: the asset contract suite). Until then
+    // the route answered it as one whose outcome it cannot tell (ADR-0325),
+    // though memory keeps no receipt to tell it from.
     let pressed = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         s.command_answer(SIGN, "a", &[serde_json::json!("Second")], Some("i-2"))
     }));
@@ -315,7 +318,10 @@ fn an_outbox_that_refuses_a_signings_event_publishes_none_of_its_rows() {
     let Ok(pressed) = pressed else {
         unreachable!("asserted above")
     };
-    assert!(pressed.is_err(), "{pressed:?}");
+    assert!(
+        matches!(&pressed, Ok(answer) if !answer.committed),
+        "refused, not unknown: {pressed:?}"
+    );
     // And why, as the command's commit says it.
     let refused = signed_directly(&s, "Second", "i-3");
     assert!(

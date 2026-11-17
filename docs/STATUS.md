@@ -2,6 +2,19 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**One contract suite for assets, 2026-11-17** (`wip/asset-parity`, after
+L5 and its follow-up): `tests::asset_contract` runs five cases through the
+server on memory and on PostgreSQL alike. They cover the same bytes kept
+again as a new generation, a removed row's collection at its commit, a
+failed collection made by housekeeping, and lost or changed bytes answered
+`503` before any `304`. Memory answered a commit refused before its
+publication "unknown", where PostgreSQL answered refused; memory now
+answers refused, for every command on its tables (the guestbook's refused
+outbox among them). The suite also found that no compiled command can write a
+row wider than 16 flat values, which is next, before L7 (ADR-0440 and
+ADR-0266, amended). Four new mutants hold the suite. Run whole
+locally, the claims script killed 34 of 34.
+
 **L5, declared uploads, 2026-11-17:** L5a and L5b land as one train from
 `wip/l5b-claims`, with master, #118 and #121 merged. Its full verify
 (43929087203 at `83ad1ab1`) ran 361 recipes, and 356 passed. Three of the

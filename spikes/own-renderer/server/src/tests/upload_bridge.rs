@@ -119,7 +119,7 @@ fn on_memory(out: &std::path::Path) -> Server {
 }
 
 /// A reader's image, as a camera wrote it.
-fn png() -> Vec<u8> {
+pub(super) fn png() -> Vec<u8> {
     crate::uploads::tests::png(6, 4)
 }
 
@@ -162,7 +162,7 @@ fn image_of(s: &Server, id: i64) -> Option<(String, String)> {
 }
 
 /// A `GET` of `path` with `extra` headers, its head and body.
-fn get_with(s: &Server, path: &str, extra: &str) -> (String, Vec<u8>) {
+pub(super) fn get_with(s: &Server, path: &str, extra: &str) -> (String, Vec<u8>) {
     split(&exchange(
         s,
         format!(
@@ -172,7 +172,7 @@ fn get_with(s: &Server, path: &str, extra: &str) -> (String, Vec<u8>) {
     ))
 }
 
-fn etag(head: &str) -> Option<String> {
+pub(super) fn etag(head: &str) -> Option<String> {
     head.lines()
         .find_map(|line| line.strip_prefix("etag: "))
         .map(str::to_string)
@@ -313,12 +313,13 @@ fn a_refused_commit_gives_its_claim_back(s: &Server, fail: impl FnOnce(&Server))
         &[serde_json::json!(1), serde_json::json!("a picture")],
         Some("keep-refused"),
     );
-    // Refused (PostgreSQL), or unconfirmed (memory, whose host cannot tell a
-    // refused publication from a lost one): nothing committed either way,
-    // and its rows were never published, so its claim kept nothing.
+    // Refused, on either layer: its rows were never published, so it kept
+    // nothing, and its claim is given back (memory answered "unknown" until
+    // ADR-0440's asset contract suite, 2026-11-17, though a commit that
+    // fails before its publication rolls back whole, and memory keeps no
+    // receipt to settle an unknown one from).
     assert!(
-        matches!(&refused, Ok(answer) if !answer.committed)
-            || matches!(&refused, Err(why) if why.contains("unknown")),
+        matches!(&refused, Ok(answer) if !answer.committed),
         "{refused:?}"
     );
     assert!(image_of(s, 1).is_none());
@@ -977,7 +978,7 @@ fn a_claim_through_one_declaration_finds_no_others_lease_on_postgresql() {
 
 /// The files under `root` named `key`: a generation's bytes, where
 /// LocalBlobs keeps them (`.generic/<namespace>/generations/<generation>`).
-fn generation_files(root: &std::path::Path, key: &str) -> Vec<std::path::PathBuf> {
+pub(super) fn generation_files(root: &std::path::Path, key: &str) -> Vec<std::path::PathBuf> {
     let mut found = Vec::new();
     let mut dirs = vec![root.to_path_buf()];
     while let Some(dir) = dirs.pop() {
@@ -991,43 +992,6 @@ fn generation_files(root: &std::path::Path, key: &str) -> Vec<std::path::PathBuf
         }
     }
     found
-}
-
-/// **A live generation whose bytes were corrupted is answered `503`, before
-/// any `304`** (ADR-0440, L5b: returned bytes are verified before
-/// `If-None-Match` is consulted). The image served whole; then its file in
-/// the deployment's blob storage is overwritten. A `GET` is `503`, and so is
-/// one naming the `ETag` it was served with.
-#[test]
-fn a_live_generations_corrupt_bytes_are_answered_503_on_postgresql() {
-    use std::os::unix::fs::PermissionsExt;
-    let Some(url) = super::tables_pg::database() else {
-        return;
-    };
-    let (_dir, out) = built();
-    let schema = super::tables_pg::Schema::new(&url, "bridge_corrupt");
-    let s = super::tables_pg::serve(&out, &schema);
-    assert!(
-        attach(&s, "reader", &png()).contains(" 303 "),
-        "the upload staged"
-    );
-    assert!(keep(&s, "reader", 1, "keep-1").committed);
-    let (key, kind) = image_of(&s, 1).asserted_some("the row names its image");
-    let path = format!("/images/{key}.{kind}");
-    let (head, body) = get(&s, &path);
-    assert!(head.starts_with("http/1.1 200"), "{head}");
-    let tag = etag(&head).asserted_some("an ETag");
-    let files = generation_files(&schema.database().blobs, &key);
-    assert_eq!(files.len(), 1, "one file keeps the image: {files:?}");
-    let mut corrupt = body.clone();
-    corrupt[body.len() / 2] ^= 0xff;
-    std::fs::set_permissions(&files[0], std::fs::Permissions::from_mode(0o644))
-        .asserted("the file made writable");
-    std::fs::write(&files[0], &corrupt).asserted("its bytes corrupted");
-    let (head, _) = get(&s, &path);
-    assert!(head.starts_with("http/1.1 503"), "{head}");
-    let (again, _) = get_with(&s, &path, &format!("If-None-Match: {tag}\r\n"));
-    assert!(again.starts_with("http/1.1 503"), "before any 304: {again}");
 }
 
 /// **A keep that fails keeps nothing and gives its claim back** (ADR-0440,
@@ -1047,11 +1011,10 @@ fn a_failed_keep_gives_its_claim_back(s: &Server, fail: impl FnOnce(&Server), me
         Some("keep-failed"),
     );
     mend();
-    // Refused (PostgreSQL), or unconfirmed (memory, whose host cannot tell a
-    // refused publication from a lost one): nothing committed either way.
+    // Refused, on either layer: the keep failed before its rows were
+    // published, so nothing was kept (ADR-0440's asset contract suite).
     assert!(
-        matches!(&failed, Ok(answer) if !answer.committed)
-            || matches!(&failed, Err(why) if why.contains("unknown")),
+        matches!(&failed, Ok(answer) if !answer.committed),
         "{failed:?}"
     );
     assert!(image_of(s, 1).is_none(), "nothing kept");
@@ -1231,104 +1194,13 @@ fn the_periodic_pass_holds_an_absent_receipts_claim_for_good_on_postgresql() {
 }
 
 /// The directory a generation's bytes are kept in, by its key.
-fn generation_dir(root: &std::path::Path, key: &str) -> std::path::PathBuf {
+pub(super) fn generation_dir(root: &std::path::Path, key: &str) -> std::path::PathBuf {
     let files = generation_files(root, key);
     assert_eq!(files.len(), 1, "one file keeps the image: {files:?}");
     files[0]
         .parent()
         .map(std::path::Path::to_path_buf)
         .unwrap_or_default()
-}
-
-/// **A removed row's generation is collected after its commit** (ADR-0440,
-/// L5b; the review of a7c3377b: no test held the layer's collection).
-/// `Remove` deletes the row that named the image, and the commit that
-/// deletes it collects the generation: its bytes leave the deployment's blob
-/// storage at once.
-#[test]
-fn a_removed_rows_generation_is_collected_after_its_commit_on_postgresql() {
-    let Some(url) = super::tables_pg::database() else {
-        return;
-    };
-    let (_dir, out) = built();
-    let schema = super::tables_pg::Schema::new(&url, "bridge_collected");
-    let s = super::tables_pg::serve(&out, &schema);
-    let blobs = schema.database().blobs;
-    assert!(
-        attach(&s, "reader", &png()).contains(" 303 "),
-        "the upload staged"
-    );
-    assert!(keep(&s, "reader", 1, "keep-1").committed);
-    let (key, _) = image_of(&s, 1).asserted_some("the row names its image");
-    assert_eq!(generation_files(&blobs, &key).len(), 1, "kept");
-    let removed = s
-        .command_answer(
-            "photos.app.Remove",
-            "reader",
-            &[serde_json::json!(1)],
-            Some("remove-1"),
-        )
-        .asserted("Remove answered");
-    assert!(removed.committed, "{removed:?}");
-    assert!(
-        generation_files(&blobs, &key).is_empty(),
-        "collected at its commit"
-    );
-}
-
-/// **A generation whose collection failed at its commit is collected by the
-/// host's housekeeping** (ADR-0440, L5b; the review of a7c3377b): its
-/// directory made read-only while `Remove` commits, the bytes stay, and the
-/// job with them. The directory writable again, the next pass collects
-/// them.
-#[test]
-fn a_collection_that_failed_at_its_commit_is_made_by_housekeeping_on_postgresql() {
-    use std::os::unix::fs::PermissionsExt;
-    let Some(url) = super::tables_pg::database() else {
-        return;
-    };
-    let (_dir, out) = built();
-    let schema = super::tables_pg::Schema::new(&url, "bridge_collected_later");
-    let s = super::tables_pg::serve(&out, &schema);
-    let blobs = schema.database().blobs;
-    assert!(
-        attach(&s, "reader", &png()).contains(" 303 "),
-        "the upload staged"
-    );
-    assert!(keep(&s, "reader", 1, "keep-1").committed);
-    let (key, _) = image_of(&s, 1).asserted_some("the row names its image");
-    let dir = generation_dir(&blobs, &key);
-    std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o555))
-        .asserted("the generation's directory made read-only");
-    let probe = dir.join("probe");
-    let refused = std::fs::write(&probe, b"").is_err();
-    let _ = std::fs::remove_file(&probe);
-    assert!(
-        refused,
-        "the directory refuses a change: the tests run as a user its mode binds, not root"
-    );
-    let removed = s.command_answer(
-        "photos.app.Remove",
-        "reader",
-        &[serde_json::json!(1)],
-        Some("remove-1"),
-    );
-    std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o755))
-        .asserted("the generation's directory writable again");
-    assert!(
-        matches!(&removed, Ok(answer) if answer.committed),
-        "{removed:?}"
-    );
-    assert_eq!(
-        generation_files(&blobs, &key).len(),
-        1,
-        "its collection failed at the commit"
-    );
-    s.run_due();
-    assert!(
-        generation_files(&blobs, &key).is_empty(),
-        "collected by housekeeping"
-    );
 }
 
 /// **An image is served while the upload namespace's lock is held**

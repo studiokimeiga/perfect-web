@@ -27,8 +27,15 @@ in order:
    evidence shown when they fail, the render-merge test holding a render
    to its connection's backend, and upload-metadata's validator listing
    every test file its filter runs.
-3. **One contract suite for assets** over memory and PostgreSQL alike
-   (L5a's review, a low finding).
+3. ~~**One contract suite for assets** over memory and PostgreSQL alike
+   (L5a's review, a low finding)~~: done (2026-11-17, `wip/asset-parity`,
+   ADR-0440, amended): `tests::asset_contract`, five cases on each layer,
+   and four mutants. It found memory answering a commit refused before its
+   publication unknown (now refused, as PostgreSQL), and that no compiled
+   command can write a row wider than 16 flat values (a table's `put`, a
+   call to a host's operation past the Canonical ABI's limit, which the
+   compiler refuses; ADR-0266, amended). That call's arguments in memory
+   are next, before L7 (item 6), whose feed post as a row would be 17.
 4. **WebKit's cut-off test** (`e2e/connections.spec.mjs`): in two of three
    runs of L5's full verify WebKit's network process failed after the
    server's forced reconnect, and the press's handler module, loaded at its

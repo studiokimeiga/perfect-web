@@ -54,6 +54,14 @@
 - **The feed keeps its own uploads.** Startup opens for generic upload
   declarations only; the hand-written feed's are refused beside declared
   tables, and its compatibility is L7's gate.
+- **No compiled command can write a row wider than 16 flat values**
+  (ADR-0440's asset contract suite, 2026-11-17). A table's `put` takes its
+  row, and the compiler refuses a call to a host's operation whose
+  arguments flatten past the Canonical ABI's 16 (ADR-0266, amended): a
+  `String` is two, a `Ref` seven, an `Option<Ref>` eight, so a row of an id
+  and two images (17) is refused at build. Each adapter writes such a row
+  and counts its references (their own tests); no program can yet. The
+  feed's post as a row would be 17, so it is NEXT's before L7.
 
 ## Declared tables on PostgreSQL, 2026-11-02 (ADR-0393)
 
