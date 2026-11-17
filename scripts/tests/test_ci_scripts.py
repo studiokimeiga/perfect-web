@@ -195,8 +195,9 @@ class Plan(unittest.TestCase):
         import refusal_mutations as refusal
 
         body = plan.bodies()
-        self.assertEqual(plan.cost(body["e14-d3-postgres"]), 1 + len(d3.DECLARED))
-        self.assertEqual(plan.cost(body["e14-d3-postgres-2"]), 1 + len(d3.UPLOADS))
+        for recipe, (start, end) in zip(("e14-d3-postgres", "e14-d3-postgres-2", "e14-d3-postgres-3"), d3.PARTS):
+            self.assertEqual(plan.cost(body[recipe]), 1 + end - start, recipe)
+        self.assertEqual(d3.PARTS[-1], (len(d3.DECLARED), len(d3.MUTANTS)), "the uploads' alone")
         first, second = refusal.PARTS
         self.assertEqual(plan.cost(body["e14-refusal-2"]), 1 + second[1] - second[0])
         # A part a script does not define costs the whole, as before.

@@ -46,8 +46,9 @@ of its own. Without it every test passes doing nothing, and no mutant could
 be killed, so this refuses to run.
 
 Run from the repository root: `just e14-d3-postgres` records part 1 of
-`PARTS` (D3's own mutants), `just e14-d3-postgres-2` part 2 (the uploads'),
-each `--part i/2`; with no part, every mutant runs. Every source is restored
+`PARTS` (the first half of D3's own mutants), `just e14-d3-postgres-2` part 2
+(their second half) and `just e14-d3-postgres-3` part 3 (the uploads'), each
+`--part i/3`; with no part, every mutant runs. Every source is restored
 in finally; the unmutated baseline, every test binary, must pass before any
 mutant means anything, and each part runs it. Words given as arguments run
 only the mutants whose description holds one of them, for a quick look while
@@ -495,11 +496,14 @@ DECLARED = [
 # had: 79% of the 20,700 s a job runs, by itself, and its shard was stopped
 # there because the plan, from L4's 4,708 s, dealt five recipes beside it.
 # Two parts keep a slower runner's whole within a job. Ranges of `MUTANTS`,
-# half open: part 1 every mutant but the uploads', part 2 the uploads';
-# `evidence_counts.py` holds the two to every mutant once. A run with no part
-# runs every mutant.
+# half open; `evidence_counts.py` holds the parts to every mutant once. A run
+# with no part runs every mutant. **Three since 2026-11-17** (ADR-0359,
+# amended): D3's own 96 took 9,710 s as one part in L5's repairs' verify, the
+# longest recipe any data-layer change reaches once `e14-row-ownership` runs
+# in three, so they are two halves; part 3 is the uploads'.
 MUTANTS = DECLARED + UPLOADS
-PARTS = [(0, len(DECLARED)), (len(DECLARED), len(MUTANTS))]
+HALF = len(DECLARED) // 2
+PARTS = [(0, HALF), (HALF, len(DECLARED)), (len(DECLARED), len(MUTANTS))]
 
 # Each test binary apart: names can repeat between binaries, and the native
 # assertion validator expects one complete inventory each.

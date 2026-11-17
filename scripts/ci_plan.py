@@ -181,9 +181,11 @@ NEEDS_DATABASE = {
     # admissions of one session, on PostgreSQL too.
     "e14-session-overlap",
     # Track `d3-postgres` (ADR-0338's D3): declared tables on PostgreSQL;
-    # its mutation controls in two parts (ADR-0393, amended 2026-11-17).
+    # its mutation controls in three parts (ADR-0393 and ADR-0359, amended
+    # 2026-11-17).
     "e14-d3-postgres",
     "e14-d3-postgres-2",
+    "e14-d3-postgres-3",
     # ADR-0440's L5b: the server's claim bridge, on memory and on
     # PostgreSQL; refused without a database. Dealt where there was none
     # until 2026-11-17, it would have failed the full verify (found before

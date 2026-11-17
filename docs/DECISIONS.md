@@ -3130,7 +3130,8 @@ head (track `ci-diagnostics`; train-11).
   Sunday.
 - Amended 2026-11-17: the longest recipe runs in parts. `e14-row-ownership`
   (11,009 s whole) is three recipes, each a third of its mutants after a
-  baseline of its own (`scripts/mutation_parts.py`).
+  baseline of its own (`scripts/mutation_parts.py`), and d3's first part
+  (9,710 s) is two halves, the uploads' a third recipe.
 [ADR-0360](DECISIONS/ADR-0360-the-coverage-guided-fuzzer-measures-or-fails.md):
 the coverage-guided fuzzer measures, or it fails (track `fuzz-floor`;
 train-11).

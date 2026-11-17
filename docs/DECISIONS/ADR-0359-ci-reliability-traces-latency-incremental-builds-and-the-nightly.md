@@ -555,3 +555,17 @@ own copy stays, so its recipes' inputs do not change). A word given to the
 script that names no mutant refuses to run, as d3's does (L5's second
 review): the baseline alone would pass.
 
+**And d3's first part in two.** With row ownership in three, the longest
+recipe a data-layer change reaches is `e14-d3-postgres`, D3's own 96 mutants
+in 9,710 s. Its `PARTS` are three: the first and second halves of D3's own
+(48 each, `e14-d3-postgres` and `e14-d3-postgres-2`) and the uploads' (39,
+`e14-d3-postgres-3`, which `e14-d3-postgres-2` was), each beside a database
+(`NEEDS_DATABASE`). Projections: 5,000 s, 4,900 s and the uploads' measured
+2,868 s.
+
+**What a split does not shorten.** Every recipe together is about 74 hours
+(`ci_seconds.json`, 364 recipes), so a full verify's 24 shards hold about
+three hours each whatever the parts: a whole run is bounded by its total, a
+pull request's by the longest recipe it reaches. The split is for the
+second, which is every pull request's.
+

@@ -15,7 +15,8 @@ upload recipe shows its evidence, the database rule reads a script's URL
 wherever it names one, a render is held to its connection's backend, and a
 mutation script's filter words reach only files its sources list. And
 `e14-row-ownership`, every full verify's longest recipe (11,009 s), runs in
-three parts, each a shard's (ADR-0359, amended).
+three parts, each a shard's, and d3's first part (9,710 s) in two (ADR-0359,
+amended).
 
 **L5, declared uploads, 2026-11-17:** L5a and L5b land as one train from
 `wip/l5b-claims`, with master, #118 and #121 merged. Its full verify
