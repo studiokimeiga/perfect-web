@@ -575,3 +575,49 @@ shard and by its total: before the splits its longest shard was
 More shards, and the long recipes left in parts, are what shorten a full
 verify further (NEXT).
 
+## Amended 2026-11-17: the device runtime's mutants in three parts
+
+With `e14-row-ownership` and d3 in parts (#129), the longest recipe a server
+change reaches is `e14-device-runtime`: 9,425 s, and so about every pull
+request's verify's length (the asset contract suite's plan: 166 minutes
+over 19 shards, this recipe 157 of them). It ran two scripts after its
+tests: `device_runtime_mutations.py`'s 225 mutants and
+`own_rows_mutations.py`'s 127.
+
+- `device_runtime_mutations.py`'s mutants run in three parts, each a recipe
+  of its own, `--part i/3`. `e14-device-runtime` keeps its tests, part 1
+  (the decision's 31 mutants, a Node test each, a few minutes) and the
+  planned list's own controls (`own_rows_mutations.py`).
+  `e14-device-runtime-2` runs part 2 and `e14-device-runtime-3` part 3.
+  Each part takes the baseline of each suite its mutants run before any of
+  them counts. Each suite builds what it serves, and after the mutants a
+  part builds again, from the restored source, what its suites built from
+  a mutant.
+- Each of the three recipes names the script, so a change near any of its
+  mutants plans all three, as the whole did. The split's review found the
+  first version's main recipe ran no part: a change near 169 of the 225
+  mutants planned only the parts, and dropped the main recipe's tests in
+  Firefox and WebKit, held current all the while.
+  `test_a_change_near_a_device_runtime_mutant_plans_each_of_its_recipes`
+  holds a mutant of each part and of each suite.
+- Parts 2 and 3 are cut by cost, not count (`PARTS = [(0, 31), (31, 87),
+  (87, 225)]`). A mutant of `rows` builds the list four ways and runs two
+  Playwright suites; one of `browser` or `nested` a build and one suite;
+  one of `host` three cargo test filters; the rest a Node test each. Under
+  relative weights of about 90, 60, 90, 30 and 5, each part holds about
+  half of the rest. Count-even halves of the 194 would have dealt one part
+  78 Playwright mutants and the other 12.
+  `test_the_device_runtimes_three_parts_hold_its_every_mutant` holds every
+  mutant once and the `rows` mutants split within five, and
+  `evidence_counts`' `split` holds the recipes to the parts.
+- A part's shard gets browsers from the Playwright version in its record:
+  `ci_plan.needs` reads a recipe's body, not the scripts it runs. Reading
+  the scripts is NEXT's.
+- Measured in dispatch 44057830231 at `a8b2679c`, every part killing every
+  mutant it holds: `e14-device-runtime` 3,867 s (31 of 31, and the planned
+  list's 127 of 127), `e14-device-runtime-2` 2,384 s (56 of 56) and
+  `e14-device-runtime-3` 4,411 s (138 of 138), where the whole took
+  9,425 s. The weights underrated part 3's 77 packaging and 23 host
+  mutants. Its 4,411 s is under five other recipes' (`e14-labels`,
+  `e14-statements-separated`, d3's first part, `e14-scheduled`,
+  `e14-durable-tables`), so the cut stays until it is the longest again.
