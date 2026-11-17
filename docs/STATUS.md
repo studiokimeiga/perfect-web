@@ -2,6 +2,15 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**The benchmark baselines' patches, 2026-11-17 (built, not landed):** on
+the owner's approval of the downloads, SvelteKit 2.70.4, adapter-node 5.5.8
+and Next.js 16.4.5 (ADR-0120, amended), in the workspace's lockfile and the
+harness's own, whose Next sandbox installs frozen again. Both stores build
+and typecheck; the Node audit reports four advisories, each still
+documented (SvelteKit 2.x has no patch for them), and the four the patches
+fix leave the allow list. The owner's standing approval takes each later
+patch-level security update to a baseline through the same gates.
+
 **L4, bounded reads, 2026-11-16:** on L3 (`f375b92d`), the fourth train
 of the declared data layer's landing (`wip/l4-bounded`): the integration
 branch's seventeen commits after `2e2ef45b`, to `ff57edc7`, ADR-0440's

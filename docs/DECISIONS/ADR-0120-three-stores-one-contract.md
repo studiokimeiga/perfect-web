@@ -19,9 +19,9 @@ asserted in prose.
    server. Each baseline is self-contained, because an agent will work in an
    isolated copy of exactly one.
 2. **Versions**, verified on the npm registry on 2026-10-02 and pinned exactly:
-   Next.js 16.3.8 (16.4.1 since 2026-10-22, below) with React 19.3.0;
-   SvelteKit **2.70.3** with Svelte 5.57.1,
-   Vite 8.3.2 and adapter-node 5.5.7; TypeScript 6.0.3; Playwright 1.58.0, as
+   Next.js 16.3.8 (16.4.1 since 2026-10-22, 16.4.5 since 2026-11-17, below)
+   with React 19.3.0; SvelteKit **2.70.3** (2.70.4 since 2026-11-17) with
+   Svelte 5.57.1, Vite 8.3.2 and adapter-node 5.5.7 (5.5.8 since 2026-11-17); TypeScript 6.0.3; Playwright 1.58.0, as
    the own-renderer suite uses.
    - **Not SvelteKit 3.0.0**, released 2026-10-01. A benchmark of coding
      agents on a day-old major measures what the models have not seen, not
@@ -118,3 +118,52 @@ the two it documents, and `e14-contract` holds the store to the contract
 again. The Next.js findings E14's tasks rest on were read in 16.3.8's source;
 16.4.1's passes the same implicit tags to `unstable_cache` (T09). What was
 measured before this date, ADR-0342's among it, was measured on 16.3.8.
+
+## Amended, 2026-11-17: SvelteKit 2.70.4, adapter-node 5.5.8 and Next.js 16.4.5, the patches of four accepted advisories
+
+Four advisories the Node audit accepted for these baselines
+(`tools/node-audit-allow.txt`, #112, #123, #124) each waited on a patch
+release and the owner's approval of its download, given in chat on
+2026-11-17. The owner also gave a standing approval: a patch-level security
+update to a benchmark baseline is downloaded and landed without asking,
+through the same gates (`just audit`, the builds and typechecks,
+`e14-contract`, and the pull request's verify).
+
+The versions, verified on the npm registry on 2026-11-17, each the newest
+patch of the line this ADR pins:
+
+- **@sveltejs/kit 2.70.4** (2026-11-05, npm's `version-2` tag) fixes
+  GHSA-mw6w-2fmv-pvw3 (a `reroute` comparison that crashes adapter-node)
+  and GHSA-rqp5-r3wg-vg35 (`router.resolution: 'server'` importing another
+  origin's module). Its dependencies are 2.70.3's.
+- **@sveltejs/adapter-node 5.5.8** (2026-11-05, `version-2`) fixes
+  GHSA-rqw3-x7hx-mm3p (a header added to an immutable request). Its
+  dependencies are 5.5.7's.
+- **Next.js 16.4.5** (2026-11-03) is the release of Vercel's seven
+  advisories of that day: GHSA-mfr8-8qww-v76h, the one the audit reported
+  (#124), and GHSA-vc7v-qv4w-wrv8, -vvgp-ww4w-46vf, -rhh4-g77r-r9qj,
+  -pc58-hwjq-p385, -7qx7-33qx-rqx2 and -f3mh-rxg3-f5g2, which would each have
+  failed the audit once GitHub's database reviewed it. **Not 16.4.6** (2026-11-09, npm's `latest`,
+  Dependabot's #23): it fixes no advisory, and it backports bug fixes, among
+  them compressing a route handler's response where it was not already
+  compressed, a change in what this store's responses are that a comparison
+  should choose on purpose, at E14-E with the other baseline versions.
+  React stays 19.3.0, within 16.4.5's `^19.0.0`.
+
+`pnpm-lock.yaml` moves `next`, `@next/env` and the `@next/swc-*` binaries,
+`@sveltejs/kit` and `@sveltejs/adapter-node`. One move beside them: the
+adapter's two rollup plugins resolve `picomatch` 4.0.7, a version the
+lockfile already held, where they held 4.0.5. The harness's own lockfiles
+(`benchmarks/harness/locks/`, ADR-0124), regenerated from themselves, move
+those packages alone: `next-react.pnpm-lock.yaml` from 16.3.8, which the
+16.4.1 move had left behind, so a Next sandbox's frozen install failed from
+2026-10-22 (NEXT); each now installs offline and frozen as the harness runs
+it, once the store holds its packages. Both stores build and typecheck
+(Next.js 16.4.5 with Turbopack, `tsc` clean; svelte-check 0 errors, 0
+warnings), and `scripts/audit-node.sh` reports no advisory but the four it
+still documents: SvelteKit's GHSA-pfhg-q3qv-9q6r and GHSA-27mw-82g8-phjj
+(fixed only in 3.x) and GHSA-3r8g-jcqq-3p5j and GHSA-6cf5-gc4q-fm3x (no 2.x
+patch). Their reasons hold for 2.70.4 as for 2.70.3. The four fixed
+allowances are removed. `e14-contract` holds each store to the contract
+again in this pull request's verify. What was measured before this date was
+measured on 16.4.1 and 2.70.3.
