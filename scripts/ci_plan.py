@@ -253,18 +253,44 @@ def justfile_parts(root: pathlib.Path = ROOT) -> list[str]:
     return parts
 
 
+# **A parameter of a recipe's header and its default**, where it has one: a
+# variadic one (`*`, `+`) is no single value, and is left as it is written.
+PARAMETER = re.compile(r"""\s+(\$?)([A-Za-z_][A-Za-z0-9_-]*)=("[^"]*"|'[^']*'|[^\s'":=]+)""")
+
+
+def defaults(header: str) -> dict[str, str]:
+    """Each parameter of `header` that has a default, by name, its default
+    unquoted."""
+    out = {}
+    rest = header[HEADER.match(header).end(1):] if HEADER.match(header) else ""
+    for m in PARAMETER.finditer(rest):
+        value = m.group(3)
+        out[m.group(2)] = value[1:-1] if value[:1] in "\"'" else value
+    return out
+
+
 def bodies(root: pathlib.Path = ROOT) -> dict[str, str]:
-    """Each recipe's body, by name, in every part of the justfile."""
+    """**Each recipe's body, by name, as `just NAME` runs it**, in every
+    part of the justfile: each parameter's default in place of its
+    `{{name}}` (ADR-0281, amended 2026-11-17). Until then `e10-browser`'s
+    `> {{out}}` named no evidence file here, so the planner never held its
+    evidence current, and every pull request's verify ran it (3,920 s)
+    after a commit that changed nothing it reads. A parameter with no
+    default is left as it is written."""
     out: dict[str, str] = {}
     for part in justfile_parts(root):
         name = None
+        given: dict[str, str] = {}
         for line in (root / part).read_text().splitlines():
             m = HEADER.match(line)
             if m and not line.startswith((" ", "\t")):
                 name = m.group(1)
+                given = defaults(line)
                 out[name] = ""
                 continue
             if name and (line.startswith((" ", "\t")) or not line.strip()):
+                for key, value in given.items():
+                    line = re.sub(r"\{\{\s*" + re.escape(key) + r"\s*\}\}", lambda _: value, line)
                 out[name] += line + "\n"
             else:
                 name = None
@@ -899,6 +925,11 @@ RECORDED_AT = re.compile(r"^commit: ([0-9a-f]{40})[ \t]*$", re.M)
 
 # The evidence files a recipe writes directly or publishes after recording
 # beside its destination (ADR-0344). Both feed the same discovery authority.
+# Not a copy (`cp`), on purpose: the three campaign recipes copy their
+# console's report there, whose counts are the campaign's own
+# (`controls=k/n`), which `evidence_counts` cannot read yet; found, their
+# evidence would be held current with no count checked (ADR-0281, amended
+# 2026-11-17).
 WRITES = re.compile(r">[ \t]*(docs/evidence/[\w./-]+\.txt)")
 PUBLISHES = re.compile(r'\bmv[ \t]+(?:"[^"\n]+"|[^ \t\r\n]+)[ \t]+(docs/evidence/[\w./-]+\.txt)')
 

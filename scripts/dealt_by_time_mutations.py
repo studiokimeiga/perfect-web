@@ -31,7 +31,9 @@ there is none, and (2026-11-17) one refused without one; and (the
 integrator's ruling 2 of 2026-10-17) a recipe
 recorded past a job's limit planned, its shard's setup not counted against
 it, a note in the seconds kept read as a recipe's, and a recipe run to its
-end keeping its lower bound. At least one test of
+end keeping its lower bound; and (ADR-0281, amended 2026-11-17) a recipe's
+body read as `just` runs it, each parameter's default in place, unquoted
+(`e10-browser`'s `> {{out}}`). At least one test of
 `scripts/tests/test_ci_scripts.py` must then fail.
 
 Run from the repository root; `just e14-dealt-by-time` records the output.
@@ -414,6 +416,18 @@ MUTANTS = [
         PLAN,
         '        return path == pattern or path.startswith(pattern + "/")\n',
         "        return path == pattern\n",
+    ),
+    (
+        "a recipe's body is read without its parameters' defaults",
+        PLAN,
+        "                for key, value in given.items():\n",
+        "                for key, value in {}.items():\n",
+    ),
+    (
+        "a parameter's default is read with its quotes",
+        PLAN,
+        "        out[m.group(2)] = value[1:-1] if value[:1] in \"\\\"'\" else value\n",
+        "        out[m.group(2)] = value\n",
     ),
 ]
 

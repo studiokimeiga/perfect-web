@@ -64,7 +64,15 @@ in order:
      (docs/evidence and `ci_seconds.json`, as `evidence_fetch.py` writes
      them, on a head whose checks passed) runs the checks again today, with
      nothing they read changed. An ADR first: what proves a commit is
-     evidence-only, and which checks it then keeps.
+     evidence-only, and which checks it then keeps. Begun (2026-11-17,
+     `wip/plan-reads-copies`, ADR-0281 amended): such a commit's verify
+     planned four recipes whatever it changed, their evidence unread by
+     the planner. `e10-browser` (3,920 s) is read now: its body as `just`
+     runs it, its `> {{out}}` its default's. The other three, the campaign
+     recipes (`e14-upload-authority`, `e14-session-command-authority`
+     2,676 s, `e14-session-receipt-recovery`), copy a report whose counts
+     are the campaign's own (`controls=k/n`): next, `evidence_counts` reads
+     a campaign's counts, and the planner a copy (`cp`) as it reads a move.
 
 Keep the mixed-layer startup refusal until its replacement is real; a
 program's uploads beside its tables are served only through L5b's gates.

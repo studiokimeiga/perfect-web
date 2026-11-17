@@ -785,6 +785,35 @@ class Plan(unittest.TestCase):
         self.assertEqual([n for n in known if n not in plan.bodies()], [])
         self.assertIn("e2e/performance.spec.mjs", plan.bodies()["e10-close-bench"])
 
+    def test_a_recipes_body_is_read_as_just_runs_it_its_defaults_in_place(self) -> None:
+        # ADR-0281, amended 2026-11-17: `e10-browser` writes `> {{out}}`, so
+        # its body named no evidence file here, its evidence was never held
+        # current, and every pull request's verify ran it (3,920 s) after a
+        # commit that changed nothing it reads, an evidence fetch's included.
+        with tempfile.TemporaryDirectory() as d:
+            root = pathlib.Path(d)
+            (root / "justfile").write_text(
+                'e10-browser engines="chromium firefox" out="docs/evidence/E10/suite.txt":\n'
+                '    @{ echo "engines: {{engines}}"; } > {{ out }}\n\n'
+                "e14-task TASK:\n    @echo d > docs/evidence/E14/task-{{TASK}}.txt\n\n"
+                "e14-many *flags='-x':\n    @echo {{flags}} > docs/evidence/E14/many.txt\n"
+            )
+            body = plan.bodies(root)
+            self.assertIn('echo "engines: chromium firefox"', body["e10-browser"])
+            self.assertEqual(plan.evidence_files(body["e10-browser"]), ["docs/evidence/E10/suite.txt"])
+            # A parameter with no default, or a variadic one, as it is written.
+            self.assertIn("task-{{TASK}}.txt", body["e14-task"])
+            self.assertIn("echo {{flags}}", body["e14-many"])
+        # And the repository's: `e10-browser`'s evidence is its default's.
+        self.assertEqual(
+            plan.evidence_files(plan.bodies()["e10-browser"]), ["docs/evidence/E10/browser-suite.txt"]
+        )
+        # A campaign's copied report is not read yet: its counts are the
+        # campaign's own, which `evidence_counts` does not read, so it is
+        # planned wherever it is reached, as before.
+        for name in ("e14-upload-authority", "e14-session-command-authority", "e14-session-receipt-recovery"):
+            self.assertEqual(plan.evidence_files(plan.bodies()[name]), [], name)
+
     def test_a_todomvc_plan_writes_only_the_workflow_output(self) -> None:
         done = subprocess.run(
             [sys.executable, str(SCRIPTS / "ci_plan.py"), "--shards", "1", "e14-todomvc"],

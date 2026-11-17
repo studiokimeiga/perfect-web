@@ -269,3 +269,39 @@ gates run on every branch push too.
   short.
 - **Merge on `just ci` alone.** No mutation control would run before a
   merge, so a test that kills nothing could land.
+
+## Amended 2026-11-17: a recipe's body as `just` runs it
+
+The planner holds a recipe's evidence current where every file the recipe
+writes names one commit and nothing it reads changed since. It finds those
+files in the recipe's body (`evidence_files`: a `>` or a `mv` to
+`docs/evidence/`), and a recipe whose body names none is planned wherever a
+change reaches it. Four were so, whatever a commit changed: a pull
+request's verify ran them again after its evidence fetch, which changes
+nothing they read. Since 2026-11-17 the owner has granted CI speed-ups that
+give up no gate.
+
+- **`e10-browser` (3,920 s) writes `> {{out}}`**, a parameter's default
+  (`out="docs/evidence/E10/browser-suite.txt"`), which the body as written
+  does not name. The planner now reads each recipe's body as `just NAME`
+  runs it (`bodies`): each parameter's default, unquoted, in place of its
+  `{{name}}`. A parameter with no default, or a variadic one, is left as
+  it is written. `e10-browser`'s evidence is read, and held current as
+  every other recipe's is. It runs no mutation script, so
+  `evidence_counts`, which reads the same files, has nothing to count
+  there. Held by `test_a_recipes_body_is_read_as_just_runs_it_its_defaults_in_place`
+  and two mutants in `e14-dealt-by-time` (the defaults not read, read with
+  their quotes).
+- **Not yet the three campaign recipes** (`e14-upload-authority`,
+  `e14-session-command-authority`, `e14-session-receipt-recovery`). Each
+  copies (`cp`) its console's report to its evidence file, and that
+  report's counts are the campaign's own: a verdict per control by its
+  identifier, and `controls=k/n, valid=..., restored=...`. Read as a copy,
+  their evidence would be held current, but `evidence_counts`, which reads
+  the same files (both feed one discovery authority), counts none of their
+  mutants. It would fail on them, and nothing would check that a committed
+  campaign's counts are its script's. They stay planned wherever reached,
+  as before. A test holds that the planner does not read their copies yet.
+  `evidence_counts` must first read a campaign's counts, and then the
+  planner a copy as it reads a move (NEXT item 8).
+
