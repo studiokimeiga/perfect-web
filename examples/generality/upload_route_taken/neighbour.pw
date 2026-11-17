@@ -1,0 +1,15 @@
+// @status: NEIGHBOUR
+// @invariant: upload_route_taken
+//
+// Another upload beside A-061's, at paths of its own, apart from each of
+// `PostImage`'s.
+
+module Banner
+
+upload Banner
+    route      "/uploads/banner"
+    serves     "/banners"
+    max_bytes  1_000_000
+    types      png
+    max_width  2048
+    max_height 512

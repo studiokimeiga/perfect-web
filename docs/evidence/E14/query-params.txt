@@ -1,23 +1,23 @@
 ADR-0309 - a page's query parameters are typed, and a GET form makes them
 
 produced by: just e14-query-params
-commit: 83ad1ab1f92c0bc4377dfc72df28643828771bb5
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43929087203 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6734ea7e5adedb90115a02c8db1d11e7d31fc860
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/44017699885 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
 
 == a route's query part, and what an address gives (compiler/pw-core/tests/routes.rs, uploads.rs)
 
-test a_route_names_each_parameter_once_and_nothing_else ... ok
 test a_query_part_ends_the_route_and_names_each_parameter_once ... ok
+test a_route_names_each_parameter_once_and_nothing_else ... ok
+test a_query_parameter_is_an_option_of_text ... ok
 test a_route_is_slash_and_segments ... ok
 test a_routes_parameter_is_text ... ok
-test a_query_parameter_is_an_option_of_text ... ok
+test one_route_is_one_pages ... ok
 test the_plan_carries_the_route ... ok
 test a_route_that_names_its_parameters_is_the_control ... ok
 test two_pages_of_one_name_are_told_apart_by_their_modules ... ok
-test one_route_is_one_pages ... ok
 test two_routes_that_differ_in_their_query_are_one ... ok
 test an_address_gives_only_what_its_route_names ... ok
 test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
@@ -26,29 +26,30 @@ test a_build_writes_each_upload_for_its_host ... ok
 test an_upload_that_states_its_limits_checks ... ok
 test an_uploads_paths_are_apart_from_each_other_as_the_host_holds_them ... ok
 test a_form_that_sends_a_file_posts_it_to_an_upload ... ok
-test its_clauses_are_an_uploads_alone ... ok
 test a_limit_is_a_literal_count ... ok
+test its_clauses_are_an_uploads_alone ... ok
+test each_upload_refusal_names_the_boundary_it_is_held_to ... ok
 test every_clause_is_stated ... ok
-test its_types_are_a_closed_set ... ok
 test its_paths_are_literal_paths ... ok
+test its_types_are_a_closed_set ... ok
 test two_uploads_are_at_two_paths ... ok
 test its_paths_are_no_pages ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.23s
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.33s
 
 == the host reads a query as a browser's form writes it, and moves a page by its path
 
 test tests::a_query_is_read_as_a_browsers_form_writes_it ... ok
 test tests::redirects::a_route_with_a_query_part_is_moved_by_its_path ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1225 filtered out; finished in 13.69s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1226 filtered out; finished in 13.34s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
 
 == the demo's search, in three engines (e2e/query.spec.mjs)
 
-  18 passed (14.0s)
+  18 passed (22.7s)
 
 == mutation controls (scripts/query_params_mutations.py)
 
-baseline (core): 23 passed, 0 failed
+baseline (core): 24 passed, 0 failed
 baseline (host): 3 passed, 0 failed
 baseline (browser): 6 passed, 0 failed
 a route's query part is not read [core]: KILLED (4 of 11 tests fail)
@@ -56,7 +57,7 @@ a query's parameter need not be an Option of text [core]: KILLED (1 of 11 tests 
 a link's query names anything [core]: KILLED (1 of 11 tests fail)
 a GET form's fields are not checked [core]: KILLED (1 of 11 tests fail)
 two routes that differ in their query are two [core]: KILLED (1 of 11 tests fail)
-an upload's path is compared with a page's whole route [core]: KILLED (1 of 23 tests fail)
+an upload's path is compared with a page's whole route [core]: KILLED (1 of 24 tests fail)
 a `+` is itself in a query [host]: KILLED (1 of 3 tests fail)
 the last of a name is taken [host]: KILLED (1 of 3 tests fail)
 bytes that are no UTF-8 are replaced [host]: KILLED (1 of 3 tests fail)

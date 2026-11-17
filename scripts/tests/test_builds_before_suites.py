@@ -156,10 +156,15 @@ DIRECTORIES = sorted(
 
 
 def run_full(
-    recipe: str, fail_at: int = 0, source: pathlib.Path = ROOT, fail_says: str = ""
+    recipe: str,
+    fail_at: int = 0,
+    source: pathlib.Path = ROOT,
+    fail_says: str = "",
+    unset: tuple[str, ...] = (),
 ) -> tuple[int, list[Call], str, dict[str, str]]:
     """`run`, and each evidence file the recipe left, by its path, with its
-    text. The `fail_at`th call says `fail_says` as it fails."""
+    text. The `fail_at`th call says `fail_says` as it fails; the variables
+    of `unset` are not set (a recipe run where no database is named)."""
     with tempfile.TemporaryDirectory(prefix="pw-builds-") as d:
         root = pathlib.Path(d)
         for directory in DIRECTORIES:
@@ -222,6 +227,8 @@ def run_full(
             PW_STORE_DATABASE_URL="postgresql://stand-in/store",
             PW_FEED_DATABASE_URL="postgresql://stand-in/feed",
         )
+        for name in unset:
+            env.pop(name, None)
         just = shutil.which("just")
         assert just, "just is required; this gate must not skip"
         out = subprocess.run(

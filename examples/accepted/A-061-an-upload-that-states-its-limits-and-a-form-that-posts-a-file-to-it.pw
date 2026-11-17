@@ -1,0 +1,43 @@
+// @corpus: accepted
+// @id: A-061
+// @category: an upload that states its limits, and a form that posts a file to it
+// @charter: §8.2, §9.2
+// @milestone: 14
+//
+// A declared upload (track `uploads`, ADR-0260; ADR-0440's L5), in the
+// module of its name: its route, where what it keeps is served, and each
+// limit a host holds a reader's file to, once and as literals, its bytes
+// no more than a host reads whole. Its paths are no page's and no other
+// upload's, and a form that sends a file posts it, as
+// multipart/form-data, to the upload's route. The declarations it
+// generates (`Claim`, `Ref`, `Kind`, `Attached` and `Error`, and `claim`,
+// `publish`, `discard`, `attached` and `src`) are its own. The control
+// for R-119 (a limit left out), R-120 (a route a page holds), R-121 (a
+// file posted where no upload takes it) and R-122 (a declaration that
+// emits a generated name).
+
+module PostImage
+
+upload PostImage
+    route      "/uploads/post-image"
+    serves     "/images"
+    max_bytes  5_000_000
+    types      png, jpeg, webp, gif
+    max_width  4096
+    max_height 4096
+
+page Attach() {
+    route     "/attach"
+    placement origin
+
+    view {
+        <title>Attach an image</title>
+        <main>
+            <h1>Attach an image</h1>
+            <form method="post" action="/uploads/post-image" enctype="multipart/form-data">
+                <label>Image <input type="file" name="image" accept="image/png,image/jpeg,image/webp,image/gif"></label>
+                <button type="submit">Attach</button>
+            </form>
+        </main>
+    }
+}

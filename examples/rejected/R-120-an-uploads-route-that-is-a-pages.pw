@@ -1,0 +1,33 @@
+// @corpus: rejected
+// @id: R-120
+// @category: an upload's route that is a page's
+// @rule: PW5602
+// @invariant: upload_route_taken
+// @charter: §8.2, §9.2
+// @milestone: 14
+// @expect-error: `Avatar` answers `/avatar`, its route, and so does the page `Profile`, at `/avatar`
+//
+// Track `uploads` (ADR-0260): a host answers an upload's paths before any
+// page's (ADR-0253's seam), so `Profile`, at the upload's route, would
+// never be served. A-061's upload takes its forms at
+// `/uploads/post-image`, a path no page has.
+
+module Avatar
+
+upload Avatar
+    route      "/avatar"
+    serves     "/avatars"
+    max_bytes  1_000_000
+    types      png, jpeg
+    max_width  512
+    max_height 512
+
+page Profile() {
+    route     "/avatar"
+    placement origin
+
+    view {
+        <title>Your avatar</title>
+        <main><h1>Your avatar</h1></main>
+    }
+}

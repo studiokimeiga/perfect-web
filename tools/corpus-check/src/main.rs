@@ -102,6 +102,11 @@ const ACCEPTED_CATEGORIES: &[&str] = &[
     // L2 (ADR-0395's ruling 4): the public form of an owned table, read by
     // every reader and written by its owner (A-060).
     "a public table read by anyone and written by its owner",
+    // Corpus C34 (L5's follow-up, ADR-0440): a declared upload and the form
+    // that posts to it (A-061), and a public table that keeps one as its
+    // asset (A-062), the controls of PW5601 to PW5605 and PW0371.
+    "an upload that states its limits, and a form that posts a file to it",
+    "a public table that keeps an upload as its asset, by a command that claims it once",
 ];
 
 /// Charter §16.2: "Create at least one minimal file for each".
@@ -267,6 +272,15 @@ const REJECTED_CATEGORIES: &[&str] = &[
     // L2 (ADR-0395's ruling 5): PW6920, beside its accepted control (A-050,
     // whose chores any reader writes, on purpose).
     "a table a reader's command writes that says nothing of who may write it",
+    // Corpus C34 (L5's follow-up): track `uploads`' PW5601, PW5602 and
+    // PW5603 (ADR-0260; R-119 to R-121, beside A-061), and ADR-0440's
+    // PW5604, PW5605 and PW0371 (R-122 to R-124, beside A-061 and A-062).
+    "an upload that states no limit on its bytes",
+    "an upload's route that is a page's",
+    "a form that sends a file where no upload takes it",
+    "a declaration that emits a name an upload generates",
+    "a command that claims an upload with no idempotency key",
+    "an asset held in a field that is not its upload's reference",
 ];
 
 /// Milestone 0 gate (charter §14 M0): ">= 10 accepted and 20 rejected".

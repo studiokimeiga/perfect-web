@@ -1,0 +1,21 @@
+// @status: NEIGHBOUR
+// @invariant: table_asset_malformed
+//
+// The same table keeping an image's address as text, with no asset.
+
+module Covers
+
+type Cover = Cover { id: Int, image: Option<String> }
+
+table Covers
+    row     Cover
+    key     id
+    bounded 100
+    written by anyone
+
+source CoverData
+    holds        Covers
+    transactions serializable
+    reads        strong
+    changes      none
+    sets         one_call

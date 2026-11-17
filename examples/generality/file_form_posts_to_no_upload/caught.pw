@@ -1,0 +1,25 @@
+// @status: GENERAL
+// @invariant: file_form_posts_to_no_upload
+//
+// Structurally different from R-121: the form posts to an upload's route,
+// another module's, and sends its file without
+// `enctype="multipart/form-data"`, in which a browser sends a file's name
+// and not its bytes.
+
+module generality.file_form_urlencoded
+
+page Retitle() {
+    route     "/retitle"
+    placement origin
+
+    view {
+        <title>Attach</title>
+        <main>
+            <h1>Attach</h1>
+            <form method="post" action="/uploads/post-image">
+                <label>Image <input type="file" name="image" accept="image/png"></label>
+                <button type="submit">Attach</button>
+            </form>
+        </main>
+    }
+}

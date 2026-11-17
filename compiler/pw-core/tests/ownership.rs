@@ -90,15 +90,19 @@ fn only_scarce_resources_are_affine() {
         let sigs = Signatures::build(&ws, &refs);
         let affine = acquired(&sigs);
         println!("{what}: affine by an acquiring producer: {affine:?}");
-        // A connection, a transaction, an imperative widget's handle, and the
-        // standard library's generic helpers over any resource. Anything new
-        // here is a visible change, which is the point of listing them.
+        // A connection, a transaction, an imperative widget's handle, the
+        // standard library's generic helpers over any resource, and an
+        // upload's claim (corpus C34's A-061, ADR-0440: its generated `claim`
+        // acquires it, the `FileUpload` of charter §7.7, which a command's
+        // transaction holds). Anything new here is a visible change, which
+        // is the point of listing them.
         for t in &affine {
             assert!(
                 [
                     "DatabaseConnection",
                     "DatabaseTransaction",
                     "MapHandle",
+                    "PostImage.Claim",
                     "R",
                     "T"
                 ]

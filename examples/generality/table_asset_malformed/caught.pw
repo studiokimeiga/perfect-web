@@ -1,0 +1,26 @@
+// @status: GENERAL
+// @invariant: table_asset_malformed
+//
+// Structurally different from R-124: the field is the exact reference,
+// and the table's source does not hold the upload (A-062's does), so no
+// one database commits a row and the image it names together.
+
+module Covers
+
+import PostImage
+
+type Cover = Cover { id: Int, image: Option<PostImage.Ref> }
+
+table Covers
+    row     Cover
+    key     id
+    bounded 100
+    asset   image from PostImage
+    written by anyone
+
+source CoverData
+    holds        Covers
+    transactions serializable
+    reads        strong
+    changes      none
+    sets         one_call

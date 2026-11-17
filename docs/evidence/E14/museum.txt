@@ -1,13 +1,13 @@
 ADR-0342 - the bug museum: each exhibit's bug shown in Next.js or SvelteKit, and Pleris's answer to it
 
 produced by: just e14-museum
-commit: 83ad1ab1f92c0bc4377dfc72df28643828771bb5
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43929087203 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 9effedb7ffa70fa3e6bbc824c8743d0f2ff46add
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/44017616689 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1  pnpm: 10.15.1
   @playwright/test   1.58.0  (benchmarks/harness)
-  @sveltejs/kit      2.70.3  (benchmarks/baselines/sveltekit)
-  next               16.4.1  (benchmarks/baselines/next-react)
+  @sveltejs/kit      2.70.4  (benchmarks/baselines/sveltekit)
+  next               16.4.5  (benchmarks/baselines/next-react)
   react              19.3.0  (benchmarks/baselines/next-react)
   svelte             5.57.1  (benchmarks/baselines/sveltekit)
   typescript         6.0.3  (benchmarks/baselines/next-react)
@@ -31,7 +31,7 @@ node: v22.21.1  pnpm: 10.15.1
    pleris, the same change: refused: error: [PW0338] `add_to_cart` is called by a page's handler, and declares no `idempotent_by`
    pleris, its neighbour: checks clean
    pleris, at runtime: passes: T08's hidden test on the Pleris store with `idempotent_by` (bench.mjs, replay:reference)
-     T08 pleris replay:reference: score 1, 2 line(s) changed -> benchmarks/results/T08-pleris-replay_reference-1794857114944.json
+     T08 pleris replay:reference: score 1, 2 line(s) changed -> benchmarks/results/T08-pleris-replay_reference-1794890792279.json
    => refused (diagnostic PW0338; runtime, ADR-0121's interaction per press, applied once)
 
 == H07-n-plus-one: One round trip per row: a page whose work grows with its list

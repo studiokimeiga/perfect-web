@@ -7,6 +7,17 @@ mod common;
 use pw_host::assets::{Descriptor, Namespace, Storage};
 use pw_table_postgres::{Options, PgTables, Uploads};
 use std::{collections::BTreeSet, io, sync::Mutex};
+
+/// **A refusal held to its reason** (L5a's review, finding L9): `result` is
+/// an error whose words, as its `Debug` shows them, hold `why`. A refusal for
+/// any other reason, or none, fails here.
+fn refused<T, E: std::fmt::Debug>(result: Result<T, E>, why: &str) {
+    let said = result.err().map(|e| format!("{e:?}"));
+    assert!(
+        said.as_deref().is_some_and(|said| said.contains(why)),
+        "a refusal saying {why:?}, where it said {said:?}"
+    );
+}
 #[derive(Default)]
 struct MarkerStore {
     names: Mutex<BTreeSet<Namespace>>,
@@ -175,17 +186,20 @@ fn missing_existing_marker_or_a_different_storage_root_refuses_without_schema_ch
     let db = open(&s, model("", false), &store, 1).assert_ok("fresh");
     let ns = db.upload_namespace().cloned().assert_ok("namespace");
     let hashes = s.texts("SELECT hash FROM pw_schema ORDER BY applied");
-    assert!(
+    refused(
         open(
             &s,
             model("caption", false),
             &Arc::new(MarkerStore::default()),
-            2
-        )
-        .is_err()
+            2,
+        ),
+        "upload storage namespace: missing namespace marker",
     );
     store.names.lock().unwrap().remove(&ns);
-    assert!(open(&s, model("caption", false), &store, 2).is_err());
+    refused(
+        open(&s, model("caption", false), &store, 2),
+        "upload storage namespace: missing namespace marker",
+    );
     assert_eq!(
         s.texts("SELECT hash FROM pw_schema ORDER BY applied"),
         hashes
@@ -230,7 +244,7 @@ fn an_unbound_manifest_cannot_remove_prior_asset_associations() {
     rehash(&mut unbound);
     let refused = PgTables::open(&url, s.schema(), unbound);
     assert!(
-        matches!(refused,Err(pw_table_postgres::Error::Schema(ref why)) if why.contains("upload")),
+        matches!(refused,Err(pw_table_postgres::Error::Schema(ref why)) if why.contains("recorded upload bindings have lost their enrollment metadata")),
         "prior upload metadata must be checked even with no asset clauses"
     );
     assert_eq!(
@@ -262,7 +276,10 @@ fn adding_an_asset_clause_to_an_existing_table_even_on_a_new_optional_field_refu
     let s = common::Scratch::new(&url, "asset_existing");
     let store = Arc::new(MarkerStore::default());
     open(&s, model("", false), &store, 1).assert_ok("fresh");
-    assert!(open(&s, model("image", false), &store, 2).is_err());
+    refused(
+        open(&s, model("image", false), &store, 2),
+        "new upload binding Assets.extra on an existing table needs explicit conversion/version fencing",
+    );
     assert_eq!(s.texts("SELECT count(*)::text FROM information_schema.columns WHERE table_schema=current_schema() AND column_name='extra'"),["0"]);
     assert_eq!(
         s.texts("SELECT count(*)::text FROM pw_asset_bindings"),
@@ -283,9 +300,9 @@ fn old_structural_reference_data_is_not_implicitly_enrolled_as_public_upload_aut
     rehash(&mut raw);
     let plain = PgTables::open(&url, s.schema(), raw).assert_ok("ordinary structural row schema");
     plain.transaction(|c|c.write("pw:tables/assets#insert",&[json!({"id":1,"alt":"ordinary data","image":{"key":"a".repeat(64),"generation":"b".repeat(32),"kind":"png","width":6,"height":4}})])).assert_ok("ordinary structural data");
-    assert!(
-        open(&s, model("", false), &store, 1).is_err(),
-        "existing Ref-shaped fields need explicit conversion beyond this seam"
+    refused(
+        open(&s, model("", false), &store, 1),
+        "new upload binding Assets.image on an existing table needs explicit conversion/version fencing",
     );
     assert_eq!(
         s.texts("SELECT count(*)::text FROM pw_asset_namespace"),
@@ -298,14 +315,23 @@ fn old_structural_reference_data_is_not_implicitly_enrolled_as_public_upload_aut
     assert_eq!(s.texts("SELECT count(*)::text FROM \"Assets\""), ["1"]);
 }
 #[test]
-fn failed_application_ddl_rolls_back_namespace_rows_but_keeps_the_storage_reservation() {
+/// **A refusal after the storage's reservation rolls the namespace's rows
+/// back and keeps the reservation**: an unmanaged table where the program's
+/// would be is refused inside the migration, once the storage has reserved
+/// the candidate, which a later open with it is refused, and a new candidate
+/// enrolls. (Named until 2026-11-17 for a failed DDL, which this fixture
+/// never reaches: the drift check refuses first, as its reason now says.)
+fn a_refusal_after_the_storage_reservation_rolls_back_namespace_rows_and_keeps_it() {
     let Some(url) = common::database() else {
         return;
     };
     let s = common::Scratch::new(&url, "asset_ddl_rollback");
     let store = Arc::new(MarkerStore::default());
     s.sql(&format!("CREATE SCHEMA \"{}\"; SET search_path TO \"{}\"; CREATE TABLE \"Assets\" (foreign_column bigint)",s.schema,s.schema)).assert_ok("unmanaged application table");
-    assert!(open(&s, model("", false), &store, 1).is_err());
+    refused(
+        open(&s, model("", false), &store, 1),
+        "and no schema is recorded there: it was made by something other than this adapter",
+    );
     assert!(
         store
             .names
@@ -320,9 +346,9 @@ fn failed_application_ddl_rolls_back_namespace_rows_but_keeps_the_storage_reserv
     );
     s.sql("DROP TABLE \"Assets\"")
         .assert_ok("remove unmanaged table");
-    assert!(
-        open(&s, model("", false), &store, 1).is_err(),
-        "the same physical namespace reservation is never reused"
+    refused(
+        open(&s, model("", false), &store, 1),
+        "upload storage namespace: namespace reserved",
     );
     open(&s, model("", false), &store, 2).assert_ok("new candidate after failed enrollment");
 }

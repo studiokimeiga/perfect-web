@@ -6,7 +6,10 @@ on:
   pull_request:
     branches: [master]
   push:
-    branches: [master]
+    # Every branch CI builds, not only a pull request's head (2026-11-17): L5
+    # lived on its branch for days with no pull request, so its first one
+    # found 122 new Ruff findings that none of its pushes had been shown.
+    branches: [master, "track/**", "wip/**"]
   schedule:
     - cron: "23 8 * * 1"
   workflow_dispatch:
@@ -15,7 +18,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: quality-${{ github.ref }}
+  # The event too: a dispatch on a branch would otherwise cancel that
+  # branch's push gate, which shows cancelled, not green (#128's review).
+  group: quality-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -38,8 +43,18 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: python3 scripts/quality_delta.py --base "$BASE_SHA"
+      # A branch's push, against where it left master: what its pull request
+      # would be refused for, before it has one.
+      - name: Refuse Ruff errors a branch introduces since master
+        if: github.event_name == 'push' && github.ref != 'refs/heads/master'
+        # The base on its own line: a merge base that cannot be found stops
+        # the step (bash -e), where a substitution inside the command would
+        # hand it an empty base.
+        run: |
+          base="$(git merge-base origin/master HEAD)"
+          python3 scripts/quality_delta.py --base "$base"
       - name: Report existing Ruff baseline
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && (github.event_name != 'push' || github.ref == 'refs/heads/master')
         continue-on-error: true
         run: ruff check --select E4,E7,E9,F --output-format github scripts research/failures/tools
 

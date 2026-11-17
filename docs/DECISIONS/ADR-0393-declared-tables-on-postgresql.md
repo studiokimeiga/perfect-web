@@ -446,6 +446,11 @@ measures them, the plan deals the two by seconds projected from that run
 (`ci_seconds.json`'s `_lower_bounds`). `e14-d3-postgres`'s listing of the
 test binaries names the three the script ran and it did not.
 
+Since the same day, three recipes: D3's own mutants in two halves
+(`e14-d3-postgres`, `e14-d3-postgres-2`) and the uploads' (`e14-d3-postgres-3`,
+which `e14-d3-postgres-2` was), as `e14-row-ownership` in three (ADR-0359,
+amended 2026-11-17).
+
 ## Next
 
 - The rulings' follow-ups, in their order: the server's `DataLayer` over

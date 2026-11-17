@@ -1,0 +1,16 @@
+// @status: GENERAL
+// @invariant: upload_malformed
+//
+// Structurally different from R-119: every clause stated, and its bytes'
+// limit past the most a host reads whole, an allocation anyone may ask
+// for.
+
+module Banner
+
+upload Banner
+    route      "/uploads/banner"
+    serves     "/banners"
+    max_bytes  100_000_001
+    types      png
+    max_width  2048
+    max_height 512

@@ -1,6 +1,27 @@
 //! Independent generic upload metadata/grant axes, before any callback is installed.
 use pw_host::{assets::*, *};
 use serde_json::{Value, json};
+
+/// **A refusal held to its reason** (L5a's review, finding L9): `result` is
+/// an error whose words, as its `Debug` shows them, hold `why`. A refusal for
+/// any other reason, or none, fails here.
+fn refused<T, E: std::fmt::Debug>(result: Result<T, E>, why: &str) {
+    let said = result.err().map(|e| format!("{e:?}"));
+    assert!(
+        said.as_deref().is_some_and(|said| said.contains(why)),
+        "a refusal saying {why:?}, where it said {said:?}"
+    );
+}
+
+/// [`refused`] for one case of a loop, whose failure names `case`: a loop's
+/// cases that share a reason are told apart (the follow-up's review, L3).
+fn refused_in<T, E: std::fmt::Debug>(case: &str, result: Result<T, E>, why: &str) {
+    let said = result.err().map(|e| format!("{e:?}"));
+    assert!(
+        said.as_deref().is_some_and(|said| said.contains(why)),
+        "{case}: a refusal saying {why:?}, where it said {said:?}"
+    );
+}
 fn declaration() -> Value {
     json!({"name":"PostImage","module":"PostImage","source":"PhotoData","route":"/uploads/post-image","serves":"/images","max_bytes":5000000,"types":["png","jpeg"],"max_width":4096,"max_height":4096})
 }
@@ -70,29 +91,40 @@ fn upload_operations_keep_independent_database_and_resource_grants_in_both_axes(
         let linked = gate_links(&contract, &actual, Some(&manifest), true).unwrap();
         assert_eq!(linked.len(), 1);
         assert_eq!(linked.values().next().unwrap().operation(), operation);
-        assert!(
-            gate_links(&contract, &actual, None, true).is_err(),
-            "unbound import {name}"
+        refused_in(
+            name,
+            gate_links(&contract, &actual, None, true),
+            "upload gate: generic uploads are not bound",
         );
         if name == "attached" {
             assert!(gate_links(&contract, &actual, Some(&manifest), false).is_ok());
         } else {
-            assert!(gate_links(&contract, &actual, Some(&manifest), false).is_err());
+            refused_in(
+                name,
+                gate_links(&contract, &actual, Some(&manifest), false),
+                "upload gate: claims link only into commands",
+            );
         }
         for i in 0..caps.len() {
             let mut missing = contract.clone();
             missing.required_capabilities.remove(i);
-            assert!(
-                gate_links(&missing, &actual, Some(&manifest), true).is_err(),
-                "missing contract axis {name} {}",
+            // A missing contract axis and a missing actual one are each
+            // told by the axis.
+            let why = format!(
+                "upload gate: {} is required in the contract and granted here",
                 caps[i]
+            );
+            refused_in(
+                &format!("{name}, its contract missing {}", caps[i]),
+                gate_links(&missing, &actual, Some(&manifest), true),
+                &why,
             );
             let mut reduced = caps.clone();
             reduced.remove(i);
-            assert!(
-                gate_links(&contract, &grants(&reduced), Some(&manifest), true).is_err(),
-                "missing actual axis {name} {}",
-                caps[i]
+            refused_in(
+                &format!("{name}, its grant missing {}", caps[i]),
+                gate_links(&contract, &grants(&reduced), Some(&manifest), true),
+                &why,
             );
         }
     }
@@ -106,33 +138,49 @@ fn unused_or_forged_upload_imports_do_not_define_their_own_meaning() {
     ];
     let actual = grants(&caps);
     let valid = json!({"interface":"pw:uploads/post-image","name":"claim","capability":caps[0]});
-    for (field, value) in [
-        ("interface", json!("pw:uploads/other")),
-        ("name", json!("src")),
-        ("capability", json!("database.read<Other>")),
-        ("kind", json!("component")),
+    for (field, value, why) in [
+        (
+            "interface",
+            json!("pw:uploads/other"),
+            "upload gate: no declaration for pw:uploads/other",
+        ),
+        (
+            "name",
+            json!("src"),
+            "upload gate: no operation pw:uploads/post-image#src",
+        ),
+        (
+            "capability",
+            json!("database.read<Other>"),
+            "upload gate: import claims another declaration's capability",
+        ),
+        (
+            "kind",
+            json!("component"),
+            "upload gate: operation is not a platform import",
+        ),
     ] {
         let mut import = valid.clone();
         import[field] = value;
-        assert!(
+        refused_in(
+            field,
             gate_links(
                 &contract(json!([import]), &caps),
                 &actual,
                 Some(&manifest),
-                true
-            )
-            .is_err(),
-            "{field}"
+                true,
+            ),
+            why,
         );
     }
-    assert!(
+    refused(
         gate_links(
             &contract(json!([valid.clone(), valid]), &caps),
             &actual,
             Some(&manifest),
-            true
-        )
-        .is_err()
+            true,
+        ),
+        "upload gate: operation imported twice",
     );
     assert!(
         gate_links(&contract(json!([]), &[]), &grants(&[]), None, false)
@@ -144,37 +192,47 @@ fn unused_or_forged_upload_imports_do_not_define_their_own_meaning() {
 fn upload_metadata_rejects_legacy_identity_aliases_bad_limits_and_ambiguous_paths() {
     let valid = declaration();
     assert!(Manifest::from_json(&json!([valid.clone()]).to_string()).is_ok());
-    for (field, value) in [
-        ("module", Value::Null),
-        ("source", Value::Null),
-        ("module", json!("Other")),
-        ("types", json!(["png", "png"])),
-        ("types", json!(["svg"])),
-        ("max_bytes", json!(0)),
-        ("max_width", json!(0)),
-        ("route", json!("/../outside")),
-        ("serves", json!("/uploads/post-image")),
+    let module = "PostImage is not a generic upload in its own module and explicit source";
+    let limits = "PostImage has invalid upload limits or kinds";
+    let paths = "PostImage has ambiguous or invalid upload paths";
+    for (field, value, why) in [
+        ("module", Value::Null, module),
+        ("source", Value::Null, module),
+        ("module", json!("Other"), module),
+        ("types", json!(["png", "png"]), limits),
+        ("types", json!(["svg"]), limits),
+        ("max_bytes", json!(0), limits),
+        ("max_width", json!(0), limits),
+        ("route", json!("/../outside"), paths),
+        ("serves", json!("/uploads/post-image"), paths),
     ] {
+        let case = format!("{field} {value}");
         let mut bad = valid.clone();
         bad[field] = value;
-        assert!(
-            Manifest::from_json(&json!([bad]).to_string()).is_err(),
-            "{field}"
-        );
+        refused_in(&case, Manifest::from_json(&json!([bad]).to_string()), why);
     }
     let mut alias = valid.clone();
     alias["name"] = json!("Post_Image");
     alias["module"] = json!("Post_Image");
     alias["route"] = json!("/uploads/alias");
     alias["serves"] = json!("/alias");
-    assert!(Manifest::from_json(&json!([valid.clone(), alias]).to_string()).is_err());
+    refused(
+        Manifest::from_json(&json!([valid.clone(), alias]).to_string()),
+        "uploads.json repeats an upload declaration identity",
+    );
     let mut other = valid.clone();
     other["name"] = json!("Avatar");
     other["module"] = json!("Avatar");
     other["route"] = json!("/uploads/avatar");
-    assert!(Manifest::from_json(&json!([valid.clone(), other.clone()]).to_string()).is_err());
+    refused(
+        Manifest::from_json(&json!([valid.clone(), other.clone()]).to_string()),
+        "uploads.json has overlapping upload paths",
+    );
     other["serves"] = json!("/images/avatar");
-    assert!(Manifest::from_json(&json!([valid.clone(), other.clone()]).to_string()).is_err());
+    refused(
+        Manifest::from_json(&json!([valid.clone(), other.clone()]).to_string()),
+        "uploads.json has overlapping upload paths",
+    );
     other["serves"] = json!("/avatars");
     assert!(Manifest::from_json(&json!([valid, other]).to_string()).is_ok());
 }
@@ -186,30 +244,40 @@ fn reference_shape_is_whole_data_and_declaration_limits_do_not_grant_a_lease() {
         json!({"key":"a".repeat(64),"generation":"b".repeat(32),"kind":"png","width":6,"height":4});
     let reference = Reference::from_value(&valid).unwrap();
     assert!(declaration.validate_reference(&reference).is_ok());
-    for (field, value) in [
-        ("key", json!("A".repeat(64))),
-        ("generation", json!("../escape")),
-        ("kind", json!("Png")),
-        ("width", json!(0)),
-        ("height", json!(-1)),
-        ("alt", json!("extra")),
+    let shape = "asset reference has invalid hash, generation, kind or dimensions";
+    for (field, value, why) in [
+        ("key", json!("A".repeat(64)), shape),
+        ("generation", json!("../escape"), shape),
+        ("kind", json!("Png"), shape),
+        ("width", json!(0), shape),
+        (
+            "height",
+            json!(-1),
+            "invalid value: integer `-1`, expected u32",
+        ),
+        ("alt", json!("extra"), "unknown field `alt`"),
     ] {
+        let case = format!("{field} {value}");
         let mut bad = valid.clone();
         bad[field] = value;
-        assert!(Reference::from_value(&bad).is_err(), "{field}");
+        refused_in(&case, Reference::from_value(&bad), why);
     }
     for (field, value) in [("kind", json!("gif")), ("width", json!(4097))] {
+        let case = format!("{field} {value}");
         let mut bad = valid.clone();
         bad[field] = value;
-        assert!(
-            declaration
-                .validate_reference(&Reference::from_value(&bad).unwrap())
-                .is_err()
+        refused_in(
+            &case,
+            declaration.validate_reference(&Reference::from_value(&bad).unwrap()),
+            "PostImage reference exceeds its declared kind or dimensions",
         );
     }
     let mut missing = valid;
     missing.as_object_mut().unwrap().remove("generation");
-    assert!(Reference::from_value(&missing).is_err());
+    refused(
+        Reference::from_value(&missing),
+        "invalid asset reference: missing field `generation`",
+    );
 }
 
 #[test]
@@ -222,9 +290,10 @@ fn the_host_rejects_a_forged_declaration_above_the_compilers_whole_body_ceiling(
     for bytes in [100_000_001, u64::MAX] {
         let mut bad = declaration();
         bad["max_bytes"] = json!(bytes);
-        assert!(
-            Manifest::from_json(&json!([bad]).to_string()).is_err(),
-            "forged upload ceiling {bytes}"
+        refused_in(
+            &format!("max_bytes {bytes}"),
+            Manifest::from_json(&json!([bad]).to_string()),
+            "PostImage has invalid upload limits or kinds",
         );
     }
 }
@@ -233,9 +302,10 @@ fn upload_wire_paths_use_the_compilers_literal_path_domain() {
     for path in ["/Images", "/images:private", "/imagés", "/a.b"] {
         let mut bad = declaration();
         bad["serves"] = json!(path);
-        assert!(
-            Manifest::from_json(&json!([bad]).to_string()).is_err(),
-            "{path}"
+        refused_in(
+            path,
+            Manifest::from_json(&json!([bad]).to_string()),
+            "PostImage has ambiguous or invalid upload paths",
         );
     }
     let mut good = declaration();
@@ -257,13 +327,15 @@ fn versioned_and_bare_upload_namespaces_cannot_escape_declaration_admission() {
             json!([{"interface":interface,"name":"attached","capability":caps[0]}]),
             &caps,
         );
-        assert!(
-            gate_links(&contract, &actual, Some(&manifest), false).is_err(),
-            "{interface}"
+        refused_in(
+            interface,
+            gate_links(&contract, &actual, Some(&manifest), false),
+            &format!("upload gate: no declaration for {interface}"),
         );
-        assert!(
-            gate_links(&contract, &actual, None, false).is_err(),
-            "unbound {interface}"
+        refused_in(
+            interface,
+            gate_links(&contract, &actual, None, false),
+            "upload gate: generic uploads are not bound",
         );
     }
 }

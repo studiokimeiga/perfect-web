@@ -1,0 +1,18 @@
+// @status: GENERAL
+// @invariant: upload_identity_taken
+//
+// Structurally different from R-122: a type, `Src`, whose emitted name is
+// `src`, the generated operation's, where R-122's function took a
+// generated type's.
+
+module Banner
+
+upload Banner
+    route      "/uploads/banner"
+    serves     "/banners"
+    max_bytes  1_000_000
+    types      png
+    max_width  2048
+    max_height 512
+
+type Src = Src { url: String }

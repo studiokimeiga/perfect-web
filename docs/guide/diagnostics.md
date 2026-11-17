@@ -14,7 +14,7 @@ code the compiler can emit, from its registry, `compiler/pw-core/src/codes.rs`.
 - **What the program must hold to**: the registry's own sentence.
 - **ADR**: the decisions its registry entry cites, where it cites one.
 
-231 codes are registered; 105 of them cite an ADR in the registry.
+234 codes are registered; 108 of them cite an ADR in the registry.
 A code whose entry cites none is marked `—`: search `docs/DECISIONS/` for its
 number or its symbol.
 
@@ -97,6 +97,7 @@ number or its symbol.
 | PW0365 | `refers_across_sources` | a reference to a table another source holds is held by no database: the referred row may be missing, which `get` answers as `None` | — |
 | PW0366 | `migration_unstated` | a change from the schema released that loses or reinterprets data is stated by a `migrate`, and each `migrate` states one | — |
 | PW0370 | `owner_names_a_principal` | `owned by` names one field of an owned table's row holding a principal's id (`capability.UserId`), and `shares with` others, never its owner, each once; a `public` table, read by every reader, shares with no one, and `public` is the one word a table is declared with | [0384](../DECISIONS/ADR-0384-a-dating-app.md), [0406](../DECISIONS/ADR-0406-a-command-says-who-may-run-it.md), [0395](../DECISIONS/ADR-0395-owned-tables.md) |
+| PW0371 | `table_asset_malformed` | a table keeps an upload only as an asset of a public table: one top-level field of its row, holding the exact generated reference of a public upload its source holds, associated once, and never a claim | [0440](../DECISIONS/ADR-0440-protected-feed-store.md) |
 | PW0368 | `owned_read_by_its_reader` | an owned table's key leads with its owner, and one that is not `public` is read by its reader alone: each index leads with its owner or a field it shares with, a unique index holds its owner, no bound counts its rows across owners, and it is never read whole | [0395](../DECISIONS/ADR-0395-owned-tables.md) |
 | PW0369 | `private_field_unseen` | a private field is read by its owner alone: a field of an owned table's row that is not `public`, never its owner, a field it shares with, in its key, its order where it shares, or an index another reads by; and its seen row is the table's own name | — |
 | PW0327 | `written_rollback` | an optimistic transition's reversal is derived, not written | [0025](../DECISIONS/ADR-0025-an-optimistic-clause-targets-a-resource-entry.md) |
@@ -301,9 +302,11 @@ number or its symbol.
 
 | Code | Symbol | What the program must hold to | ADR |
 |---|---|---|---|
-| PW5601 | `upload_malformed` | an upload states its route, where it is served, and each of its limits, once and as literals | [0253](../DECISIONS/ADR-0253-two-tracks-are-built-in-parallel-each-in-files-of-its-own.md), [0260](../DECISIONS/ADR-0260-an-image-on-a-post-a-typed-upload-served-safely.md) |
+| PW5601 | `upload_malformed` | an upload states its route, where it is served, and each of its limits, once and as literals, none past what a host reads whole | [0253](../DECISIONS/ADR-0253-two-tracks-are-built-in-parallel-each-in-files-of-its-own.md), [0260](../DECISIONS/ADR-0260-an-image-on-a-post-a-typed-upload-served-safely.md) |
 | PW5602 | `upload_route_taken` | an upload's paths are its own: no page's, and no other upload's | — |
 | PW5603 | `file_form_posts_to_no_upload` | a form that sends a file posts it, as multipart/form-data, to an upload the program declares | — |
+| PW5604 | `upload_identity_taken` | an upload's emitted interface and generated declarations are its own: no other upload's or declaration's | [0440](../DECISIONS/ADR-0440-protected-feed-store.md) |
+| PW5605 | `upload_claim_not_idempotent` | a command that claims or releases an upload declares `idempotent_by` | [0440](../DECISIONS/ADR-0440-protected-feed-store.md) |
 
 ## Todomvc
 

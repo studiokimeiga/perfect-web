@@ -1,8 +1,8 @@
 E10 - the store page, compiled commands and handlers, in browser engines: chromium firefox webkit
 
 produced by: just e10-browser "chromium firefox webkit" docs/evidence/E10/browser-suite.txt
-commit: bc7c6b465b2ff4b7cbdcee04c3743742451c945e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/44004739300 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 9effedb7ffa70fa3e6bbc824c8743d0f2ff46add
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/44017616689 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 playwright: Version 1.58.0
 
 == run 1 of 3
@@ -44,7 +44,7 @@ EVIDENCE colour (webkit): real.jpg does not render by its profile: as sent and a
 EVIDENCE colour (webkit): real.png does not render by its profile: as sent and as served [51,85,128,255], without a profile [51,85,128,255]
 EVIDENCE colour (webkit): real.webp does not render by its profile: as sent and as served [19,29,123,160], without a profile [19,29,123,160]
   24 skipped
-  1452 passed (21.9m)
+  1452 passed (21.7m)
 == run 2 of 3
 EVIDENCE localStorage limit (chromium): 5242880 UTF-16 code units
 EVIDENCE static-route-script-bytes=0 wasm-bytes=0
@@ -84,7 +84,7 @@ EVIDENCE colour (webkit): real.jpg does not render by its profile: as sent and a
 EVIDENCE colour (webkit): real.png does not render by its profile: as sent and as served [51,85,128,255], without a profile [51,85,128,255]
 EVIDENCE colour (webkit): real.webp does not render by its profile: as sent and as served [19,29,123,160], without a profile [19,29,123,160]
   24 skipped
-  1452 passed (21.9m)
+  1452 passed (21.8m)
 == run 3 of 3
 EVIDENCE localStorage limit (chromium): 5242880 UTF-16 code units
 EVIDENCE static-route-script-bytes=0 wasm-bytes=0
@@ -124,4 +124,4 @@ EVIDENCE colour (webkit): real.jpg does not render by its profile: as sent and a
 EVIDENCE colour (webkit): real.png does not render by its profile: as sent and as served [51,85,128,255], without a profile [51,85,128,255]
 EVIDENCE colour (webkit): real.webp does not render by its profile: as sent and as served [19,29,123,160], without a profile [19,29,123,160]
   24 skipped
-  1452 passed (21.7m)
+  1452 passed (21.6m)

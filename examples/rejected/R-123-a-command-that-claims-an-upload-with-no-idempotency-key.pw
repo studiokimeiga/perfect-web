@@ -1,0 +1,28 @@
+// @corpus: rejected
+// @id: R-123
+// @category: a command that claims an upload with no idempotency key
+// @rule: PW5605
+// @invariant: upload_claim_not_idempotent
+// @charter: §7.7, §9.5
+// @milestone: 14
+// @expect-error: `attach` acquires or releases a generic upload claim and requires idempotent_by
+//
+// ADR-0440's L5b: a claim on an upload is a resource its command's
+// transaction holds, settled by the command's interaction: a commit whose
+// outcome is unknown is reconciled from that interaction's record.
+// `attach` claims the image the reader attached and publishes it, and
+// declares no `idempotent_by`, so no interaction names its attempt.
+// A-062's `keep` declares one.
+
+module photos.attach
+
+import PostImage
+import context.{ current_session }
+
+command attach() -> Result<PostImage.Ref, PostImage.Error>
+    requires    Anyone
+    transaction serializable
+{
+    let claim = PostImage.claim(current_session())?
+    PostImage.publish(current_session(), claim)
+}

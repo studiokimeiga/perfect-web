@@ -460,3 +460,15 @@ the same `staleTimes { dynamic: 0, static: 300 }` (finding 7, read in its
 reports 5 exhibits, 5 refused, 0 missed and 0 not as expected, J01's stale
 page shown on 16.4.1 and its repair holding there, and 4 of 4 controls
 killed. Finding 9's vercel/next.js#99028 was not read again for 16.4.1.
+
+## Amended, 2026-11-17: the museum on Next.js 16.4.5 and SvelteKit 2.70.4
+
+The baselines moved to next 16.4.5 and @sveltejs/kit 2.70.4 for the
+advisories they fix ([ADR-0120](ADR-0120-three-stores-one-contract.md),
+amended). 16.4.5's defaults are still `staleTimes { dynamic: 0, static: 300
+}` (finding 7, `config-shared.ts` at v16.4.5), and `unstable-cache.ts` and
+`implicit-tags.ts` are byte for byte 16.4.1's (the same git blobs), so T09's
+reading holds. The museum, run at `8d74ea29` (verify
+[44009052256](https://github.com/studiokimeiga/perfect-web/actions/runs/44009052256)),
+reports 5 exhibits, 5 refused, 0 missed and 0 not as expected, each stack's
+bug shown and its repair holding, and 4 of 4 controls killed.

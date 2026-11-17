@@ -1,0 +1,80 @@
+// @corpus: accepted
+// @id: A-062
+// @category: a public table that keeps an upload as its asset, by a command that claims it once
+// @charter: §7.7, §7.8, §9.2, §9.5
+// @milestone: 14
+//
+// A table keeps an upload's committed image as a public asset (ADR-0440's
+// L5): one top-level field of its row, `Option<PostImage.Ref>`, the exact
+// reference A-061's upload generates, associated once (`asset image from
+// PostImage`), in a table no one owns, whose source holds the upload too.
+// `keep` claims the image the reader attached, publishes it and puts the
+// row that names it, in one transaction, and declares `idempotent_by`: a
+// claim is settled by its command's interaction, and a commit whose
+// outcome is unknown is reconciled from that interaction's record.
+// `Image` reads a row's reference for any reader. The control for R-123
+// (a claim with no key) and R-124 (an asset in a field that holds no
+// reference).
+
+module Photos
+
+import PostImage
+import context.{ current_session }
+import capability.{ Session, SessionId }
+
+opaque type InteractionId = String
+
+type Photo = Photo { id: Int, image: Option<PostImage.Ref>, alt: String }
+
+table Photos
+    row     Photo
+    key     id
+    bounded 100
+    asset   image from PostImage
+    written by anyone
+
+source PhotoData
+    holds        PostImage, Photos
+    transactions serializable
+    reads        strong
+    changes      none
+    sets         one_call
+
+command keep(id: Int, alt: String) -> Result<Int, PostImage.Error>
+    requires      Anyone
+    idempotent_by InteractionId
+    invalidates   Attached(current_session()), Image(id)
+    transaction   serializable
+{
+    let claim = PostImage.claim(current_session())?
+    let image = PostImage.publish(current_session(), claim)?
+    let saved = Photos.put(Photo { id: id, image: Some(image), alt: alt })
+    Ok(id)
+}
+
+session query Attached(session: Session<SessionId>) -> List<PostImage.Attached>
+    freshness     0.seconds
+    consistency   read_your_writes
+    cache         private
+    key           session
+    concurrency   one_per_key
+    on_key_change cancel
+    timeout       2.seconds
+{
+    PostImage.attached(session)
+}
+
+public query Image(id: Int) -> Option<PostImage.Ref>
+    freshness     0.seconds
+    consistency   snapshot
+    cache         shared
+    key           id
+    concurrency   one_per_key
+    on_key_change cancel
+    timeout       2.seconds
+{
+    match Photos.get(id) {
+        Some(photo) => photo.image,
+        None => None,
+    }
+}
