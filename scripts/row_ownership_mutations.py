@@ -234,7 +234,7 @@ MUTANTS = [
     # Charter §16.3's boundary of each refusal (the L5 corpus, 2026-11-17:
     # these named none): its note dropped.
     ('upload interface collision names no other upload', ROOT / 'compiler/pw-core/src/uploads/declared.rs',
-     '                    if o.kind == DeclKind::Upload && o.name == other.name {', '                    if o.kind == DeclKind::Upload && o.name == other.name && false {'),
+     '                        && read(o).is_some()\n                    {', '                        && read(o).is_some()\n                        && false\n                    {'),
     ('upload generated identity collision names no declaration of the program', ROOT / 'compiler/pw-core/src/uploads/declared.rs',
      '                format!("`{}` is declared here, and emits `{identity}`", decl.name),\n            )];', '                format!("`{}` is declared here, and emits `{identity}`", decl.name),\n            )][..0].to_vec();'),
     ('upload claim without idempotency names no upload', ROOT / 'compiler/pw-core/src/uploads/declared.rs',

@@ -219,24 +219,28 @@ fn malformed(hir: &Hir, out: &mut Vec<Diagnostic>) {
         // 2026-11-17: it named none): where the upload takes a reader's
         // file, which the clause bounds, or its name where it states no
         // route either.
-        let takes = decl.policy("route").map_or_else(
-            || {
-                Related::new(
-                    decl.name_span.clone(),
-                    format!("the upload `{}`", decl.name),
-                )
-            },
-            |p| {
-                Related::new(
-                    p.span.clone(),
-                    format!(
-                        "`{}` takes a reader's file at `{}`",
-                        decl.name,
-                        unquoted(&p.value)
-                    ),
-                )
-            },
-        );
+        // A route that is itself refused takes nothing (its review, L2).
+        let takes = decl
+            .policy("route")
+            .filter(|p| literal_path(unquoted(&p.value)))
+            .map_or_else(
+                || {
+                    Related::new(
+                        decl.name_span.clone(),
+                        format!("the upload `{}`", decl.name),
+                    )
+                },
+                |p| {
+                    Related::new(
+                        p.span.clone(),
+                        format!(
+                            "`{}` takes a reader's file at `{}`",
+                            decl.name,
+                            unquoted(&p.value)
+                        ),
+                    )
+                },
+            );
         for head in CLAUSES {
             if decl.policy(head).is_none() {
                 out.push(diagnostic(
@@ -281,10 +285,9 @@ fn malformed(hir: &Hir, out: &mut Vec<Diagnostic>) {
                     p.value.trim()
                 ),
                 p.span.clone(),
-                vec![Related::new(
-                    at.clone(),
-                    format!("the upload `{}`", decl.name),
-                )],
+                // Where the host reads that form whole (its review, L2: the
+                // upload's whole declaration named no boundary).
+                vec![takes.clone()],
                 "A development host reads an upload's form whole before it keeps it, so its \
                  limit is an allocation anyone may ask for.",
                 format!("write `max_bytes` at most `{MOST_BYTES}`"),
@@ -321,9 +324,21 @@ fn malformed(hir: &Hir, out: &mut Vec<Diagnostic>) {
                     "upload_too_large",
                     format!("`{head} {}` is more than any image's", p.value.trim()),
                     p.span.clone(),
-                    vec![Related::new(
-                        at.clone(),
-                        format!("the upload `{}`", decl.name),
+                    // The kinds it takes, whose images are no larger (its
+                    // review, L2: the whole declaration named no boundary).
+                    vec![decl.policy("types").map_or_else(
+                        || takes.clone(),
+                        |t| {
+                            Related::new(
+                                t.span.clone(),
+                                format!(
+                                    "`{}` takes `{}`, each kind's width and height at most {}",
+                                    decl.name,
+                                    t.value.trim(),
+                                    u32::MAX
+                                ),
+                            )
+                        },
                     )],
                     "An image's width and height are each at most 2³²−1 in every format \
                      an upload may be.",
@@ -464,7 +479,7 @@ fn taken(hirs: &[&Hir], unit: usize, out: &mut Vec<Diagnostic>) {
                     (Some((route, page)), _) => (
                         format!("the page `{}`, at `{route}`", page.name),
                         page,
-                        format!("the page `{}` is served at `{route}`", page.name),
+                        format!("the page `{}`'s route is `{route}`", page.name),
                     ),
                     (None, Some(other)) => (
                         format!("the upload `{}`", other.name),

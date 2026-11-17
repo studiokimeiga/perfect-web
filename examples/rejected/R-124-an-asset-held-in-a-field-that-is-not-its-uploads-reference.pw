@@ -10,9 +10,9 @@
 // ADR-0440's L5: a table keeps an upload's committed image only as the
 // reference the upload generates, `PostImage.Ref`, public by
 // construction, naming one stored generation. `Covers` associates
-// `image`, a `String`, with A-061's upload, so its rows would hold as an
-// image whatever text a command writes there. A-062's `Photos` holds an
-// `Option<PostImage.Ref>`.
+// `image`, an `Option<String>`, with A-061's upload, so its rows would hold
+// as an image whatever text a command writes there. A-062's `Photos` holds
+// an `Option<PostImage.Ref>`.
 
 module Covers
 

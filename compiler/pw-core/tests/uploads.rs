@@ -394,67 +394,142 @@ fn an_uploads_paths_are_apart_from_each_other_as_the_host_holds_them() {
     assert_eq!(uploads(&apart), Vec::<String>::new());
 }
 
-/// **Each refusal names the boundary it is held to** (charter §16.3): a
-/// clause left out, where the upload takes a reader's file; a limit past a
-/// host's, the upload; a path another holds, the page or upload holding it.
-/// The L5 corpus (2026-11-17) found these with no related note at all.
+/// **Each refusal names the boundary it is held to** (charter §16.3), in the
+/// file it is written in and at the text that is it: a clause left out, and a
+/// size past what a host reads whole, where the upload takes a reader's file;
+/// an image's size past any, the kinds it takes; a path another holds, the
+/// page or upload holding it, in another file where it is declared there. The
+/// L5 corpus (2026-11-17) found these with no related note at all; its review
+/// (M2) found nothing held a note's file or span.
 #[test]
 fn each_upload_refusal_names_the_boundary_it_is_held_to() {
-    let notes = |src: &str, says: &str| -> Vec<String> {
-        let found: Vec<_> = check_sources(&program(src))
-            .into_iter()
-            .filter(|(path, _)| path == "m.pw")
-            .flat_map(|(_, ds)| ds)
-            .filter(|d| d.message.contains(says))
-            .collect();
-        assert!(!found.is_empty(), "no refusal saying {says:?}");
-        found
-            .into_iter()
-            .flat_map(|d| d.related.into_iter().map(|r| r.label))
-            .collect()
-    };
-    let second = |route: &str, serves: &str| {
+    // Each refusal of `in` that says `says`: each note's label, its file (the
+    // refusal's own where none), and the text its span covers.
+    let notes =
+        |files: &[(&str, &str)], within: &str, says: &str| -> Vec<(String, String, String)> {
+            let mut sources = program(files[0].1);
+            sources.extend(
+                files[1..]
+                    .iter()
+                    .map(|(n, s)| (n.to_string(), s.to_string())),
+            );
+            let text = |file: &str| {
+                sources
+                    .iter()
+                    .find(|(n, _)| n == file)
+                    .map(|(_, s)| s.clone())
+                    .unwrap_or_else(|| panic!("no file {file}"))
+            };
+            let found: Vec<_> = check_sources(&sources)
+                .into_iter()
+                .filter(|(path, _)| path == within)
+                .flat_map(|(_, ds)| ds)
+                .filter(|d| d.message.contains(says))
+                .collect();
+            assert!(!found.is_empty(), "no refusal in {within} saying {says:?}");
+            found
+                .into_iter()
+                .flat_map(|d| d.related)
+                .map(|r| {
+                    let file = r.file.clone().unwrap_or_else(|| within.to_string());
+                    let at = text(&file)[r.span.clone()].to_string();
+                    (r.label, file, at)
+                })
+                .collect()
+        };
+    let avatar = |route: &str, serves: &str| {
         format!(
-            "{PROGRAM}\nupload Avatar\n    route      \"{route}\"\n    serves     \"{serves}\"\n    \
+            "module Avatar\n\nupload Avatar\n    route      \"{route}\"\n    serves     \"{serves}\"\n    \
              max_bytes  1000\n    types      png\n    max_width  64\n    max_height 64\n"
         )
     };
-    for (src, says, note) in [
+    let elsewhere = "module elsewhere\n\npage Elsewhere() {\n    route     \"/uploads/post-image\"\n    \
+                     placement origin\n\n    view {\n        <title>Elsewhere</title>\n        \
+                     <main><h1>Elsewhere</h1></main>\n    }\n}\n";
+    let left_out = PROGRAM.replace("    max_bytes  5_000_000\n", "");
+    let too_large = PROGRAM.replace("5_000_000", "100_000_001");
+    let too_wide = PROGRAM.replace("max_width  4096", "max_width  4294967296");
+    let taken_here = PROGRAM.replace("\"/about\"", "\"/uploads/post-image\"");
+    let other_route = avatar("/uploads/post-image", "/avatars");
+    let under = avatar("/uploads/avatar", "/images/avatar");
+    let unrouted = PROGRAM
+        .replace("    max_bytes  5_000_000\n", "")
+        .replace("\"/uploads/post-image\"", "\"/Uploads/{id}\"");
+    for (files, within, says, note, file, at) in [
         (
-            PROGRAM.replace("    max_bytes  5_000_000\n", ""),
+            vec![("m.pw", left_out.as_str())],
+            "m.pw",
             "states no `max_bytes`",
             "`PostImage` takes a reader's file at `/uploads/post-image`",
+            "m.pw",
+            "route      \"/uploads/post-image\"",
+        ),
+        // A route itself refused takes nothing: the upload's name, then.
+        (
+            vec![("m.pw", unrouted.as_str())],
+            "m.pw",
+            "states no `max_bytes`",
+            "the upload `PostImage`",
+            "m.pw",
+            "PostImage",
         ),
         (
-            PROGRAM.replace("5_000_000", "100_000_001"),
+            vec![("m.pw", too_large.as_str())],
+            "m.pw",
             "the most a host reads whole",
-            "the upload `PostImage`",
+            "`PostImage` takes a reader's file at `/uploads/post-image`",
+            "m.pw",
+            "route      \"/uploads/post-image\"",
         ),
         (
-            PROGRAM.replace("max_width  4096", "max_width  4294967296"),
+            vec![("m.pw", too_wide.as_str())],
+            "m.pw",
             "is more than any image's",
-            "the upload `PostImage`",
+            "`PostImage` takes `png, jpeg, webp, gif`, each kind's width and height at most 4294967295",
+            "m.pw",
+            "types      png, jpeg, webp, gif",
         ),
         (
-            PROGRAM.replace("\"/about\"", "\"/uploads/post-image\""),
+            vec![("m.pw", taken_here.as_str())],
+            "m.pw",
             "and so does the page `About`",
-            "the page `About` is served at `/uploads/post-image`",
+            "the page `About`'s route is `/uploads/post-image`",
+            "m.pw",
+            "route     \"/uploads/post-image\"",
         ),
+        // The page in another file: the note is in its file.
         (
-            second("/uploads/post-image", "/avatars"),
+            vec![("m.pw", PROGRAM), ("elsewhere.pw", elsewhere)],
+            "m.pw",
+            "and so does the page `Elsewhere`",
+            "the page `Elsewhere`'s route is `/uploads/post-image`",
+            "elsewhere.pw",
+            "route     \"/uploads/post-image\"",
+        ),
+        // Another upload, in another file: refused there, noted here.
+        (
+            vec![("m.pw", PROGRAM), ("avatar.pw", other_route.as_str())],
+            "avatar.pw",
             "and so does the upload `PostImage`",
             "the upload `PostImage` answers `/uploads/post-image`",
+            "m.pw",
+            "route      \"/uploads/post-image\"",
         ),
         (
-            second("/uploads/avatar", "/images/avatar"),
+            vec![("m.pw", PROGRAM), ("avatar.pw", under.as_str())],
+            "avatar.pw",
             "under `/images`, where `PostImage` serves",
             "`PostImage` serves at `/images`",
+            "m.pw",
+            "serves     \"/images\"",
         ),
     ] {
-        let got = notes(&src, says);
+        let got = notes(&files, within, says);
         assert!(
-            got.iter().any(|label| label == note),
-            "a refusal saying {says:?} with the note {note:?}, where its notes were {got:?}"
+            got.iter()
+                .any(|(l, f, a)| l == note && f == file && a.trim() == at),
+            "a refusal in {within} saying {says:?} with the note {note:?} in {file} at {at:?}, \
+             where its notes were {got:?}"
         );
     }
 }

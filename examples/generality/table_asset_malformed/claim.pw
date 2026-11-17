@@ -1,0 +1,27 @@
+// @status: GENERAL
+// @invariant: table_asset_malformed
+//
+// Structurally different from R-124 and from caught.pw: no asset at all,
+// and an upload's claim kept in a row. A claim is a resource its command's
+// transaction holds, so no table keeps one. (An owned table's asset is held
+// by `table_assets.rs`: a witness's table would need the upload's source,
+// and only A-062's may hold the upload.)
+
+module Drafts
+
+import PostImage
+
+type Draft = Draft { id: Int, held: Option<PostImage.Claim> }
+
+table Drafts
+    row     Draft
+    key     id
+    bounded 100
+    written by anyone
+
+source DraftData
+    holds        Drafts
+    transactions serializable
+    reads        strong
+    changes      none
+    sets         one_call

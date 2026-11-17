@@ -125,15 +125,18 @@ fn diagnostics(posts: &str, image: &str, source: &str, app: &str) -> Vec<(String
 }
 /// **A refusal names the boundary it is held to** (charter §16.3; the L5
 /// corpus, 2026-11-17: PW5604's and PW5605's named none): some refusal of
-/// `code` whose message holds `says` has a related note in `file` saying
-/// `note`.
-fn bounded(
-    got: &[(String, Vec<pw_core::diagnostics::Diagnostic>)],
-    code: &str,
-    says: &str,
-    file: &str,
-    note: &str,
-) {
+/// `code` in `files`, whose message holds `says`, has a related note in
+/// `file` saying `note`, its span the text `at` there (its review, M2: a
+/// note's span was held to nothing).
+fn bounded(files: &[(String, String)], code: &str, says: &str, file: &str, note: &str, at: &str) {
+    let got = check_sources(files);
+    let text = |name: &str| {
+        files
+            .iter()
+            .find(|(n, _)| n == name)
+            .map(|(_, s)| s.as_str())
+            .unwrap_or_else(|| panic!("no file {name}"))
+    };
     let refusals: Vec<_> = got
         .iter()
         .flat_map(|(path, ds)| ds.iter().map(move |d| (path, d)))
@@ -141,9 +144,10 @@ fn bounded(
         .collect();
     assert!(
         refusals.iter().any(|(path, d)| d.related.iter().any(|r| {
-            r.label.contains(note) && r.file.as_deref().unwrap_or(path.as_str()) == file
+            let named = r.file.as_deref().unwrap_or(path.as_str());
+            r.label.contains(note) && named == file && &text(named)[r.span.clone()] == at
         })),
-        "a {code} saying {says:?} with a note in {file} saying {note:?}, where there were {:#?}",
+        "a {code} saying {says:?} with a note in {file} at {at:?} saying {note:?}, where there were {:#?}",
         refusals
             .iter()
             .map(|(path, d)| (path, &d.message, &d.related))
@@ -611,19 +615,54 @@ fn distinct_upload_names_cannot_emit_one_resource_interface() {
     );
     // Each at the other, which emits the same interface (charter §16.3).
     bounded(
-        &got,
+        &files,
         "PW5604",
         "`PostImage` emits a generated upload interface",
         "alias.pw",
         "`Post_Image` emits the interface `post-image` too",
+        "Post_Image",
     );
     bounded(
-        &got,
+        &files,
         "PW5604",
         "`Post_Image` emits a generated upload interface",
         "PostImage.pw",
         "`PostImage` emits the interface `post-image` too",
+        "PostImage",
     );
+}
+
+/// **PW5604's note names an upload that emits the interface, and not one of
+/// its name that emits nothing** (its review, L1): an upload outside the
+/// module of its name generates no declaration and emits no interface, so it
+/// is no boundary of the collision.
+#[test]
+fn an_interface_collision_is_noted_only_at_an_upload_that_emits_it() {
+    let alias = IMAGE
+        .replace("PostImage", "Post_Image")
+        .replace("/uploads/post-image", "/uploads/second")
+        .replace("/images", "/second");
+    let stray = IMAGE
+        .replace("module PostImage", "module feed.other")
+        .replace("upload PostImage", "upload Post_Image")
+        .replace("/uploads/post-image", "/uploads/third")
+        .replace("/images", "/third");
+    let mut program = files(POSTS, IMAGE, SOURCE, "module photos.app\n");
+    program.push(("alias.pw".into(), alias));
+    program.push(("other.pw".into(), stray));
+    let got = check_sources(&program);
+    let noted: Vec<_> = got
+        .iter()
+        .filter(|(path, _)| path == "PostImage.pw")
+        .flat_map(|(_, ds)| ds)
+        .filter(|d| {
+            d.code == "PW5604"
+                && d.message
+                    .contains("`PostImage` emits a generated upload interface")
+        })
+        .flat_map(|d| d.related.iter().map(|r| r.file.clone()))
+        .collect();
+    assert_eq!(noted, vec![Some("alias.pw".to_string())], "{got:#?}");
 }
 
 /// **A declaration may not take a generated upload declaration's identity**
@@ -641,11 +680,12 @@ fn a_declaration_emitting_a_generated_upload_identity_is_pw5604() {
     assert!(got.iter().all(|(code, _)| code != "PW5601"), "{got:#?}");
     // At the program's declaration, which takes the generated one's name.
     bounded(
-        &check_sources(&files(POSTS, &taken, SOURCE, APP)),
+        &files(POSTS, &taken, SOURCE, APP),
         "PW5604",
         "`Kind` is a generated upload declaration",
         "PostImage.pw",
         "`KIND` is declared here, and emits `kind`",
+        "KIND",
     );
 }
 
@@ -666,19 +706,20 @@ fn a_command_claiming_an_upload_without_idempotent_by_is_pw5605() {
     );
     assert!(got.iter().all(|(code, _)| code != "PW5601"), "{got:#?}");
     // At the upload whose claim each command takes, in its own module.
-    let checked = check_sources(&files(
+    let program = files(
         POSTS,
         IMAGE,
         SOURCE,
         &APP.replace("    idempotent_by InteractionId\n", ""),
-    ));
+    );
     for command in ["keep", "discard"] {
         bounded(
-            &checked,
+            &program,
             "PW5605",
             &format!("`{command}` acquires or releases"),
             "PostImage.pw",
             &format!("`PostImage` is the upload whose claim `{command}` takes"),
+            "PostImage",
         );
     }
 }

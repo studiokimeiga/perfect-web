@@ -289,10 +289,18 @@ pub(crate) fn check_generated(
         }) {
             // Charter §16.3's boundary: the other upload, which emits the
             // same interface (the L5 corpus, 2026-11-17: it named none).
+            // Only an upload that emits it: in the module of its name, and
+            // well formed, as `upload_clauses` reads one (its review, L1: an
+            // upload of that name in another module emits nothing).
             let mut related = Vec::new();
             for (u, h) in hirs.iter().enumerate() {
+                let own = h.modules.iter().next().map(|(_, m, _)| m.name.as_str());
                 for (_, o) in h.all_decls() {
-                    if o.kind == DeclKind::Upload && o.name == other.name {
+                    if o.kind == DeclKind::Upload
+                        && o.name == other.name
+                        && own == Some(o.name.as_str())
+                        && read(o).is_some()
+                    {
                         related.push(Related::in_unit(
                             u,
                             o.name_span.clone(),

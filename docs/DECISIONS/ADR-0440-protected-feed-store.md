@@ -1754,10 +1754,12 @@ not anticipate). Corpus C34 (`docs/CORPUS.md`):
   its fixture does not have, and a valid neighbour: a limit past a host's;
   a serving path under another module's upload's; a file form posting to an
   upload's route without multipart; a type taking a generated operation's
-  emitted name; a claim in a helper, and one on a branch, beside a command
-  that only reads what its reader attached; an asset table whose source does
-  not hold its upload, and an owned one, beside a table with no asset.
-  Generality is 82/82.
+  emitted name; a claim in a helper, and one inside an `if`, beside a
+  command that only reads what its reader attached; an asset table whose
+  source does not hold its upload, and a claim kept in a row, beside a table
+  with no asset. An owned table's asset is held by `tests/table_assets.rs`
+  alone: a witness's table would need the upload's source, and A-062's is the
+  one that may hold it. Generality is 82/82.
 
 Writing them found **eight refusals, of four rules, that named no
 boundary**, which charter §16.3 asks of every rejection and the corpus asks
@@ -1765,11 +1767,34 @@ of each refusal a fixture reaches (`every_diagnostic_carries_what_charter_16_3_r
 PW5601's clause left out, bytes past what a host reads whole, and width or
 height past any image's; PW5602's path a page or another upload holds, and
 path under another's; PW5604's two collisions; and PW5605's. Each now points
-at the declaration on the rule's other side: the route at which the upload
-takes a reader's file, the upload, the page or upload holding the path, the
-other upload emitting the interface, the program's declaration taking a
-generated name, and the upload whose claim the command takes. Held by
-`each_upload_refusal_names_the_boundary_it_is_held_to` (`tests/uploads.rs`),
-three tests of `tests/table_assets.rs` (`bounded`), the corpus's §16.3 test,
-and seven mutants, four in `uploads_mutations.py` and three in
-`row_ownership_mutations.py`, each dropping one refusal's note.
+at what the rule holds it to, in the file that declares it: a clause left
+out, and bytes past what a host reads whole, at the route where the upload
+takes a reader's file (its name, where that route is itself refused); a size
+past any image's at the kinds it takes; a path at the page or upload holding
+it; an interface at the other upload emitting it (only one in the module of
+its name, which alone emits one); a generated name at the program's
+declaration taking it; and a claim at the upload whose claim the command
+takes. Held by `each_upload_refusal_names_the_boundary_it_is_held_to`
+(`tests/uploads.rs`: each note's label, file and span, a holder in another
+file where the rule crosses files), four tests of `tests/table_assets.rs`
+(`bounded`, which holds a note's span too, and
+`an_interface_collision_is_noted_only_at_an_upload_that_emits_it`), the
+corpus's §16.3 test, and ten mutants, seven in `uploads_mutations.py` and
+three in `row_ownership_mutations.py`, each dropping a note, pointing it
+elsewhere, or filing it in the refusal's own file, each killed at an
+assertion in a local run; their recipes' evidence is this pull request's
+verify's.
+
+**Reviewed** independently (2026-11-17, `e10a59c6`): the compiler change is
+sound, and no refusal changed whether it fires. Its findings, each repaired:
+three workspace tests the new controls broke and neither preflight nor the
+suites it was run with reach (`from_manifest.rs`' count of the corpus's
+resources, 28 with A-062's three; `ownership.rs`' affine types, which list
+the upload's claim, `PostImage.Claim`; and `lowering.rs`' policy spans, which
+exempt an upload's generated operations as a table's); the owned-table
+witness, whose source check caught it as well, so it witnessed no ownership
+(replaced, above); notes held by their labels alone (M2: now by file and
+span, with three mutants); PW5604's note at an upload of the other's name
+that emits nothing; three notes whose labels said what was not so, or that
+spanned the declaration they were in; and two words of PROFILES' and
+R-124's.

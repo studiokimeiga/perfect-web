@@ -1,8 +1,8 @@
 // @status: NEIGHBOUR
 // @invariant: upload_identity_taken
 //
-// A function of the program's beside its upload, emitting `kind-of`, a
-// name no generated declaration has.
+// A type of the program's beside its upload, as caught.pw's is, emitting
+// `source`, a name no generated declaration has.
 
 module Banner
 
@@ -14,4 +14,4 @@ upload Banner
     max_width  2048
     max_height 512
 
-fn kind_of(name: String) -> String { name }
+type Source = Source { url: String }

@@ -292,11 +292,18 @@ MUTANTS = [
         "                    vec![takes.clone()][..0].to_vec(),\n",
     ),
     (
-        "PW5601: a limit past a host's names no upload",
+        "PW5601: a limit past a host's names no route",
         RUST,
         CHECK,
-        "                )],\n                \"A development host reads an upload's form whole",
-        "                )][..0].to_vec(),\n                \"A development host reads an upload's form whole",
+        "                vec![takes.clone()],\n                \"A development host reads an upload's form whole",
+        "                vec![takes.clone()][..0].to_vec(),\n                \"A development host reads an upload's form whole",
+    ),
+    (
+        "PW5601: a limit past any image's names no kinds",
+        RUST,
+        CHECK,
+        "                    vec![decl.policy(\"types\").map_or_else(\n",
+        "                    vec![decl.policy(\"types\").filter(|_| false).map_or_else(\n",
     ),
     (
         "PW5602: a path a page or upload holds names no holder",
@@ -304,6 +311,20 @@ MUTANTS = [
         CHECK,
         "                        vec![Related::in_unit(holder.unit, holder.span.clone(), holds)],\n",
         "                        vec![Related::in_unit(holder.unit, holder.span.clone(), holds)][..0].to_vec(),\n",
+    ),
+    (
+        "PW5602: a page's or upload's path is noted in the refused upload's own file",
+        RUST,
+        CHECK,
+        "                        vec![Related::in_unit(holder.unit, holder.span.clone(), holds)],\n",
+        "                        vec![Related::new(holder.span.clone(), holds)],\n",
+    ),
+    (
+        "PW5602: another upload's path is noted in the refused upload's own file",
+        RUST,
+        CHECK,
+        "                        vec![Related::in_unit(\n                            *old_unit,\n                            old_at.clone(),\n",
+        "                        vec![Related::new(\n                            old_at.clone(),\n",
     ),
     (
         "PW5602: a path under another's names no other",
