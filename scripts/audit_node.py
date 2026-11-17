@@ -21,10 +21,11 @@ def unique_object(pairs):
 
 def findings_of(advisory):
     """**How many of the registry's counts an advisory is** (ADR-0371,
-    amended 2026-11-17): one for each version of its package it was found at
-    (`findings`), each by the one path pnpm's audit tree gives a package. A
-    finding with any other number of paths is a report this validator has
-    not seen, and is refused until it is read."""
+    amended 2026-11-17): one for each of its findings, each a node of pnpm's
+    audit tree, a version of its package under one set of peers, so two
+    findings may share a version, and each is reached by the one path a
+    strict tree gives a node. A finding with any other number of paths is a
+    report this validator has not seen, and is refused until it is read."""
     findings = advisory.get("findings")
     if not isinstance(findings, list) or not findings:
         raise ValueError("advisory has no findings")
