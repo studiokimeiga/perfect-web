@@ -14,7 +14,7 @@ failures:
 
 ---- uploads::tests::an_image_is_leased_to_its_session_and_shown_to_it_alone stdout ----
 
-thread 'uploads::tests::an_image_is_leased_to_its_session_and_shown_to_it_alone' (92833) panicked at spikes/own-renderer/server/src/uploads.rs:1710:9:
+thread 'uploads::tests::an_image_is_leased_to_its_session_and_shown_to_it_alone' (3587) panicked at spikes/own-renderer/server/src/uploads.rs:1710:9:
 assertion `left == right` failed: another's lease
   left: 200
  right: 404
