@@ -16,6 +16,7 @@ def report(advisory=None):
     entries = {} if advisory is None else {"1": {
         "github_advisory_id": advisory, "severity": "high",
         "module_name": "fixture", "title": "Fixture advisory",
+        "findings": [{"version": "1.0.0", "paths": ["app>fixture"]}],
     }}
     return {"advisories": entries, "metadata": {"vulnerabilities": {
         "info": 0, "low": 0, "moderate": 0, "high": len(entries), "critical": 0,
@@ -184,6 +185,42 @@ class NodeAudit(unittest.TestCase):
 
     def test_missing_allowance_file_fails(self):
         self.assert_refused(report(), missing_allow=True)
+
+    # **An advisory counts once for each version it is found at** (ADR-0371,
+    # amended 2026-11-17): the registry counted GHSA-fc5q-39xc-vjpf, one
+    # advisory, as two highs, picomatch being in the tree at 4.0.7 and at
+    # 2.3.2, and the validator refused every audit from then on.
+    def test_an_advisory_found_at_two_versions_counts_twice(self):
+        value = report(ALLOWED)
+        value["advisories"]["1"]["findings"] = [
+            {"version": "4.0.7", "paths": ["a>fixture"]},
+            {"version": "2.3.2", "paths": ["b>fixture"]},
+        ]
+        value["metadata"]["vulnerabilities"]["high"] = 2
+        run, _ = self.run_audit(value)
+        self.assertEqual(run.returncode, 0, run.stderr)
+        value["metadata"]["vulnerabilities"]["high"] = 1
+        self.assert_refused(value)
+
+    def test_an_advisory_without_findings_fails(self):
+        value = report(ALLOWED)
+        for findings in ([], None, "app>fixture"):
+            value["advisories"]["1"]["findings"] = findings
+            self.assert_refused(value)
+
+    def test_a_finding_without_its_version_fails(self):
+        value = report(ALLOWED)
+        for finding in ({"paths": ["app>fixture"]}, {"version": " ", "paths": ["app>fixture"]}, "1.0.0"):
+            value["advisories"]["1"]["findings"] = [finding]
+            self.assert_refused(value)
+
+    # pnpm's audit tree gives a package one path (`lockfileToAuditTree`
+    # walks each once): a finding of more or fewer is a report not yet read.
+    def test_a_finding_without_exactly_one_path_fails(self):
+        value = report(ALLOWED)
+        for paths in ([], ["a>fixture", "b>fixture"], [""], None):
+            value["advisories"]["1"]["findings"] = [{"version": "1.0.0", "paths": paths}]
+            self.assert_refused(value)
 
 
 if __name__ == "__main__":

@@ -19,6 +19,25 @@ def unique_object(pairs):
     return result
 
 
+def findings_of(advisory):
+    """**How many of the registry's counts an advisory is** (ADR-0371,
+    amended 2026-11-17): one for each version of its package it was found at
+    (`findings`), each by the one path pnpm's audit tree gives a package. A
+    finding with any other number of paths is a report this validator has
+    not seen, and is refused until it is read."""
+    findings = advisory.get("findings")
+    if not isinstance(findings, list) or not findings:
+        raise ValueError("advisory has no findings")
+    for finding in findings:
+        version = finding.get("version") if isinstance(finding, dict) else None
+        if not isinstance(version, str) or not version.strip():
+            raise ValueError("finding has no version")
+        paths = finding.get("paths")
+        if not isinstance(paths, list) or len(paths) != 1 or not isinstance(paths[0], str) or not paths[0].strip():
+            raise ValueError("finding has not exactly one path")
+    return len(findings)
+
+
 def validate(report, producer_exit):
     if not isinstance(report, dict):
         raise ValueError("report must be an object")
@@ -47,7 +66,7 @@ def validate(report, producer_exit):
         for field in ("module_name", "title"):
             if not isinstance(advisory.get(field), str) or not advisory[field].strip():
                 raise ValueError("advisory has no " + field)
-        observed[advisory["severity"]] += 1
+        observed[advisory["severity"]] += findings_of(advisory)
     if observed != counts:
         raise ValueError("advisories and severity counts disagree")
     if producer_exit is not None and producer_exit != (1 if advisories else 0):

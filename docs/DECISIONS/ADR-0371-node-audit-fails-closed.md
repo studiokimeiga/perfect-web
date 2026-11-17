@@ -168,3 +168,54 @@ as an unmatched allowance, and 15 of the 19 mutants lived in the first run
 that). The fixture now lists its allowance only where the report holds it,
 and each refusal is held to its own reason: 19 of 19 killed.
 
+
+## 2026-11-17: an advisory counts once for each version it is found at
+
+GitHub updated GHSA-fc5q-39xc-vjpf (picomatch through 4.0.7, a ReDoS from
+attacker-supplied extglob patterns, high) at 15:56Z, and from then every
+audit was refused: `advisories and severity counts disagree`. The registry
+counted it as two highs, picomatch being in the tree at 4.0.7 and at 2.3.2,
+where the validator counted one per advisory. Its rule ("exact agreement
+between those counts and the advisory entries") had held because every
+advisory reported so far was found at one version.
+
+**What the counts count**, read against the producer:
+- pnpm 10.15.1 posts its audit tree to the registry's
+  `/-/npm/v1/security/audits` and returns the registry's answer as it is
+  (`lockfile/audit/src/index.ts`): the counts are the registry's.
+- Its tree names each package once (`lockfileToAuditTree.ts`, over pnpm's
+  lockfile walker), so each finding has one path.
+- The real report: three highs, from one advisory found at one version and
+  one found at two.
+- A probe lockfile of a scratch directory reached picomatch 2.3.2 through
+  two packages and installed nothing. Its report gave one finding, one path
+  and one high.
+
+So the registry counts one for each finding. A count by paths would agree
+too while each finding has one.
+
+**Decision.** An advisory counts once for each of its findings
+(`findings_of`), and each finding must name its version and exactly one
+path. A finding with any other number of paths is a report this validator
+has not seen: it is refused until it is read, as "Decision" asks of any
+report-format change. An advisory without findings is refused too.
+
+**Held by** `scripts/tests/test_node_audit.py`:
+- an advisory found at two versions passes with two counted, and is
+  refused with one;
+- an advisory without findings, a finding without its version, and a
+  finding without exactly one path are each refused.
+
+Four mutants of their own, in `scripts/node_audit_mutations.py`, are
+killed: 23 of 23 locally. The fixture's advisory now carries the one
+finding a real report gives.
+
+**The advisory itself** is accepted in `tools/node-audit-allow.txt`, with
+its reason and the condition to revisit. No picomatch release is patched.
+Both copies take only patterns this repository writes:
+- the benchmark baseline's adapter-node, at build time;
+- the Marko spike's development server, matching its own templates' watch
+  globs.
+
+The real report passes: `audit-node: OK (no new advisories; 5 accepted and
+documented, each reported)`.

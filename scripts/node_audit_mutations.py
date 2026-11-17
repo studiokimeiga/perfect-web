@@ -52,11 +52,21 @@ MUTANTS = [
     # (ADR-0371, amended), so each goes with its advisory.
     ('an allowance no advisory matches passes', 'NodeAudit.test_an_allowance_no_advisory_matches_fails_and_is_named', AUDIT,
      '    if stale:\n', '    if False and stale:\n'),
+    # 2026-11-17: an advisory counts once for each version it is found at,
+    # each finding by one path (ADR-0371, amended).
+    ('an advisory counts once whatever its findings', 'NodeAudit.test_an_advisory_found_at_two_versions_counts_twice', AUDIT,
+     '    return len(findings)\n', '    return 1\n'),
+    ('an advisory without findings passes', 'NodeAudit.test_an_advisory_without_findings_fails', AUDIT,
+     '        raise ValueError("advisory has no findings")\n', '        return 1\n'),
+    ('a finding without its version passes', 'NodeAudit.test_a_finding_without_its_version_fails', AUDIT,
+     '            raise ValueError("finding has no version")\n', '            continue\n'),
+    ('a finding without exactly one path passes', 'NodeAudit.test_a_finding_without_exactly_one_path_fails', AUDIT,
+     '            raise ValueError("finding has not exactly one path")\n', '            continue\n'),
 ]
 SELECTOR = "test_node_audit"
 SEARCH = ROOT / "scripts/tests"
 PATTERN = "test_node_audit.py"
-EXPECTED_COUNT = 25
+EXPECTED_COUNT = 29
 TIMEOUT = 120
 
 
