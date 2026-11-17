@@ -50,8 +50,10 @@ in order:
    Next, in order:
    - **every recipe under about 75 minutes**, by `scripts/mutation_parts.py`:
      ~~`e14-device-runtime` (9,425 s)~~ (`wip/device-runtime-parts`: its
-     own script's mutants in two parts cut by cost, each a recipe,
-     `e14-device-runtime` keeping the tests and the planned list's own),
+     own script's mutants in three parts, each a recipe, the main one
+     keeping the tests, the decision's part and the planned list's own;
+     `ci_plan.needs` reading a recipe's scripts too, not its body alone, is
+     still owed),
      `e14-labels` (8,604 s), `e14-statements-separated` (8,088 s),
      `e14-scheduled` (5,582 s), `e14-durable-tables` (5,073 s), d3's first
      part (measured in #129's verify: d3's parts 6,080 s, 3,846 s and

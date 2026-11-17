@@ -22,13 +22,14 @@ or a guard `optimize-assets.test.mjs` (or `host-plan.test.mjs`), of the host
 what a block keeps `e2e/nested-blocks.spec.mjs` against a production build of
 the demos.
 
-Run from the repository root. Its mutants run in two parts, each a recipe
-of its own (the owner's grant of 2026-11-17, CI faster with no gate given
-up; ADR-0359, amended): `just e14-device-runtime-2` part 1 and
-`just e14-device-runtime-3` part 2, each `--part i/2` (`mutation_parts.py`),
-`just e14-device-runtime` the tests and `own_rows_mutations.py`; with no
-part, every mutant. A part takes the baseline of each suite its mutants
-run, before any of them counts.
+Run from the repository root. Its mutants run in three parts, each a
+recipe's (the owner's grant of 2026-11-17, CI faster with no gate given up;
+ADR-0359, amended): `just e14-device-runtime` the tests, part 1 and
+`own_rows_mutations.py`, `just e14-device-runtime-2` part 2 and
+`just e14-device-runtime-3` part 3, each `--part i/3` (`mutation_parts.py`);
+with no part, every mutant. A part takes the baseline of each suite its
+mutants run, before any of them counts, and builds again from the restored
+source what its suites built from a mutant.
 The source is restored after every mutant, whatever happens.
 """
 
@@ -741,14 +742,18 @@ def rows():
 
 SUITES = {"decision": decision, "contract": contract, "packaging": packaging, "host": host, "browser": browser, "nested": nested, "rows": rows}
 
-# **Two parts, each a recipe of its own**: whole, with `own_rows_mutations.py`
+# **Three parts, each a recipe of its own**: whole, with `own_rows_mutations.py`
 # in its recipe, the longest recipe a verify ran (9,425 s), and so every
-# verify's length. Cut by cost, not count: a mutant of `rows` builds the
+# verify's length. Part 1 is the decision's mutants alone, a Node test each,
+# for `e14-device-runtime`, which runs the tests and `own_rows`' controls
+# too: so each of the three recipes names this script, and a change near any
+# of its mutants plans all three, as the whole did (the split's review).
+# Parts 2 and 3 are cut by cost, not count: a mutant of `rows` builds the
 # list four ways and runs two Playwright suites, one of `browser` or `nested`
 # a build and one, of `host` three cargo test filters, and the rest a Node
-# test each (some 90, 60, 90, 30 and 5 seconds), so each part holds about
-# half of the whole's.
-PARTS = [(0, 87), (87, len(MUTANTS))]
+# test each (weights of about 90, 60, 90, 30 and 5), so each holds about
+# half of the rest.
+PARTS = [(0, 31), (31, 87), (87, len(MUTANTS))]
 
 
 def main():
@@ -792,8 +797,15 @@ def main():
             verdict = "SURVIVED"
             survivors += 1
         print(f"{what} [{suite}]: {verdict}", flush=True)
-    # What was built from a mutant is built again from the restored source.
+    # What was built from a mutant is built again from the restored source:
+    # TodoMVC's production build, and the demos' and the large list's where
+    # their suites ran (the whole run's last suites, `own_rows`' among them,
+    # had rebuilt them; the split's review).
     browser()
+    if "nested" in asked:
+        nested()
+    if "rows" in asked:
+        rows()
 
     print(f"{len(chosen) - survivors} of {len(chosen)} mutants killed")
     return 1 if survivors else 0
