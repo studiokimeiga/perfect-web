@@ -4,7 +4,9 @@ Status: accepted under the owner's delegation of 2026-10-02, on the owner's
 decision of 2026-10-08, 22:45 (relayed). Date: 2026-10-08. Milestone: E14.
 Amends the integrator's practice under ADR-0245. Amended 2026-10-12 (the
 integrator's): a fetch takes no file of code the tree it joins does not
-hold.
+hold. Amended 2026-11-17 (the integrator's, under the owner's grant of that
+day to make CI faster with no gate given up): a pull request's new-only
+gates run on every branch push too.
 
 ## Context
 
@@ -220,6 +222,33 @@ hold.
   mutants in `scripts/dealt_by_time_mutations.py`, 30 of 30 killed (`just
   e14-dealt-by-time`). The workflow's lines are exercised by master's next
   push, whose plan step names its base.
+- **Amended 2026-11-17 (a branch is shown what its pull request would be
+  refused for)**: Ruff's new-only gate (`quality.yml`,
+  `scripts/quality_delta.py`) and Fallow's audit (`fallow.yml`, `gate:
+  new-only`) ran only on a pull request. L5 lived on its branch for days
+  with no pull request, every push built and tested by `ci.yml`, and its
+  first pull request (#126) was refused for 122 new Ruff findings in seven
+  files: a CI round lost at the end. Each gate now runs on a push of every
+  branch `ci.yml` builds (`track/**`, `wip/**`) too, against where the
+  branch left master (`git merge-base origin/master HEAD`). That
+  approximates its pull request's run, which compares master's tip with the
+  merge: the two differ once master has moved (a name master removed is
+  caught by the pull request's alone). Held by
+  `scripts/tests/test_workflow_branch_gates.py`, six tests, which read each
+  step's own `if:` and its job's and evaluate them for every event the
+  workflows take (a pull request, a push to master, `wip/**` and `track/**`,
+  the schedule, a dispatch on master and on a branch): every branch
+  `ci.yml` builds runs both gates; each gate runs where it should and
+  nowhere else, master's push and every schedule or dispatch keeping the
+  baseline report; Fallow's base is found before its audit reads it, on a
+  line of its own, since `echo "sha=$(...)"` exits 0 when no merge base is
+  found and Fallow then reads the branch against itself and passes; and a
+  dispatch is never a push's concurrency group, which it would cancel. The
+  first version of the test matched strings, and #128's review found it
+  passed five workflows whose gates could never run; nine such mutants, the
+  review's among them, now each fail it. A branch with a pull request runs each gate
+  twice, once a push and once the pull request; the repository is public,
+  so the runs cost no minutes.
 
 ## Not claimed
 

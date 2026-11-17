@@ -11,10 +11,10 @@ GHSA-pfhg-q3qv-9q6r
     https://github.com/sveltejs/kit/security/advisories/GHSA-pfhg-q3qv-9q6r
 
     Why accepted temporarily: the only @sveltejs/kit dependency is the
-    undeployed E14 benchmark baseline, pinned to 2.70.3 under ADR-0120 for a
+    undeployed E14 benchmark baseline, pinned to 2.70.4 under ADR-0120 for a
     controlled agent comparison. It uses use:enhance with named ?/add and
     ?/clear actions on /stores/[storeId], not a catch-all route accepting
-    double-slash paths. This allowance does not establish that 2.70.3 is safe
+    double-slash paths. This allowance does not establish that 2.70.4 is safe
     for general use or permit exposing the benchmark to untrusted traffic.
 
     Revisit: when E14-E chooses baseline versions, before exposing the
@@ -23,53 +23,24 @@ GHSA-pfhg-q3qv-9q6r
     and rerun the three-store contract; remove this allowance on migration.
 
 GHSA-27mw-82g8-phjj
-    SvelteKit <3.0.0 — untrusted cache-control passed to setHeaders while
+    SvelteKit <=2.70.3 — untrusted cache-control passed to setHeaders while
     prerendering can inject markup into the generated page (low severity).
     https://github.com/sveltejs/kit/security/advisories/GHSA-27mw-82g8-phjj
 
-    Why accepted temporarily: the same undeployed, locally exercised E14
+    Fixed in 2.70.4, the baseline's pin since 2026-11-17: the maintainers'
+    advisory names <= 2.70.3 and patched >= 2.70.4, and 2.70.4 escapes a
+    prerendered page's cache-control (its `render.js`, `escape_html`). GitHub's
+    reviewed record still names < 3.0.0 (patched 3.0.0), so `pnpm audit`
+    reports 2.70.4, and the audit is refused without this entry.
+
+    Why accepted: the record is wrong for this version, and the undeployed E14
     baseline has no prerender setting and does not call setHeaders or forward
-    a request-supplied cache-control value. Its only configured adapter is
-    adapter-node for the benchmark contract. This exception is not a claim
-    that all SvelteKit 2.x applications are unaffected.
+    a request-supplied cache-control value besides.
 
-    Revisit: at E14-E, before deploying or exposing this baseline externally,
-    or if prerendering/setHeaders is introduced. Upgrade to compatible
-    SvelteKit >=3.0.0, rerun the contract and remove this allowance.
-
-GHSA-mw6w-2fmv-pvw3
-    SvelteKit <2.70.4 (and 3.0.0 to 3.1.0) — where `reroute` turns an invalid
-    percent-encoded path into a valid one, a comparison can crash an
-    adapter-node server (moderate; published 2026-11-13).
-    https://github.com/advisories/GHSA-mw6w-2fmv-pvw3
-
-    Why accepted temporarily: the only @sveltejs/kit dependency is the
-    undeployed E14 benchmark baseline, pinned to 2.70.3 under ADR-0120. It
-    declares no `reroute` hook (it has no `src/hooks.ts`; its server hook is
-    `handle` alone), so the comparison the advisory names is never made. The
-    baseline is a local harness that untrusted traffic never reaches.
-
-    Revisit: a patched release exists, 2.70.4, a patch within ADR-0120's pin.
-    Move to it once the owner approves the download (2026-11-16, asked), rerun
-    the three-store contract and remove this allowance; sooner if `reroute`
-    is introduced or the baseline is exposed outside the local harness.
-
-GHSA-rqw3-x7hx-mm3p
-    @sveltejs/adapter-node 5.5.7 (and 6.0.0-next to 6.0.0) — the adapter can
-    add a header to an immutable request where a request is proxied through
-    `fetch`, which crashes the server for every request it serves (moderate;
-    published 2026-11-13).
-    https://github.com/advisories/GHSA-rqw3-x7hx-mm3p
-
-    Why accepted temporarily: the same undeployed E14 baseline, pinned to
-    adapter-node 5.5.7 under ADR-0120, makes no `fetch` from its server code
-    (`src/hooks.server.ts`, `src/lib/server/`, its one `+page.server.ts`), so
-    it proxies no request, and no untrusted client reaches it.
-
-    Revisit: a patched release exists, 5.5.8. Move to it with SvelteKit 2.70.4
-    on the owner's approval of the download, rerun the three-store contract and
-    remove this allowance; sooner if the baseline proxies a request or is
-    exposed outside the local harness.
+    Revisit: remove this allowance when GitHub's record names 2.70.4 as
+    patched; `scripts/audit_node.py` refuses it then, as an allowance no
+    reported advisory matches. Sooner if prerendering or setHeaders is
+    introduced.
 
 GHSA-3r8g-jcqq-3p5j
     SvelteKit 2.42.0 to 3.1.0 — a specially crafted request blocks the event
@@ -79,7 +50,7 @@ GHSA-3r8g-jcqq-3p5j
 
     Why accepted temporarily: it affects only an application that enables
     SvelteKit's experimental remote functions. The only @sveltejs/kit
-    dependency is the undeployed E14 benchmark baseline, pinned to 2.70.3
+    dependency is the undeployed E14 benchmark baseline, pinned to 2.70.4
     under ADR-0120. Its `svelte.config.js` is `kit: { adapter: adapter() }`,
     with no `experimental.remoteFunctions`. It has no `*.remote.*` module and
     imports nothing from `$app/server`, so no remote function is parsed.
@@ -87,9 +58,9 @@ GHSA-3r8g-jcqq-3p5j
 
     Revisit: the advisory lists no patched 2.x release, only 3.1.1, which is
     outside ADR-0120's pin. Remove this allowance once a 2.x patch exists (or
-    the baseline moves to 3.x, an ADR of its own) and is installed on the
-    owner's approval of the download. Revisit sooner if the baseline enables
-    remote functions or is exposed outside the local harness.
+    the baseline moves to 3.x, an ADR of its own) and is installed, a patch
+    under the owner's standing approval (2026-11-17). Revisit sooner if the
+    baseline enables remote functions or is exposed outside the local harness.
 
 GHSA-6cf5-gc4q-fm3x
     SvelteKit 2.60.1 to 3.1.0 — private (non-exported) `query.batch`
@@ -99,64 +70,8 @@ GHSA-6cf5-gc4q-fm3x
 
     Why accepted temporarily: it affects only an application that enables
     the experimental remote functions and declares non-exported
-    `query.batch` functions. The undeployed E14 baseline (2.70.3, ADR-0120)
+    `query.batch` functions. The undeployed E14 baseline (2.70.4, ADR-0120)
     enables neither and has no remote function at all, as above.
 
     Revisit: as GHSA-3r8g-jcqq-3p5j. No 2.x release is patched, only 3.1.1.
     Revisit sooner if the baseline enables remote functions.
-
-GHSA-rqp5-r3wg-vg35
-    SvelteKit <2.70.4 (and 3.0.0 to 3.1.0) — where `router.resolution` is
-    `'server'`, a crafted link followed by client-side navigation can import
-    and run a module from another origin (moderate; published 2026-11-16).
-    https://github.com/advisories/GHSA-rqp5-r3wg-vg35
-
-    Why accepted temporarily: it affects only an application with
-    `router.resolution: 'server'`. The undeployed E14 baseline (2.70.3,
-    ADR-0120) sets no `router` option, so it resolves routes in the browser,
-    the default, and no user browses it outside the local harness.
-
-    Revisit: a patched release exists, 2.70.4, the patch within ADR-0120's pin
-    that GHSA-mw6w-2fmv-pvw3 already waits on. Move to it once the owner
-    approves the download (asked 2026-11-16), rerun the three-store contract
-    and remove this allowance. Revisit sooner if the baseline sets
-    `router.resolution: 'server'`.
-
-GHSA-mfr8-8qww-v76h
-    Next.js 16.3.0 to 16.4.4 — where a `'use cache'` function that reads a
-    root param is called both directly while rendering and through
-    `unstable_cache()`, a deduplication race at a cold process start lets
-    `unstable_cache()` take the direct call's result and store it under a key
-    without root params, so every other root param value is served it until
-    it is revalidated or evicted (moderate; Vercel's advisory and 16.4.5 of
-    2026-11-03, in GitHub's database 2026-11-16, CVE-2026-119790).
-    https://github.com/advisories/GHSA-mfr8-8qww-v76h
-
-    Why accepted temporarily: the only `next` dependency is the undeployed
-    E14 benchmark baseline, `benchmarks/baselines/next-react`, pinned to
-    16.4.1 under ADR-0120 (amended 2026-10-22) in the root lockfile; the
-    harness's own lockfile for it, `benchmarks/harness/locks/next-react.pnpm-lock.yaml`,
-    still resolves 16.3.8 (the 16.4.1 move left it behind; NEXT), also in the
-    range, which `pnpm audit` does not read. It declares no `'use cache'`
-    function, calls no `unstable_cache()` and has no root params: its one
-    layout, `app/layout.tsx`, takes no parameter, its `next.config.mjs` is
-    empty (no `cacheComponents`), and its only `next/cache` import is
-    `revalidatePath`. Outside the race the nesting throws (`'use cache' inside
-    unstable_cache() is unsupported`), and the advisory calls avoiding it a
-    complete workaround. `next start` listens on every interface (its
-    `--hostname` defaults to 0.0.0.0 and reads no `HOST`), so while a contract
-    run or a benchmark sandbox runs it answers whatever reaches the machine;
-    the precondition is absent whatever does.
-
-    Revisit: patched releases exist: 16.4.5, which also fixes six advisories
-    Vercel published with it that GitHub's database has not yet reviewed
-    (GHSA-vc7v-qv4w-wrv8, GHSA-vvgp-ww4w-46vf, GHSA-rhh4-g77r-r9qj,
-    GHSA-pc58-hwjq-p385, GHSA-7qx7-33qx-rqx2, GHSA-f3mh-rxg3-f5g2: each fails
-    `just audit` once reviewed, and GHSA-7qx7's SVG through `/_next/image`
-    needs its own reading), and 16.4.6, which Dependabot's #23 proposes. Move
-    to one on the owner's approval of the download: both lockfiles,
-    `benchmarks/headtohead/targets.mjs`' and ADR-0392's version; rerun the
-    three-store contract (`e14-contract`) and the museum (ADR-0342, amended
-    2026-10-22), and remove this allowance. Sooner if the baseline declares a
-    `'use cache'` function, calls `unstable_cache()`, gives its root layout a
-    parameter, or is exposed outside the local harness.

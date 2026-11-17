@@ -74,7 +74,19 @@ def main():
             print(f'{advisory["github_advisory_id"]}  {advisory["severity"]:8} '
                   f'{advisory["module_name"]}  {advisory["title"]}', file=sys.stderr)
         return 1
-    print(f"audit-node: OK (no new advisories; {len(allowed)} accepted and documented)")
+    # An allowance the audit no longer reports is gone from the tree, or its
+    # advisory's record changed: it goes with it, as an advisory comes with
+    # its reason (2026-11-17: #124 removed two such allowances by hand, and
+    # the baselines' patches four; the count printed below was the list's,
+    # so nothing said which matched).
+    reported = {advisory["github_advisory_id"] for advisory in advisories}
+    stale = sorted(allowed - reported)
+    if stale:
+        print("audit-node: allowances no reported advisory matches (remove each):", file=sys.stderr)
+        for identity in stale:
+            print(identity, file=sys.stderr)
+        return 1
+    print(f"audit-node: OK (no new advisories; {len(allowed)} accepted and documented, each reported)")
     return 0
 
 

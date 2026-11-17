@@ -147,3 +147,24 @@ changes; neither benchmark sandbox lock holds either package.
   --frozen-lockfile --offline` accepts the lock. Revisit when `@marko/run`
   asks for `glob` 14 itself (the override is then removed), or when ADR-0002
   retires Marko.
+
+## 2026-11-17: an allowance no advisory matches is refused
+
+The baselines' patches (ADR-0120, amended) left four allowances no audit
+reported, and #124 had removed two more by hand: nothing said an allowance
+had outlived its advisory, as `audit-node: OK` counted the allow list, not
+what it matched. `scripts/audit_node.py` now refuses an allowance that no
+reported advisory names (exit 1, each named), so an allowance goes with its
+advisory as it came with its reason; a corrected or withdrawn record fails
+the audit as a new advisory does, until the entry goes. Its OK line says
+each allowance was reported. Held by `scripts/tests/test_node_audit.py`
+(an unmatched allowance is refused and named; a clean report with an empty
+list passes) and a mutant of its own in `scripts/node_audit_mutations.py`,
+"an allowance no advisory matches passes", killed. The rule shadowed the
+others at first: the tests' fixture listed its one allowance for every
+report, so a mutant that let a broken report through was refused anyway,
+as an unmatched allowance, and 15 of the 19 mutants lived in the first run
+(`e14-node-audit`, verify 44011580223, refused its frozen inventory before
+that). The fixture now lists its allowance only where the report holds it,
+and each refusal is held to its own reason: 19 of 19 killed.
+
