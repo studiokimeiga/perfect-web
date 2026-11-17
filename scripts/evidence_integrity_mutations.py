@@ -25,8 +25,10 @@ Each mutant undoes one piece:
    directory inside or ending in the binary's, or a record misread; and
    (ADR-0281, amended 2026-11-17) a campaign's count not read, one not
    whole, valid and restored counted killed, its control not named by its
-   identifier, its controls counted as its script's mutants, or its unit
-   tests' lines read as its count;
+   identifier, its controls counted as its script's mutants, its unit
+   tests' lines read as its count, a control described by its first word,
+   a table of prose controls read as a campaign's, or a control not killed
+   read as no verdict;
 3. a rejected fixture's `@rule` is its code as written
    (`checking_source.rs`): an alias, a retired code, a code its check does
    not report, or another code's invariant passes; R-004 names its alias
@@ -478,7 +480,7 @@ MUTANTS = [
         "a campaign's control is not named by its identifier",
         "plan",
         COUNTS,
-        "    if said.strip() in others and IDENTIFIER.fullmatch(said.strip()):\n        return True\n",
+        "    if mutant[-3:] == (None, None, None) and said.strip() in others:\n        return True\n",
         "    if False:\n        return True\n",
     ),
     (
@@ -487,6 +489,27 @@ MUTANTS = [
         COUNTS,
         '                units = scripts if kind == "mutants" else {r: campaigns.get(r, []) for r in scripts}\n',
         "                units = scripts\n",
+    ),
+    (
+        "a campaign's control is described by its first word, not its description",
+        "plan",
+        COUNTS,
+        "            out.append((control[0], max(said, key=len), None, None, None))\n",
+        "            out.append((control[0], said[0], None, None, None))\n",
+    ),
+    (
+        "a table of prose controls is read as a campaign's",
+        "plan",
+        COUNTS,
+        "        if IDENTIFIER.fullmatch(control[0]) and said and isinstance(control[1 + len(said)], list):\n",
+        "        if said:\n",
+    ),
+    (
+        "a control not killed is no verdict",
+        "plan",
+        COUNTS,
+        '    r"^(.*): (KILLED(?: by [^()]+ \\(.*\\)| \\(.*\\))?|SURVIVED|INVALID OR SURVIVED|DID NOT BUILD.*"\n',
+        '    r"^(.*): (KILLED(?: by [^()]+ \\(.*\\)| \\(.*\\))?|SURVIVED|DID NOT BUILD.*"\n',
     ),
     (
         "a campaign's unit tests' lines are read as its count",

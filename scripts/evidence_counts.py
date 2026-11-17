@@ -47,10 +47,11 @@ COUNT = re.compile(r"^(\d+) of (\d+) mutants killed")
 # and its two siblings; ADR-0281, amended 2026-11-17): a run's controls, each
 # an identifier, a description and its edits (`CONTROLS`, flattened into
 # `MUTANTS` an edit a row), said `<identifier>: KILLED` each and counted
-# `scope=FULL, controls=K/N, valid=True, restored=True`. Read as `K of N`
-# controls killed only where the run was whole, valid and restored; any other
-# is counted as none killed, which every verdict that says KILLED disagrees
-# with.
+# `scope=FULL, controls=K/N, valid=True, restored=True`, where K is the
+# controls the run recorded, every one killed only where it was valid. Read
+# as `K of N` controls killed only where the run was whole, valid and
+# restored; any other is counted as none killed, which every verdict that
+# says KILLED disagrees with.
 CAMPAIGN = re.compile(
     r"^(?:suite=[\w-]+, )?scope=(\w+), controls=(\d+)/(\d+), valid=(True|False), restored=(True|False)$"
 )
@@ -178,7 +179,9 @@ def names(said: str, mutant: tuple) -> bool:
     nothing but its other words, a suite's tag and separators; or a
     campaign's control by its identifier alone."""
     description, others = words(mutant)
-    if said.strip() in others and IDENTIFIER.fullmatch(said.strip()):
+    # Only a campaign's control (`controls_of`, its identifier held to
+    # `IDENTIFIER`'s shape) is named by its identifier alone.
+    if mutant[-3:] == (None, None, None) and said.strip() in others:
         return True
     if not description or description not in said:
         return False
@@ -223,14 +226,18 @@ def controls_of(module) -> list:
     a description and its edits each."""
     out = []
     for control in getattr(module, "CONTROLS", []):
-        if (
-            isinstance(control, tuple)
-            and len(control) >= 3
-            and isinstance(control[0], str)
-            and IDENTIFIER.fullmatch(control[0])
-            and isinstance(control[1], str)
-        ):
-            out.append((control[0], control[1], None, None, None))
+        if not (isinstance(control, tuple) and len(control) >= 3 and isinstance(control[0], str)):
+            continue
+        # Its words before its edits: a description, and a suite beside it
+        # in one script (`session_command_mutations.py`: identifier, suite,
+        # description, edits); the longest is its description.
+        said = []
+        for field in control[1:]:
+            if not isinstance(field, str):
+                break
+            said.append(field)
+        if IDENTIFIER.fullmatch(control[0]) and said and isinstance(control[1 + len(said)], list):
+            out.append((control[0], max(said, key=len), None, None, None))
     return out
 
 
@@ -374,8 +381,7 @@ def planned_again(recipes: list[str], root: pathlib.Path = ROOT, plan=None) -> s
             return None
 
     def read(head: str, path: str) -> str | None:
-        m = plan.RECORDED_AT.search(show(head, path) or "")
-        return m.group(1) if m else None
+        return plan.recorded_commit(show(head, path) or "")
 
     return set(
         plan.stale(

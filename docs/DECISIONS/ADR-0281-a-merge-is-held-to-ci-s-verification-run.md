@@ -315,6 +315,52 @@ give up no gate.
   planner's test of the three copies, five mutants in `e14-evidence-integrity`
   and one in `e14-dealt-by-time` (a copy not read as a write).
 
+**Reviewed** independently (2026-11-17, `1b9e70b8` and `46ec0229`). Its
+high finding: held current, the campaigns' evidence would be judged by a
+reach that misses the tests their kills are credited at. Uploads'
+session-authority and privacy tests are brought into `uploads::tests` by
+`include!`. pw-resource's command tests are an inline module named other
+than `tests`, which `session_command_mutations.py`'s filter names by a
+string (`LIB_MODULE`). pw-table-memory's compiled tests include their
+support files. On master a change to any of these planned nothing; a later
+commit could then have broken a witness, and a merge landed on a count
+recorded before it. The planner's reach now reads:
+- a file another `include!`s: under `tests/`, its includers' test targets;
+  elsewhere, the modules it opens and its includer's (`includers`,
+  `included_tests`);
+- an inline test module of any name, to its closing brace, by its file's
+  name and its own, which a filter may name alone (`test_modules`; a change
+  after the module is no longer read as its test's);
+- a module named by the string its filter is built from (`names_module`).
+
+Each of the four plans its recipes now
+(`test_a_test_included_or_inline_under_another_name_plans_its_recipes`).
+That closes the gap for every recipe, not only the campaigns'.
+
+Still owed: a filter that names a module by its whole path
+(`backend::lower::checked_input_tests` in `check_is_build_mutations.py`)
+reaches its script by no rule, on master or here (NEXT item 8).
+
+Its medium finding: any committed file naming a whole commit was a record,
+so a local run's (`just e10-browser chromium`, one engine, run once) could
+hold `e10-browser` current. A record is now a run's: `evidence_fetch.stamp`
+names the run on the line after the commit's, and the planner, and
+`evidence_counts` with it, holds current only a file so stamped
+(`STAMPED`, `recorded_commit`). Of the 476 evidence files that name a
+commit, the 92 unstamped are of recipes CI never runs, or of none.
+
+Its lows are repaired too:
+- a parameter's default is read from the header alone;
+- only a campaign's control is named by its identifier alone;
+- a control's description is the longest of its words before its edits,
+  as `session_command`'s rows are identifier, suite, description, edits;
+- tests now hold a control not killed as a verdict still, a table of prose
+  controls (`head_to_head`'s) as no campaign's, and a default
+  single-quoted or bare.
+
+Ten more mutants hold them: six in `e14-dealt-by-time` and four in
+`e14-evidence-integrity`, besides the one re-anchored.
+
 So an evidence-only commit plans none of the four, where its inputs are
 otherwise unchanged. A pull request's last round of CI, after its evidence
 is fetched, no longer runs some 65 minutes of recipes again. Every gate is

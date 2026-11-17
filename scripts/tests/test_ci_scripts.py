@@ -804,6 +804,11 @@ class Plan(unittest.TestCase):
             # A parameter with no default, or a variadic one, as it is written.
             self.assertIn("task-{{TASK}}.txt", body["e14-task"])
             self.assertIn("echo {{flags}}", body["e14-many"])
+        # A default single-quoted, or bare, and none read past the header.
+        self.assertEqual(
+            plan.defaults("e14-q flags='-x y' out=docs/evidence/E14/q.txt: # see out=b.txt"),
+            {"flags": "-x y", "out": "docs/evidence/E14/q.txt"},
+        )
         # And the repository's: `e10-browser`'s evidence is its default's.
         self.assertEqual(
             plan.evidence_files(plan.bodies()["e10-browser"]), ["docs/evidence/E10/browser-suite.txt"]
@@ -822,6 +827,61 @@ class Plan(unittest.TestCase):
             plan.evidence_files('    @cp "$report" docs/evidence/E14/a.txt\n    @mv b docs/evidence/E14/b.txt\n'),
             ["docs/evidence/E14/a.txt", "docs/evidence/E14/b.txt"],
         )
+
+    def test_a_test_included_or_inline_under_another_name_plans_its_recipes(self) -> None:
+        # The review of the planner's reading, 2026-11-17: on master a change
+        # to each of these planned nothing, though each holds the assertions
+        # a recipe's kills are credited at. Uploads' session-authority and
+        # privacy tests are brought into `uploads::tests` by `include!`;
+        # pw-resource's command tests are an inline module of another name
+        # than `tests`, which session_command_mutations.py's filter names by
+        # a string (`LIB_MODULE`); pw-table-memory's compiled tests include
+        # their support files.
+        names = list(plan.bodies())
+
+        def reached(path: str, line: int) -> list[str]:
+            return plan.recipes_for({path: [(line, line)]}, plan.NEAR, names)
+
+        server = "spikes/own-renderer/server/src/uploads"
+        self.assertIn("e14-upload-authority", reached(f"{server}/session_authority_tests.rs", 40))
+        self.assertIn("e14-uploads", reached(f"{server}/privacy_lifecycle_tests.rs", 20))
+        resource = "runtime/pw-resource/src/lib.rs"
+        inline = next(
+            i for i, line in enumerate((plan.ROOT / resource).read_text().splitlines(), 1)
+            if line.strip() == "mod fallible_command_tests {"
+        )
+        self.assertIn("e14-session-command-authority", reached(resource, inline + 10))
+        self.assertIn("e14-row-ownership", reached("runtime/pw-table-memory/tests/support/owned.rs", 5))
+        # Each of its includers, by its test target's name.
+        targets, _ = plan.included_tests({"runtime/pw-table-memory/tests/support/owned.rs": [(5, 5)]})
+        self.assertIn("compiled_windows", targets)
+
+    def test_an_inline_test_module_of_another_name_reaches_a_script_that_names_it(self) -> None:
+        # The review of the planner's reading, 2026-11-17: only an inline
+        # `mod tests` was read. One of another name is its file's (a filter
+        # `widget::widget_extra::`) and its own (a filter naming it alone),
+        # to its closing brace.
+        with tempfile.TemporaryDirectory() as d:
+            root = pathlib.Path(d)
+            (root / "crate/src").mkdir(parents=True)
+            (root / "crate/src/widget.rs").write_text(
+                "pub fn f() {}\n\n#[cfg(test)]\nmod widget_extra {\n    #[test]\n    fn t() {}\n}\n\npub fn g() {}\n"
+            )
+            (root / "scripts").mkdir()
+            (root / "scripts/x_mutations.py").write_text(
+                'TESTS = [["cargo", "test", "--", "widget_extra"]]\nMUTANTS = []\n'
+            )
+            saved = plan.ROOT
+            plan.ROOT = root
+            try:
+                inside = {"crate/src/widget.rs": [(6, 6)]}
+                self.assertEqual(plan.test_modules(inside), {"widget", "widget_extra"})
+                self.assertEqual(plan.touched_scripts(inside, plan.NEAR), {"x_mutations.py"})
+                # Outside it, before or after, none of its tests'.
+                for line in (1, 9):
+                    self.assertEqual(plan.test_modules({"crate/src/widget.rs": [(line, line)]}), set(), line)
+            finally:
+                plan.ROOT = saved
 
     def test_a_todomvc_plan_writes_only_the_workflow_output(self) -> None:
         done = subprocess.run(
@@ -1483,6 +1543,10 @@ class CurrentEvidence(unittest.TestCase):
         self.assertEqual(plan.RECORDED_AT.search(f"x\ncommit: {sha}\nrust: 1\n").group(1), sha)
         self.assertIsNone(plan.RECORDED_AT.search(f"commit: {sha} + uncommitted changes\n"))
         self.assertIsNone(plan.RECORDED_AT.search("commit: 0123456\n"))
+        # A record is a run's: the commit line, a run stamped after it.
+        self.assertEqual(plan.recorded_commit(f"x\ncommit: {sha}\nci: https://e/1 (u)\n"), sha)
+        self.assertIsNone(plan.recorded_commit(f"x\ncommit: {sha}\nrust: 1\n"))
+        self.assertIsNone(plan.recorded_commit(f"commit: {sha} + uncommitted changes\nci: x (y)\n"))
 
     def test_the_evidence_is_read_as_the_head_holds_it(self) -> None:
         with tempfile.TemporaryDirectory() as d:
@@ -1501,14 +1565,19 @@ class CurrentEvidence(unittest.TestCase):
             run = git("rev-parse", "HEAD")
             evidence = root / "docs/evidence/E14/one.txt"
             evidence.parent.mkdir(parents=True)
-            evidence.write_text(f"one\n\ncommit: {run}\n")
+            evidence.write_text(f"one\n\ncommit: {run}\nci: https://example.invalid/run/1 (ubuntu)\n")
+            local = root / "docs/evidence/E14/local.txt"
+            local.write_text(f"one\n\ncommit: {run}\n")
             git("add", "docs")
             git("commit", "-q", "-m", "evidence")
             head = git("rev-parse", "HEAD")
             # Changed in the tree since, and not committed: not what the head holds.
-            evidence.write_text("one\n\ncommit: " + "f" * 40 + "\n")
+            evidence.write_text("one\n\ncommit: " + "f" * 40 + "\nci: x (y)\n")
             self.assertEqual(plan.recorded_at(head, "docs/evidence/E14/one.txt", root), run)
             self.assertIsNone(plan.recorded_at(head, "docs/evidence/E14/none.txt", root))
+            # A file no run stamped, a local run's committed (the review of
+            # the planner's reading, 2026-11-17), is no record.
+            self.assertIsNone(plan.recorded_at(head, "docs/evidence/E14/local.txt", root))
             self.assertTrue(plan.descends(run, head, root))
             self.assertFalse(plan.descends(head, run, root))
 

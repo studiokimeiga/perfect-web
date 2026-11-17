@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import types
 import unittest
 
 SCRIPTS = pathlib.Path(__file__).resolve().parent.parent
@@ -398,12 +399,36 @@ an unfinished callback becomes an observed mismatch: KILLED by scripts.tests.tes
             told = whats(self.campaign(C_AGREES.replace(whole, bad)))
             self.assertIn("c_mutations.py: counts 0 killed; 2 verdicts say KILLED", told, bad)
         failed = C_AGREES.replace("live-inspection: KILLED", "live-inspection: INVALID OR SURVIVED")
-        self.assertIn("c_mutations.py: counts 2 killed; 1 verdicts say KILLED", whats(self.campaign(failed)))
+        told = whats(self.campaign(failed))
+        self.assertIn("c_mutations.py: counts 2 killed; 1 verdicts say KILLED", told)
+        # The control that was not killed is a verdict still, of the two.
+        self.assertNotIn("c_mutations.py: counts 2 mutants above 1 verdicts", told)
         unknown = C_AGREES.replace("live-inspection: KILLED", "an-other-control: KILLED")
         self.assertTrue(any("names no mutant of its script" in w for w in whats(self.campaign(unknown))))
         # And where the campaign's own count is missing, none of its controls are.
         gone = C_AGREES.replace("scope=FULL, controls=2/2, valid=True, restored=True\n", "")
         self.assertIn("counts none of c_mutations.py's mutants, which the recipe runs", whats(self.campaign(gone)))
+
+    def test_a_campaigns_controls_are_its_identifiers_and_descriptions_alone(self):
+        shaped = types.SimpleNamespace(CONTROLS=[
+            # identifier, description, edits, expectations
+            ("lease-reader", "a preview accepts another reader's lease", [], []),
+            # identifier, suite, description, edits (session_command's)
+            ("render-actor-cache", "memory", "render operation cache ignores actor generation", []),
+        ])
+        self.assertEqual(
+            counts.controls_of(shaped),
+            [
+                ("lease-reader", "a preview accepts another reader's lease", None, None, None),
+                ("render-actor-cache", "render operation cache ignores actor generation", None, None, None),
+            ],
+        )
+        # head_to_head's integrity controls are no campaign's: prose first.
+        prose = types.SimpleNamespace(CONTROLS=[
+            ("a run count of one", None, None, ["--stacks", "react"], "fewer than 5"),
+            ("one", "two", "three", "four"),
+        ])
+        self.assertEqual(counts.controls_of(prose), [])
 
     def test_a_disagreement_fails_unless_a_trains_push_records_it_again(self):
         found = {"e14-x": [("x.txt", 1, "?")], "e14-y": [("y.txt", 1, "?")]}
@@ -438,7 +463,7 @@ class PlannedAgain(unittest.TestCase):
         self.git("add", ".")
         self.git("commit", "-q", "-m", "a script")
         recorded = self.git("rev-parse", "HEAD")
-        lying = f"commit: {recorded}\n" + AGREES.replace("3 of 3", "4 of 4")
+        lying = f"commit: {recorded}\nci: https://example.invalid/run/1 (ubuntu)\n" + AGREES.replace("3 of 3", "4 of 4")
         for name in ("x.txt", "local.txt"):
             path = self.root / "docs/evidence/E14" / name
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -452,6 +477,15 @@ class PlannedAgain(unittest.TestCase):
 
     def test_evidence_current_in_the_tree_here_is_recorded_again_by_no_plan(self):
         self.assertEqual(self.again(), set())
+
+    def test_evidence_no_run_stamped_is_planned_again(self):
+        # A local run's file, committed (the review of the planner's
+        # reading, 2026-11-17): its commit line has no run after it, so it
+        # is no record, and the recipe CI runs is planned again.
+        path = self.root / "docs/evidence/E14/x.txt"
+        path.write_text("\n".join(line for line in path.read_text().splitlines() if not line.startswith("ci: ")) + "\n")
+        self.git("commit", "-q", "-am", "a local run's evidence")
+        self.assertEqual(self.again(), {"e14-x"})
 
     def test_evidence_whose_script_changed_in_the_tree_here_is_planned_again(self):
         # Not committed yet, as `just ci` runs before a commit.
