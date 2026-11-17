@@ -187,6 +187,12 @@ impl Command {
         if open.ended || open.prepared {
             return Err(Error::Ended);
         }
+        // A command begun for its tables alone publishes nothing (L7's G10).
+        if open.lifetime.is_none() {
+            return Err(Error::Input(
+                "a command begun for its tables alone publishes no upload".into(),
+            ));
+        }
         if open.assets.publications.contains_key(declaration) {
             return Err(Error::Input(
                 "one declaration publishes its held claim twice".into(),
@@ -273,6 +279,13 @@ impl Command {
         let mut open = self.state.lock().map_err(|_| Error::StoragePoisoned)?;
         if open.ended || open.prepared {
             return Err(Error::Ended);
+        }
+        // A claim's receipt is a command's that holds the namespace (L7's
+        // G10): the unknown outcome's proof relocks it (I4).
+        if open.lifetime.is_none() {
+            return Err(Error::Input(
+                "a command begun for its tables alone claims no upload".into(),
+            ));
         }
         open.assets.receipt_required = true;
         Ok(())
@@ -467,6 +480,13 @@ pub(crate) fn prepare(inner: &Inner, open: &mut Open) -> Result<(), Error> {
     }
     if groups.is_empty() {
         return Ok(());
+    }
+    // Behind the refusals of its writes and its publications (L7's G10): a
+    // command that holds no namespace changes no generation's counts.
+    if open.lifetime.is_none() {
+        return Err(Error::Input(
+            "a command begun for its tables alone changes an asset's generations".into(),
+        ));
     }
     let generations = groups.keys().cloned().collect::<Vec<_>>();
     verify_rows(inner, open)?;
@@ -1022,7 +1042,10 @@ pub(crate) fn verify_before_commit(
     open: &mut Open,
     assets: &Transaction,
 ) -> Result<(), Error> {
-    if inner.uploads.is_none() {
+    // A command that holds no namespace kept no asset row (its writes and
+    // publications were refused it, L7's G10): it costs what a program
+    // declaring no upload's does.
+    if inner.uploads.is_none() || open.lifetime.is_none() {
         return Ok(());
     }
     let conn = inner.command_conn(open)?;

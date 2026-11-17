@@ -1341,3 +1341,156 @@ fn a_collection_that_keeps_failing_keeps_no_other_from_its_turn_on_postgresql() 
         "the stuck one stays"
     );
 }
+
+/// Notes that keep no asset, beside the photos (L7's G10).
+const NOTES: &str = r#"module Notes
+type Note = Note { id: Int, text: String }
+table Notes
+    row Note
+    key id
+    written by anyone
+"#;
+
+const NOTES_DATA: &str = r#"module AssetData
+import PostImage
+import Assets
+import Notes
+source AssetData
+    holds PostImage, Assets, Notes
+    transactions serializable
+    reads strong
+    changes none
+    sets one_call
+"#;
+
+/// **The photos beside notes** (L7's G10): `Note` writes the notes alone,
+/// and works on its tables alone; `Keep`, `Drop` and `Remove` work on the
+/// uploads, as before.
+fn built_with_notes() -> (tempfile::TempDir, std::path::PathBuf) {
+    let app = APP.replacen(
+        "import Assets.{ Item }\n",
+        "import Assets.{ Item }\nimport Notes\n",
+        1,
+    ) + "command Note(note: Notes.Note) -> ()\n    requires Anyone\n    idempotent_by InteractionId\n    transaction serializable\n{ Notes.put(note) }\n";
+    super::tables::built(
+        &[],
+        &[
+            ("PostImage.pw", IMAGE),
+            ("Assets.pw", ASSETS),
+            ("Notes.pw", NOTES),
+            ("AssetData.pw", NOTES_DATA),
+            ("app.pw", &app),
+        ],
+    )
+}
+
+/// **A command working on no upload is not held up by the namespace's
+/// lock** (L7's G10, ADR-0440 amended 2026-11-17; before it, every command
+/// of a program declaring uploads took that lock, and waited five seconds
+/// for it, then failed: PostgreSQL's 55P03, as this test fails where every
+/// command holds it). Another session holds the upload namespace's lock, as
+/// a long command working on the uploads does. An anonymous reader's `Note`
+/// and a signed-in reader's, which write notes alone, commit at once, each
+/// fenced on its session (the unfenced path, a command begun at its first
+/// need, is the staging tests' below). `Remove`, which deletes an asset's
+/// row, still waits for the lock, and is not committed once its five
+/// seconds are out.
+#[test]
+fn a_command_working_on_no_upload_is_not_held_up_by_the_namespace_lock_on_postgresql() {
+    let Some(url) = super::tables_pg::database() else {
+        return;
+    };
+    let (_dir, out) = built_with_notes();
+    let schema = super::tables_pg::Schema::new(&url, "bridge_notes_unlocked");
+    let s = super::tables_pg::serve(&out, &schema);
+    let provider = std::sync::Arc::new(super::sign_in::TestProvider::default());
+    s.identity
+        .use_provider(provider.clone(), super::sign_in::REDIRECT);
+    let ada = super::sign_in::signed_in(&s, &provider, "s-came-with-notes", "ada");
+    let lock = namespace_lock(&schema);
+    let mut held = postgres::Client::connect(&schema.database().url, postgres::NoTls)
+        .asserted("a session of the test's");
+    held.query_one("SELECT pg_advisory_lock($1)", &[&lock])
+        .asserted("the namespace's lock held");
+    for (session, id) in [("reader", 1), (ada.as_str(), 2)] {
+        let started = std::time::Instant::now();
+        let answer = s
+            .command_answer(
+                "photos.app.Note",
+                session,
+                &[serde_json::json!({"id": id, "text": "beside the lock"})],
+                Some(&format!("note-{id}")),
+            )
+            .asserted("Note answered");
+        let waited = started.elapsed();
+        assert!(answer.committed, "note {id}: {answer:?}");
+        assert!(
+            waited < std::time::Duration::from_secs(3),
+            "note {id} committed at once, not after the lock: {waited:?}"
+        );
+    }
+    let started = std::time::Instant::now();
+    let removed = s.command_answer(
+        "photos.app.Remove",
+        "reader",
+        &[serde_json::json!(1)],
+        Some("remove-1"),
+    );
+    let waited = started.elapsed();
+    held.query_one("SELECT pg_advisory_unlock($1)", &[&lock])
+        .asserted("the lock given back");
+    assert!(
+        waited >= std::time::Duration::from_secs(4),
+        "Remove waits for the namespace: {waited:?}, {removed:?}"
+    );
+    assert!(
+        !removed.as_ref().is_ok_and(|a| a.committed),
+        "Remove is not committed while the namespace is held: {removed:?}"
+    );
+    assert_eq!(schema.count("\"Notes\""), "2");
+}
+
+/// **A staging begun for its tables alone is refused asset work, on both
+/// layers** (L7's G10): its write of a table keeping an asset is refused,
+/// whatever it was linked to, so a command whose imports were answered
+/// wrongly fails closed and never writes an asset unlocked. Its transaction
+/// is begun at its first need, unfenced, as a scheduled run's is.
+fn a_staging_for_its_tables_alone_is_refused_asset_work(s: &Server) {
+    let id = "photos.app.Remove";
+    let granted = s.authorise(id).asserted("Remove's grants");
+    let contract = s
+        .contracts
+        .iter()
+        .find(|c| c.component_id == id)
+        .asserted_some("Remove's contract");
+    let staging = s.data.begin_for("reader", pw_host::tables::Work::Tables);
+    let ops = staging
+        .table_ops(contract, &granted)
+        .asserted("Remove's table functions, through the gate");
+    let delete = ops
+        .get("pw:tables/assets#delete")
+        .asserted_some("the asset table's delete");
+    let answer = delete(&[pw_host::engine::Val::S64(1)]);
+    assert!(
+        answer
+            .as_ref()
+            .is_err_and(|why| why.contains("which keeps an asset")),
+        "{answer:?}"
+    );
+}
+
+#[test]
+fn a_staging_for_its_tables_alone_is_refused_asset_work_in_memory() {
+    let (_dir, out) = built();
+    a_staging_for_its_tables_alone_is_refused_asset_work(&on_memory(&out));
+}
+
+#[test]
+fn a_staging_for_its_tables_alone_is_refused_asset_work_on_postgresql() {
+    let Some(url) = super::tables_pg::database() else {
+        return;
+    };
+    let schema = super::tables_pg::Schema::new(&url, "bridge_tables_alone");
+    let (_dir, out) = built();
+    a_staging_for_its_tables_alone_is_refused_asset_work(&super::tables_pg::serve(&out, &schema));
+}

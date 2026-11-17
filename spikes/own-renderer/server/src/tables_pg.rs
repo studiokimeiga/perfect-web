@@ -315,9 +315,21 @@ impl DataLayer for TablesPg {
 
     /// A command's staging, its transaction not begun: the host's turn is
     /// taken where the command first needs it ([`PgStaging`]).
-    fn begin<'a>(&'a self, _session: &str) -> Box<dyn Staged + 'a> {
+    fn begin<'a>(&'a self, session: &str) -> Box<dyn Staged + 'a> {
+        self.begin_for(session, pw_host::tables::Work::Uploads)
+    }
+
+    /// As [`DataLayer::begin`], for what the command works on (L7's G10):
+    /// its transaction, fenced or not, holds the uploads' namespace only
+    /// where `work` is theirs.
+    fn begin_for<'a>(
+        &'a self,
+        _session: &str,
+        work: pw_host::tables::Work,
+    ) -> Box<dyn Staged + 'a> {
         Box::new(PgStaging {
             layer: self,
+            work,
             turn: std::cell::RefCell::new(Turn::NotBegun),
             actor: None,
             authorization: Authorization::NotAttempted,
@@ -469,10 +481,14 @@ enum Turn {
 
 impl Turn {
     /// **The command's transaction**, begun on `tables` unfenced where
-    /// nothing began it yet.
-    fn begun(&mut self, tables: &PgTables) -> Result<&mut Command, String> {
+    /// nothing began it yet, for what it works on.
+    fn begun(
+        &mut self,
+        tables: &PgTables,
+        work: pw_host::tables::Work,
+    ) -> Result<&mut Command, String> {
         if matches!(self, Turn::NotBegun) {
-            *self = match tables.begin() {
+            *self = match tables.begin_for(work) {
                 Ok(command) => Turn::Open(command),
                 Err(e) => Turn::Failed(format!("the tables began no command: {e:?}")),
             };
@@ -505,6 +521,9 @@ enum Authorization {
 /// waiting for its session holds no other session's command up.
 pub(crate) struct PgStaging<'a> {
     layer: &'a TablesPg,
+    /// What the command works on (L7's G10): whether its transaction holds
+    /// the uploads' namespace, however it is begun.
+    work: pw_host::tables::Work,
     turn: std::cell::RefCell<Turn>,
     /// The browser actor admitted, whose session the command is fenced on.
     actor: Option<CommandActor>,
@@ -522,7 +541,7 @@ pub(crate) struct PgStaging<'a> {
 
 impl PgStaging<'_> {
     fn command(&mut self) -> Result<&mut Command, String> {
-        self.turn.get_mut().begun(&self.layer.tables)
+        self.turn.get_mut().begun(&self.layer.tables, self.work)
     }
 
     /// A commit refused, knowing it kept nothing.
@@ -571,7 +590,7 @@ impl PgStaging<'_> {
         let command = self
             .layer
             .tables
-            .begin_fenced(fence)
+            .begin_fenced_for(fence, self.work)
             .map_err(|e| format!("session authority changed before commit: {e:?}"))?;
         *self.turn.get_mut() = Turn::Open(command);
         self.actor = Some(actor.clone());
@@ -708,7 +727,7 @@ impl Staged for PgStaging<'_> {
             if matches!(*turn, Turn::Committed) {
                 return Err("a command's tables are linked before it commits".into());
             }
-            turn.begun(&self.layer.tables)?
+            turn.begun(&self.layer.tables, self.work)?
                 .host_fns(contract, granted)
                 .map_err(|e| format!("`{}`'s tables: {e:?}", contract.component_id))?
         };
@@ -737,7 +756,7 @@ impl Staged for PgStaging<'_> {
         if matches!(*turn, Turn::Committed) {
             return Err("a command's predicate reads are linked before it commits".into());
         }
-        turn.begun(&self.layer.tables)?
+        turn.begun(&self.layer.tables, self.work)?
             .predicate_host_fns(contract, granted)
             .map_err(|e| format!("`{}`'s predicate reads: {e:?}", contract.component_id))
     }
@@ -807,7 +826,7 @@ impl Staged for PgStaging<'_> {
         // Its transaction: begun where nothing began it (a run's command
         // that wrote nothing before it completes the run, a guest's that
         // only schedules).
-        if let Err(why) = self.turn.get_mut().begun(&self.layer.tables) {
+        if let Err(why) = self.turn.get_mut().begun(&self.layer.tables, self.work) {
             // Committed once already: not a refusal of anything.
             if matches!(*self.turn.get_mut(), Turn::Committed) {
                 return Err(why);

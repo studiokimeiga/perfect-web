@@ -140,8 +140,8 @@ MUTANTS = [
      "            let _ = error;\n"),
     # 4. the authority
     ("a command is not fenced on its reader's session", LAYER,
-     "            .begin_fenced(fence)\n",
-     "            .begin()\n"
+     "            .begin_fenced_for(fence, self.work)\n",
+     "            .begin_for(self.work)\n"
      "            .map_err(|e| (e, &fence).0)\n"),
     ("a command whose authority came too late is left usable", LAYER,
      "                *self.turn.get_mut() = Turn::Failed(why.clone());\n",
@@ -287,7 +287,7 @@ MUTANTS = [
      '            &format!("schedule-{}", run.id),\n            &run.user,\n',
      '            &format!("schedule-{}", run.id),\n            "nobody",\n'),
     ('a durable owned command has no staged predicate reads', LAYER,
-     '    fn table_predicate_reads(\n        &self,\n        contract: &ComponentContract,\n        granted: &Granted,\n    ) -> Result<Ops, String> {\n        let mut turn = self.turn.borrow_mut();\n        if matches!(*turn, Turn::Committed) {\n            return Err("a command\'s predicate reads are linked before it commits".into());\n        }\n        turn.begun(&self.layer.tables)?\n            .predicate_host_fns(contract, granted)\n            .map_err(|e| format!("`{}`\'s predicate reads: {e:?}", contract.component_id))\n    }\n\n',
+     '    fn table_predicate_reads(\n        &self,\n        contract: &ComponentContract,\n        granted: &Granted,\n    ) -> Result<Ops, String> {\n        let mut turn = self.turn.borrow_mut();\n        if matches!(*turn, Turn::Committed) {\n            return Err("a command\'s predicate reads are linked before it commits".into());\n        }\n        turn.begun(&self.layer.tables, self.work)?\n            .predicate_host_fns(contract, granted)\n            .map_err(|e| format!("`{}`\'s predicate reads: {e:?}", contract.component_id))\n    }\n\n',
      '    fn table_predicate_reads(&self, _contract: &ComponentContract, _granted: &Granted) -> Result<Ops, String> {\n        Err("this data adapter supplies no predicate reads in a command".into())\n    }\n\n'),
     ('a durable table read is made three times', LAYER,
      '        read.map_err(|e| format!("`{}`\'s tables: {e:?}", contract.component_id))\n',

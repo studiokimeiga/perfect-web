@@ -2482,6 +2482,21 @@ impl Server {
             .is_some_and(|e| e.kind == "command")
     }
 
+    /// **What a command of `component_id` works on** (L7's G10, ADR-0440
+    /// amended 2026-11-17): its artifact's imports, what it can call, as the
+    /// program's tables answer them. A command that claims, publishes or
+    /// discards an upload, or writes a table keeping an asset, works on the
+    /// uploads, and holds their namespace for its life on PostgreSQL; any
+    /// other runs beside every host's commands, refused asset work by its
+    /// layer. A component this host did not load works on the uploads, as
+    /// every command did before; a hand-written layer serves no tables.
+    fn work_of(&self, component_id: &str) -> pw_host::tables::Work {
+        match (self.data.tables(), self.components.get(component_id)) {
+            (Some(tables), Some(loaded)) => tables.work(loaded.imports.iter().map(String::as_str)),
+            _ => pw_host::tables::Work::Uploads,
+        }
+    }
+
     /// **Whether `component_id` is a command the platform runs as an
     /// identity's lifecycle**: one `invoked_by Identity`. It runs only on a
     /// checked transition of the reader's session, its previous identity
@@ -3443,7 +3458,7 @@ impl Server {
             } else {
                 None
             };
-            let mut staging = self.data.begin(session);
+            let mut staging = self.data.begin_for(session, self.work_of(component_id));
             if let Some(actor) = &actor {
                 staging.authorize(actor)?;
             }
@@ -3855,7 +3870,9 @@ impl Server {
         answer: Answered,
         completing: schedules::Completing<'_>,
     ) -> Result<CommandOutcome, String> {
-        let mut empty = self.data.begin(session);
+        // No component runs: the run's outcome and record alone, on the
+        // tables, holding no uploads' namespace (L7's G10).
+        let mut empty = self.data.begin_for(session, pw_host::tables::Work::Tables);
         let kept = answer.kept();
         let now = u64::try_from(self.now()).unwrap_or_default();
         let recorded = record.map(|(key, sent)| data::Recorded {

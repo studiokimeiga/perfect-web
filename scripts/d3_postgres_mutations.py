@@ -76,7 +76,8 @@ POOL = CRATE / "src/pool.rs"
 CARGO = ROOT / "Cargo.toml"
 
 # **The uploads' mutants** (ADR-0440's L5): the namespace, its generations,
-# its receipts and its enrollment on PostgreSQL. Part 3 of `PARTS`, run by
+# its receipts and its enrollment on PostgreSQL; and (L7's G10) a command
+# working on its tables alone, which holds none of them. Part 3 of `PARTS`, run by
 # `just e14-d3-postgres-3` (part 2 until 2026-11-17).
 UPLOADS = [
     ('upload lifecycle keeps without verifying exact receipt after immediate hooks', ROOT / 'runtime/pw-table-postgres/src/lib.rs',
@@ -162,6 +163,18 @@ UPLOADS = [
      '    let _ = &binding.store;\n    Ok(Some(key))'),
     ('upload lifecycle skips namespace exclusion before the host turn', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
      'pub(crate) fn lock_lifetime(inner: &Inner, lease: &mut Lease) -> Result<Option<i64>, Error> {\n    let Some(binding) = &inner.uploads else {\n        return Ok(None);\n    };\n    let conn = lease.conn()?;\n    conn.batch(&inner.counters, "BEGIN").map_err(database)?;\n    let key = acquire_namespace(conn, &inner.counters, &binding.namespace)?;\n    conn.batch(&inner.counters, "COMMIT").map_err(database)?;\n    binding\n        .store\n        .enroll(&binding.namespace, false)\n        .map_err(|e| Error::Refused(format!("upload storage namespace: {e}")))?;\n    Ok(Some(key))\n}\n', 'pub(crate) fn lock_lifetime(inner: &Inner, lease: &mut Lease) -> Result<Option<i64>, Error> {\n    let Some(binding) = &inner.uploads else {\n        return Ok(None);\n    };\n    let conn = lease.conn()?;\n    conn.batch(&inner.counters, "BEGIN").map_err(database)?;\n    let key = acquire_namespace(conn, &inner.counters, &binding.namespace)?;\n    release_namespace(conn, &inner.counters, key)?;\n    conn.batch(&inner.counters, "COMMIT").map_err(database)?;\n    binding\n        .store\n        .enroll(&binding.namespace, false)\n        .map_err(|e| Error::Refused(format!("upload storage namespace: {e}")))?;\n    Ok(None)\n}\n'),
+    # L7's G10 (ADR-0440 amended 2026-11-17): a command working on its
+    # tables alone holds no namespace, and is refused asset work.
+    ('upload lifecycle holds the namespace for a command working on its tables alone', ROOT / 'runtime/pw-table-postgres/src/lib.rs',
+     '        let lifetime = match work {\n            Work::Uploads =>', '        let lifetime = match { let _ = work; Work::Uploads } {\n            Work::Uploads =>'),
+    ('upload lifecycle writes a table keeping an asset from a command begun for its tables alone', ROOT / 'runtime/pw-table-postgres/src/lib.rs',
+     '        if !table.assets.is_empty() && open.lifetime.is_none() {', '        if false && !table.assets.is_empty() && open.lifetime.is_none() {'),
+    ('upload lifecycle publishes from a command begun for its tables alone', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
+     "        // A command begun for its tables alone publishes nothing (L7's G10).\n        if open.lifetime.is_none() {", "        // A command begun for its tables alone publishes nothing (L7's G10).\n        if false && open.lifetime.is_none() {"),
+    ('upload lifecycle marks a receipt for a command begun for its tables alone', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
+     "        // G10): the unknown outcome's proof relocks it (I4).\n        if open.lifetime.is_none() {", "        // G10): the unknown outcome's proof relocks it (I4).\n        if false && open.lifetime.is_none() {"),
+    ('upload lifecycle checks an ordinary commands asset rows at its commit', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
+     '    if inner.uploads.is_none() || open.lifetime.is_none() {\n        return Ok(());\n    }\n    let conn = inner.command_conn(open)?;\n    conn.batch(&inner.counters, "SET CONSTRAINTS ALL IMMEDIATE")', '    if inner.uploads.is_none() {\n        return Ok(());\n    }\n    let conn = inner.command_conn(open)?;\n    conn.batch(&inner.counters, "SET CONSTRAINTS ALL IMMEDIATE")'),
 ]
 
 # **Every mutant but the uploads'**: D3's own (ADR-0338, ADR-0393), the

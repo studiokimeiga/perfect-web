@@ -155,6 +155,10 @@ pub enum Isolation {
     ConnectionDefault,
 }
 
+/// **What a command works on** (L7's G10): the host's, as
+/// `pw_host::tables::Manifest::work` answers it for a command.
+pub use pw_host::tables::Work;
+
 /// How a render's read transaction opens (ADR-0354, decision 3): repeatable
 /// read, so every read of it reads its first statement's snapshot, and read
 /// only, so it never meets a serialization failure.
@@ -602,10 +606,18 @@ impl PgTables {
     /// would hold. Its connection and `BEGIN` wait for its first statement,
     /// so a command that touches no table costs the database nothing. Its
     /// writes are kept only when it commits, and undone whole where it is
-    /// dropped instead.
+    /// dropped instead. It works on the program's uploads ([`Work::Uploads`]):
+    /// a command that does not is begun by [`PgTables::begin_for`].
     pub fn begin(&self) -> Result<Command, Error> {
+        self.begin_for(Work::Uploads)
+    }
+
+    /// **A command's transaction, for what it works on** (L7's G10): as
+    /// [`PgTables::begin`], holding the uploads' namespace only where `work`
+    /// is theirs and the program declares uploads.
+    pub fn begin_for(&self, work: Work) -> Result<Command, Error> {
         let place = self.inner.pool.take()?;
-        self.turn(place, None)
+        self.turn(place, None, work)
     }
 
     /// **The host's turn, for a command whose connection's place is
@@ -616,13 +628,19 @@ impl PgTables {
         &self,
         mut place: Lease,
         fenced: Option<platform::Fenced>,
+        work: Work,
     ) -> Result<Command, Error> {
-        let lifetime = match assets::lock_lifetime(&self.inner, &mut place) {
-            Ok(lifetime) => lifetime,
-            Err(error) => {
-                place.discard();
-                return Err(error);
-            }
+        // The uploads' namespace, held where the command works on them,
+        // before its turn (ADR-0440's order), and by no command otherwise.
+        let lifetime = match work {
+            Work::Uploads => match assets::lock_lifetime(&self.inner, &mut place) {
+                Ok(lifetime) => lifetime,
+                Err(error) => {
+                    place.discard();
+                    return Err(error);
+                }
+            },
+            Work::Tables => None,
         };
         let id = match self.inner.take_turn() {
             Ok(id) => id,
@@ -922,6 +940,16 @@ impl Inner {
             return Err(Error::Input(format!("{import} is not a table write")));
         }
         let table = &self.shape.tables[function.table];
+        // **Asset work is a command's that holds the namespace** (L7's
+        // G10): one begun for its tables alone writes no table keeping an
+        // asset, whatever it was linked to.
+        if !table.assets.is_empty() && open.lifetime.is_none() {
+            return Err(Error::Input(format!(
+                "{import} writes {}, which keeps an asset, in a command begun for its tables \
+                 alone",
+                table.name
+            )));
+        }
         let sql = self
             .statements
             .get(import)

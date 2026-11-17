@@ -2,6 +2,20 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**L7's G10, 2026-11-17: the uploads' namespace held only by the commands
+that work on uploads** (`wip/l7-upload-lock`). On PostgreSQL every command
+of a program declaring uploads held the upload namespace's lock for its
+life: they ran one at a time across every host, each paid six statements
+more, and a note waited five seconds behind a long image post, then failed.
+A command now works on the uploads only where its artifact's imports claim,
+publish or discard one, or write a table keeping an asset
+(`Manifest::work`). Any other takes no lock, costs what it costs where no
+upload is declared, and is refused asset work by both layers, so a wrong
+answer fails closed (ADR-0440, amended). It is held on memory and on
+PostgreSQL, through the adapter and the server, and by sixteen mutants,
+killed locally (`e14-d3-postgres-3`, `e14-row-ownership` and
+`e14-generic-upload-claims` record them in the pull request's verify).
+
 **A call's arguments past the flat limit, 2026-11-17** (`wip/wide-import-args`,
 one pull request with the asset contract suite, below, which found it): a compiled command passes a host's
 operation arguments wider than the Canonical ABI's 16 flat values in its

@@ -98,6 +98,12 @@ impl Command {
             .host
             .uploads()
             .ok_or_else(|| Error::Input("uploads are unbound".into()))?;
+        // A command begun for its tables alone publishes nothing (L7's G10).
+        if open.work == crate::Work::Tables {
+            return Err(Error::Input(
+                "a command begun for its tables alone publishes no upload".into(),
+            ));
+        }
         let draft = open.asset_draft.as_mut().ok_or(Error::Ended)?;
         self.inner.asset_operations.fetch_add(1, Ordering::SeqCst);
         registry

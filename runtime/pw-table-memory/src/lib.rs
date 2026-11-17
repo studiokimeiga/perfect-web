@@ -41,6 +41,9 @@ use serde_json::{Map, Value};
 
 mod assets;
 pub use assets::AssetPublisher;
+/// **What a command works on** (L7's G10): the host's, as
+/// `pw_host::tables::Manifest::work` answers it for a command.
+pub use pw_host::tables::Work;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Error {
@@ -326,6 +329,9 @@ struct Open {
     asset_draft: Option<pw_host::assets::RegistryDraft>,
     asset_patch: Option<pw_host::assets::RegistryPatch>,
     id: u64,
+    /// What it works on (L7's G10): asset work is refused a command begun
+    /// for its tables alone, as the PostgreSQL adapter refuses it.
+    work: Work,
     /// Held to its commit's checks, and writing nothing more.
     prepared: bool,
     /// Each key it wrote, by its table, and the row it held before: what
@@ -552,7 +558,16 @@ impl MemoryTables {
     /// **A command's transaction** (ADR-0386): begun once the command before
     /// it has ended, one at a time. Its writes are staged until it commits
     /// ([`Command::commit`]), and undone whole where it is dropped instead.
+    /// It works on the program's uploads ([`Work::Uploads`]).
     pub fn begin(&self) -> Result<Command, Error> {
+        self.begin_for(Work::Uploads)
+    }
+
+    /// **A command's transaction, for what it works on** (L7's G10): as
+    /// [`MemoryTables::begin`]. One begun for its tables alone
+    /// ([`Work::Tables`]) is refused asset work, as on PostgreSQL, where it
+    /// holds no namespace: the layers answer a command alike.
+    pub fn begin_for(&self, work: Work) -> Result<Command, Error> {
         let mut working = self.inner.lock_working()?;
         if working.open.is_some() {
             let tell = self
@@ -578,6 +593,7 @@ impl MemoryTables {
             asset_draft,
             asset_patch: None,
             id,
+            work,
             prepared: false,
             touched: BTreeMap::new(),
         });
@@ -1140,6 +1156,17 @@ impl Inner {
         let open = open.as_mut().ok_or(Error::Ended)?;
         if open.prepared {
             return Err(Error::Ended);
+        }
+        // **Asset work is a command's that works on uploads** (L7's G10).
+        if open.work == Work::Tables
+            && let Ok((at, _)) = self.shape.function(import)
+            && !self.shape.tables[at].assets.is_empty()
+        {
+            return Err(Error::Input(format!(
+                "{import} writes {}, which keeps an asset, in a command begun for its tables \
+                 alone",
+                self.shape.tables[at].name
+            )));
         }
         write(&self.shape, tables, &mut open.touched, import, args)
     }

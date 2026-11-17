@@ -34,7 +34,11 @@ anywhere but an assertion is no kill):
 8. ADR-0440's asset contract suite (2026-11-17): memory's commit, or its
    housekeeping, collecting no generation left unnamed, named bytes it lost
    answered not found, and a commit that failed before its rows were
-   published answered unknown.
+   published answered unknown;
+9. L7's G10 (ADR-0440 amended 2026-11-17): a command working on no upload
+   holding the namespace, by what its artifact imports, on its unfenced
+   path and its fenced one, and memory's staging not told what its command
+   works on.
 
 Not here, each for its reason: the review's robustness repairs (a poisoned counter after a landed COMMIT,
 a ledger that fails while it reconciles, a removal racing memory's read)
@@ -200,6 +204,21 @@ MUTANTS = [
     ("memory answers a commit refused before its publication unknown", LAYER_MEMORY,
      "    fn definitely_refused(&self) -> bool {\n        !self.published\n",
      "    fn definitely_refused(&self) -> bool {\n        false\n"),
+    # L7's G10 (ADR-0440 amended 2026-11-17): a command is begun for what its
+    # artifact's imports work on, on its unfenced path and its fenced one,
+    # and each layer's staging is told it.
+    ("a command working on no upload holds the namespace", MAIN,
+     "            (Some(tables), Some(loaded)) => tables.work(loaded.imports.iter().map(String::as_str)),",
+     "            (Some(_), Some(_)) => pw_host::tables::Work::Uploads,"),
+    ("a command begun at its first need holds the namespace whatever it works on", LAYER_PG,
+     "            *self = match tables.begin_for(work) {",
+     "            *self = match tables.begin_for({ let _ = work; pw_host::tables::Work::Uploads }) {"),
+    ("a command fenced on its session holds the namespace whatever it works on", LAYER_PG,
+     "            .begin_fenced_for(fence, self.work)",
+     "            .begin_fenced_for(fence, pw_host::tables::Work::Uploads)"),
+    ("memory's staging is not told what its command works on", LAYER_MEMORY,
+     "            turn: match self.tables.begin_for(work) {",
+     "            turn: match self.tables.begin_for({ let _ = work; pw_host::tables::Work::Uploads }) {"),
 ]
 
 # One command, its filters, as the inventory is kept per command.
