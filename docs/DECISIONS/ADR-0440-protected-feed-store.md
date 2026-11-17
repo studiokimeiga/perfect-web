@@ -1841,3 +1841,154 @@ adapters. L5a's other lows (refusals filed under PW5601's invariant, the bare
 `is_err()` refusals, and corpus cases for the upload and asset rules) are
 repaired on `wip/l5-followups`, its pull request after this one, with PW5604,
 PW5605, PW0371 and corpus C34.
+
+## Amended 2026-11-17: each upload and asset refusal told by its own rule (L5's follow-up)
+
+The integrator's, under the owner's delegation, from L5a's independent
+review (its findings L7 and L9) and the follow-up's own review. The compiler
+filed refusals under rules whose invariants do not describe them, and the
+asset tests held most refusals to being errors, whatever their reason.
+
+- **PW5604 `upload_identity_taken`**: an upload's emitted interface and
+  generated declarations are its own, no other upload's or declaration's.
+  It tells both collisions (two uploads whose names emit one interface; a
+  declaration emitting a generated declaration's identity), which PW5601
+  (an upload's clauses and limits) told until now.
+- **PW5605 `upload_claim_not_idempotent`**: a command that claims or releases
+  an upload declares `idempotent_by`, the key the claim bridge settles a
+  claim by (L5b above); PW5601's until now.
+- **PW0371 `table_asset_malformed`**: a table keeps an upload only as an asset
+  of a public table, one top-level field of its row holding the exact
+  generated reference of a public upload its source holds, associated once,
+  and never a claim. `tables::assets`' twelve refusals were PW0361's, whose
+  invariant is the row, its key and its indexes. An `asset` clause written
+  wrong stays PW0361's, with every clause's form.
+- **PW5601** now names the ceiling it has always held (ADR-0260): no limit
+  past what a host reads whole.
+- **Each asset test's refusal names its reason**: the 85 bare `is_err()` in
+  the six asset suites and nine checks that matched only a prefix every
+  refusal of their kind carries, each reason observed before it was
+  written; a loop's or a helper's cases name themselves when they fail, and
+  three enum variants are matched exactly.
+
+Held by `tests/table_assets.rs` (each refusal by its code and its words;
+`a_declaration_emitting_a_generated_upload_identity_is_pw5604` and
+`a_command_claiming_an_upload_without_idempotent_by_is_pw5605`, new), and four
+mutants in `row_ownership_mutations.py`, each telling one of the three new
+codes' refusals as its old code again.
+
+## Amended 2026-11-17: the corpus's upload and asset cases, and each refusal's boundary (L5's follow-up)
+
+The integrator's, under the owner's delegation, from L5a's review (a low
+finding: no corpus case held an upload or asset rule) and the architect's
+ruling of 2026-08-06 (an invariant the compiler enforces has its canonical
+accepted and rejected specification, and survives a program its fixture did
+not anticipate). Corpus C34 (`docs/CORPUS.md`):
+
+- **Six rejected fixtures**, each its own defect alone: R-119 (an upload that
+  states no limit on its bytes, PW5601), R-120 (an upload's route that is a
+  page's, PW5602), R-121 (a form that sends a file where no upload takes it,
+  PW5603), R-122 (a declaration that emits a name an upload generates,
+  PW5604), R-123 (a command that claims an upload with no idempotency key,
+  PW5605) and R-124 (an asset held in a field that is not its upload's
+  reference, PW0371).
+- **Two accepted controls**: A-061, an upload in the module of its name and
+  a form that posts a file to it; A-062, a public table that keeps that
+  upload's reference as its asset, written by a command that claims it and
+  declares `idempotent_by`, and read by any reader.
+- **Six generality pairs** (`examples/generality/<symbol>/`), each a shape
+  its fixture does not have, and a valid neighbour: a limit past a host's;
+  a serving path under another module's upload's; a file form posting to an
+  upload's route without multipart; a type taking a generated operation's
+  emitted name; a claim in a helper, and one inside an `if`, beside a
+  command that only reads what its reader attached; an asset table whose
+  source does not hold its upload, and a claim kept in a row, beside a table
+  with no asset. An owned table's asset is held by `tests/table_assets.rs`
+  alone: a witness's table would need the upload's source, and A-062's is the
+  one that may hold it. Generality is 82/82.
+
+Writing them found **eight refusals, of four rules, that named no
+boundary**, which charter §16.3 asks of every rejection and the corpus asks
+of each refusal a fixture reaches (`every_diagnostic_carries_what_charter_16_3_requires`):
+PW5601's clause left out, bytes past what a host reads whole, and width or
+height past any image's; PW5602's path a page or another upload holds, and
+path under another's; PW5604's two collisions; and PW5605's. Each now points
+at what the rule holds it to, in the file that declares it: a clause left
+out, and bytes past what a host reads whole, at the route where the upload
+takes a reader's file (its name, where that route is itself refused); a size
+past any image's at the kinds it takes; a path at the page or upload holding
+it; an interface at the other upload emitting it (only one in the module of
+its name, which alone emits one); a generated name at the program's
+declaration taking it; and a claim at the upload whose claim the command
+takes. Held by `each_upload_refusal_names_the_boundary_it_is_held_to`
+(`tests/uploads.rs`: each note's label, file and span, a holder in another
+file where the rule crosses files), four tests of `tests/table_assets.rs`
+(`bounded`, which holds a note's span too, and
+`an_interface_collision_is_noted_only_at_an_upload_that_emits_it`), the
+corpus's §16.3 test, and ten mutants, seven in `uploads_mutations.py` and
+three in `row_ownership_mutations.py`, each dropping a note, pointing it
+elsewhere, or filing it in the refusal's own file, each killed at an
+assertion in a local run; their recipes' evidence is this pull request's
+verify's.
+
+**Reviewed** independently (2026-11-17, `e10a59c6`): the compiler change is
+sound, and no refusal changed whether it fires. Its findings, each repaired:
+three workspace tests the new controls broke and neither preflight nor the
+suites it was run with reach (`from_manifest.rs`' count of the corpus's
+resources, 28 with A-062's three; `ownership.rs`' affine types, which list
+the upload's claim, `PostImage.Claim`; and `lowering.rs`' policy spans, which
+exempt an upload's generated operations as a table's); the owned-table
+witness, whose source check caught it as well, so it witnessed no ownership
+(replaced, above); notes held by their labels alone (M2: now by file and
+span, with three mutants); PW5604's note at an upload of the other's name
+that emits nothing; three notes whose labels said what was not so, or that
+spanned the declaration they were in; and two words of PROFILES' and
+R-124's.
+
+## Amended 2026-11-17: the second L5 review's four lows of code (L5's follow-up)
+
+The integrator's, under the owner's delegation, from the independent review
+of L5's repairs (`4d3f7ce5`, `41a73a48`; "Landing (L5)", above), whose four
+lows of code it sent here. Each is repaired with a regression that fails
+without it.
+
+- **A failed upload recipe shows its evidence.** The justfile runs recipes
+  under `bash -euo pipefail`, so the three upload recipes'
+  `{ ...; } > FILE 2>&1; status=$?; cat FILE` stopped the shell at a failed
+  group, and a failing run on a developer's machine said only just's own
+  error line. Each takes the status in the group's own `|| status=$?`.
+  `test_failed_recipes_show_their_evidence.py` runs each recipe by `just`
+  under the justfile's settings with its script's stand-in failing and holds
+  what the recipe says to its evidence's header and the script's words (it
+  fails on the three as they were), and refuses a `status=$?` that errexit
+  never lets a failure reach in any recipe.
+- **A script's database URL is read wherever it names one.** The database
+  rule (`test_a_recipe_that_reads_a_database_is_dealt_beside_one`) saw a
+  URL's name only as a call's literal argument, so the five scripts that
+  read theirs in a loop were found by their recipes' bodies alone, and
+  nothing showed the reading finds any. A script reads one where its code
+  holds a string that is exactly a name (`reads_a_database_url`), a longer
+  string being the code a mutant changes; a test of its own kills three
+  wrong readings (none, the old one, any substring).
+- **A render reuses its connection, not only its count.** The render-merge
+  test killed "an idle connection is never taken again" by the count of
+  open connections, which the mutant never lowers for the one it drops; a
+  render that closed its idle connection and opened another, keeping the
+  count right, passed. The test now holds each render to the backend
+  (`pg_backend_pid()`) the last one gave back, and a mutant of exactly that
+  fault, "an idle connection is closed and another opened, the count kept",
+  is killed by it alone (run locally on PostgreSQL 18.6: the count held at
+  one, the backend moved from 2233 to 2234). The comments say what the
+  first mutant does: it drops and reconnects, uncounted.
+- **upload-metadata's validator lists what its filter runs.** Its server
+  command runs the tests whose names hold `uploads` or `blob`, in sixteen
+  files; its `RUST_SOURCES` listed nine, so a kill at an assertion in
+  another was INVALID (L5's verifies, at `uploads/generic_lease_tests.rs`).
+  It lists all sixteen, the seven added among them `tests/upload_bridge.rs`
+  (one of its tests is named for a blob). `mutation_anchors.py`, which
+  preflight and `just ci` run on every change, now reads the filters a
+  script's server command gives (a word or a module filter, before `--` or
+  after it), naming each test as cargo does, an included file's in its
+  includer's module: each file holding a test a filter runs must be one of
+  the script's sources, where those sources name a server file at all.
+

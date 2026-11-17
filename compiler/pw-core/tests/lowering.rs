@@ -719,6 +719,18 @@ fn every_policy_in_the_accepted_corpus_survives_lowering() {
                     generated += 1;
                     continue;
                 }
+                if let Some(origin) = hir.generated_uploads.get(&id) {
+                    // An upload's generated operation's host binding points
+                    // to the upload's name (corpus C34's A-061, ADR-0440):
+                    // no `host` keyword was written there either.
+                    let span = hir.decl_span(origin.upload);
+                    assert_eq!(hir.decl(origin.upload).kind, DeclKind::Upload);
+                    assert_eq!(p.name, "host");
+                    assert!(span.start <= p.span.start && p.span.end <= span.end);
+                    assert!(!src[p.span.clone()].is_empty());
+                    generated += 1;
+                    continue;
+                }
                 total += 1;
                 assert!(!p.name.is_empty(), "{name}: a policy with no name");
                 assert!(

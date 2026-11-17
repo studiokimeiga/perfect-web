@@ -46,8 +46,9 @@ of its own. Without it every test passes doing nothing, and no mutant could
 be killed, so this refuses to run.
 
 Run from the repository root: `just e14-d3-postgres` records part 1 of
-`PARTS` (D3's own mutants), `just e14-d3-postgres-2` part 2 (the uploads'),
-each `--part i/2`; with no part, every mutant runs. Every source is restored
+`PARTS` (the first half of D3's own mutants), `just e14-d3-postgres-2` part 2
+(their second half) and `just e14-d3-postgres-3` part 3 (the uploads'), each
+`--part i/3`; with no part, every mutant runs. Every source is restored
 in finally; the unmutated baseline, every test binary, must pass before any
 mutant means anything, and each part runs it. Words given as arguments run
 only the mutants whose description holds one of them, for a quick look while
@@ -75,8 +76,8 @@ POOL = CRATE / "src/pool.rs"
 CARGO = ROOT / "Cargo.toml"
 
 # **The uploads' mutants** (ADR-0440's L5): the namespace, its generations,
-# its receipts and its enrollment on PostgreSQL. Part 2 of `PARTS`, run by
-# `just e14-d3-postgres-2`.
+# its receipts and its enrollment on PostgreSQL. Part 3 of `PARTS`, run by
+# `just e14-d3-postgres-3` (part 2 until 2026-11-17).
 UPLOADS = [
     ('upload lifecycle keeps without verifying exact receipt after immediate hooks', ROOT / 'runtime/pw-table-postgres/src/lib.rs',
      '                assets::verify_receipt(\n                    &inner,\n                    conn,\n                    prepared_assets.receipt_required,\n                    records.interaction,\n                )?;', '                let _ = records.interaction;'),
@@ -163,8 +164,11 @@ UPLOADS = [
      'pub(crate) fn lock_lifetime(inner: &Inner, lease: &mut Lease) -> Result<Option<i64>, Error> {\n    let Some(binding) = &inner.uploads else {\n        return Ok(None);\n    };\n    let conn = lease.conn()?;\n    conn.batch(&inner.counters, "BEGIN").map_err(database)?;\n    let key = acquire_namespace(conn, &inner.counters, &binding.namespace)?;\n    conn.batch(&inner.counters, "COMMIT").map_err(database)?;\n    binding\n        .store\n        .enroll(&binding.namespace, false)\n        .map_err(|e| Error::Refused(format!("upload storage namespace: {e}")))?;\n    Ok(Some(key))\n}\n', 'pub(crate) fn lock_lifetime(inner: &Inner, lease: &mut Lease) -> Result<Option<i64>, Error> {\n    let Some(binding) = &inner.uploads else {\n        return Ok(None);\n    };\n    let conn = lease.conn()?;\n    conn.batch(&inner.counters, "BEGIN").map_err(database)?;\n    let key = acquire_namespace(conn, &inner.counters, &binding.namespace)?;\n    release_namespace(conn, &inner.counters, key)?;\n    conn.batch(&inner.counters, "COMMIT").map_err(database)?;\n    binding\n        .store\n        .enroll(&binding.namespace, false)\n        .map_err(|e| Error::Refused(format!("upload storage namespace: {e}")))?;\n    Ok(None)\n}\n'),
 ]
 
-# **D3's own mutants** (ADR-0338, ADR-0393): the declared tables. Part 1 of
-# `PARTS`, run by `just e14-d3-postgres`.
+# **Every mutant but the uploads'**: D3's own (ADR-0338, ADR-0393), the
+# declared tables, and since then the platform's on PostgreSQL (the
+# connection's keepalives, the outbox's removals marked). Parts 1 and 2 of
+# `PARTS`, its two halves, run by `just e14-d3-postgres` and
+# `just e14-d3-postgres-2`.
 DECLARED = [
     ('closed cases PostgreSQL additive columns use a different encoding', MIGRATE,
      '    let (kind, nullable) = crate::shape::column_of(&field.stored);', '    let (kind, nullable) = match &field.stored {\n        Stored::Option(inner) if matches!(**inner, Stored::Cases(_)) => (crate::shape::Kind::Json, true),\n        _ => crate::shape::column_of(&field.stored),\n    };'),
@@ -487,15 +491,20 @@ DECLARED = [
 ]
 
 # **Two recipes, each a part** (ADR-0393, amended 2026-11-17, after the
-# integrator's ruling 2 of 2026-10-17): the whole no longer fits a CI job.
-# L5a's verify 43860567064 ran its 133 mutants and baseline in 16,275 s,
-# 122 s a run, on a runner that took its shard's other recipes 1.6 to 2.2
-# times as long as L4's verify had: a runner that slow ends the whole past
-# the 20,700 s a job runs. Ranges of `MUTANTS`, half open: part 1 D3's own,
-# part 2 the uploads'; `evidence_counts.py` holds the two to every mutant
-# once. A run with no part runs every mutant.
+# integrator's ruling 2 of 2026-10-17). L5a's verify 43860567064 ran the
+# script's 132 mutants and baseline in 16,275 s, 122 s a run, on a runner
+# that took its shard's other recipes 1.6 to 2.2 times as long as L4's verify
+# had: 79% of the 20,700 s a job runs, by itself, and its shard was stopped
+# there because the plan, from L4's 4,708 s, dealt five recipes beside it.
+# Two parts keep a slower runner's whole within a job. Ranges of `MUTANTS`,
+# half open; `evidence_counts.py` holds the parts to every mutant once. A run
+# with no part runs every mutant. **Three since 2026-11-17** (ADR-0359,
+# amended): D3's own 96 took 9,710 s as one part in L5's repairs' verify, the
+# longest recipe any data-layer change reaches once `e14-row-ownership` runs
+# in three, so they are two halves; part 3 is the uploads'.
 MUTANTS = DECLARED + UPLOADS
-PARTS = [(0, len(DECLARED)), (len(DECLARED), len(MUTANTS))]
+HALF = len(DECLARED) // 2
+PARTS = [(0, HALF), (HALF, len(DECLARED)), (len(DECLARED), len(MUTANTS))]
 
 # Each test binary apart: names can repeat between binaries, and the native
 # assertion validator expects one complete inventory each.
@@ -567,7 +576,12 @@ def chosen(argv: list[str]) -> tuple[list, str]:
         i = int(asked.group(1))
         start, end = PARTS[i - 1]
         return MUTANTS[start:end], f"part {i} of {len(PARTS)}: mutants {start + 1} to {end} of {len(MUTANTS)}"
-    return [m for m in MUTANTS if not argv or any(w in m[0] for w in argv)], ""
+    picked = [m for m in MUTANTS if not argv or any(w in m[0] for w in argv)]
+    # Words that name no mutant (a part mistyped, `--part=1/2`, among them)
+    # would run the baseline alone and pass: the second review of L5.
+    if not picked:
+        raise SystemExit(f"d3_postgres_mutations.py: no mutant's description holds {' or '.join(map(repr, argv))}")
+    return picked, ""
 
 
 def main():

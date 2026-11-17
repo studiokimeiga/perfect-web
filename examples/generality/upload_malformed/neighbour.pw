@@ -1,0 +1,14 @@
+// @status: NEIGHBOUR
+// @invariant: upload_malformed
+//
+// The most a host reads whole is a limit an upload may state.
+
+module Banner
+
+upload Banner
+    route      "/uploads/banner"
+    serves     "/banners"
+    max_bytes  100_000_000
+    types      png
+    max_width  2048
+    max_height 512

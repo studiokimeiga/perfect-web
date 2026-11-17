@@ -22,11 +22,12 @@ in order:
    and asset refusal told by a rule of its own (PW5604, PW5605, PW0371),
    the asset tests' refusals held to their reasons, a d3 part refused where
    it holds no mutant and costed by its own, and corpus cases for each
-   upload and asset rule; and the second L5 review's four lows of code: a
+   upload and asset rule; the second L5 review's four lows of code (a
    script's database URL read wherever it names one, the upload recipes'
    evidence shown when they fail, the render-merge test holding a render
    to its connection's backend, and upload-metadata's validator listing
-   every test file its filter runs.
+   every test file its filter runs); and `e14-row-ownership` and d3 in three
+   parts each (item 8).
 3. **One contract suite for assets** over memory and PostgreSQL alike
    (L5a's review, a low finding).
 4. **WebKit's cut-off test** (`e2e/connections.spec.mjs`): in two of three
@@ -40,6 +41,30 @@ in order:
 7. **The benchmark baselines' Node patches**: landed (#127, 2026-11-17;
    ADR-0120, amended), as after L4 (item 5); the owner's standing approval
    takes each later patch-level security update through the same gates.
+8. **CI's wall-clock, with no gate given up** (the owner's grant of
+   2026-11-17; no paid runners). A pull request's verify takes the longest
+   recipe it reaches; a full verify its longest shard, 10,192 s of the
+   plan's 27 after the splits (11,009 s before), near the floor that 74.3
+   hours of recipes set (ADR-0359, amended). Done here, verified in this
+   pull request's verify: `e14-row-ownership` and d3 in three parts each.
+   Next, in order:
+   - **every recipe under about 75 minutes**, by `scripts/mutation_parts.py`:
+     `e14-device-runtime` (9,425 s), `e14-labels` (8,604 s),
+     `e14-statements-separated` (8,088 s), `e14-scheduled` (5,582 s),
+     `e14-durable-tables` (5,073 s), d3's two halves if their measured
+     seconds stay near the 5,000 s projected (measured in this pull
+   request's verify: d3's parts 6,080 s, 3,846 s and 2,866 s; row
+   ownership's 3,916 s, 3,822 s and 4,781 s), and `e10-browser` (3,974 s;
+     one recipe an engine, its evidence a file each), each run again for its
+     evidence;
+   - **a full verify's shards to what the account runs at once**: more
+     shards shorten a whole run while its total, not its longest recipe,
+     bounds it;
+   - **one CI round per pull request, not two**: an evidence-only commit
+     (docs/evidence and `ci_seconds.json`, as `evidence_fetch.py` writes
+     them, on a head whose checks passed) runs the checks again today, with
+     nothing they read changed. An ADR first: what proves a commit is
+     evidence-only, and which checks it then keeps.
 
 Keep the mixed-layer startup refusal until its replacement is real; a
 program's uploads beside its tables are served only through L5b's gates.
@@ -78,9 +103,17 @@ owner. What stays open, in order:
    descriptor immutability and `lock_lifetime`'s marker check each a test
    and a mutant, in `e14-d3-postgres-2`; `persist`'s `ON CONFLICT` guard
    no command reaches, as ADR-0440's L5 landing says):
-   - upload refusals with codes of their own, not PW5601's invariant, and
-     corpus cases for each upload and asset rule;
-   - the bare `is_err()` refusals in the asset tests held to their reasons;
+   - upload refusals with codes of their own, not PW5601's invariant: done
+     on `wip/l5-followups` (2026-11-16), PW5604 (an upload's taken names)
+     and PW5605 (a claim without `idempotent_by`), each a test and a mutant;
+   - the bare `is_err()` refusals in the asset tests held to their reasons:
+     done there, all 85, each reason observed before it was written;
+   - corpus cases for each upload and asset rule, as the architect's ruling
+     of 2026-08-06 asks of an invariant: done there (2026-11-17, corpus C34),
+     R-119 to R-124 for PW5601 to PW5605 and PW0371, A-061 and A-062 their
+     controls, six generality pairs, generality 82/82. Writing them found
+     eight refusals of four of those rules that named no boundary (charter
+     §16.3), each now pointing at its rule's other side (ADR-0440, amended);
    - one contract suite for assets over memory and PostgreSQL alike.
 
    Keep the

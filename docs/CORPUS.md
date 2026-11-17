@@ -1316,3 +1316,27 @@ Generality at open:        76/76 invariants generality-tested
 | R-118 | a table a reader's command writes that says nothing of who may write it, refused with PW6920 | new category (L2) |
 | A-060 | a public table read by anyone and written by its owner | new category (L2) |
 | A-050 | `Chores`, written by any reader's command, says `written by anyone`: R-118's control | specification changed, meaning kept |
+
+## C34: an upload states its contract, and a table keeps one as its asset, 2026-11-17
+
+Opened because six rules the compiler enforces had no fixture: track
+`uploads`' three (ADR-0260: PW5601, PW5602, PW5603) and L5's three
+(ADR-0440: PW5604, PW5605, and PW0371, a table's asset). The architect's
+ruling of 2026-08-06 asks each to have its canonical accepted and rejected
+specification. [ADR-0440](DECISIONS/ADR-0440-protected-feed-store.md)'s
+amendment of 2026-11-17 is the decision. Writing the fixtures found eight
+refusals, of four of those rules, that named no boundary (charter §16.3), and
+each now does. No fixture changes, and no invariant is retired.
+
+```text
+Corpus version:            C34
+Accepted programs:         52
+Rejected programs:         112
+Charter categories:        51/51 accepted, 112/112 rejected
+Generality at open:        82/82 invariants generality-tested
+```
+
+| Fixture | Change | Kind |
+|---|---|---|
+| R-119 to R-121, A-061 | an upload that states no limit on its bytes (PW5601), an upload's route that is a page's (PW5602), a form that sends a file where no upload takes it (PW5603), and their control | new categories (track `uploads`) |
+| R-122 to R-124, A-062 | a declaration that emits a name an upload generates (PW5604), a command that claims an upload with no idempotency key (PW5605), an asset held in a field that is not its upload's reference (PW0371), and their control (A-061 R-122's) | new categories (L5) |

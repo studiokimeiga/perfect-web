@@ -2,6 +2,23 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**L5's follow-up, 2026-11-17 (built, not landed):** on L5
+(`wip/l5-followups`). Each upload and asset refusal is told by a rule of its
+own (PW5604, PW5605, PW0371), and each asset test's refusal by its reason.
+Corpus C34 holds each upload and asset rule: R-119 to R-124, beside A-061 and
+A-062 (52 accepted programs, 112 rejected, every charter category covered),
+and six generality pairs (generality 82 / 82). Writing it found eight
+refusals of four rules that named no boundary (charter §16.3); each now
+points at its rule's other side (ADR-0440, amended). And the second L5
+review's four lows of code are repaired, each with its regression: a failed
+upload recipe shows its evidence, the database rule reads a script's URL
+wherever it names one, a render is held to its connection's backend, and the
+server's tests a mutation script runs by a filter are held to the files its
+sources list. And
+`e14-row-ownership`, every full verify's longest recipe (11,009 s), runs in
+three parts, each a shard's, and d3's first part (9,710 s) in two (ADR-0359,
+amended).
+
 **L5, declared uploads, 2026-11-17:** L5a and L5b land as one train from
 `wip/l5b-claims`, with master, #118 and #121 merged. Its full verify
 (43929087203 at `83ad1ab1`) ran 361 recipes, and 356 passed. Three of the

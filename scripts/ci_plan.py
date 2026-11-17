@@ -181,9 +181,11 @@ NEEDS_DATABASE = {
     # admissions of one session, on PostgreSQL too.
     "e14-session-overlap",
     # Track `d3-postgres` (ADR-0338's D3): declared tables on PostgreSQL;
-    # its mutation controls in two parts (ADR-0393, amended 2026-11-17).
+    # its mutation controls in three parts (ADR-0393 and ADR-0359, amended
+    # 2026-11-17).
     "e14-d3-postgres",
     "e14-d3-postgres-2",
+    "e14-d3-postgres-3",
     # ADR-0440's L5b: the server's claim bridge, on memory and on
     # PostgreSQL; refused without a database. Dealt where there was none
     # until 2026-11-17, it would have failed the full verify (found before
@@ -286,23 +288,38 @@ def recipes_at(text: list[str], lines: list[tuple[int, int]], names: list[str]) 
     return out
 
 
-def mutants(script: str) -> int:
-    """How many mutants `scripts/<script>` plants, or 0 where it cannot be read."""
+def mutants(script: str, part: tuple[int, int] | None = None) -> int:
+    """How many mutants `scripts/<script>` plants, or 0 where it cannot be
+    read; of its `part` alone (`(i, n)`, its `--part i/n`), where it asks one
+    of the script's `PARTS`."""
     path = ROOT / "scripts" / script
     try:
         spec = importlib.util.spec_from_file_location(path.stem, path)
         module = importlib.util.module_from_spec(spec)
         assert spec.loader is not None
         spec.loader.exec_module(module)
-        return len(getattr(module, "MUTANTS", []))
+        planted = list(getattr(module, "MUTANTS", []))
+        parts = list(getattr(module, "PARTS", []))
+        if part is not None and part[1] == len(parts) and 1 <= part[0] <= len(parts):
+            start, end = parts[part[0] - 1]
+            return len(planted[start:end])
+        return len(planted)
     except Exception:
         return 0
 
 
+# A recipe that runs one part of a script's mutants (`--part i/n`).
+PART = re.compile(r"scripts/([a-z0-9_]+_mutations\.py) --part (\d+)/(\d+)")
+
+
 def cost(body: str) -> int:
-    """A recipe's work: one for itself, and one for each mutant it plants."""
+    """A recipe's work: one for itself, and one for each mutant it plants,
+    of the part it runs where it runs one. Until 2026-11-17 a part cost its
+    script's every mutant (both of d3's 136), which made a measured part's
+    unit look cheaper than it was, and every estimate of its kind with it."""
+    parts = {s: (int(i), int(n)) for s, i, n in PART.findall(body)}
     scripts = set(re.findall(r"scripts/([a-z0-9_]+_mutations\.py)", body))
-    return 1 + sum(mutants(s) for s in scripts)
+    return 1 + sum(mutants(s, parts.get(s)) for s in scripts)
 
 
 def hunks(base: str, head: str | None, root: pathlib.Path | None = None) -> dict[str, list[tuple[int, int]]]:
@@ -679,12 +696,32 @@ def names_python_tests(text: str, changed: dict[str, list[tuple[int, int]]]) -> 
     return False
 
 
+# **A helper that chooses which mutants a script runs** (ADR-0359, amended
+# 2026-11-17): a change to it reaches every mutation script that imports it,
+# as a change to the script itself would. `mutation_parts` deals a script's
+# mutants to its part recipes; the instrument helpers (`cargo_assertion_results`,
+# `producer_process`, ...) are held by their own tests and recipes instead,
+# and nearly every script imports them.
+SELECTING_HELPERS = ("mutation_parts",)
+
+
+def imports_a_changed_helper(text: str, changed: dict[str, list[tuple[int, int]]]) -> bool:
+    """Whether a script's text imports a helper of `SELECTING_HELPERS` that
+    the change touches."""
+    return any(
+        f"scripts/{helper}.py" in changed
+        and re.search(rf"(?m)^\s*(?:import\s+{helper}\b|from\s+{helper}\s+import\b)", text)
+        for helper in SELECTING_HELPERS
+    )
+
+
 def touched_scripts(changed: dict[str, list[tuple[int, int]]], near: int) -> set[str]:
-    """The mutation scripts a change reaches: the script itself, a mutant
-    within `near` lines of a changed line, or a test file it runs, a Rust
-    test or a browser spec (ADR-0281): a test target by `--test`, or one of
-    the server's test modules by its filter, `tests::store_scheduled::`,
-    which planned nothing until train-6's fix to one."""
+    """The mutation scripts a change reaches: the script itself, a helper
+    of `SELECTING_HELPERS` it imports, a mutant within `near` lines of a
+    changed line, or a test file it runs, a Rust test or a browser spec
+    (ADR-0281): a test target by `--test`, or one of the server's test
+    modules by its filter, `tests::store_scheduled::`, which planned nothing
+    until train-6's fix to one."""
     tests = {pathlib.Path(p).stem for p in changed if "/tests/" in p and p.endswith(".rs")}
     modules = test_modules(changed)
     packages = root_test_packages(changed)
@@ -696,6 +733,9 @@ def touched_scripts(changed: dict[str, list[tuple[int, int]]], near: int) -> set
             out.add(path.name)
             continue
         text = path.read_text()
+        if imports_a_changed_helper(text, changed):
+            out.add(path.name)
+            continue
         if any(
             f'"--test", "{t}"' in text or f"--test {t}" in text or f"tests::{t}::" in text
             for t in tests

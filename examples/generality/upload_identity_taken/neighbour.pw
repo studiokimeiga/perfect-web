@@ -1,0 +1,17 @@
+// @status: NEIGHBOUR
+// @invariant: upload_identity_taken
+//
+// A type of the program's beside its upload, as caught.pw's is, emitting
+// `source`, a name no generated declaration has.
+
+module Banner
+
+upload Banner
+    route      "/uploads/banner"
+    serves     "/banners"
+    max_bytes  1_000_000
+    types      png
+    max_width  2048
+    max_height 512
+
+type Source = Source { url: String }

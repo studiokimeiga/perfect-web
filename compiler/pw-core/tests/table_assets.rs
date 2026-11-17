@@ -123,11 +123,45 @@ fn diagnostics(posts: &str, image: &str, source: &str, app: &str) -> Vec<(String
         .map(|d| (d.code.to_string(), d.message))
         .collect()
 }
-fn refused(posts: &str, image: &str, source: &str, app: &str, says: &str) {
+/// **A refusal names the boundary it is held to** (charter §16.3; the L5
+/// corpus, 2026-11-17: PW5604's and PW5605's named none): some refusal of
+/// `code` in `files`, whose message holds `says`, has a related note in
+/// `file` saying `note`, its span the text `at` there (its review, M2: a
+/// note's span was held to nothing).
+fn bounded(files: &[(String, String)], code: &str, says: &str, file: &str, note: &str, at: &str) {
+    let got = check_sources(files);
+    let text = |name: &str| {
+        files
+            .iter()
+            .find(|(n, _)| n == name)
+            .map(|(_, s)| s.as_str())
+            .unwrap_or_else(|| panic!("no file {name}"))
+    };
+    let refusals: Vec<_> = got
+        .iter()
+        .flat_map(|(path, ds)| ds.iter().map(move |d| (path, d)))
+        .filter(|(_, d)| d.code == code && d.message.contains(says))
+        .collect();
+    assert!(
+        refusals.iter().any(|(path, d)| d.related.iter().any(|r| {
+            let named = r.file.as_deref().unwrap_or(path.as_str());
+            r.label.contains(note) && named == file && &text(named)[r.span.clone()] == at
+        })),
+        "a {code} saying {says:?} with a note in {file} at {at:?} saying {note:?}, where there were {:#?}",
+        refusals
+            .iter()
+            .map(|(path, d)| (path, &d.message, &d.related))
+            .collect::<Vec<_>>()
+    );
+}
+/// **A refusal by its rule and its words**: a diagnostic of `code` whose
+/// message holds `says` (the follow-up's review, L4: words alone, as short
+/// as "claim", matched another rule's refusal).
+fn refused(posts: &str, image: &str, source: &str, app: &str, code: &str, says: &str) {
     let got = diagnostics(posts, image, source, app);
     assert!(
-        got.iter().any(|(_, m)| m.contains(says)),
-        "expected named {says:?} refusal, got {got:#?}"
+        got.iter().any(|(c, m)| c == code && m.contains(says)),
+        "expected {code} saying {says:?}, got {got:#?}"
     );
 }
 
@@ -297,42 +331,48 @@ fn assets_require_the_actual_public_reference_field_and_held_source() {
         IMAGE,
         SOURCE,
         APP,
-        "asset field",
+        "PW0371",
+        "is not declared in the row",
     );
     refused(
         &POSTS.replace("Option<PostImage.Ref>", "Option<String>"),
         IMAGE,
         SOURCE,
         APP,
-        "reference type",
+        "PW0371",
+        "must have the exact generated upload reference type",
     );
     refused(
         &POSTS.replace("Option<PostImage.Ref>", "List<PostImage.Ref>"),
         IMAGE,
         SOURCE,
         APP,
-        "top-level",
+        "PW0371",
+        "must be one top-level Ref or Option<Ref>",
     );
     refused(
         &POSTS.replace("    key id", "    key id\n    private image"),
         IMAGE,
         SOURCE,
         APP,
-        "public asset-bearing table",
+        "PW0371",
+        "an asset requires a public asset-bearing table",
     );
     refused(
         POSTS,
         IMAGE,
         &SOURCE.replace("holds PostImage, Posts", "holds Posts"),
         APP,
-        "same explicit source",
+        "PW0371",
+        "an asset and its upload require the same explicit source",
     );
     refused(
         POSTS,
         IMAGE,
         SOURCE,
         &APP.replace("    idempotent_by InteractionId\n", ""),
-        "idempotent_by",
+        "PW5605",
+        "acquires or releases a generic upload claim and requires idempotent_by",
     );
 }
 
@@ -343,12 +383,27 @@ fn claims_and_lookalike_reference_records_cannot_be_stored_as_assets() {
         IMAGE,
         SOURCE,
         APP,
-        "claim",
+        "PW0371",
+        "cannot store an upload claim, a transaction-owned resource",
     );
     let image = IMAGE.to_string() + "\ntype Ref = Ref { key: String }\n";
-    refused(POSTS, &image, SOURCE, APP, "generated upload");
+    refused(
+        POSTS,
+        &image,
+        SOURCE,
+        APP,
+        "PW5604",
+        "is a generated upload declaration and the program declares its emitted identity",
+    );
     let image = IMAGE.to_string() + "\nfn publish() -> Int { 1 }\n";
-    refused(POSTS, &image, SOURCE, APP, "generated upload");
+    refused(
+        POSTS,
+        &image,
+        SOURCE,
+        APP,
+        "PW5604",
+        "is a generated upload declaration and the program declares its emitted identity",
+    );
 }
 
 #[test]
@@ -455,20 +510,41 @@ fn imported_reference_spelling_is_valid_and_claims_do_not_escape_through_nested_
         )
         .replace("alt: String }", "alt: String, hidden: Option<Wrapper> }")
         .replace("    asset image from PostImage\n", "");
-    refused(&posts, IMAGE, SOURCE, "module photos.app\n", "upload claim");
+    refused(
+        &posts,
+        IMAGE,
+        SOURCE,
+        "module photos.app\n",
+        "PW0371",
+        "cannot store an upload claim, a transaction-owned resource",
+    );
 }
 
 #[test]
 fn a_persisted_reference_requires_its_asset_association_and_top_level_shape() {
     let unannotated = POSTS.replace("    asset image from PostImage\n", "");
-    refused(&unannotated, IMAGE, SOURCE, APP, "asset association");
+    refused(
+        &unannotated,
+        IMAGE,
+        SOURCE,
+        APP,
+        "PW0371",
+        "requires its asset association",
+    );
     let nested = unannotated
         .replace(
             "type Post =",
             "type Wrapper = Wrapper { inner: PostImage.Ref }\ntype Post =",
         )
         .replace("Option<PostImage.Ref>", "Option<Wrapper>");
-    refused(&nested, IMAGE, SOURCE, "module photos.app\n", "top-level");
+    refused(
+        &nested,
+        IMAGE,
+        SOURCE,
+        "module photos.app\n",
+        "PW0371",
+        "must be a top-level Ref or Option<Ref>",
+    );
 }
 
 #[test]
@@ -478,7 +554,8 @@ fn generated_upload_visibility_and_interface_identities_are_not_silently_broaden
         &IMAGE.replace("upload PostImage", "private upload PostImage"),
         SOURCE,
         APP,
-        "public upload declaration",
+        "PW0371",
+        "an asset requires a public upload declaration",
     );
     let inputs = files(
         POSTS,
@@ -527,9 +604,124 @@ fn distinct_upload_names_cannot_emit_one_resource_interface() {
     assert!(
         got.iter()
             .flat_map(|(_, ds)| ds)
-            .any(|d| d.message.contains("generated upload interface")),
-        "two names emit one upload interface: {got:#?}"
+            .any(|d| d.code == "PW5604" && d.message.contains("generated upload interface")),
+        "two names emit one upload interface, told PW5604: {got:#?}"
     );
+    assert!(
+        got.iter()
+            .flat_map(|(_, ds)| ds)
+            .all(|d| d.code != "PW5601"),
+        "{got:#?}"
+    );
+    // Each at the other, which emits the same interface (charter §16.3).
+    bounded(
+        &files,
+        "PW5604",
+        "`PostImage` emits a generated upload interface",
+        "alias.pw",
+        "`Post_Image` emits the interface `post-image` too",
+        "Post_Image",
+    );
+    bounded(
+        &files,
+        "PW5604",
+        "`Post_Image` emits a generated upload interface",
+        "PostImage.pw",
+        "`PostImage` emits the interface `post-image` too",
+        "PostImage",
+    );
+}
+
+/// **PW5604's note names an upload that emits the interface, and not one of
+/// its name that emits nothing** (its review, L1): an upload outside the
+/// module of its name generates no declaration and emits no interface, so it
+/// is no boundary of the collision.
+#[test]
+fn an_interface_collision_is_noted_only_at_an_upload_that_emits_it() {
+    let alias = IMAGE
+        .replace("PostImage", "Post_Image")
+        .replace("/uploads/post-image", "/uploads/second")
+        .replace("/images", "/second");
+    let stray = IMAGE
+        .replace("module PostImage", "module feed.other")
+        .replace("upload PostImage", "upload Post_Image")
+        .replace("/uploads/post-image", "/uploads/third")
+        .replace("/images", "/third");
+    let mut program = files(POSTS, IMAGE, SOURCE, "module photos.app\n");
+    program.push(("alias.pw".into(), alias));
+    program.push(("other.pw".into(), stray));
+    let got = check_sources(&program);
+    let noted: Vec<_> = got
+        .iter()
+        .filter(|(path, _)| path == "PostImage.pw")
+        .flat_map(|(_, ds)| ds)
+        .filter(|d| {
+            d.code == "PW5604"
+                && d.message
+                    .contains("`PostImage` emits a generated upload interface")
+        })
+        .flat_map(|d| d.related.iter().map(|r| r.file.clone()))
+        .collect();
+    assert_eq!(noted, vec![Some("alias.pw".to_string())], "{got:#?}");
+}
+
+/// **A declaration may not take a generated upload declaration's identity**
+/// (PW5604, L5a's review, finding L7: it was PW5601's, the upload's clauses
+/// and limits): `KIND` emits `kind`, as the upload's generated `Kind` does.
+#[test]
+fn a_declaration_emitting_a_generated_upload_identity_is_pw5604() {
+    let taken = format!("{IMAGE}opaque type KIND = String\n");
+    let got = diagnostics(POSTS, &taken, SOURCE, APP);
+    assert!(
+        got.iter()
+            .any(|(code, m)| code == "PW5604" && m.contains("is a generated upload declaration")),
+        "a declaration named as a generated one, told PW5604: {got:#?}"
+    );
+    assert!(got.iter().all(|(code, _)| code != "PW5601"), "{got:#?}");
+    // At the program's declaration, which takes the generated one's name.
+    bounded(
+        &files(POSTS, &taken, SOURCE, APP),
+        "PW5604",
+        "`Kind` is a generated upload declaration",
+        "PostImage.pw",
+        "`KIND` is declared here, and emits `kind`",
+        "KIND",
+    );
+}
+
+/// **A command that claims or releases an upload declares `idempotent_by`**
+/// (PW5605, L5a's review, finding L7: it was PW5601's).
+#[test]
+fn a_command_claiming_an_upload_without_idempotent_by_is_pw5605() {
+    let got = diagnostics(
+        POSTS,
+        IMAGE,
+        SOURCE,
+        &APP.replace("    idempotent_by InteractionId\n", ""),
+    );
+    assert!(
+        got.iter()
+            .any(|(code, m)| code == "PW5605" && m.contains("requires idempotent_by")),
+        "a claiming command without idempotent_by, told PW5605: {got:#?}"
+    );
+    assert!(got.iter().all(|(code, _)| code != "PW5601"), "{got:#?}");
+    // At the upload whose claim each command takes, in its own module.
+    let program = files(
+        POSTS,
+        IMAGE,
+        SOURCE,
+        &APP.replace("    idempotent_by InteractionId\n", ""),
+    );
+    for command in ["keep", "discard"] {
+        bounded(
+            &program,
+            "PW5605",
+            &format!("`{command}` acquires or releases"),
+            "PostImage.pw",
+            &format!("`PostImage` is the upload whose claim `{command}` takes"),
+            "PostImage",
+        );
+    }
 }
 
 #[test]
@@ -558,6 +750,7 @@ fn the_public_asset_rule_refuses_an_otherwise_valid_owned_table() {
         IMAGE,
         SOURCE,
         "module photos.app\n",
-        "public asset-bearing table",
+        "PW0371",
+        "an asset requires a public asset-bearing table",
     );
 }
