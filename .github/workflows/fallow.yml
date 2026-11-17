@@ -2,6 +2,10 @@ name: Fallow
 
 on:
   pull_request:
+  # Every branch CI builds (2026-11-17), as quality.yml's Ruff gate: a branch
+  # is shown what its pull request would be refused for before it has one.
+  push:
+    branches: ["track/**", "wip/**"]
   schedule:
     - cron: "17 12 * * 1"
   workflow_dispatch:
@@ -11,21 +15,40 @@ permissions:
 
 jobs:
   audit:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           fetch-depth: 0
       - uses: fallow-rs/fallow@34269241152fa2e7e6a9de1aba698dcae93035b3 # v3
+        if: github.event_name == 'pull_request'
         with:
           command: audit
           version: 3.23.0
           gate: new-only
           fail-on-issues: true
+      # A branch's push: the same gate, against where the branch left master.
+      - name: The branch's base on master
+        id: base
+        if: github.event_name == 'push'
+        # On its own line: `echo "sha=$(...)"` exits 0 when the merge base is
+        # not found, and an empty `changed-since` makes Fallow read the branch
+        # against itself and pass (#128's review, reproduced).
+        run: |
+          sha="$(git merge-base origin/master HEAD)"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+      - uses: fallow-rs/fallow@34269241152fa2e7e6a9de1aba698dcae93035b3 # v3
+        if: github.event_name == 'push'
+        with:
+          command: audit
+          version: 3.23.0
+          gate: new-only
+          fail-on-issues: true
+          changed-since: ${{ steps.base.outputs.sha }}
 
   weekly:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
