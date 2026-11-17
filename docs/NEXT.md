@@ -6,6 +6,43 @@
 
 # Next
 
+## After L5, declared uploads, 2026-11-17
+
+L5, the fifth train of the declared data layer's landing (ADR-0440's fourth
+prerequisite, declared uploads), on L4: L5a's uploads to their claim ledger
+and L5b's claim bridge, as one train from `wip/l5b-claims`. What stays open,
+in order:
+
+1. **L5's record**: the full verify 43929087203 at `83ad1ab1`, fetched
+   (`e0377273`, 356 of 361 recipes); its five failures repaired or run
+   again at the head (`ci_plan.py --changed e0377273 HEAD`, and
+   `e10-browser`): the repairs' verify 43978661391 at `41a73a48`, 15 of 15
+   (`94d1f8ab`; ADR-0440, "Landing (L5)").
+2. **L5's follow-up** (`wip/l5-followups`, its own PR after L5): each upload
+   and asset refusal told by a rule of its own (PW5604, PW5605, PW0371),
+   the asset tests' refusals held to their reasons, a d3 part refused where
+   it holds no mutant and costed by its own, and corpus cases for each
+   upload and asset rule; and the second L5 review's four lows of code: a
+   script's database URL read wherever it names one, the upload recipes'
+   evidence shown when they fail, the render-merge test holding a render
+   to its connection's backend, and upload-metadata's validator listing
+   every test file its filter runs.
+3. **One contract suite for assets** over memory and PostgreSQL alike
+   (L5a's review, a low finding).
+4. **WebKit's cut-off test** (`e2e/connections.spec.mjs`): in two of three
+   runs of L5's full verify WebKit's network process failed after the
+   server's forced reconnect, and the press's handler module, loaded at its
+   first press, failed to import. The repairs' verify passed it in all
+   three runs. It stays here until master's nightlies pass it too.
+5. **Public initialization, stable ids and private child deletion**, as the
+   ports need them.
+6. **L7, the canonical feed and store on tables**, as after L4 (item 4).
+7. **The benchmark baselines' Node patches, each the owner's call** (a
+   download), as after L4 (item 5).
+
+Keep the mixed-layer startup refusal until its replacement is real; a
+program's uploads beside its tables are served only through L5b's gates.
+
 ## After L4, bounded reads, 2026-11-16
 
 L4, the fourth train of the declared data layer's landing (ADR-0440's
@@ -33,8 +70,7 @@ owner. What stays open, in order:
    server tests, the seven ADR-0440 owed among them, and thirty mutants;
    independently reviewed, its findings repaired. L5a was reviewed too,
    and L5 lands as one train from that branch, L5a's findings repaired
-   there (ADR-0440, "L5a reviewed"). Next: master merged, its full verify,
-   the PR.
+   there (ADR-0440, "L5a reviewed"). Landed 2026-11-17 (after L5, above).
 
    Left from the reviews, each low (the first of L5a's, mutants for three
    PostgreSQL rules, done before the full verify: `propose_asset`'s
@@ -69,6 +105,16 @@ owner. What stays open, in order:
    app's to clamp (no server-side cap bounds it: `examples/relations/app.pw`
    passes a browser's limit through), and the memory adapter's relation read
    scans its target for each selector, as ADR-0440 allows.
+5. **The benchmark baselines' Node patches, each the owner's call** (a
+   download): Next.js 16.4.5, or 16.4.6 (Dependabot's #23), fixes seven
+   advisories Vercel published on 2026-11-03. One is accepted for now
+   (GHSA-mfr8-8qww-v76h, `tools/node-audit-allow.txt`). GitHub's database
+   has not reviewed the other six yet, and each fails `just audit` once it
+   does. SvelteKit 2.70.4 and adapter-node 5.5.8 were asked for on
+   2026-11-16. Next.js's move takes its harness lockfile too
+   (`benchmarks/harness/locks/next-react.pnpm-lock.yaml`): the 16.4.1 move
+   left it at 16.3.8, so a Next sandbox's frozen install
+   (`just e14-harness`, local only) fails today.
 
 ## After L3, the platform's prerequisites, 2026-11-13
 

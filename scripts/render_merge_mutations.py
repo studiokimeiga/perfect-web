@@ -518,11 +518,17 @@ CARGO = {
     # past its end keeps its read transaction open on PostgreSQL, and a
     # served test's schema, dropped at its end, would wait for it for good.
     "unit": (TESTS + ["render_merge::tests::"], {}),
-    # The bound's own test alone: connections never taken again from the
+    # The bound's own tests alone: connections never taken again from the
     # idle ones pile up, one for each render, which the whole suite's renders
-    # would push past the shared database's 100.
+    # would push past the shared database's 100. The second, renders one
+    # after another, each reading (L5's verify 43929087203: the first's
+    # renders, one session's, mostly read nothing, and that mutant lived).
     "bound": (
-        TESTS + ["render_merge::on_postgres_the_renders_bound_holds_under_many_renders_at_once"],
+        TESTS
+        + [
+            "render_merge::on_postgres_the_renders_bound_holds_under_many_renders_at_once",
+            "render_merge::on_postgres_a_render_takes_an_idle_connection_again",
+        ],
         {"PW_STORE_TEST_LAYER": "postgres"},
     ),
     # The development server as `cargo build` makes it: a debug build, and

@@ -1,8 +1,8 @@
 ADR-0081 - a named argument is given to the parameter of its name
 
 produced by: just e10-named-arguments
-commit: 7b8fb7cc8cbc9601e49df15c750d1eeaf6cabdd2
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43809526375 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 83ad1ab1f92c0bc4377dfc72df28643828771bb5
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43929087203 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the checker and the labels (compiler/pw-core/tests/named_arguments.rs)
@@ -12,12 +12,12 @@ test a_label_is_carried_from_the_argument_named ... ok
 test a_key_named_out_of_its_place_is_still_the_key ... ok
 test a_named_argument_is_related_to_its_parameter ... ok
 test a_named_argument_names_a_parameter_once ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.38s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.49s
 
 == the call, through the E8 host (compiler/pw-conformance/tests/named_arguments.rs)
 
 test a_named_argument_is_passed_to_its_parameter ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.75s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.88s
 
 == mutation controls (scripts/named_argument_mutations.py)
 

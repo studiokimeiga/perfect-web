@@ -1,8 +1,8 @@
 ADR-0311 - a page states its canonical address
 
 produced by: just e14-canonical
-commit: 6407ba55f1a975923518f1e3fe6973fbfefb7d73
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43854756182 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 83ad1ab1f92c0bc4377dfc72df28643828771bb5
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43929087203 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -24,8 +24,8 @@ test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 == the head it is written into (runtime/pw-render/tests/canonical.rs)
 
-test an_address_is_refused_without_an_origin_or_a_segment ... ok
 test a_value_is_escaped_whole_and_never_splits_the_path ... ok
+test an_address_is_refused_without_an_origin_or_a_segment ... ok
 test the_address_is_the_head_s_absolute_and_nothing_in_the_body ... ok
 test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
@@ -33,7 +33,7 @@ test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 test identity::tests::an_origin_is_a_scheme_a_host_and_a_port ... ok
 test tests::a_page_s_canonical_address_is_written_with_the_deployment_s_origin ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1138 filtered out; finished in 11.05s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1225 filtered out; finished in 9.73s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
 
 == the corpus at C19 (corpus-check, generality.rs, checking_source.rs)
@@ -43,12 +43,12 @@ accepted: 49/49 charter §16 categories covered
 rejected: 106 files
 rejected: 106/106 charter §16 categories covered
 corpus-check: OK
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 117.74s
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 125.59s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 110.61s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 115.52s
 
 == a canonical address, and a navigation's head, in three engines (e2e/canonical.spec.mjs)
 
-  6 passed (15.7s)
+  6 passed (12.1s)
 
 == mutation controls (scripts/canonical_mutations.py)
 

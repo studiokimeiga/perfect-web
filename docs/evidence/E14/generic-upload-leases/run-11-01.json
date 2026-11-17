@@ -1,0 +1,21 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "--quiet",
+    "--locked",
+    "-p",
+    "pw-dev-server",
+    "--bin",
+    "pw-dev-server",
+    "uploads::tests::an_image_is_leased_to_its_session_and_shown_to_it_alone",
+    "--",
+    "--format=pretty",
+    "--test-threads=2"
+  ],
+  "exit": 101,
+  "valid": true,
+  "passed": 0,
+  "failed": 1,
+  "sha256": "18cd650c2d197f247166f5907d81d85cb221cf59426673ec5fbcdcb89a2de228"
+}

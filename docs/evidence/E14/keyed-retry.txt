@@ -1,8 +1,8 @@
 Keyed reads retry only while their page still waits for them
 
 produced by: just e14-keyed-retry
-commit: 7b8fb7cc8cbc9601e49df15c750d1eeaf6cabdd2
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43809526375 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 83ad1ab1f92c0bc4377dfc72df28643828771bb5
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43929087203 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 baseline: 2 passed, 0 failed
 a superseded keyed read retries after newer frames: KILLED (1 assertion failures)
 a current keyed read ignores a commit received while reading: KILLED (1 assertion failures)

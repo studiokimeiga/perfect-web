@@ -1,0 +1,20 @@
+generic-upload-leases - a generic upload's staging, its leases per session and declaration, each held by a mutant
+
+produced by: just e14-generic-upload-leases
+commit: 41a73a48ab29a42cce090990051accd8278d6e0c
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43978661391 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+
+baseline 11 native assertions, complete inventories
+collapses actual declaration keys within a session: KILLED (4 of 10 tests fail)
+selects the first declaration for every private preview: KILLED (5 of 10 tests fail)
+shows every attachments first declaration route: KILLED (1 of 10 tests fail)
+claims the first declaration instead of the requested one: KILLED (3 of 10 tests fail)
+ends claims using a different declaration key: KILLED (1 of 10 tests fail)
+returns claims using a different declaration key: KILLED (2 of 10 tests fail)
+prints private session bytes in claim diagnostics: KILLED (1 of 10 tests fail)
+ignores expired unclaimed leases at lookup: KILLED (4 of 10 tests fail)
+expires a held claim before an explicit outcome: KILLED (1 of 10 tests fail)
+sweeps a held claim after its lifetime elapses: KILLED (1 of 10 tests fail)
+a lease is shown to any session: KILLED (1 of 1 tests fail)
+11 of 11 mutants killed

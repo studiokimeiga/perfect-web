@@ -1,8 +1,8 @@
 ADR-0189 - a <link> is written where HTML allows it
 
 produced by: just e14-links
-commit: 7b8fb7cc8cbc9601e49df15c750d1eeaf6cabdd2
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43809526375 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 83ad1ab1f92c0bc4377dfc72df28643828771bb5
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43929087203 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the rule (compiler/pw-core/tests/links.rs)
@@ -18,14 +18,17 @@ accepted: 49/49 charter §16 categories covered
 rejected: 106 files
 rejected: 106/106 charter §16 categories covered
 corpus-check: OK
+test a_caught_file_conveys_every_fact_its_expect_error_lines_declare has been running for over 60 seconds
 test a_caught_file_conveys_every_fact_its_expect_error_lines_declare ... ok
-test every_rejected_fixtures_rule_is_a_code_its_check_reports ... ok
-test every_rejected_fixture_emits_only_its_own_defect ... ok
 test every_diagnostic_carries_what_charter_16_3_requires has been running for over 60 seconds
+test every_rejected_fixture_emits_only_its_own_defect has been running for over 60 seconds
+test every_rejected_fixtures_rule_is_a_code_its_check_reports has been running for over 60 seconds
+test every_rejected_fixture_emits_only_its_own_defect ... ok
+test every_rejected_fixtures_rule_is_a_code_its_check_reports ... ok
 test every_diagnostic_carries_what_charter_16_3_requires ... ok
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 160.56s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 235.54s
 test generality_is_reported_separately_from_conformance ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 174.30s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 226.57s
 
 == every program the repository checks
 
