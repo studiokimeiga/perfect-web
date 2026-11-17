@@ -2058,6 +2058,7 @@ Wasmtime 48.0.5, and a host that enables only what it runs (a correction).
   advisories. Every pin is 48.0.5; the host's engines turn off GC,
   exceptions and the component model's async, each with when to revisit it;
   the Node audit behind it is fixed or accepted with its reason.
+- Amended 2026-11-17: the braces and esbuild allowances go, the one withdrawn, the other's esbuild patched in the lockfile.
 [ADR-0245](DECISIONS/ADR-0245-the-heavy-verification-runs-on-github-actions.md):
 the heavy verification runs on GitHub Actions.
 - The chain and the mutation controls ran serially on one machine. A

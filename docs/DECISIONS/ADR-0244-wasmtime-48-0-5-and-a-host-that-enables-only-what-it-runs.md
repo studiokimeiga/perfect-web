@@ -125,3 +125,15 @@ correction: master's CI has been red since 2026-10-05.
 - **Reading CI's state.** That it went unread for two days is why the
   heavy verification moves to GitHub Actions next, where a red job is the
   first thing read.
+
+## Amended 2026-11-17: the braces and esbuild allowances go
+
+The Node audit accepted `braces` (GHSA-vfj7-8cjw-p6xm) here, beside
+`esbuild` (GHSA-g7r4-m6w7-qqqr). Neither is reported any more: GitHub
+withdrew the braces advisory on 2026-10-23 (`gh api
+/advisories/GHSA-vfj7-8cjw-p6xm`), and the lockfile resolves only esbuild
+0.28.2, past the 0.28.1 that patches the other. An allowance for what the
+audit no longer reports hides nothing and says what is not so, so both leave
+`tools/node-audit-allow.txt`; were either reported again, the audit fails and
+says so. `bash scripts/audit-node.sh`: OK, 8 accepted and documented, the 8
+it reports.

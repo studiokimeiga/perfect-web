@@ -5,44 +5,6 @@
 # is NOT lowered: a whole severity class going quiet would hide advisories
 # nobody has read.
 
-GHSA-g7r4-m6w7-qqqr
-    esbuild <0.28.1 — the development server responds to any origin, so a page
-    a developer visits while `vite dev` is running can read its responses.
-
-    Why it cannot be fixed here: esbuild reaches this repository only through
-    `spikes/marko-stream-resume` -> `@marko/run@0.11.8` ->
-    `esbuild-plugin-browserslist@2.0.0`, whose peer range is `~0.27.0`. A
-    tilde range does not admit 0.28.x, so moving esbuild means moving the
-    `@marko/run` pin — and that pin is what E0's resumption and payload
-    measurements were taken against. A pnpm override was tried on 2026-08-06
-    and does not take, for this reason.
-
-    Why the residual risk is acceptable: the exposure is the *dev server*.
-    Nothing in this repository runs `vite dev`; the spike runs
-    `marko-run build` and serves the built output, and `just ci` does not
-    invoke Vite at all. No production artifact contains esbuild.
-
-    Revisit: when `@marko/run` releases a version depending on
-    `esbuild-plugin-browserslist` with an `^0.28` range, or when ADR-0002's
-    deletion condition retires Marko at E7.
-
-GHSA-vfj7-8cjw-p6xm
-    braces <=3.0.3 — a deeply nested brace pattern exhausts the stack (a
-    denial of service). No release is patched: 3.0.3 is the latest, and the
-    advisory lists no fixed version (checked 2026-10-07, ADR-0244).
-
-    Why it cannot be fixed here: braces reaches this repository only through
-    `spikes/marko-stream-resume` -> `@marko/run@0.11.8` -> `@marko/vite` ->
-    `fast-glob` -> `micromatch`, the build's file globbing.
-
-    Why the residual risk is acceptable: the patterns it expands are the
-    spike's own build globs, never input from a request, and no production
-    artifact contains it.
-
-    Revisit: when braces publishes a fixed release, when `@marko/vite` stops
-    depending on micromatch, or when ADR-0002's deletion condition retires
-    Marko at E7.
-
 GHSA-pfhg-q3qv-9q6r
     SvelteKit <3.0.0 — enhanced forms on routes accepting double-slash paths
     can navigate to an external origin (low severity).
@@ -159,3 +121,42 @@ GHSA-rqp5-r3wg-vg35
     approves the download (asked 2026-11-16), rerun the three-store contract
     and remove this allowance. Revisit sooner if the baseline sets
     `router.resolution: 'server'`.
+
+GHSA-mfr8-8qww-v76h
+    Next.js 16.3.0 to 16.4.4 — where a `'use cache'` function that reads a
+    root param is called both directly while rendering and through
+    `unstable_cache()`, a deduplication race at a cold process start lets
+    `unstable_cache()` take the direct call's result and store it under a key
+    without root params, so every other root param value is served it until
+    it is revalidated or evicted (moderate; Vercel's advisory and 16.4.5 of
+    2026-11-03, in GitHub's database 2026-11-16, CVE-2026-119790).
+    https://github.com/advisories/GHSA-mfr8-8qww-v76h
+
+    Why accepted temporarily: the only `next` dependency is the undeployed
+    E14 benchmark baseline, `benchmarks/baselines/next-react`, pinned to
+    16.4.1 under ADR-0120 (amended 2026-10-22) in the root lockfile; the
+    harness's own lockfile for it, `benchmarks/harness/locks/next-react.pnpm-lock.yaml`,
+    still resolves 16.3.8 (the 16.4.1 move left it behind; NEXT), also in the
+    range, which `pnpm audit` does not read. It declares no `'use cache'`
+    function, calls no `unstable_cache()` and has no root params: its one
+    layout, `app/layout.tsx`, takes no parameter, its `next.config.mjs` is
+    empty (no `cacheComponents`), and its only `next/cache` import is
+    `revalidatePath`. Outside the race the nesting throws (`'use cache' inside
+    unstable_cache() is unsupported`), and the advisory calls avoiding it a
+    complete workaround. `next start` listens on every interface (its
+    `--hostname` defaults to 0.0.0.0 and reads no `HOST`), so while a contract
+    run or a benchmark sandbox runs it answers whatever reaches the machine;
+    the precondition is absent whatever does.
+
+    Revisit: patched releases exist: 16.4.5, which also fixes six advisories
+    Vercel published with it that GitHub's database has not yet reviewed
+    (GHSA-vc7v-qv4w-wrv8, GHSA-vvgp-ww4w-46vf, GHSA-rhh4-g77r-r9qj,
+    GHSA-pc58-hwjq-p385, GHSA-7qx7-33qx-rqx2, GHSA-f3mh-rxg3-f5g2: each fails
+    `just audit` once reviewed, and GHSA-7qx7's SVG through `/_next/image`
+    needs its own reading), and 16.4.6, which Dependabot's #23 proposes. Move
+    to one on the owner's approval of the download: both lockfiles,
+    `benchmarks/headtohead/targets.mjs`' and ADR-0392's version; rerun the
+    three-store contract (`e14-contract`) and the museum (ADR-0342, amended
+    2026-10-22), and remove this allowance. Sooner if the baseline declares a
+    `'use cache'` function, calls `unstable_cache()`, gives its root layout a
+    parameter, or is exposed outside the local harness.
