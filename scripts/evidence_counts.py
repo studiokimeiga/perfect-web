@@ -43,6 +43,20 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 COUNT = re.compile(r"^(\d+) of (\d+) mutants killed")
+# **A campaign's count** (ADR-0389's producers, `upload_authority_mutations.py`
+# and its two siblings; ADR-0281, amended 2026-11-17): a run's controls, each
+# an identifier, a description and its edits (`CONTROLS`, flattened into
+# `MUTANTS` an edit a row), said `<identifier>: KILLED` each and counted
+# `scope=FULL, controls=K/N, valid=True, restored=True`, where K is the
+# controls the run recorded, every one killed only where it was valid. Read
+# as `K of N` controls killed only where the run was whole, valid and
+# restored; any other is counted as none killed, which every verdict that
+# says KILLED disagrees with.
+CAMPAIGN = re.compile(
+    r"^(?:suite=[\w-]+, )?scope=(\w+), controls=(\d+)/(\d+), valid=(True|False), restored=(True|False)$"
+)
+# A control's identifier, which a campaign's verdict names it by.
+IDENTIFIER = re.compile(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)+")
 # What a script says of each mutant (`mutation_anchors.py`'s shapes, and the
 # verdicts the scripts print). A kill may say what killed it, as the guide's
 # script says (`KILLED by the checker (PW5048)`, ADR-0343): until train-10's
@@ -50,7 +64,8 @@ COUNT = re.compile(r"^(\d+) of (\d+) mutants killed")
 # current, named none of its 74 mutants. A producer's script says `KILLED` and
 # no more, as the session reader's does.
 VERDICT = re.compile(
-    r"^(.*): (KILLED(?: by [^()]+ \(.*\)| \(.*\))?|SURVIVED|DID NOT BUILD.*|ANCHOR NOT FOUND EXACTLY ONCE in .+)$"
+    r"^(.*): (KILLED(?: by [^()]+ \(.*\)| \(.*\))?|SURVIVED|INVALID OR SURVIVED|DID NOT BUILD.*"
+    r"|ANCHOR NOT FOUND EXACTLY ONCE in .+)$"
 )
 # A suite's tag beside a mutant's description: `[core]`, `[server]`.
 TAG = re.compile(r"\[[\w./ -]*\]")
@@ -161,8 +176,13 @@ def words(mutant: tuple) -> tuple[str, list[str]]:
 
 def names(said: str, mutant: tuple) -> bool:
     """Whether a verdict's `said` names `mutant`: its description, beside
-    nothing but its other words, a suite's tag and separators."""
+    nothing but its other words, a suite's tag and separators; or a
+    campaign's control by its identifier alone."""
     description, others = words(mutant)
+    # Only a campaign's control (`controls_of`, its identifier held to
+    # `IDENTIFIER`'s shape) is named by its identifier alone.
+    if mutant[-3:] == (None, None, None) and said.strip() in others:
+        return True
     if not description or description not in said:
         return False
     rest = said.replace(description, " ", 1)
@@ -173,7 +193,14 @@ def names(said: str, mutant: tuple) -> bool:
 
 def blocks(text: str) -> list[tuple[int, int, int, list[tuple[int, str, str]]]]:
     """Each count in `text`: (its line, k, n, the verdicts above it back to
-    the count before, each (line, what it names, its verdict))."""
+    the count before, each (line, what it names, its verdict)). A campaign's
+    count is of its controls (`counted_in`)."""
+    return [(at, k, n, verdicts) for at, k, n, verdicts, _ in counted_in(text)]
+
+
+def counted_in(text: str) -> list[tuple[int, int, int, list[tuple[int, str, str]], str]]:
+    """[`blocks`], each with what it counts: `mutants`, or a campaign's
+    `controls`."""
     out, verdicts = [], []
     for at, line in enumerate(text.splitlines(), 1):
         v = VERDICT.match(line)
@@ -182,8 +209,35 @@ def blocks(text: str) -> list[tuple[int, int, int, list[tuple[int, str, str]]]]:
             continue
         c = COUNT.match(line)
         if c:
-            out.append((at, int(c.group(1)), int(c.group(2)), verdicts))
+            out.append((at, int(c.group(1)), int(c.group(2)), verdicts, "mutants"))
             verdicts = []
+            continue
+        c = CAMPAIGN.match(line)
+        if c:
+            whole = c.group(1) == "FULL" and c.group(4) == "True" and c.group(5) == "True"
+            out.append((at, int(c.group(2)) if whole else 0, int(c.group(3)), verdicts, "controls"))
+            verdicts = []
+    return out
+
+
+def controls_of(module) -> list:
+    """A campaign's controls, each as a mutant's words (its identifier and
+    its description), where its `CONTROLS` are a campaign's: an identifier,
+    a description and its edits each."""
+    out = []
+    for control in getattr(module, "CONTROLS", []):
+        if not (isinstance(control, tuple) and len(control) >= 3 and isinstance(control[0], str)):
+            continue
+        # Its words before its edits: a description, and a suite beside it
+        # in one script (`session_command_mutations.py`: identifier, suite,
+        # description, edits); the longest is its description.
+        said = []
+        for field in control[1:]:
+            if not isinstance(field, str):
+                break
+            said.append(field)
+        if IDENTIFIER.fullmatch(control[0]) and said and isinstance(control[1 + len(said)], list):
+            out.append((control[0], max(said, key=len), None, None, None))
     return out
 
 
@@ -239,6 +293,8 @@ def disagreements(
     # Each script some recipe runs a part of: by part, the recipes that run
     # it, and the parts they ask for (`split`).
     partly: dict[str, tuple[int, dict[int, list[str]], list[str]]] = {}
+    # Each campaign script's controls, which a campaign's count counts.
+    campaigns: dict[str, list] = {}
     for recipe, body in sorted(plan.bodies(root).items()):
         run = executed_scripts(body)
         files = plan.evidence_files(body)
@@ -253,6 +309,7 @@ def disagreements(
                 module = load(root / "scripts" / s)
                 loaded[s] = list(getattr(module, "MUTANTS", []))
                 parts_of[s] = list(getattr(module, "PARTS", []))
+                campaigns[s] = controls_of(module)
             scripts[s] = loaded[s]
             if s in asked:
                 i, n = asked[s]
@@ -271,16 +328,25 @@ def disagreements(
             if not path.is_file():
                 said.append((rel, 0, "no such file: the recipe's evidence is not recorded"))
                 continue
-            for at, k, n, verdicts in blocks(path.read_text(errors="replace")):
-                s = owner(scripts, verdicts, n)
+            for at, k, n, verdicts, kind in counted_in(path.read_text(errors="replace")):
+                units = scripts if kind == "mutants" else {r: campaigns.get(r, []) for r in scripts}
+                s = owner(units, verdicts, n)
+                if s is None and kind == "controls":
+                    # Not this recipe's count: a campaign script's own unit
+                    # tests print a campaign's lines of controls it does not
+                    # define (`one: KILLED`, `controls=1/1`). Where the
+                    # campaign's own count is not read, the recipe counts
+                    # none of its script's controls, below.
+                    continue
                 if s is None:
-                    said.append((rel, at, f"its verdicts name the mutants of none of {', '.join(run)}"))
+                    said.append((rel, at, f"its verdicts name the {kind} of none of {', '.join(run)}"))
                     continue
                 if s in counted:
                     said.append((rel, at, f"{s}'s mutants are counted twice"))
                     continue
                 counted.add(s)
-                for line, what in disagree(scripts[s], k, n, verdicts, whose.get(s, "its script defines")):
+                whom = whose.get(s, "its script defines") if kind == "mutants" else "its campaign defines"
+                for line, what in disagree(units[s], k, n, verdicts, whom):
                     said.append((rel, line or at, f"{s}: {what}"))
         if any(path.is_file() for path in (root / f for f in files)):
             for s in run:
@@ -315,8 +381,7 @@ def planned_again(recipes: list[str], root: pathlib.Path = ROOT, plan=None) -> s
             return None
 
     def read(head: str, path: str) -> str | None:
-        m = plan.RECORDED_AT.search(show(head, path) or "")
-        return m.group(1) if m else None
+        return plan.recorded_commit(show(head, path) or "")
 
     return set(
         plan.stale(
