@@ -168,3 +168,79 @@ as an unmatched allowance, and 15 of the 19 mutants lived in the first run
 that). The fixture now lists its allowance only where the report holds it,
 and each refusal is held to its own reason: 19 of 19 killed.
 
+
+## 2026-11-17: an advisory counts once for each of its findings
+
+GitHub updated GHSA-fc5q-39xc-vjpf (picomatch through 4.0.7, a ReDoS from
+attacker-supplied extglob patterns, high) at 15:56Z, and from then every
+audit was refused: `advisories and severity counts disagree`. The registry
+counted it as two highs, picomatch being in the tree at 4.0.7 and at 2.3.2,
+where the validator counted one per advisory. Its rule ("exact agreement
+between those counts and the advisory entries") had held because every
+advisory reported so far had one finding.
+
+**What the counts count**, read against the producer:
+- pnpm 10.15.1 posts its audit tree to the registry's
+  `/-/npm/v1/security/audits` and returns the registry's answer as it is
+  (`lockfile/audit/src/index.ts`): the counts are the registry's.
+- Its tree is strict. One walked set serves every importer (pnpm's
+  lockfile walker), and a node's `requires` name its own children alone
+  (`lockfileToAuditTree.ts`), so each depPath is one node, reached by one
+  path. A finding is such a node: a version of its package under one set of
+  peers, so two findings may share a version.
+- The real report counted three highs, from one advisory with one finding
+  and one with two.
+- The review's probe, of two importers on one version under different
+  peers, gave picomatch 2.3.2 two findings with one path each, and the
+  registry counted both.
+
+So the registry counts one per finding. A count by paths agrees while each
+finding has one; a count by distinct versions does not, and would refuse
+the probe's report.
+
+**Decision.** An advisory counts once for each of its findings
+(`findings_of`), and each finding must name its version and exactly one
+path, a string. A finding with any other number of paths is a report this
+validator has not seen. It is refused until it is read, as "Decision" asks
+of any report-format change. An advisory without findings is refused too.
+
+**Held by** `scripts/tests/test_node_audit.py`:
+- an advisory found at two versions, and one found twice at one version,
+  each pass with two counted and are refused with one;
+- an advisory without findings, a finding without its version, and a
+  finding without exactly one string path are each refused, for that
+  reason whatever the counts say.
+
+Seven mutants of their own, in `scripts/node_audit_mutations.py`, are
+killed, among them one that counts distinct versions and one that admits an
+empty list of findings. The fixture's advisory now carries the one finding
+a real report gives.
+
+**The advisory itself** is accepted in `tools/node-audit-allow.txt`, with
+its reason and the condition to revisit. No picomatch release is patched.
+picomatch is in the tree only under the three projects built with Vite (the
+benchmark baseline and the two Marko spikes). Its consumers there are Vite,
+tinyglobby, fdir, the rollup plugins, anymatch and micromatch. Each compiles
+patterns from this repository's code and configuration, or from the tools'
+own code and manifests, and no request reaches one. The real report passes:
+`audit-node: OK (no new advisories; 5 accepted and documented, each
+reported)`.
+
+**Reviewed** independently (2026-11-17, at `fcb99ba7`): no high finding.
+Its two mediums are repaired:
+- **M1:** the count is per finding, not per version. The first text said
+  version, and a count of distinct versions would pass the first tests and
+  refuse the probe's report.
+- **M2:** the allowance named only the two paths the report shows, where
+  the walker first met each version. It now names every consumer, and its
+  revisit is any of them.
+
+Its lows are repaired too:
+- the strict tree, not "each package once", is why a finding has one path;
+- each refusal test is held to its own reason, its empty and non-string
+  cases among them;
+- `e14-node-audit`'s evidence is recorded again in the pull request's
+  verify.
+
+Not taken: refusing duplicate paths within an advisory, which no report
+has shown.
