@@ -113,6 +113,7 @@ pub(crate) struct ReferenceShape {
 
 #[derive(Debug, Clone)]
 pub(crate) struct TableShape {
+    pub assets: Vec<pw_core::tables::AssetClause>,
     pub name: String,
     pub columns: Vec<Column>,
     /// Column places of the key, in its order.
@@ -158,12 +159,16 @@ impl Shape {
     }
 }
 
+fn case_tags(cases: &[pw_core::tables::StoredCase]) -> Option<Vec<String>> {
+    pw_host::tables::closed_case_tags(cases.iter().map(|c| (c.name.as_str(), c.carries.len())))
+}
+
 /// A value every adapter keys by.
 pub(crate) fn scalar(stored: &Stored) -> bool {
     matches!(
         stored,
         Stored::Int { .. } | Stored::String { .. } | Stored::Bool
-    )
+    ) || matches!(stored,Stored::Cases(cases) if case_tags(cases).is_some())
 }
 
 /// A value this adapter stores without losing any of it, the memory
@@ -181,15 +186,16 @@ pub(crate) fn supported(ty: &Stored) -> bool {
         }
         Stored::List(inner) => supported(inner),
         Stored::Record(fields) => fields.iter().all(|f| supported(&f.stored)),
-        Stored::Map(_, _) | Stored::Set(_) | Stored::Cases(_) | Stored::Recursive(_) => false,
+        Stored::Cases(cases) => case_tags(cases).is_some(),
+        Stored::Map(_, _) | Stored::Set(_) | Stored::Recursive(_) => false,
     }
 }
 
 /// The column a supported field is: its kind, and whether it holds none.
-fn column_of(stored: &Stored) -> (Kind, bool) {
+pub(crate) fn column_of(stored: &Stored) -> (Kind, bool) {
     match stored {
         Stored::Int { .. } => (Kind::Int, false),
-        Stored::String { .. } => (Kind::Bytes, false),
+        Stored::String { .. } | Stored::Cases(_) => (Kind::Bytes, false),
         Stored::Bool => (Kind::Bool, false),
         Stored::Float => (Kind::Float, false),
         Stored::Option(inner) => (column_of(inner).0, true),
@@ -224,7 +230,10 @@ pub(crate) fn validates(value: &Value, ty: &Stored) -> bool {
                     .iter()
                     .all(|f| obj.get(&f.name).is_some_and(|v| validates(v, &f.stored)))
         }),
-        Stored::Set(_) | Stored::Map(_, _) | Stored::Cases(_) | Stored::Recursive(_) => false,
+        Stored::Cases(cases) => value
+            .as_str()
+            .is_some_and(|tag| case_tags(cases).is_some_and(|tags| tags.iter().any(|t| t == tag))),
+        Stored::Set(_) | Stored::Map(_, _) | Stored::Recursive(_) => false,
     }
 }
 
@@ -268,6 +277,23 @@ fn stored<'a>(table: &'a TableJson, field: &str) -> Option<&'a Stored> {
 /// **The manifest, held whole** (the memory adapter's `shape_of`, refusal for
 /// refusal), and each field's column.
 pub(crate) fn shape_of(manifest: &TablesJson) -> Result<Shape, Error> {
+    shape_of_with_assets(manifest, false)
+}
+
+pub(crate) fn shape_of_with_assets(
+    manifest: &TablesJson,
+    assets_bound: bool,
+) -> Result<Shape, Error> {
+    if manifest
+        .tables
+        .iter()
+        .any(|table| !table.schema.assets.is_empty())
+        && !assets_bound
+    {
+        return Err(Error::Schema(
+            "generic asset reference storage is not installed".into(),
+        ));
+    }
     let mut tables = Vec::new();
     let mut functions = BTreeMap::new();
     let place = |name: &str| manifest.tables.iter().position(|t| t.schema.name == name);
@@ -277,7 +303,7 @@ pub(crate) fn shape_of(manifest: &TablesJson) -> Result<Shape, Error> {
             return Err(Error::Schema(format!("duplicate table {name}")));
         }
         named("table", name)?;
-        if PLATFORM_TABLES.contains(&name.as_str()) {
+        if PLATFORM_TABLES.contains(&name.as_str()) || name.starts_with("pw_asset_") {
             return Err(Error::Schema(format!(
                 "table {name} has the name of a table the adapter keeps beside the program's"
             )));
@@ -389,6 +415,7 @@ pub(crate) fn shape_of(manifest: &TablesJson) -> Result<Shape, Error> {
             });
         }
         let shaped_table = TableShape {
+            assets: table.schema.assets.clone(),
             name: name.clone(),
             key: table
                 .schema

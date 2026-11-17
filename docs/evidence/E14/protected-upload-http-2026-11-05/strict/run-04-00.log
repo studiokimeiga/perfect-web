@@ -1,0 +1,58 @@
+
+running 6 tests
+test tests::upload_generations::current_generation_http_validates_real_png_and_jpeg_files_before_304_and_head ... FAILED
+test tests::upload_generations::backend_death_stale_local_unlink_preserves_new_same_hash_generation_and_http ... ok
+test tests::upload_generations::generation_http_rejects_actual_file_dimensions_differing_from_the_descriptor ... FAILED
+test tests::upload_generations::generation_http_uses_each_routes_current_same_declaration_reference_counts ... FAILED
+test tests::upload_generations::generation_http_rejects_actual_file_kind_differing_from_the_descriptor ... FAILED
+test tests::upload_generations::retired_generation_http_is_404_before_304_even_while_actual_payload_waits_for_collection ... FAILED
+
+failures:
+
+---- tests::upload_generations::current_generation_http_validates_real_png_and_jpeg_files_before_304_and_head stdout ----
+
+thread 'tests::upload_generations::current_generation_http_validates_real_png_and_jpeg_files_before_304_and_head' (3056331) panicked at spikes/own-renderer/server/src/tests/upload_generations.rs:345:9:
+assertion `left == right` failed: corruption beats 304
+  left: 304
+ right: 503
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- tests::upload_generations::generation_http_rejects_actual_file_dimensions_differing_from_the_descriptor stdout ----
+
+thread 'tests::upload_generations::generation_http_rejects_actual_file_dimensions_differing_from_the_descriptor' (3056343) panicked at spikes/own-renderer/server/src/tests/upload_generations.rs:520:5:
+assertion `left == right` failed: HTTP must validate measured dimensions before cache validators even with hash-valid actual files
+  left: 304
+ right: 503
+
+---- tests::upload_generations::generation_http_uses_each_routes_current_same_declaration_reference_counts stdout ----
+
+thread 'tests::upload_generations::generation_http_uses_each_routes_current_same_declaration_reference_counts' (3056357) panicked at spikes/own-renderer/server/src/tests/upload_generations.rs:554:5:
+assertion `left == right` failed: other declaration's hash/bytes do not enroll this declaration
+  left: 304
+ right: 404
+
+---- tests::upload_generations::generation_http_rejects_actual_file_kind_differing_from_the_descriptor stdout ----
+
+thread 'tests::upload_generations::generation_http_rejects_actual_file_kind_differing_from_the_descriptor' (3056356) panicked at spikes/own-renderer/server/src/tests/upload_generations.rs:520:5:
+assertion `left == right` failed: HTTP must validate measured kind before cache validators even with hash-valid actual files
+  left: 304
+ right: 503
+
+---- tests::upload_generations::retired_generation_http_is_404_before_304_even_while_actual_payload_waits_for_collection stdout ----
+
+thread 'tests::upload_generations::retired_generation_http_is_404_before_304_even_while_actual_payload_waits_for_collection' (3056366) panicked at spikes/own-renderer/server/src/tests/upload_generations.rs:386:5:
+assertion `left == right` failed: physical bytes and matching validators confer no authority
+  left: 304
+ right: 404
+
+
+failures:
+    tests::upload_generations::current_generation_http_validates_real_png_and_jpeg_files_before_304_and_head
+    tests::upload_generations::generation_http_rejects_actual_file_dimensions_differing_from_the_descriptor
+    tests::upload_generations::generation_http_rejects_actual_file_kind_differing_from_the_descriptor
+    tests::upload_generations::generation_http_uses_each_routes_current_same_declaration_reference_counts
+    tests::upload_generations::retired_generation_http_is_404_before_304_even_while_actual_payload_waits_for_collection
+
+test result: FAILED. 1 passed; 5 failed; 0 ignored; 0 measured; 1009 filtered out; finished in 0.70s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`

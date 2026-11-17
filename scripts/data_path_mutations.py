@@ -196,9 +196,12 @@ MUTANTS = [
     ("a handle's type written bare is not named", LAYER,
      "            if bare || platform {\n",
      "            if platform || (bare && false) {\n"),
-    ("a program of tables declaring an upload is served", LAYER,
-     "    if let Some(upload) = declared.first() {\n",
-     "    if let Some(upload) = declared.first().filter(|_| false) {\n"),
+    ("an upload no table keeps is served", LAYER,
+     "    if let Some(upload) = declared.iter().find(unkept) {\n",
+     "    if let Some(upload) = declared.iter().find(unkept).filter(|_| false) {\n"),
+    ("an upload's binding is not checked where it is served", LAYER,
+     "            .and_then(|manifest| manifest.with_uploads(&uploads_text))\n",
+     "            .map(|manifest| manifest)\n"),
     # 3. the engine: a guarded command answered first, then the gate
     ("a guarded tables command runs unanswered", HOST,
      "            // anything is instantiated or linked.\n"
@@ -372,6 +375,8 @@ MUTANTS = [
 # Each Cargo test binary apart: names can repeat between binaries, and the
 # shared native assertion validator expects one complete inventory each.
 TESTS = [
+    (["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", "compiled_cases"], []),
+    (["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", "compiled_assets"], []),
     (["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", "compiled_relations"], []),
     (["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", "compiled_ranges"], []),
     (["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", "compiled_windows"], []),
@@ -397,6 +402,10 @@ TESTS = [
 ]
 
 SOURCES = [
+    ROOT / "runtime/pw-table-memory/tests/compiled_cases.rs",
+    ROOT / "runtime/pw-table-memory/tests/support/cases.rs",
+    ROOT / "runtime/pw-table-memory/tests/compiled_assets.rs",
+    ROOT / "runtime/pw-table-memory/tests/support/assets.rs",
     ROOT / "runtime/pw-table-memory/tests/compiled_relations.rs",
     ROOT / "runtime/pw-table-memory/tests/support/relations.rs",
     ROOT / "runtime/pw-table-memory/tests/compiled_ranges.rs",

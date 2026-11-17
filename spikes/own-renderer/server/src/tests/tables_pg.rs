@@ -53,6 +53,9 @@ pub(super) struct Schema {
     name: String,
     /// The `application_name` its hosts' connections carry.
     application: String,
+    /// Its hosts' blob storage, which every host on the schema shares, as a
+    /// deployment's hosts share theirs (ADR-0440, L5b).
+    blobs: tempfile::TempDir,
 }
 
 impl Schema {
@@ -68,6 +71,7 @@ impl Schema {
             url: url.to_string(),
             name,
             application,
+            blobs: tempfile::TempDir::new().expect("a blob directory"),
         }
     }
 
@@ -78,6 +82,7 @@ impl Schema {
             url: format!("{}{joiner}application_name={}", self.url, self.application),
             schema: Some(self.name.clone()),
             seats: crate::feed_pg::RenderSeats::default(),
+            blobs: self.blobs.path().to_path_buf(),
         }
     }
 
@@ -164,7 +169,7 @@ pub(super) fn serve(out: &std::path::Path, schema: &Schema) -> Server {
 }
 
 /// A build served by the tables' PostgreSQL layer on `database`.
-fn served_on(out: &std::path::Path, database: &crate::tables_pg::Database) -> Server {
+pub(super) fn served_on(out: &std::path::Path, database: &crate::tables_pg::Database) -> Server {
     Server::from_build_tables(
         out.to_path_buf(),
         out.to_path_buf(),
@@ -1524,17 +1529,18 @@ fn a_commit_whose_connection_ends_under_it_is_reconciled_not_refused() {
 /// sends is passed on, the database's answer read and dropped, and both
 /// ends closed (the database's session ends with them, and every lock it
 /// held), so the commit landed and its client cannot know it.
-struct LosingProxy {
+pub(super) struct LosingProxy {
     port: u16,
     upstream: String,
-    armed: Arc<std::sync::atomic::AtomicBool>,
-    lost: Arc<AtomicUsize>,
+    pub(super) armed: Arc<std::sync::atomic::AtomicBool>,
+    pub(super) lost: Arc<AtomicUsize>,
+    pub(super) before_forward: Arc<std::sync::atomic::AtomicBool>,
     stopped: Arc<std::sync::atomic::AtomicBool>,
 }
 
 impl LosingProxy {
     /// A proxy to the database `url` names (`host:port`, after its `@`).
-    fn start(url: &str) -> LosingProxy {
+    pub(super) fn start(url: &str) -> LosingProxy {
         use std::io::{Read, Write};
         use std::net::{Shutdown, TcpListener, TcpStream};
         let authority = url
@@ -1554,11 +1560,13 @@ impl LosingProxy {
         let armed = Arc::new(std::sync::atomic::AtomicBool::new(false));
         let lost = Arc::new(AtomicUsize::new(0));
         let stopped = Arc::new(std::sync::atomic::AtomicBool::new(false));
-        let (to, arm, losses, stop) = (
+        let before_forward = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let (to, arm, losses, stop, reject) = (
             upstream.clone(),
             armed.clone(),
             lost.clone(),
             stopped.clone(),
+            before_forward.clone(),
         );
         std::thread::spawn(move || {
             for client in listener.incoming() {
@@ -1592,7 +1600,8 @@ impl LosingProxy {
                     });
                 }
                 // The client's messages, one at a time: the first untyped.
-                let (arm, cut) = (arm.clone(), cut);
+                let (arm, cut, reject, rejected) =
+                    (arm.clone(), cut, reject.clone(), losses.clone());
                 std::thread::spawn(move || {
                     let (mut from, mut onward) = (client, server);
                     let mut length = [0u8; 4];
@@ -1621,6 +1630,12 @@ impl LosingProxy {
                             && body.starts_with(b"COMMIT")
                             && arm.swap(false, Ordering::SeqCst)
                         {
+                            if reject.load(Ordering::SeqCst) {
+                                rejected.fetch_add(1, Ordering::SeqCst);
+                                let _ = from.shutdown(Shutdown::Both);
+                                let _ = onward.shutdown(Shutdown::Both);
+                                break;
+                            }
                             cut.store(true, Ordering::SeqCst);
                         }
                         if onward.write_all(&head).is_err() || onward.write_all(&body).is_err() {
@@ -1636,12 +1651,13 @@ impl LosingProxy {
             upstream,
             armed,
             lost,
+            before_forward,
             stopped,
         }
     }
 
     /// `url`, its database reached through the proxy.
-    fn url(&self, url: &str) -> String {
+    pub(super) fn url(&self, url: &str) -> String {
         url.replacen(
             &format!("@{}", self.upstream),
             &format!("@127.0.0.1:{}", self.port),
@@ -2367,4 +2383,13 @@ fn warm_relation_selections_are_private_to_each_reader_on_postgresql() {
     let schema = Schema::new(&url, "warm_relations");
     let (_dir, out) = super::conformance::relations_build();
     super::conformance::warm_relation_cache(&out, &|build| pg_layer(build, &schema.database()));
+}
+
+#[test]
+fn the_suite_holds_for_closed_case_keys_indexes_windows_and_ranges_on_postgresql() {
+    let Some(url) = database() else { return };
+    let (_dir, out) = super::conformance::cases_build();
+    let checked = suite_on_postgresql(&out, &url, "suite_cases");
+    assert!(checked.reads > 0 && checked.writes > 0);
+    assert_eq!(checked.refusals, BTreeMap::from([("CaseRows".into(), 1)]));
 }

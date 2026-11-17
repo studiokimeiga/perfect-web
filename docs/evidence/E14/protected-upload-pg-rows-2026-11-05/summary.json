@@ -1,0 +1,14 @@
+{
+  "source": "738da836d938e785ee6aff8b530f07f6ef7716ba",
+  "actual_pg": [
+    157,
+    0,
+    0
+  ],
+  "native_lifecycle_inventory": 34,
+  "strict_baseline": 35,
+  "strict_controls": 28,
+  "preflight_anchors": 5383,
+  "trusted_proposal_adapter_only": true,
+  "generic_server_guard_closed": true
+}

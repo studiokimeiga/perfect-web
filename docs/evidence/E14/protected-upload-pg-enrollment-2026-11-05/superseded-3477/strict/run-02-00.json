@@ -1,0 +1,20 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "--quiet",
+    "--locked",
+    "-p",
+    "pw-table-postgres",
+    "--test",
+    "asset_enrollment",
+    "--",
+    "--format=pretty",
+    "--test-threads=2"
+  ],
+  "exit": 101,
+  "valid": true,
+  "passed": 10,
+  "failed": 1,
+  "sha256": "fce32cf0a0a926661a03ce13ae41427e028bc37c34e535f4ddd9965f6164b6c1"
+}

@@ -27,7 +27,8 @@ is asked, and the workflow asking at each push; and (train-5's finding,
 2026-10-14) a recipe planned by a program its own lines name, a glob read
 segment by segment and a path naming what is under it; and (train-10's
 finding, 2026-10-17) a recipe that skips without a database dealt where
-there is none; and (the integrator's ruling 2 of 2026-10-17) a recipe
+there is none, and (2026-11-17) one refused without one; and (the
+integrator's ruling 2 of 2026-10-17) a recipe
 recorded past a job's limit planned, its shard's setup not counted against
 it, a note in the seconds kept read as a recipe's, and a recipe run to its
 end keeping its lower bound. At least one test of
@@ -334,6 +335,15 @@ MUTANTS = [
         "a recipe that skips without a database is dealt where there is none",
         PLAN,
         '    "e14-scheduled-orders",\n',
+        "",
+    ),
+    # Found before L5's full verify (2026-11-17): a recipe refused without
+    # a database, in words the skip's test does not read, dealt where there
+    # is none, fails its run.
+    (
+        "a recipe refused without a database is dealt where there is none",
+        PLAN,
+        '    "e14-generic-upload-claims",\n',
         "",
     ),
     (

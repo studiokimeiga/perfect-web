@@ -1,16 +1,16 @@
 Track store-pg - the store's data on PostgreSQL, held to what its source states
 
 produced by: just e14-store-postgres
-commit: 7b8fb7cc8cbc9601e49df15c750d1eeaf6cabdd2
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43809526375 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 83ad1ab1f92c0bc4377dfc72df28643828771bb5
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43929087203 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 postgres: 18.6 (Debian 18.6-1.pgdg13+2)
 
 == the store on PostgreSQL (spikes/own-renderer/server/src/tests/store_pg.rs)
 
 test tests::store_pg::on_postgres_a_cart_change_reaches_the_sessions_open_page ... ok
-test tests::store_pg::on_postgres_a_retried_interaction_runs_its_command_once ... ok
 test tests::store_pg::on_postgres_a_cart_change_commits_with_its_event_in_one_transaction ... ok
+test tests::store_pg::on_postgres_a_retried_interaction_runs_its_command_once ... ok
 test tests::store_pg::on_postgres_a_refused_commit_commits_neither_its_state_nor_its_event ... ok
 test tests::store_pg::on_postgres_a_routes_change_commits_with_its_event_in_one_transaction ... ok
 test tests::store_pg::on_postgres_a_run_is_written_by_its_commands_transaction ... ok
@@ -29,18 +29,18 @@ test tests::store_pg::on_postgres_the_stores_schema_is_its_own_beside_the_feeds 
 test tests::store_pg::on_postgres_two_hosts_commit_a_run_once ... ok
 test tests::store_pg::on_postgres_serializable_against_a_read_committed_default_is_refused ... ok
 test tests::store_pg::on_postgres_the_two_layers_answer_alike ... ok
-test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 1110 filtered out; finished in 27.92s
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 1206 filtered out; finished in 47.71s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
 
 == the server's whole suite, the store on PostgreSQL (PW_STORE_TEST_LAYER=postgres)
 
-test result: ok. 1101 passed; 0 failed; 9 ignored; 0 measured; 21 filtered out; finished in 503.92s
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.17s
+test result: ok. 1197 passed; 0 failed; 9 ignored; 0 measured; 21 filtered out; finished in 869.37s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.46s
 
 == the server's whole suite, the store in memory
 
-test result: ok. 1101 passed; 0 failed; 9 ignored; 0 measured; 21 filtered out; finished in 440.53s
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.14s
+test result: ok. 1197 passed; 0 failed; 9 ignored; 0 measured; 21 filtered out; finished in 766.48s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.51s
 
 == mutation controls (scripts/store_postgres_mutations.py)
 

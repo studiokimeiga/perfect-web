@@ -276,7 +276,7 @@ pub(super) fn record(columns: &[Column], ty: &Type) -> Result<(), String> {
 }
 
 /// A value's WIT type, as a field's stored type gives it.
-fn stored(stored: &Stored, ty: &Type) -> Result<(), String> {
+pub(super) fn stored(stored: &Stored, ty: &Type) -> Result<(), String> {
     match (stored, ty) {
         (Stored::Int { .. }, Type::S64)
         | (Stored::String { .. }, Type::String)
@@ -289,22 +289,30 @@ fn stored(stored: &Stored, ty: &Type) -> Result<(), String> {
              a type the table host serves yet"
                 .into(),
         ),
+        (Stored::Cases(cases), Type::Variant(variant)) => {
+            let tags = crate::tables::case_tags(cases).ok_or("unsupported closed-case encoding")?;
+            let actual = variant.cases().collect::<Vec<_>>();
+            if actual.len() != tags.len()
+                || actual
+                    .iter()
+                    .zip(&tags)
+                    .any(|(case, tag)| case.name != tag || case.ty.is_some())
+            {
+                return Err("variant cases or payloads differ from tables.json".into());
+            }
+            Ok(())
+        }
         (Stored::Option(inner), Type::Option(option)) => self::stored(inner, &option.ty()),
         (Stored::List(inner), Type::List(list)) => self::stored(inner, &list.ty()),
         (Stored::Record(fields), ty) => {
             record(&fields.iter().map(Column::of).collect::<Vec<_>>(), ty)
         }
-        (
-            Stored::Unit
-            | Stored::Set(_)
-            | Stored::Map(..)
-            | Stored::Cases(_)
-            | Stored::Recursive(_),
-            _,
-        ) => Err(format!(
-            "{} is not a type the table host serves yet",
-            described(stored)
-        )),
+        (Stored::Unit | Stored::Set(_) | Stored::Map(..) | Stored::Recursive(_), _) => {
+            Err(format!(
+                "{} is not a type the table host serves yet",
+                described(stored)
+            ))
+        }
         (stored, ty) => Err(format!(
             "{} where tables.json declares {}",
             named(ty),
@@ -767,6 +775,11 @@ pub fn check_value(stored: &Stored, value: &Val) -> Result<(), String> {
                 Ok(())
             }
         }
+        (Stored::Cases(cases), Val::Variant(tag, None))
+            if crate::tables::case_tags(cases).is_some_and(|tags| tags.contains(tag)) =>
+        {
+            Ok(())
+        }
         (Stored::Bool, Val::Bool(_)) => Ok(()),
         (Stored::Float, Val::Float64(x)) if x.is_finite() => Ok(()),
         (Stored::Float, Val::Float64(x)) => Err(format!("{x} is not a finite number")),
@@ -802,6 +815,7 @@ fn atom(value: &Val) -> Result<Atom, String> {
         Val::Bool(b) => Ok(Atom::Bool(*b)),
         Val::S64(n) => Ok(Atom::Int(*n)),
         Val::String(s) => Ok(Atom::Str(s.clone())),
+        Val::Variant(tag, None) => Ok(Atom::Str(tag.clone())),
         other => Err(format!("{} is no key's or order's value", val_named(other))),
     }
 }
@@ -1465,5 +1479,72 @@ mod tests {
             );
         }
         assert!(check_answer(&many, &[Val::List(Vec::new())], &[Val::List(Vec::new())]).is_ok());
+    }
+}
+
+#[cfg(test)]
+mod closed_case_abi_tests {
+    use super::*;
+    #[test]
+    fn actual_payload_bearing_variant_cannot_link_as_a_closed_case() {
+        let stored = Stored::Cases(vec![
+            crate::tables::Case {
+                name: "AB".into(),
+                carries: vec![],
+            },
+            crate::tables::Case {
+                name: "A_Z".into(),
+                carries: vec![],
+            },
+        ]);
+        let column = Column::new("kind", stored);
+        let access = Access::Read(Read {
+            target: None,
+            source_key: None,
+            handle: None,
+            import: "pw:tables/tags#of-kind".into(),
+            table: "Tags".into(),
+            primitive: Primitive::Prefix,
+            key: vec!["kind".into()],
+            by: vec![column.clone()],
+            row: vec![column],
+            order: None,
+            sorted_by: vec![],
+            unique: false,
+            bounded: None,
+        });
+        let engine = wasmtime::Engine::new(&crate::engine::engine_config()).expect("engine");
+        for payload in ["", " s64"] {
+            let wat = format!(
+                r#"(component
+                (type $kind-shape (variant (case "ab") (case "a-z"{payload})))
+                (import "kind" (type $kind (eq $kind-shape)))
+                (type $row-shape (record (field "kind" $kind)))
+                (import "row" (type $row (eq $row-shape)))
+                (type $rows (list $row))
+                (import "read" (func (param "kind" $kind) (result $rows)))
+            )"#
+            );
+            let component = wasmtime::component::Component::new(&engine, wat)
+                .expect("actual variant component validates");
+            let ty = component.component_type();
+            let item = ty
+                .imports(&engine)
+                .find(|(name, _)| *name == "read")
+                .expect("read import")
+                .1;
+            let wasmtime::component::types::ComponentItem::ComponentFunc(function) = item.ty else {
+                panic!("actual function type")
+            };
+            let result = check_import(&access, &function);
+            if payload.is_empty() {
+                assert_eq!(result, Ok(()));
+            } else {
+                assert!(
+                    matches!(result,Err(ref why) if why.contains("variant cases or payloads differ")),
+                    "{result:?}"
+                );
+            }
+        }
     }
 }

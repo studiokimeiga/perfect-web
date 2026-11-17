@@ -1,0 +1,25 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "--quiet",
+    "--locked",
+    "-p",
+    "pw-dev-server",
+    "--bin",
+    "pw-dev-server",
+    "--",
+    "uploads::tests::session_authority_tests::",
+    "tests::session_upload_authority::",
+    "tests::session_upload_reserved_routes::",
+    "--list",
+    "--format=terse"
+  ],
+  "error": null,
+  "reaped": {
+    "pid": 3096595,
+    "status": 0,
+    "timed_out": false,
+    "cancelled": false
+  }
+}

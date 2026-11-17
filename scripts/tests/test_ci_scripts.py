@@ -169,6 +169,60 @@ class Plan(unittest.TestCase):
         self.assertGreaterEqual(len(skips), 10, skips)
         self.assertEqual(sorted(set(skips) - set(plan.NEEDS_DATABASE)), [])
 
+    def test_a_recipe_that_reads_a_database_is_dealt_beside_one(self) -> None:
+        # Found before L5's full verify (2026-11-17): `e14-generic-upload-claims`
+        # is refused without a database ("refused, it needs
+        # PW_TABLES_DATABASE_URL"), words the test above does not read, and
+        # NEEDS_DATABASE did not hold it: the run would have dealt it where
+        # there is none, and failed it. And `e14-every-entry` and
+        # `e14-follows`, which only said whether one is named, ran tests that
+        # said "skipped" and passed without one. A recipe that names a
+        # database's URL at all is dealt beside one.
+        # And (the second review of L5) `e14-generic-upload-http`, whose
+        # recipe names none while its script reads one and refuses without
+        # it: a recipe whose script reads a database's URL is too. A script
+        # that names one only in the code it mutates reads none.
+        import ast
+        import evidence_counts
+
+        named = ("PW_TABLES_DATABASE_URL", "PW_STORE_DATABASE_URL", "PW_FEED_DATABASE_URL")
+
+        def reads_one(script: str) -> bool:
+            tree = ast.parse((plan.ROOT / "scripts" / script).read_text())
+            for node in ast.walk(tree):
+                if (
+                    isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Attribute)
+                    and node.func.attr in ("get", "getenv")
+                    and node.args
+                    and isinstance(node.args[0], ast.Constant)
+                    and node.args[0].value in named
+                ):
+                    return True
+                if isinstance(node, ast.Subscript) and isinstance(node.slice, ast.Constant) and node.slice.value in named:
+                    return True
+            return False
+
+        reads = sorted(
+            name
+            for name, body in plan.bodies().items()
+            if plan.EVIDENCE_RECIPE.match(name)
+            and name not in plan.LOCAL_ONLY
+            and (any(v in body for v in named) or any(reads_one(s) for s in evidence_counts.executed_scripts(body)))
+        )
+        for name in (
+            "e14-generic-upload-claims",
+            "e14-generic-upload-http",
+            "e14-d3-postgres-2",
+            "e14-every-entry",
+            "e14-follows",
+        ):
+            self.assertIn(name, reads)
+        # Scripts that only mutate the code naming one read none.
+        self.assertNotIn("e14-preverify", reads)
+        self.assertNotIn("e14-browser-host-map", reads)
+        self.assertEqual(sorted(set(reads) - set(plan.NEEDS_DATABASE)), [])
+
     def test_a_measurement_of_the_machine_is_not_planned(self) -> None:
         self.assertIn("e10-close-bench", plan.LOCAL_ONLY)
         self.assertTrue(plan.EVIDENCE_RECIPE.match("e14-feed"))

@@ -1,0 +1,51 @@
+   Compiling pw-table-postgres v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-postgres)
+    Finished `test` profile [unoptimized] target(s) in 0.92s
+     Running tests/asset_rows.rs (target/debug/deps/asset_rows-4b46d8337cc35374)
+
+running 6 tests
+test actual_generation_descriptors_are_verified_before_keep ... FAILED
+test actual_reference_counts_are_verified_before_keep ... FAILED
+test actual_row_asset_fields_are_verified_before_keep ... FAILED
+test fresh_publication_keeps_bytes_and_commits_registry_rows_and_actual_receipt_together ... ok
+test late_receipt_hooks_cannot_change_registry_counts_after_prepare ... FAILED
+test late_receipt_hooks_cannot_change_row_asset_fields_after_prepare ... FAILED
+
+failures:
+
+---- actual_generation_descriptors_are_verified_before_keep stdout ----
+
+thread 'actual_generation_descriptors_are_verified_before_keep' (2862814) panicked at runtime/pw-table-postgres/tests/asset_rows.rs:363:5:
+descriptor rewrite (late=false) must not commit inconsistent rows/registry: Ok(Committed { written: {"Assets": 1}, outbox: [] })
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- actual_reference_counts_are_verified_before_keep stdout ----
+
+thread 'actual_reference_counts_are_verified_before_keep' (2862815) panicked at runtime/pw-table-postgres/tests/asset_rows.rs:363:5:
+count rewrite (late=false) must not commit inconsistent rows/registry: Ok(Committed { written: {"Assets": 1}, outbox: [] })
+
+---- actual_row_asset_fields_are_verified_before_keep stdout ----
+
+thread 'actual_row_asset_fields_are_verified_before_keep' (2862860) panicked at runtime/pw-table-postgres/tests/asset_rows.rs:363:5:
+row rewrite (late=false) must not commit inconsistent rows/registry: Ok(Committed { written: {"Assets": 1}, outbox: [] })
+
+---- late_receipt_hooks_cannot_change_registry_counts_after_prepare stdout ----
+
+thread 'late_receipt_hooks_cannot_change_registry_counts_after_prepare' (2862876) panicked at runtime/pw-table-postgres/tests/asset_rows.rs:363:5:
+count rewrite (late=true) must not commit inconsistent rows/registry: Ok(Committed { written: {"Assets": 1}, outbox: [] })
+
+---- late_receipt_hooks_cannot_change_row_asset_fields_after_prepare stdout ----
+
+thread 'late_receipt_hooks_cannot_change_row_asset_fields_after_prepare' (2862877) panicked at runtime/pw-table-postgres/tests/asset_rows.rs:363:5:
+row rewrite (late=true) must not commit inconsistent rows/registry: Ok(Committed { written: {"Assets": 1}, outbox: [] })
+
+
+failures:
+    actual_generation_descriptors_are_verified_before_keep
+    actual_reference_counts_are_verified_before_keep
+    actual_row_asset_fields_are_verified_before_keep
+    late_receipt_hooks_cannot_change_registry_counts_after_prepare
+    late_receipt_hooks_cannot_change_row_asset_fields_after_prepare
+
+test result: FAILED. 1 passed; 5 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.63s
+
+error: test failed, to rerun pass `-p pw-table-postgres --test asset_rows`

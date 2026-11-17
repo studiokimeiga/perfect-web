@@ -2,7 +2,82 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
-**The benchmark baselines' patches, 2026-11-17 (built, not landed):** on
+**L5, declared uploads, 2026-11-17:** L5a and L5b land as one train from
+`wip/l5b-claims`, with master, #118 and #121 merged. Its full verify
+(43929087203 at `83ad1ab1`) ran 361 recipes, and 356 passed. Three of the
+five that failed were the recipes L5a's verify had failed, whose repairs the
+run predates. The other two were a render-merge mutant that one session's
+merged reads let live, and WebKit's cut-off test, the known intermittent
+failure. Each is repaired or run again at the head: the repairs' verify
+(43978661391 at `41a73a48`) passed all 15 recipes they reach (ADR-0440,
+"Landing (L5)"). Independently reviewed twice more: no high finding is left open; the second review's medium (the
+record's order of repairs and verifies) and its lows of the record are
+repaired, and its four lows of code are `wip/l5-followups`'.
+
+**L5b, the server's claim bridge, 2026-11-16:** on L5a (`wip/l5b-claims`). A compiled command claims, publishes and commits a
+declared upload through the server, on memory and on PostgreSQL: its
+imports bound to an invocation's ledger on the command's own transaction,
+its answer sealed with the attempt's nonce, each outcome settling its claims
+once (an unknown one from its own raw receipt; absence holds it), and
+`servable` admitting an upload a table keeps. Twenty-eight server tests
+hold it, among them the seven the decision owed (`Recorded`, an equal-clock
+retry by another host, a reconcile the namespace lock delayed, a rotated
+reader, a foreign declaration, a live generation's corrupt bytes, a keep
+that fails). Thirty mutants hold it too, each killed
+(`docs/evidence/E14/generic-upload-claims.txt`).
+
+Independently reviewed: no high finding; its three medium and eleven low
+are repaired or recorded (ADR-0440, "The server's claim bridge"). Among the
+repairs, a commit its ledger refused before `COMMIT` is answered refused,
+and each connection sets the server's keepalives, so a vanished client lets
+go of the namespace lock within about a minute.
+
+L5a's review found no high finding reachable in L5a, and every finding live
+once L5b opens the guard. So L5 lands as one train from `wip/l5b-claims`,
+with L5a's medium findings repaired there:
+- an image read takes no lock;
+- a database copy is refused its original's blob root;
+- one failing collection no longer stops the rest.
+Its full verify is above.
+
+**L5a, declared uploads to their claim ledger, 2026-11-16:** on L4
+(`7b8fb7cc`), the fifth train of the declared data layer's landing, its
+first part (`wip/l5-uploads`): the integration branch's forty-two commits
+after `ff57edc7`, to `64f03ec9`, and the claim ledger its worktree held
+uncommitted (`018fad14`), ADR-0440's fourth prerequisite short of the
+server's claim bridge. An upload is declared in a module of its name (`upload
+PostImage`, its route, kinds and bounds), a table that keeps one says so
+(`asset image from PostImage`), and its reference is a closed, payload-free
+case on the canonical column encoding; the runtime binds each compiled
+upload import before any resource callback and admits a table root only on
+both grant axes; reference counts are kept per declaration in the memory
+layer's row transactions; generations live in enrolled, immutable storage;
+PostgreSQL enrolls the namespace and immutable metadata before any row (the
+platform's migration 0005) and commits references and storage under
+lifetime exclusion; and the generic handler serves a current generation
+through a verified read (404 with no current reference, 503 for a live one
+missing, before 304). Staging keeps one lease per session and declaration,
+bound to its reader. One invocation's claims are held in a ledger
+(`uploads::generic`): an attempt nonce kept in the interaction's answer,
+pending entries capped at 1,024 and 16 MiB, applied only on this attempt's
+own receipt and never released by elapsed time; built and tested on L5a
+(61 server tests, 48 of asset rows), it was never built where it was
+written. A compiled program's upload imports stay unbound, so one that
+claims an upload is refused before any callback: the server's claim bridge
+(L5b) binds them to the ledger. The merge's five conflicts: the platform's
+migrations (L3's `0004_outbox_removals_marked` landed first, so L5's
+`0004_upload_generations` is `0005_upload_generations`, and the three tests
+that list or count the platform's migrations say five), their test, the
+row-ownership script's test list (both sides'), STATUS (master's kept) and
+the docs (the integration branch's 508 lines on the unnumbered decision
+moved into ADR-0440, before L3's landing, its typos mended). What git did
+not show: 70 tests whose programs predate L2's and L3's rules, each table a
+reader's command writes now `written by anyone` (PW6920) and each such
+command `requires Anyone` (PW0367). At the merge the workspace's 4,438
+tests pass on PostgreSQL 18.6 (26 ignored), and every mutation anchor
+matches once (6,253).
+
+**The benchmark baselines' patches, 2026-11-17 (#127):** on
 the owner's approval of the downloads, SvelteKit 2.70.4, adapter-node 5.5.8
 and Next.js 16.4.5 (ADR-0120, amended), in the workspace's lockfile and the
 harness's own, whose Next sandbox installs frozen again. Both stores build

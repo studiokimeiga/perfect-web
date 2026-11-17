@@ -43,7 +43,21 @@ use pw_table_memory::{Command, MemoryTables, Prepared};
 pub(crate) struct TablesLayer {
     tables: MemoryTables,
     grants: Vec<&'static str>,
+    /// The program's declared uploads, where it declares any (ADR-0440,
+    /// L5b): their generations' bytes in memory, lost with the tables, under
+    /// a namespace of their own.
+    uploads: Option<MemoryUploads>,
 }
+
+/// **Where the memory layer keeps its upload generations' bytes**.
+struct MemoryUploads {
+    storage: crate::blob::MemoryBlobs,
+    namespace: pw_host::assets::Namespace,
+}
+
+/// The canonical bytes a command published, by the generation the adapter
+/// chose for them, until its publication keeps them.
+type KeptBytes = Arc<Mutex<std::collections::BTreeMap<String, Arc<[u8]>>>>;
 
 /// **Whether a contract imports a table's function** (`pw:tables/…`).
 pub(crate) fn imports_tables(contracts: &[ComponentContract]) -> bool {
@@ -64,9 +78,10 @@ pub(crate) fn imports_tables(contracts: &[ComponentContract]) -> bool {
 ///   (`User<…>`, bare or `capability.`'s, anywhere in it) refuses the start,
 ///   named. What a field's record type holds inside it is the compiler's to
 ///   see; tables.json writes the record's name;
-/// - **no upload** (the integrator's note b): a table keeps no upload's
-///   image, so an `upload` beside tables would take a reader's image and
-///   keep it nowhere; refused, named, until the tables keep one.
+/// - **each upload a table's asset** (ADR-0440, L5b; the integrator's note
+///   b before it): an `upload` no table keeps would take a reader's image and
+///   keep it nowhere, so it is refused, named; the rest are bound as a layer
+///   binds them.
 pub(crate) fn servable(
     build: &std::path::Path,
     contracts: &[ComponentContract],
@@ -108,21 +123,80 @@ pub(crate) fn servable(
             }
         }
     }
+    // **Its uploads, each a table's asset** (ADR-0440, L5b): a program of
+    // tables keeps an upload's image in the table that names it, so one no
+    // table keeps is refused, by name, as a reader's image would be kept
+    // nowhere; the rest are bound as the layer binds them, or refused saying
+    // why.
     let uploads = build.join("uploads.json");
-    let declared: Vec<serde_json::Value> = match std::fs::read_to_string(&uploads) {
-        Ok(text) => serde_json::from_str(&text).map_err(|e| format!("uploads.json: {e}"))?,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Vec::new(),
+    let uploads_text = match std::fs::read_to_string(&uploads) {
+        Ok(text) => text,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
         Err(e) => return Err(format!("{}: {e}", uploads.display())),
     };
-    if let Some(upload) = declared.first() {
+    let declared: Vec<serde_json::Value> =
+        serde_json::from_str(&uploads_text).map_err(|e| format!("uploads.json: {e}"))?;
+    let kept: std::collections::BTreeSet<&str> = json["tables"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .flat_map(|table| table["assets"].as_array().into_iter().flatten())
+        .filter_map(|asset| asset["upload"].as_str())
+        .collect();
+    let unkept = |upload: &&serde_json::Value| {
+        !upload["name"]
+            .as_str()
+            .is_some_and(|name| kept.contains(name))
+    };
+    if let Some(upload) = declared.iter().find(unkept) {
+        let name = upload["name"].as_str().unwrap_or_default();
         return Err(format!(
-            "`{}` is an `upload`, and the program declares its tables: their layer keeps no \
-             upload's image, so the image a reader sends would be kept nowhere; a program of \
-             tables declares no upload until its tables keep one",
-            upload["name"].as_str().unwrap_or_default()
+            "`{name}` is an `upload`, and no table of the program keeps it: the image a reader \
+             sends would be kept nowhere; a table that keeps one says `asset <field> from {name}`"
         ));
     }
+    if !declared.is_empty() {
+        pw_host::tables::Manifest::from_json(&text)
+            .and_then(|manifest| manifest.with_uploads(&uploads_text))
+            .map_err(|e| format!("uploads.json: {e}"))?;
+    }
     Ok(())
+}
+
+/// **The generic uploads a build declares** (`uploads.json`, ADR-0440,
+/// L5b): its text, where it declares any, which a layer binds its tables
+/// to; none where it declares none.
+pub(crate) fn declared_uploads(build: &std::path::Path) -> Result<Option<String>, String> {
+    let path = build.join("uploads.json");
+    let text = match std::fs::read_to_string(&path) {
+        Ok(text) => text,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => return Err(format!("{}: {e}", path.display())),
+    };
+    let declared: Vec<serde_json::Value> =
+        serde_json::from_str(&text).map_err(|e| format!("uploads.json: {e}"))?;
+    Ok((!declared.is_empty()).then_some(text))
+}
+
+/// **What a node is granted of each upload its tables are bound to**: the
+/// declaration's read and write, its claim's acquire and release, as a
+/// compiled upload import requires them (`pw_host::assets::Access`).
+pub(crate) fn upload_grants(
+    manifest: &pw_host::tables::Manifest,
+) -> impl Iterator<Item = &'static str> + '_ {
+    manifest
+        .uploads()
+        .into_iter()
+        .flat_map(|uploads| uploads.declarations())
+        .flat_map(|declaration| {
+            let name = declaration.name();
+            [
+                interned(format!("database.read<{name}>")),
+                interned(format!("database.write<{name}>")),
+                interned(format!("resource.acquire<{name}.Claim>")),
+                interned(format!("resource.release<{name}.Claim>")),
+            ]
+        })
 }
 
 /// **The handle a type, as tables.json writes it, names**: a session's, a
@@ -170,7 +244,28 @@ impl TablesLayer {
         let path = build.join("tables.json");
         let text =
             std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
-        let tables = MemoryTables::from_json(&text).map_err(|e| format!("tables.json: {e:?}"))?;
+        let declared = declared_uploads(build)?;
+        let tables = match &declared {
+            Some(metadata) => MemoryTables::new_with_uploads(
+                serde_json::from_str(&text).map_err(|e| format!("tables.json: {e}"))?,
+                metadata,
+            ),
+            None => MemoryTables::from_json(&text),
+        }
+        .map_err(|e| format!("tables.json: {e:?}"))?;
+        let uploads = match declared {
+            Some(_) => {
+                use pw_host::assets::Storage;
+                let storage = crate::blob::MemoryBlobs::default();
+                let namespace =
+                    pw_host::assets::Namespace::from_bytes(crate::identity::random_bytes::<16>());
+                storage
+                    .enroll(&namespace, true)
+                    .map_err(|e| format!("the program's upload storage: {e}"))?;
+                Some(MemoryUploads { storage, namespace })
+            }
+            None => None,
+        };
         let grants = tables
             .host_tables()
             .names()
@@ -180,8 +275,13 @@ impl TablesLayer {
                     interned(format!("database.write<{table}>")),
                 ]
             })
+            .chain(upload_grants(tables.host_tables()))
             .collect();
-        Ok(TablesLayer { tables, grants })
+        Ok(TablesLayer {
+            tables,
+            grants,
+            uploads,
+        })
     }
 }
 
@@ -258,11 +358,103 @@ impl DataLayer for TablesLayer {
                 Ok(command) => Turn::Open(command),
                 Err(e) => Turn::Failed(format!("the tables began no command: {e:?}")),
             },
+            uploads: self.uploads.as_ref(),
+            kept: KeptBytes::default(),
+            collect: Vec::new(),
+            published: false,
         })
     }
 
     fn grants(&self) -> Vec<&'static str> {
         self.grants.clone()
+    }
+
+    /// **The committed generation `declaration` names by `key`, and its
+    /// bytes** (ADR-0440, L5b): none where no committed row names it (404);
+    /// an error where one does and its bytes are missing or not its own
+    /// (503, never a 404 or a 304).
+    fn read_asset(
+        &self,
+        declaration: &str,
+        key: &str,
+        kind: &str,
+    ) -> Result<Option<(pw_host::assets::Descriptor, Vec<u8>)>, String> {
+        use pw_host::assets::Storage;
+        let uploads = self
+            .uploads
+            .as_ref()
+            .ok_or("the program's tables keep no uploads")?;
+        let Some(descriptor) = self
+            .tables
+            .asset_descriptor(declaration, key, kind)
+            .map_err(|e| format!("{e:?}"))?
+        else {
+            return Ok(None);
+        };
+        match uploads
+            .storage
+            .get_generation(&uploads.namespace, &descriptor)
+            .map_err(|e| format!("the upload generation could not be read: {e}"))?
+        {
+            Some(bytes) => Ok(Some((descriptor, bytes))),
+            // Missing: collected since it was looked up, its row removed
+            // meanwhile (404, as PostgreSQL answers under its lock), or named
+            // still and its bytes gone (503). A second look tells which (the
+            // review of a7c3377b: until then a removal racing the read
+            // answered 503).
+            None => {
+                let missing = |d: &pw_host::assets::Descriptor| {
+                    format!(
+                        "the upload generation {} is named and its bytes are missing",
+                        d.reference.generation
+                    )
+                };
+                match self
+                    .tables
+                    .asset_descriptor(declaration, key, kind)
+                    .map_err(|e| format!("{e:?}"))?
+                {
+                    None => Ok(None),
+                    // Published again meanwhile, another generation: read once.
+                    Some(again) if again != descriptor => match uploads
+                        .storage
+                        .get_generation(&uploads.namespace, &again)
+                        .map_err(|e| format!("the upload generation could not be read: {e}"))?
+                    {
+                        Some(bytes) => Ok(Some((again, bytes))),
+                        None => Err(missing(&again)),
+                    },
+                    Some(_) => Err(missing(&descriptor)),
+                }
+            }
+        }
+    }
+
+    /// The generations a commit left unnamed whose collection failed, tried
+    /// again a bounded batch at a time.
+    fn housekeeping(&self, _now_ms: i64, _sessions: &crate::identity::SessionLifetimes) {
+        use pw_host::assets::Storage;
+        let Some(uploads) = &self.uploads else { return };
+        let pending = match self.tables.pending_asset_collections(500) {
+            Ok(pending) => pending,
+            Err(e) => {
+                return eprintln!("pw dev server: the upload collections could not be read: {e:?}");
+            }
+        };
+        for descriptor in pending {
+            let collected = uploads
+                .storage
+                .collect_generation(&uploads.namespace, &descriptor)
+                .map_err(|e| e.to_string())
+                .and_then(|()| {
+                    self.tables
+                        .asset_collected(&descriptor.reference.generation)
+                        .map_err(|e| format!("{e:?}"))
+                });
+            if let Err(why) = collected {
+                eprintln!("pw dev server: an upload generation was not collected: {why}");
+            }
+        }
     }
 
     fn default_page(&self) -> Option<&'static str> {
@@ -285,6 +477,10 @@ thread_local! {
     /// adapter's would where its storage had failed.
     pub(crate) static FAIL_NEXT_PUBLISH: std::cell::Cell<bool> =
         const { std::cell::Cell::new(false) };
+    /// **A test's: the next keep of a new generation's bytes on this thread
+    /// fails**, as the layer's storage would where it had failed.
+    pub(crate) static FAIL_NEXT_KEEP: std::cell::Cell<bool> =
+        const { std::cell::Cell::new(false) };
 }
 
 /// **Where one command's transaction is.**
@@ -306,6 +502,88 @@ pub(crate) struct TablesStaging<'a> {
     /// The adapter, which a COMMIT failing after it published fails closed.
     tables: &'a MemoryTables,
     turn: Turn,
+    /// Where its uploads' bytes are kept, where the program declares any.
+    uploads: Option<&'a MemoryUploads>,
+    /// The bytes it published, until its publication keeps them.
+    kept: KeptBytes,
+    /// The generations its publication left unnamed, collected after the
+    /// commit.
+    collect: Vec<pw_host::assets::Descriptor>,
+    /// Its rows were published ([`Staged::claims_kept_nothing`]): a commit
+    /// that fails after them may have kept them.
+    published: bool,
+}
+
+impl TablesStaging<'_> {
+    /// **`prepared` published, its new generations' bytes kept first**
+    /// (ADR-0440, L5b): a generation kept and its row refused is an orphan
+    /// the namespace holds; a row published and its bytes not kept would
+    /// name nothing, so a keep that fails refuses the publication.
+    fn publish_prepared(&mut self, prepared: Prepared) -> Result<(), String> {
+        let mut collect = Vec::new();
+        if let Some(uploads) = self.uploads {
+            use pw_host::assets::Storage;
+            let plans = prepared
+                .asset_plans()
+                .map_err(|e| format!("the tables' upload plans: {e:?}"))?;
+            let kept = self
+                .kept
+                .lock()
+                .map_err(|_| "upload bytes are unavailable")?;
+            for plan in &plans {
+                if plan.keep_new {
+                    #[cfg(test)]
+                    if FAIL_NEXT_KEEP.with(|fail| fail.replace(false)) {
+                        return Err("the upload generation was not kept: a test's failure".into());
+                    }
+                    let descriptor = &plan.generation.descriptor;
+                    let bytes = kept
+                        .get(&descriptor.reference.generation)
+                        .ok_or("a new upload generation has no bytes to keep")?;
+                    uploads
+                        .storage
+                        .keep_new(&uploads.namespace, descriptor, bytes)
+                        .map_err(|e| format!("the upload generation was not kept: {e}"))?;
+                }
+            }
+            collect = plans
+                .into_iter()
+                .filter(|plan| plan.collect)
+                .map(|plan| plan.generation.descriptor)
+                .collect();
+        }
+        // What it leaves unnamed is collected after the commit, and only
+        // where it published: a publication refused names what it named.
+        prepared
+            .publish()
+            .map(|_| {
+                self.published = true;
+                self.collect = collect;
+            })
+            .map_err(|e| format!("the tables did not publish the commit: {e:?}"))
+    }
+
+    /// **The generations its commit left unnamed, collected**: after the
+    /// commit, never inside it; one that fails is tried again by the layer's
+    /// housekeeping, as the adapter keeps its job.
+    fn collect_unnamed(&mut self) {
+        let Some(uploads) = self.uploads else { return };
+        use pw_host::assets::Storage;
+        for descriptor in std::mem::take(&mut self.collect) {
+            let collected = uploads
+                .storage
+                .collect_generation(&uploads.namespace, &descriptor)
+                .map_err(|e| e.to_string())
+                .and_then(|()| {
+                    self.tables
+                        .asset_collected(&descriptor.reference.generation)
+                        .map_err(|e| format!("{e:?}"))
+                });
+            if let Err(why) = collected {
+                eprintln!("pw dev server: an upload generation was not collected: {why}");
+            }
+        }
+    }
 }
 
 impl Staged for TablesStaging<'_> {
@@ -405,10 +683,8 @@ impl Staged for TablesStaging<'_> {
             return Err("the tables did not publish the commit: a test's failure".into());
         }
         match std::mem::replace(&mut self.turn, Turn::Published) {
-            Turn::Prepared(prepared) => prepared.publish().map(|_| ()).map_err(|e| {
-                let why = format!("the tables did not publish the commit: {e:?}");
+            Turn::Prepared(prepared) => self.publish_prepared(prepared).inspect_err(|why| {
                 self.turn = Turn::Failed(why.clone());
-                why
             }),
             Turn::Failed(why) => {
                 self.turn = Turn::Failed(why.clone());
@@ -444,11 +720,42 @@ impl Staged for TablesStaging<'_> {
     fn publish(&mut self) {
         if let Turn::Prepared(_) = self.turn
             && let Turn::Prepared(prepared) = std::mem::replace(&mut self.turn, Turn::Published)
-            && let Err(e) = prepared.publish()
+            && let Err(e) = self.publish_prepared(prepared)
         {
-            eprintln!("pw dev server: a commit's tables were not published after it: {e:?}");
-            self.turn = Turn::Failed(format!("not published: {e:?}"));
+            eprintln!("pw dev server: a commit's tables were not published after it: {e}");
+            self.turn = Turn::Failed(format!("not published: {e}"));
         }
+        self.collect_unnamed();
+    }
+
+    /// Kept nothing, unless its rows were published: a commit that failed
+    /// after them may have kept them (the tables close), so its claims stay.
+    fn claims_kept_nothing(&self) -> bool {
+        !self.published
+    }
+
+    /// The adapter's publisher on this command, the canonical bytes kept
+    /// beside it for the publication's keep. None where the program declares
+    /// no uploads.
+    fn upload_publisher(&mut self) -> Result<Option<data::UploadPublisher>, String> {
+        if self.uploads.is_none() {
+            return Ok(None);
+        }
+        let Turn::Open(command) = &self.turn else {
+            return Err("a command's uploads are published while it runs".into());
+        };
+        let propose = command.asset_publisher();
+        let kept = Arc::clone(&self.kept);
+        Ok(Some(data::UploadPublisher {
+            publish: Arc::new(move |declaration, descriptor, bytes| {
+                let reference = propose(declaration, descriptor).map_err(|e| format!("{e:?}"))?;
+                kept.lock()
+                    .map_err(|_| "upload bytes are unavailable".to_string())?
+                    .insert(reference.generation.clone(), bytes);
+                Ok(reference)
+            }),
+            require_receipt: Arc::new(|| Ok(())),
+        }))
     }
 }
 

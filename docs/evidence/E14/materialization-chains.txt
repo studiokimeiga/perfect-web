@@ -1,22 +1,22 @@
 ADR-0255 - a materialization may read another
 
 produced by: just e14-materialization-chains
-commit: 7b8fb7cc8cbc9601e49df15c750d1eeaf6cabdd2
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43809526375 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 83ad1ab1f92c0bc4377dfc72df28643828771bb5
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43929087203 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the checker (compiler/pw-core/tests/materialization_chains.rs)
 
 test a_clause_naming_no_resource_is_refused ... ok
-test a_materialization_may_read_another ... ok
 test a_reader_declared_before_what_it_reads_reads_it_too ... ok
+test a_materialization_may_read_another ... ok
 test the_key_audit_counts_what_a_materialization_read_separates ... ok
-test what_a_materialization_reads_itself_passes_to_its_readers ... ok
-test a_materialization_that_reads_itself_is_refused ... ok
 test a_shared_materialization_reads_no_private_one ... ok
+test a_materialization_that_reads_itself_is_refused ... ok
+test what_a_materialization_reads_itself_passes_to_its_readers ... ok
 test what_it_gives_the_one_it_reads_is_checked ... ok
 test a_write_reaches_what_reads_a_materialization_it_changes ... ok
-test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.76s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.83s
 
 == the runtime's reads (runtime/pw-materialize/tests/reads.rs)
 

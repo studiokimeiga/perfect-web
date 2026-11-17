@@ -1,0 +1,20 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "--quiet",
+    "--locked",
+    "-p",
+    "pw-host",
+    "--test",
+    "asset_registry",
+    "--",
+    "--format=pretty",
+    "--test-threads=2"
+  ],
+  "exit": 101,
+  "valid": true,
+  "passed": 16,
+  "failed": 3,
+  "sha256": "8604fe1a5a15450d790444d1c40c1710ae0adca64c95db4fbecdefdc5b9f03b6"
+}

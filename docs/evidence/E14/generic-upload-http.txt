@@ -1,0 +1,20 @@
+generic-upload-http - a generic upload's image served from its database's rows and the blob root, each authority and file check held by a mutant
+
+produced by: just e14-generic-upload-http
+commit: 8a95c57488531bec2fe92e382692fc4c74099a5c
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/44006404872 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+postgres: 18.6 (Debian 18.6-1.pgdg13+2)
+
+baseline 7 native assertions, complete inventories
+bypasses current generation authority: KILLED (5 of 6 tests fail)
+serves an unreferenced hash as cache valid: KILLED (2 of 6 tests fail)
+turns a LIVE storage error into not found: KILLED (1 of 6 tests fail)
+answers validators before authority and file verification: KILLED (5 of 6 tests fail)
+accepts file kind differing from its descriptor: KILLED (1 of 6 tests fail)
+accepts measured dimensions differing from its descriptor: KILLED (1 of 6 tests fail)
+uses the first declarations authority for every serving route: KILLED (1 of 6 tests fail)
+releases database exclusion before the real file checkpoint: KILLED (1 of 6 tests fail)
+unlinks a newer same hash physical generation: KILLED (2 of 6 tests fail)
+a layer that cannot say whether a post names a blob is taken to say yes: KILLED (1 of 1 tests fail)
+10 of 10 mutants killed

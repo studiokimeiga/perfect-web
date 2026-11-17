@@ -1,0 +1,30 @@
+
+running 10 tests
+test duplicate_fields_and_independent_declarations_keep_exact_final_counts_and_serving ... ok
+test cleanup_enumeration_obeys_zero_one_and_two_bounds_and_completes_only_one_captured_job ... ok
+test ignored_publication_and_captured_old_collection_do_not_serve_or_remove_new_bytes ... ok
+test plain_stale_and_changed_refs_refuse_the_whole_row_transaction ... ok
+test prefix_delete_tracks_every_removed_asset_and_preserves_an_untouched_group ... ok
+test registry_accounting_counts_each_actual_path_without_hiding_row_primitive_cost ... FAILED
+test rejected_duplicate_with_a_fresh_publication_settles_no_untouched_old_row_as_use ... ok
+test rejected_writes_and_final_moves_cannot_drift_reference_counts ... ok
+test repeated_writes_of_one_key_keep_its_first_committed_descriptor_and_final_use ... ok
+test upload_rows_and_registry_publish_together_and_dropped_preparation_publishes_neither ... ok
+
+failures:
+
+---- registry_accounting_counts_each_actual_path_without_hiding_row_primitive_cost stdout ----
+
+thread 'registry_accounting_counts_each_actual_path_without_hiding_row_primitive_cost' (2715256) panicked at runtime/pw-table-memory/tests/asset_rows.rs:463:5:
+assertion `left == right` failed
+  left: 2
+ right: 3
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    registry_accounting_counts_each_actual_path_without_hiding_row_primitive_cost
+
+test result: FAILED. 9 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.47s
+
+error: test failed, to rerun pass `-p pw-table-memory --test asset_rows`

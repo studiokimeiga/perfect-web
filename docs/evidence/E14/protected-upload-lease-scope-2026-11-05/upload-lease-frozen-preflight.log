@@ -1,0 +1,12 @@
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
+    Checking pw-dev-server v0.0.0 (/home/haki/code/pw-wt/data-path/spikes/own-renderer/server)
+    Finished `dev` profile [unoptimized] target(s) in 3.72s
+# `pw-host`'s engine feature is not exercised by `just test`, because a
+# Wasm engine is not needed to decide a capability question. But an
+# unbuilt cfg rots: a field added to `Import` broke `tests/artifact.rs`
+# and nothing noticed until `just e8-host` ran. Compiled here, run there.
+cargo clippy -p pw-host --features engine --all-targets -- -D warnings
+    Finished `dev` profile [unoptimized] target(s) in 0.06s
+case-check: OK (6986 paths)
+mutation anchors: 5402 mutants in 329 scripts, each matching once

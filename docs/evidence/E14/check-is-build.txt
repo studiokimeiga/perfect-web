@@ -1,25 +1,12 @@
 Check and build validate one executable program
 
 produced by: just e14-check-is-build
-commit: 6407ba55f1a975923518f1e3fe6973fbfefb7d73
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43854756182 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 83ad1ab1f92c0bc4377dfc72df28643828771bb5
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43929087203 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
-   Compiling wasmparser v0.257.1
-   Compiling rustix v1.1.4
-   Compiling getrandom v0.4.3
-   Compiling pw-resource v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-resource)
-   Compiling linux-raw-sys v0.12.1
-   Compiling pw-document v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-document)
-   Compiling once_cell v1.21.4
-   Compiling pw-render v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-render)
-   Compiling tempfile v3.27.0
-   Compiling wasm-encoder v0.257.1
-   Compiling wit-parser v0.257.1
-   Compiling wasm-metadata v0.257.1
-   Compiling wit-component v0.257.1
    Compiling pw-core v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-core)
-    Finished `test` profile [unoptimized] target(s) in 19.94s
+    Finished `test` profile [unoptimized] target(s) in 14.13s
      Running tests/check_is_build.rs (target/debug/deps/check_is_build-f59a2ef86092d725)
 
 running 12 tests
@@ -48,7 +35,7 @@ test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fin
    Compiling wasmtime v48.0.8
    Compiling pw-host v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-host)
    Compiling pw-table-memory v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-table-memory)
-    Finished `test` profile [unoptimized] target(s) in 11.98s
+    Finished `test` profile [unoptimized] target(s) in 12.65s
      Running tests/check_is_build.rs (target/debug/deps/check_is_build-734151484d2e52b0)
 
 running 8 tests
@@ -57,15 +44,15 @@ test a_page_cannot_depend_on_an_unwritten_query ... ok
 test a_part_cannot_compute_from_a_signal_and_a_query ... ok
 test a_part_may_compute_from_two_signals ... ok
 test a_signal_in_a_title_is_refused_during_check ... ok
-test a_supported_neighbor_checks_and_builds ... ok
 test syntax_refusals_keep_clean_siblings_errors_and_skip_backends ... ok
 test wit_name_collisions_are_check_refusals ... ok
+test a_supported_neighbor_checks_and_builds ... ok
 
 test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
 
 
    Compiling pw-cli v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-cli)
-    Finished `test` profile [unoptimized] target(s) in 0.47s
+    Finished `test` profile [unoptimized] target(s) in 0.48s
      Running tests/check_build_corpus.rs (target/debug/deps/check_build_corpus-e1e085c4995a3155)
 
 running 3 tests
@@ -76,13 +63,13 @@ test reference_program_roots_stay_executable ... ok
 check/build corpus parity: 106 rejected programs
 test every_rejected_corpus_program_has_the_same_check_and_build_codes ... ok
 
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 51.09s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 53.37s
 
 
 Complete check program census; no artifacts
-commit: 6407ba55f1a975923518f1e3fe6973fbfefb7d73
-binary SHA256: 85da35201dbdc140e8effe9095961f1a01d7f2e04c63090a9ddee7d38d44e885
-source diff SHA256: 8920a9afdf7f4f0fc22af42bc82553c23cc3fe2948f845de69227c80223ee47d
+commit: 83ad1ab1f92c0bc4377dfc72df28643828771bb5
+binary SHA256: 5c789314ed4ac74bc79e361d9a8b7f4f521480d1bdc321bcd98fb25e8cd13bc8
+source diff SHA256: 0f3ea6a3d1fcbd1427644c7401eeb191092d5161000e4327b1b5b2cae5173ac0
 accepted: new-support-refusal; 99 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
@@ -1479,7 +1466,7 @@ program census: 496 program assemblies; 688 of 688 tracked source files covered;
 ............cleanup also failed: OSError('cleanup')
 ...
 ----------------------------------------------------------------------
-Ran 15 tests in 0.248s
+Ran 15 tests in 0.266s
 
 OK
 
@@ -1539,65 +1526,65 @@ a part computed from two signals is refused again: KILLED (1 of 99 tests fail)
 
    Compiling pw-core v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-core)
    Compiling pw-cli v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-cli)
-    Finished `dev` profile [unoptimized] target(s) in 12.97s
-Mon Nov 16 11:32:48 UTC 2026
-1.50 1.47 1.29 1/284 40626
+    Finished `dev` profile [unoptimized] target(s) in 14.33s
+Mon Nov 16 19:05:17 UTC 2026
+1.55 1.43 1.34 1/286 57013
 program sources SHA256:
 393c7c4bafcf77dafc7dacc3b12ca4566c0b52f2997691c000bbef05f295eff1  -
-de86100bff4ba95d89e7b800f38e01dc06450c43d82543803c3bef7e8b5e338e  target/debug/pw
+9e0c24c9a13dc984fd355d0f2ed9c336cd0e79da3950504159d78fdc2c455ef8  target/debug/pw
 CLI sample 1
 pw check: 57 file(s), no diagnostics
-check CLI wall=2.22 user=2.21 sys=0.01 cpu=100%
+check CLI wall=2.25 user=2.24 sys=0.01 cpu=99%
 CLI sample 2
 pw check: 57 file(s), no diagnostics
-check CLI wall=2.22 user=2.20 sys=0.01 cpu=99%
+check CLI wall=2.25 user=2.23 sys=0.01 cpu=99%
 CLI sample 3
 pw check: 57 file(s), no diagnostics
-check CLI wall=2.20 user=2.19 sys=0.01 cpu=100%
-1.46 1.46 1.28 1/284 40638
+check CLI wall=2.25 user=2.24 sys=0.01 cpu=100%
+1.50 1.42 1.33 1/288 57025
    Compiling pw-core v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-core)
-    Finished `test` profile [unoptimized] target(s) in 12.89s
+    Finished `test` profile [unoptimized] target(s) in 13.96s
      Running tests/check_latency.rs (target/debug/deps/check_latency-746e556c8fe37fd3)
 
 running 11 tests
-test a_clock_that_reads_nothing_is_refused_by_the_control ... ok
 test a_loaded_machine_is_waited_on_while_it_may_quiet_down ... ok
+test a_clock_that_reads_nothing_is_refused_by_the_control ... ok
 test a_quiet_machine_is_asked_for_seven_checks_and_no_more ... ok
 test a_checker_made_slow_is_not_let_through_by_the_waiting ... ok
-test producing_diagnostics_is_judged_at_the_fastest_of_both ... ok
 test the_ceiling_bounds_the_fastest_check_not_the_median ... ok
+test producing_diagnostics_is_judged_at_the_fastest_of_both ... ok
 test the_ceiling_is_800_ms_a_thousand_lines_and_a_check_is_judged_by_it ... ok
 test the_fastest_is_of_the_threads_cpu_time_not_of_the_wall_clock ... ok
 test the_waiting_ends_with_the_window_or_the_most_checks ... ok
-check-latency reject 1065.59 ms   (cpu 1065.47 ms; clean 2036.47 ms, cpu 2035.81 ms; the fastest of 7 and 7 checks, which the ratio bounds: cpu 1061.19 ms, clean cpu 2022.23 ms)
+check-latency reject 1108.19 ms   (cpu 1108.10 ms; clean 2101.72 ms, cpu 2101.58 ms; the fastest of 7 and 7 checks, which the ratio bounds: cpu 1107.66 ms, clean cpu 2088.17 ms)
 test a_rejected_program_is_not_measurably_slower_than_a_clean_one ... ok
-check-latency cold   2036.33 ms   (cpu 2036.19 ms; 6659 lines, cpu 305.78 ms a thousand lines; the fastest of 7 checks, which the ceiling bounds: cpu 2030.41 ms, 304.91 ms a thousand lines)
-check-latency edit   2029.81 ms   (cpu 2029.71 ms; 57 files, no query system: an edit costs a full check)
+check-latency cold   2109.85 ms   (cpu 2109.67 ms; 6659 lines, cpu 316.81 ms a thousand lines; the fastest of 7 checks, which the ceiling bounds: cpu 2105.24 ms, 316.15 ms a thousand lines)
+check-latency edit   2106.08 ms   (cpu 2105.89 ms; 57 files, no query system: an edit costs a full check)
 test the_whole_program_and_one_edit_are_both_measured ... ok
 
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 50.18s
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 52.01s
 
 	Command being timed: "cargo test --locked -p pw-core --test check_latency -- --nocapture"
-	User time (seconds): 69.48
-	System time (seconds): 1.06
+	User time (seconds): 72.40
+	System time (seconds): 1.11
 	Percent of CPU this job got: 111%
-	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:03.10
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:06.00
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 1388264
+	Maximum resident set size (kbytes): 1385680
 	Average resident set size (kbytes): 0
-	Major (requiring I/O) page faults: 164
-	Minor (reclaiming a frame) page faults: 592296
-	Voluntary context switches: 1245
-	Involuntary context switches: 1467
+	Major (requiring I/O) page faults: 158
+	Minor (reclaiming a frame) page faults: 597449
+	Voluntary context switches: 1178
+	Involuntary context switches: 1369
 	Swaps: 0
 	File system inputs: 0
-	File system outputs: 448120
+	File system outputs: 452224
 	Socket messages sent: 0
 	Socket messages received: 0
 	Signals delivered: 0
 	Page size (bytes): 4096
 	Exit status: 0
-1.26 1.41 1.27 1/283 40708
+1.15 1.33 1.31 1/285 57092

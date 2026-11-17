@@ -15,7 +15,7 @@ fn fixture(name: &str) -> Vec<u8> {
 
 /// **One request over a connection, as a browser sends it**, through the
 /// server's own `handle`, and its whole answer.
-fn exchange(s: &Server, request: &[u8]) -> Vec<u8> {
+pub(super) fn exchange(s: &Server, request: &[u8]) -> Vec<u8> {
     let listener = TcpListener::bind(("127.0.0.1", 0)).expect("bind");
     let at = listener.local_addr().expect("address");
     std::thread::scope(|scope| {
@@ -32,7 +32,7 @@ fn exchange(s: &Server, request: &[u8]) -> Vec<u8> {
 }
 
 /// The answer's head, as text, and its body.
-fn split(answer: &[u8]) -> (String, Vec<u8>) {
+pub(super) fn split(answer: &[u8]) -> (String, Vec<u8>) {
     let end = answer
         .windows(4)
         .position(|w| w == b"\r\n\r\n")
@@ -45,7 +45,7 @@ fn split(answer: &[u8]) -> (String, Vec<u8>) {
 
 /// **A form attaching `file`**, as `session`'s browser posts it from the
 /// home page: same-origin, multipart, the file named as its sender likes.
-fn attach(s: &Server, session: &str, file: &[u8]) -> String {
+pub(super) fn attach(s: &Server, session: &str, file: &[u8]) -> String {
     let (content_type, body) = crate::uploads::tests::form(file, "../../photo.html", "text/html");
     let mut request = format!(
         "POST /uploads/post-image HTTP/1.1\r\nHost: 127.0.0.1:1\r\nCookie: pw-session={session}\r\n\
@@ -59,7 +59,7 @@ fn attach(s: &Server, session: &str, file: &[u8]) -> String {
 }
 
 /// A `GET` of `path`, and its answer.
-fn get(s: &Server, path: &str) -> (String, Vec<u8>) {
+pub(super) fn get(s: &Server, path: &str) -> (String, Vec<u8>) {
     split(&exchange(
         s,
         format!("GET {path} HTTP/1.1\r\nHost: 127.0.0.1:1\r\nCookie: pw-session=anyone\r\n\r\n")

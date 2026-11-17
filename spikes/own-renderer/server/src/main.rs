@@ -1334,6 +1334,17 @@ struct Server {
     before_commit: Mutex<Option<KeyedFetched>>,
     #[cfg(test)]
     before_command_authority: Mutex<Option<KeyedFetched>>,
+    /// **What a test does before a failed command inspects its own upload
+    /// receipt** (ADR-0440, L5b), once: the command's lease and its namespace
+    /// lock already given back, so another host may commit there, or a
+    /// test hold the namespace lock against the inspection.
+    #[cfg(test)]
+    before_upload_inspection: Mutex<Option<KeyedFetched>>,
+    /// **A test's fixed instant**: where set, what [`Server::now`] answers,
+    /// so that two hosts read one clock to the millisecond (ADR-0440, L5b's
+    /// equal-clock retry).
+    #[cfg(test)]
+    frozen_now: Mutex<Option<i64>>,
     /// A test's: told a command's component and session once its
     /// transaction has begun, fenced on its reader's session.
     #[cfg(test)]
@@ -2050,10 +2061,34 @@ impl Server {
                 "Identity lifecycle commands require the generic declared-table layer".into(),
             );
         }
+        // A program of tables that declares uploads is served only by a
+        // layer whose manifest binds them (ADR-0440, L5b): one that binds
+        // none would stage a reader's image and keep it nowhere.
+        if data.tables().is_some()
+            && tables::declared_uploads(&build)?.is_some()
+            && data.tables().and_then(|tables| tables.uploads()).is_none()
+        {
+            return Err(
+                "the program declares uploads, and its tables' layer binds none: a reader's \
+                 image would be kept nowhere"
+                    .into(),
+            );
+        }
         // TRACK SEAM (uploads, ADR-0253): the layer commits a post's image
         // from the uploads' leases, in the post's own transaction.
         if let Some(leases) = uploads.leases() {
             data.uploaded_by(leases);
+            if data.tables().and_then(|tables| tables.uploads()).is_some() {
+                let layer = Arc::downgrade(&data);
+                uploads.generations_by(Box::new(move |declaration, key, kind| {
+                    layer.upgrade().ok_or("the data layer is gone")?.read_asset(
+                        declaration,
+                        key,
+                        kind,
+                    )
+                }))?;
+            }
+
             // And it says which blobs its committed rows name (ADR-0261):
             // the uploads serve no other. Held weakly, since the layer holds
             // the leases.
@@ -2364,6 +2399,10 @@ impl Server {
             before_commit: Mutex::new(None),
             #[cfg(test)]
             before_command_authority: Mutex::new(None),
+            #[cfg(test)]
+            before_upload_inspection: Mutex::new(None),
+            #[cfg(test)]
+            frozen_now: Mutex::new(None),
             #[cfg(test)]
             after_command_authority: Mutex::new(None),
             #[cfg(test)]
@@ -3459,6 +3498,16 @@ impl Server {
                 // before (step seven).
                 None => host.extend(payments::not_taken()),
             }
+            // TRACK SEAM (uploads, ADR-0440, L5b): the uploads it claims, in
+            // an invocation of its own on this command's transaction; given
+            // back wherever it ends before its commit settles them.
+            let claims = self.upload_claims(
+                component_id,
+                session,
+                actor.as_ref(),
+                &mut *staging,
+                &mut host,
+            )?;
 
             // What the command emits (ADR-0208): it computes each event's
             // values itself and hands them to the platform's outbox, which
@@ -3530,6 +3579,12 @@ impl Server {
                 refused: None,
             }
             .kept();
+            // Sealed with the attempt's nonce where it claimed (ADR-0440,
+            // L5b): only this attempt's own receipt settles its claims.
+            let answer = match &claims {
+                Some(claims) => held_claims(claims)?.receipt_answer(&answer)?,
+                None => answer,
+            };
             let now = u64::try_from(self.now()).unwrap_or_default();
             let recorded = record.map(|(key, sent)| data::Recorded {
                 key,
@@ -3550,6 +3605,7 @@ impl Server {
                 &scheduled,
                 completing,
                 actor.as_ref(),
+                claims.as_deref(),
             ) {
                 Ok(committed) => committed,
                 // **Recorded first by another host** (ADR-0325): the same
@@ -3576,11 +3632,25 @@ impl Server {
                     // once: there is nothing to reconcile.
                     let refused = staging.definitely_refused();
                     let conflicted = staging.conflicted();
+                    let kept_nothing = staging.claims_kept_nothing();
+                    // A claiming command its ledger never froze never sent
+                    // its COMMIT: `begin_commit`, just before it, refused, or
+                    // a call before that failed. It kept nothing, so it is
+                    // answered refused, not unknown (ADR-0440, L5b; the
+                    // review of a7c3377b: until then the host answered it
+                    // unknown, and kept that answer for its interaction).
+                    let refused = refused
+                        || claims.as_deref().is_some_and(|claims| {
+                            held_claims(claims).is_ok_and(|c| c.before_commit())
+                        });
                     drop(out);
                     drop(host);
                     drop(staged_events);
                     drop(staging);
                     drop(memory_hold.take());
+                    if let Some(claims) = &claims {
+                        self.settle_failed_claims(claims, kept_nothing);
+                    }
                     if refused {
                         data::note_conflicted(component_id, conflicted);
                         return Err(why);
@@ -3614,6 +3684,17 @@ impl Server {
                     }
                 }
             };
+            // Its claims settled by what the commit did (ADR-0440, L5b):
+            // applied where it committed, given back where it wrote nothing.
+            if let Some(claims) = &claims {
+                let settled = held_claims(claims).and_then(|mut invocation| match &committed {
+                    CommitOutcome::Applied(_) => invocation.applied(),
+                    CommitOutcome::NoWrites | CommitOutcome::NotCurrent => invocation.refused(),
+                });
+                if let Err(why) = settled {
+                    eprintln!("pw dev server: a command's upload claims were not settled: {why}");
+                }
+            }
             // A run it scheduled may be due before the next the host
             // waits for: the host looks again.
             if !scheduled.is_empty() {
@@ -3777,6 +3858,7 @@ impl Server {
             &[],
             Some(completing),
             None,
+            None,
         )? {
             CommitOutcome::Applied((_, ids)) => {
                 self.materializer.delivered(&ids);
@@ -3784,6 +3866,131 @@ impl Server {
             }
             CommitOutcome::NotCurrent => Ok(CommandOutcome::NotCurrent),
             CommitOutcome::NoWrites => Err("scheduled terminal completion did not commit".into()),
+        }
+    }
+
+    /// **The uploads a command claims** (ADR-0440, L5b): its declarations'
+    /// imports, bound for this run to an invocation of its own on this
+    /// command's transaction where it claims, publishes or discards; to its
+    /// reader's own leases where it only reads them; refused where no reader
+    /// runs it. None where it claims nothing.
+    fn upload_claims(
+        &self,
+        component_id: &str,
+        session: &str,
+        actor: Option<&identity::CommandActor>,
+        staging: &mut dyn data::Staged,
+        host: &mut BTreeMap<String, HostFn>,
+    ) -> Result<Option<Arc<Mutex<uploads::generic::Invocation>>>, String> {
+        let Some(manifest) = self.data.tables().and_then(|t| t.uploads()) else {
+            return Ok(None);
+        };
+        let imports = self
+            .components
+            .get(component_id)
+            .map(|c| c.imports.as_slice())
+            .unwrap_or_default();
+        let uploading = |key: &&String| key.starts_with("pw:uploads/");
+        if !imports.iter().any(|key| uploading(&key)) {
+            return Ok(None);
+        }
+        let leases = self
+            .uploads
+            .leases()
+            .ok_or("the program's uploads are staged by no host here")?;
+        let Some(actor) = actor else {
+            host.extend(uploads::bridge::refusing_ops(manifest));
+            return Ok(None);
+        };
+        if !imports
+            .iter()
+            .any(|key| uploading(&key) && !key.ends_with("#attached"))
+        {
+            host.extend(uploads::bridge::query_ops(
+                manifest,
+                &leases,
+                session,
+                &actor.reader,
+            ));
+            return Ok(None);
+        }
+        let publisher = staging
+            .upload_publisher()?
+            .ok_or("the program's tables keep no uploads")?;
+        let invocation = Arc::new(Mutex::new(uploads::generic::Invocation::new(
+            leases,
+            session,
+            actor.reader.clone(),
+        )));
+        host.extend(uploads::bridge::command_ops(
+            manifest,
+            &invocation,
+            &publisher,
+        ));
+        Ok(Some(invocation))
+    }
+
+    /// **A failed commit's claims** (ADR-0440, L5b): given back where the
+    /// attempt kept nothing (or never reached its commit); otherwise read
+    /// from the attempt's raw receipt now, the command holding nothing any
+    /// more. One that cannot be read is left to [`Self::reconcile_uploads`].
+    fn settle_failed_claims(
+        &self,
+        claims: &Mutex<uploads::generic::Invocation>,
+        kept_nothing: bool,
+    ) {
+        let settled =
+            held_claims(claims).and_then(|mut invocation| match invocation.pending_ticket() {
+                Some(ticket) if !kept_nothing => {
+                    #[cfg(test)]
+                    if let Some(hook) = self
+                        .before_upload_inspection
+                        .lock()
+                        .expect("upload inspection hook")
+                        .take()
+                    {
+                        hook(self);
+                    }
+                    let receipt = self.data.upload_receipt(ticket.key());
+                    invocation.reconcile(receipt).map(|_| ())
+                }
+                _ => invocation.refused(),
+            });
+        if let Err(why) = settled {
+            eprintln!("pw dev server: a failed command's upload claims were not settled: {why}");
+        }
+    }
+
+    /// **The attempts whose own inspection could not be made, inspected
+    /// again** (ADR-0440, L5b), at most `limit` a pass, in turn: a matching
+    /// receipt applies one, an absent or another's holds it for good, and
+    /// one that still cannot be read stays due. A layer that keeps no
+    /// records beside its rows has none to read.
+    fn reconcile_uploads(&self, limit: usize) {
+        let Some(leases) = self.uploads.leases() else {
+            return;
+        };
+        if !self.data.keeps_interactions() {
+            return;
+        }
+        let due = match leases.due_attempts(limit) {
+            Ok(due) => due,
+            Err(why) => {
+                return eprintln!("pw dev server: the pending uploads were not read: {why}");
+            }
+        };
+        for ticket in due {
+            let inspected = self.data.upload_receipt(ticket.key()).and_then(|receipt| {
+                let applied = leases.reconcile_attempt(&ticket, receipt.as_ref())?;
+                if applied {
+                    Ok(())
+                } else {
+                    leases.inspected(&ticket, true)
+                }
+            });
+            if let Err(why) = inspected {
+                eprintln!("pw dev server: a pending upload was not inspected: {why}");
+            }
         }
     }
 
@@ -3815,13 +4022,21 @@ impl Server {
         scheduled: &[schedules::Scheduled],
         completing: Option<schedules::Completing<'_>>,
         actor: Option<&identity::CommandActor>,
+        claims: Option<&Mutex<uploads::generic::Invocation>>,
     ) -> Result<CommitOutcome, String> {
         // A command that wrote nothing commits nothing, unless it scheduled
         // or cancelled a run (the scheduled-commands track), which is
-        // written as its writes are.
+        // written as its writes are, or is bound to the upload ledger (it
+        // imports a claim, ADR-0440, L5b), whose record a retry is answered
+        // from: whether or not this run claimed, as the bound command's
+        // every outcome is the record's.
+        let claimed = claims.is_some();
         let mut rows = match staging.rows() {
             Some(rows) => rows,
             None if !scheduled.is_empty() || completing.is_some() => Vec::new(),
+            // A command bound to the upload ledger commits its record, which
+            // a retry of its interaction is answered from (ADR-0440, L5b).
+            None if claimed => Vec::new(),
             None => {
                 staging.revalidate()?;
                 if let Some(actor) = actor.filter(|actor| actor.is_local()) {
@@ -3840,6 +4055,11 @@ impl Server {
             .iter()
             .map(|(event, values)| outboxed(event, values))
             .collect::<Result<Vec<_>, String>>()?;
+        // Frozen just before the commit that may keep them (ADR-0440, L5b):
+        // pending from here, settled only by what the commit did.
+        if let Some(claims) = claims {
+            held_claims(claims)?.begin_commit(interaction)?;
+        }
         let (delivered, ids) = match staging.commit(
             emitted,
             invalidated,
@@ -4021,7 +4241,7 @@ impl Server {
             other => return Err(format!("{op} answered {other:?}")),
         };
         let ((delivered, _), ids) =
-            match self.commit_staged(&mut *staging, events, &[], None, &[], None, actor)? {
+            match self.commit_staged(&mut *staging, events, &[], None, &[], None, actor, None)? {
                 CommitOutcome::Applied(value) => value,
                 CommitOutcome::NoWrites => return Ok(answer),
                 CommitOutcome::NotCurrent => {
@@ -4701,6 +4921,10 @@ impl Server {
     /// time and by a test (`/bench/clock`). One clock, so what is kept and
     /// what is compared move together.
     fn now(&self) -> i64 {
+        #[cfg(test)]
+        if let Some(frozen) = *self.frozen_now.lock().expect("a test's instant") {
+            return frozen;
+        }
         self.sync_query_clock();
         self.epoch + i64::try_from(self.query_clock.0.now()).unwrap_or(i64::MAX)
     }
@@ -4737,6 +4961,9 @@ impl Server {
         // host, kept bounded on the scheduler's passes.
         self.data
             .housekeeping(now, &self.identity.principals().lifetimes());
+        // TRACK SEAM (uploads, ADR-0440, L5b): attempts whose own inspection
+        // could not be made, inspected again, a few each pass, in turn.
+        self.reconcile_uploads(16);
         let due = match schedules::select(self.runs(), now, 16) {
             Ok(due) => due,
             Err(why) => {
@@ -5972,19 +6199,26 @@ impl Server {
             .component
             .as_ref()
             .ok_or_else(|| format!("`{component_id}` has no export path"))?;
-        if export.authorization.is_empty() {
-            return Ok(());
-        }
-        let _granted = self.authorise(component_id)?;
+        let granted = self.authorise(component_id)?;
         let prepared = &self
             .components
             .get(component_id)
             .ok_or_else(|| format!("no compiled component `{component_id}`"))?
             .prepared;
-        let predicates = self.program_predicates(contract)?;
         let caller = self.invocation_caller(session);
         let empty = pw_host::tables::Manifest::from_json(r#"{"tables":[]}"#)?;
         let manifest = self.data.tables().unwrap_or(&empty);
+        if export.authorization.is_empty() {
+            return prepared.admit_with_tables_as(
+                contract,
+                &granted,
+                manifest,
+                &caller,
+                &[&export.interface, &export.function],
+                args,
+            );
+        }
+        let predicates = self.program_predicates(contract)?;
         self.with_query_ops(session, None, |host, tables| {
             let call = TableCall {
                 manifest,
@@ -5994,6 +6228,7 @@ impl Server {
             prepared
                 .authorize_with_tables_as(
                     contract,
+                    &granted,
                     &Self::invocation_limits(),
                     host,
                     &call,
@@ -6082,6 +6317,19 @@ impl Server {
             "pw:host/principal#previous".into(),
             identity::previous_operation(None),
         );
+        // TRACK SEAM (uploads, ADR-0440, L5b): each declared upload's
+        // `attached`, the session's own leases for its bound reader; counted,
+        // and never merged, as a lease is no render's.
+        if let (Some(manifest), Some(leases)) = (
+            self.data.tables().and_then(|t| t.uploads()),
+            self.uploads.leases(),
+        ) {
+            let reader = self.identity.principals().bound_reader(session);
+            for (name, f) in uploads::bridge::query_ops(manifest, &leases, session, &reader) {
+                let f = counted(&name, f);
+                host.insert(name, f);
+            }
+        }
         let tables = |contract: &ComponentContract, granted: &Granted| {
             Ok(self
                 .data
@@ -10209,6 +10457,15 @@ fn val_to_json(v: &Val) -> serde_json::Value {
     }
 }
 
+/// **A command's upload invocation, held for one call** (ADR-0440, L5b).
+fn held_claims(
+    claims: &Mutex<uploads::generic::Invocation>,
+) -> Result<std::sync::MutexGuard<'_, uploads::generic::Invocation>, String> {
+    claims
+        .lock()
+        .map_err(|_| "the upload invocation is unavailable".to_string())
+}
+
 /// **A command's answer, for the handler that called it** (ADR-0157): `Ok`
 /// without its value, which reaches the page from the resource, so the page
 /// has one source for what it shows; or the declared `Err`, whole. A result
@@ -10438,7 +10695,12 @@ fn main() {
                     eprintln!("pw dev server: {e}");
                     std::process::exit(1);
                 });
-            Some(tables_pg::Database { url, schema, seats })
+            Some(tables_pg::Database {
+                url,
+                schema,
+                seats,
+                blobs: uploads::blob_root(std::path::Path::new(&dist)),
+            })
         }
         _ => None,
     };
@@ -19216,6 +19478,10 @@ public query Store(",
 
     // The canonical protected-app migration: generic authority seams.
     mod protected_migration;
+    mod upload_claims_pg;
+    // ADR-0440, L5b: the server's claim bridge, through a compiled program.
+    mod upload_bridge;
+    mod upload_generations;
 
     // TRACK SEAM (device-store): a page that holds a value the device keeps,
     // served (ADR-0366).

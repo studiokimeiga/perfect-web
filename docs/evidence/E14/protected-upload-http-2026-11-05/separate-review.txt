@@ -1,0 +1,10 @@
+Separate immutable review /root/review_cached_refusals of f22de943, clear.
+Authoritative same-declaration reader precedes checked hash/length/measured kind/
+dimensions and validators. Missing authority404; LIVE errors503; once bound no
+fallback to legacy. Two declarations independently enroll/remove same physicalG.
+Real LocalBlobs/backend death schedule observes held namespace lock and actual
+backend termination; B commits/pre-resume HTTP200, old unlink rejects timeout,
+old file absent/new bytes present, old pending job retry/HTTP survive. Controls
+reach native assertions and retained legacy error fault is isolated. Required
+actualPG env prevents skipped producer credit. Reviewer ran no edits/tests.
+Does not establish full Server startup/compiled claim/attempt nonce integration.

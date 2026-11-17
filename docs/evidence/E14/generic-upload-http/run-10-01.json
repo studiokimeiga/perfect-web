@@ -1,0 +1,21 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "--quiet",
+    "--locked",
+    "-p",
+    "pw-dev-server",
+    "--bin",
+    "pw-dev-server",
+    "uploads::tests::a_lease_is_claimed_once_and_ended_once",
+    "--",
+    "--format=pretty",
+    "--test-threads=2"
+  ],
+  "exit": 101,
+  "valid": true,
+  "passed": 0,
+  "failed": 1,
+  "sha256": "12191dab904075969ac29b095a355e19a6f93643a7e5e3a88c05e6a6d95f555e"
+}

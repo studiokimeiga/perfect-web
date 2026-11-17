@@ -1,0 +1,14 @@
+baseline 28 native assertions, complete inventories
+KILLED 1/12: upload rows prefix deletion omits removed references; 9 pass/1 fail
+KILLED 2/12: upload rows does not count proposal selection; 9 pass/1 fail
+KILLED 3/12: upload rows does not count prepared generations; 9 pass/1 fail
+KILLED 4/12: upload rows does not count applied generations; 9 pass/1 fail
+KILLED 5/12: upload rows enumerates cleanup jobs beyond its bound; 8 pass/2 fail
+KILLED 6/12: upload rows omits original touched field uses; 2 pass/8 fail
+KILLED 7/12: upload rows omits final touched field uses; 0 pass/10 fail
+KILLED 8/12: upload rows skips prepared registry checks; 0 pass/10 fail
+KILLED 9/12: upload rows publishes rows without their registry patch; 0 pass/10 fail
+KILLED 10/12: upload rows applies the registry when prepared rows roll back; 9 pass/1 fail
+KILLED 11/12: upload rows forgets first old reference on repeated writes; 9 pass/1 fail
+KILLED 12/12: closed cases memory serves assets without a binding; 17 pass/1 fail
+12/12 killed; no invalid or stopped producer

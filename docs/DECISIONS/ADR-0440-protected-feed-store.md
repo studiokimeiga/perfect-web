@@ -620,6 +620,753 @@ Remaining after this: generic upload claim/publication/reference/GC lifetime,
 initial public fixtures, stable IDs/private child deletion as required, actual
 canonical feed/store ports, final whole campaigns/browser/CI and frozen review.
 
+### Next seam: declared public upload references
+
+Decision recorded before upload implementation, after relation record `ff57edc7`.
+This is a local generic capability prerequisite. Existing mixed-layer/upload
+startup refusals stay until the complete replacement passes native checks on
+both adapters and the actual server path. No legacy data conversion is implied.
+
+**Declaration and authority.** A generic upload is declared in the module of
+its own name, following tables' existing module convention. Legacy inline
+uploads remain legacy fixtures until ported. Generate ordinary module types
+`Claim`, `Ref`, `Kind`, `Attached`, `Error` and resource-only `attached`, `claim`,
+`publish`, `discard` functions, plus a pure source-URL projection. Names/formals/
+WIT aliases retain named collision refusal. The operations never write a Post
+or another application domain row. A claimed upload is the existing linear
+resource; `publish` releases it to `Ref`, after which Pleris inserts/updates its
+ordinary row. Alt text stays typed application data, outside the descriptor.
+
+A repeatable table clause `asset image from PostImage` associates one top-level
+`PostImage.Ref` or `Option<PostImage.Ref>` field with that resolved declaration.
+Initial scope is public asset-bearing tables only; no private serving policy is
+introduced. The source explicitly holds the upload and its associated tables;
+all uses of one upload must resolve to the same explicit source. The compiler
+checks actual nominal identity and complete shape/refinements. The host checks
+declaration/source identities, permitted kinds/limits, exact stored descriptor
+shape and emitted operation ABI independently. Generic startup still refuses
+unassociated uploads, malformed/stale metadata and mixed legacy imports.
+
+The descriptor contains content key, unique storage generation, canonical kind
+and dimensions, from sanitized actual bytes. Ref is data, not a stored authority
+handle. A write may copy an exact currently committed live Ref of the SAME
+upload declaration under normal table write authority; no new claim is needed
+for that public data. Unknown/orphan/tombstoned/stale-generation adoption is
+refused. A new verified claim may enroll its actual declaration for matching
+live bytes, subject to that declaration's own limits. Lease/claim identity must
+include the actual declaration, never the first declaration in a vector.
+Session arguments and both resource/database grants are checked before callback,
+including unused imports. Caller-owned table authority is unchanged. Generated
+effects use database.read/write<Upload> plus resource.acquire/release<Claim>;
+source and deployment admission retain both effects. A command acquiring or
+releasing a generic claim requires ordinary idempotent_by and its real commit
+record; runtime commit independently refuses a missing record before publication.
+
+**Reference transactions.** Insert/put/delete/prefix-delete maintain internal
+descriptor/reference bookkeeping in the same transaction as declared rows,
+records and outbox. Rejected/conflicting writes do not drift references. Count
+unchanged, replacement, duplicate fields/rows/declarations and final net state;
+a delete-then-put/move cannot make a transient zero irreversible. No full-table
+payload fetch or app-specific Rust adapter. Publication chooses a live generation
+or a fresh generation inside this adapter transaction and returns that Ref;
+actual bytes are kept in generic commit preparation before COMMIT. A release
+without a final row reference is not an attachment. Explicitly settle its
+disposition after applied commit, without making unreferenced bytes servable.
+
+Maintain at most one live generation per content hash in a physical namespace.
+Same-byte claims reuse it while live references exist. Descriptor metadata is
+immutable per generation. Global last-reference removal, tombstone and a cleanup
+job capturing that generation commit atomically. A tombstoned generation never
+becomes live or reuses its path again; a new claim after it uses a fresh unique
+generation. Physical collection and completion/retry target the captured old
+generation only, never a mutable hash-to-current-generation pointer. Count all
+declarations sharing physical bytes; declaration-specific serving still requires
+its own live reference. Failed cleanup retains its job and cannot undo an applied
+row commit. Failed publication can leave unserved orphan bytes, the existing
+legacy limitation; no orphan sweep is claimed without a separate bounded proof.
+
+**Exclusion and storage fencing.** A schema/deployment registry and its lock
+must own the SAME physical namespace. Enroll a durable namespace identity and
+use isolated subdirectories, so sharing PW_BLOB_DIR across different databases/
+schemas does not merge reference universes. Hosts of one durable deployment
+must share read-after-write storage. Staged ephemeral leases have separate
+host-local namespaces; their local hold counts cannot delete another host's
+staged bytes. Cross-host ephemeral lease failover is not added by this seam.
+
+For upload-enabled generic programs, reserve the existing pool lease, acquire
+the caller session fence if any, then lifetime SESSION advisory lock, then host
+turn, then BEGIN/first snapshot. Unfenced guest/Clock/maintenance/ref mutations
+follow the same relative order. Hold this SAME connection through keep, COMMIT,
+fresh latest-reference check and generation-specific collection; unlock/end
+afterward. Do not wait for lifetime after host turn or use a second pool lease
+while holding it. Session open/close need no lifetime lock; outbox lock remains
+later in commit. This serializes upload-program commands across hosts, with no
+throughput claim. A lock acquired after begin_fenced returns is too late: that
+API already begins and reads its session row. Existing publish_with ends the
+connection before returning; postcommit hooks must execute before that end.
+
+An advisory lock alone does not fence physical storage after its DB connection
+dies. A stale process may resume cleanup after another host republishes identical
+bytes. Unique generation paths, not SHA/content ETags, make that stale cleanup
+harmless. Preserve external /images/<SHA>.<kind> URLs; serving resolves current
+authoritative live descriptor/generation BEFORE 304/ETag handling. No reference
+means 404; live descriptor with missing/unreadable storage means 503. Never serve
+an orphan/tombstone merely because flat hash bytes exist.
+
+**Uncertain outcomes.** Known refusal/rollback/trap returns held claims; known
+applied commit settles them. Unknown COMMIT gives claims an explicit unresolved
+disposition, not the existing rollback Drop path. Retain their bytes and pending
+identity. Reconciliation reacquires lifetime exclusion, then reads the actual
+durable interaction record: matching record proves applied; absence can prove
+rollback only after the old transaction has ended and while retention can still
+prove absence. Expired/indeterminate evidence stays unresolved, never guessed
+rollback. Session/lease lifecycle and retry must not hand another invocation the
+same unresolved claim. Do not collect on an uncertain outcome. Native witnesses
+must cover receipt reconciliation, principal rotation and lock/drop cleanup.
+
+**Proof before guard replacement.** Require compiler failing regressions with
+valid neighbors; host forged identity/ABI/refinement and independent grant axes;
+actual compiled resource/table flow on memory and PostgreSQL; session/rotated/
+foreign-declaration claims and malformed whole refs; rejected writes, replace,
+duplicates and final net moves; trap/refusal/keep error/late fence/unknown COMMIT;
+reopen, metadata upgrades/reserved names, simultaneous hosts, same-byte last
+delete vs publish in both orders; authoritative HTTP 404/503 and 304 ordering.
+Terminate host A's actual PostgreSQL backend after committed no-ref inspection
+but before physical unlink, let B republish identical bytes/new generation and
+commit, then resume A and verify B's actual bytes and serving. Add strict faults
+at real assertion sites, complete inventories and exact-source/restoration
+receipts. Existing browser/API assertions remain unchanged final port gates.
+
+Primary PostgreSQL 18 docs checked: [explicit locking](https://www.postgresql.org/docs/18/explicit-locking.html)
+and [transaction isolation](https://www.postgresql.org/docs/18/transaction-iso.html).
+The [synthetic protocol probe](../evidence/E14/protected-upload-design-2026-11-04/primary-probe.log)
+on 18.6 reproduces advisory-only stale unlink after actual backend termination,
+and preserves new identical bytes with distinct captured paths. It also shows
+late-lock pinned snapshot vs pre-BEGIN fresh snapshot. Separate review found no
+false-pass for that limited claim. Its refs are key-only joined to a mutable
+pointer, paths fixedold/new, no contended snapshot wait, no tombstones, adapters,
+namespace enrollment or HTTP. It is not implementation acceptance.
+
+
+### Upload storage wire prerequisite: closed, payload-free cases
+
+Accepted 2026-11-04 before implementation. The compiler emits Upload.Kind as a
+WIT variant even when every case has no payload; the generic host and both row
+adapters currently refuse Stored::Cases. Close that encoding gap before asset
+integration. This is not a second upload kind parser or a new query language.
+
+Serve a nonempty Stored::Cases only when every case is payload-free and every
+normalized WIT case identifier is nonempty and distinct. Its internal row JSON
+is the canonical WIT identifier string (for example Png becomes "png"), and its
+component value is Val::Variant(identifier, None). Enum/string values, unknown
+tags, payloads, empty/ambiguous schemas and all payload-bearing variants remain
+refused. Recursive, Map and Set encodings remain outside this slice. Nested
+records/lists/options use the same closed-tag encoding recursively.
+
+Scalar case columns use PostgreSQL bytea UTF-8 tags, like stored strings. Keys,
+indexes, order marks and canonical set results compare UTF-8 WIT identifiers,
+not constructor ordinal or source spelling. The host checks the actual WIT
+variant's complete ordered case list and absent payloads against tables.json.
+Metadata, ABI and whole values are validated before adapter callbacks or SQL.
+Compiler nominal identity and upload asset bindings remain independent checks;
+a structural case ABI grants no reference or resource authority.
+
+Native witnesses must reverse declaration order and use A_Z versus AB (wire
+a-z sorts before ab, unlike source spelling), cover scalar keys/indexes/window
+and range/set canonicalization plus nested values, malformed whole inputs and
+unsupported schemas, and exercise compiled calls on actual PostgreSQL. Extend
+the independent generic conformance oracle rather than teaching it adapter
+implementation details. Keep asset storage guards until lifecycle integration
+passes. Existing unbound-asset tests must become independently sensitive to
+their guard once the otherwise-supported Ref.kind encoding is installed.
+
+The pinned Wasmtime variant API was inspected in the installed crate source:
+Variant::cases yields ordered name and optional Type, and payload-free cases
+still use Type::Variant/Val::Variant. No dependency/version change is needed.
+
+
+### Runtime upload binding and registry ownership
+
+Accepted 2026-11-04 before implementation. Keep the compiler's uploads.json and
+tables.json as separate projections. A shared pw-host assets module reads the
+upload metadata and defines immutable reference/descriptor and transition types.
+Bind that validated upload manifest explicitly to the existing host table
+Manifest, which row-aware engine calls already carry. Every pw:uploads import,
+including an unused one, must pass its declaration identity, independent
+database/resource contract and actual-grant checks, and actual Wasmtime ABI.
+An unbound import fails closed. No implicit binding from a host closure's key.
+The compiler's nominal types remain the source authority; WIT structure and a
+plain Ref provide no lease or publication authority.
+
+At binding, validate public top-level Ref/Option<Ref> asset fields, exact stored
+descriptor/closed-kind shape, unique associations, actual declaration identity,
+unambiguous route/serving identities and the single explicit source supported
+by these adapters. Persist immutable base declaration and asset association
+metadata. Refuse changed/removed bindings, including opening an old asset
+database with a new manifest that has no assets. Base declaration changes are
+conservatively refused in this first slice; deployment-lowered admission limits
+remain separate and do not retroactively change descriptors. No automatic
+conversion of the legacy feed/store database is introduced.
+
+Use indexed memory state and PostgreSQL platform rows, with shared pure
+per-generation transition rules, not a whole-registry JSON snapshot. Retain
+existing platform migration bytes/checksums and append a migration for namespace,
+declarations/bindings, immutable generations, current positive per-declaration
+reference counts and captured-generation cleanup jobs. Choose current LIVE or
+fresh generation and validate every final touched reference under lifetime
+exclusion; compute final net counts across ordinary mutations. Apply registry
+transitions and cleanup jobs in the same command transaction. Resource and
+registry work must remain visible in the adapter's cost accounting.
+
+The shared storage boundary uses enrolled namespace, captured generation and
+content hash. Server local/memory implementations supply physical storage; no
+application operation appears in this boundary. Keep the original upload and
+mixed-layer startup guards until the accepted lifecycle, uncertain-outcome,
+namespace, HTTP and real PostgreSQL backend-death witnesses pass.
+
+
+### Root admission on authorization-only reuse
+
+Accepted 2026-11-04 before the API repair. Review of the first runtime binding
+slice found that call execution runs the new gate, while stub instantiation and
+authorization-only root reuse did not. Keep every entry point fail closed.
+Add a root admission method on Prepared that validates generic table/upload
+declarations, both contract and actual grants, and actual imported WIT types,
+without asking for body callbacks or executing an export. Authorization-only
+reuse receives the root's actual Granted explicitly and performs this admission
+before evaluating predicates. Predicates keep their own grants and invocation
+snapshot; they cannot borrow the root's authority.
+
+The server must run root admission even for a reused query with no authorization
+predicate, before its existing early return. That check needs no new table
+snapshot or data work. Guarded reuse continues to evaluate predicates against
+the same per-invocation read state as fresh execution. A refused root admission
+escapes cache/fallback just as a predicate refusal does. This closes declaration/
+grant/ABI admission parity; actual upload session ownership, lease lifetime and
+durable commit safety remain separate obligations before enabling uploads.
+
+
+### Generation transition implementation
+
+Accepted 2026-11-05 before registry code. Share a pure per-generation transition
+planner between indexed memory state and PostgreSQL persistence. Its input is
+an immutable descriptor, prior committed per-declaration positive counts,
+transaction-owned publication plans after claim validation, and original/final
+reference uses of touched rows. Validate every final reference even when its net
+count is zero. The planner does not authenticate a lease or choose a physical
+namespace; those remain the actual transaction/lease bridge's responsibility.
+
+Only a prior LIVE same-declaration reference or that declaration's fresh
+publication plan permits adoption. Descriptor equality includes all Ref fields
+and byte count. Compute counts from final net changes with checked arithmetic;
+reject missing generations, tombstones, contradictory old counts and cross-
+declaration enrollment. A committed last removal tombstones the captured
+generation and queues its cleanup. A new publication with no final row use is
+explicitly retired, never LIVE with zero references. Retain retired generation
+identities; physical keep_new also reserves a generation identity so an orphaned
+or collected path is not reused. No whole-registry JSON load or orphan collector.
+
+Publication usage is based on final touched row uses, not whether some unrelated
+old row already references the same bytes. Multiple declarations can use one
+LIVE physical generation after independent fresh-claim validation, but current
+counts remain declaration-specific. The planner's native tests prove these
+arithmetic/identity rules only; actual claims, locks, storage and uncertain
+commit reconciliation remain required before the existing guards change.
+
+
+### Memory row reference integration and lease cardinality
+
+Recorded 2026-11-05 before row integration. Preserve the existing attachment
+cardinality: one host-local pending lease per (requested session, declaration).
+An invocation has one verified requested session. Claiming freezes that lease
+through known rollback/applied settlement or explicit uncertain reconciliation;
+publish/discard do not return it early, and replacement while claimed refuses.
+Consequently an invocation can propose at most one publication per declaration.
+The registry's duplicate-declaration refusal relies on this bridge invariant;
+the actual bridge must prove it before enabling generic uploads. This does not
+introduce multiple attached files per declaration.
+
+Add an explicit upload-bound memory constructor for trusted host integration;
+the ordinary constructor and server startup guards still refuse unbound assets.
+The adapter captures original/final references only from each touched key and
+declared asset field, including unchanged final references. It prepares the
+shared registry patch alongside row constraints and applies it under the same
+publication lock as rows. Proposals stay transaction-local; dropped commands
+and refused writes do not publish registry changes. Expose captured plans to
+the later storage/lease lifecycle without performing storage effects here.
+Registry work has its own operation counter; row primitive counts keep their
+existing meaning. Native row tests using trusted descriptor proposals prove
+atomic bookkeeping, not authentication, storage or durable receipt safety.
+
+
+### In-memory registry instance affinity
+
+Recorded 2026-11-05 before repairing a review-reproduced foreign-draft refusal.
+A revision is not the identity of the registry that produced it. Retain an
+opaque process-local instance witness in each memory registry draft and patch;
+propose/prepare/apply require that exact witness as well as the revision before
+reading or changing state. Two isolated instances at equal revisions must
+reject each other's drafts and patches. This is neither a persisted namespace
+nor a public generation value and reveals no activity counter. The later
+durable adapter still binds its actual namespace and connection independently.
+
+
+### Namespace and generation storage provider
+
+Recorded 2026-11-05 before provider implementation. Add a shared typed storage
+boundary in pw-host::assets: an opaque validated 128-bit Namespace, explicit
+fresh/existing enrollment, keep_new, exact descriptor read and captured-generation
+collection. The concrete development LocalBlobs and MemoryBlobs providers
+implement it alongside their legacy flat-key API; routing/claims remain closed.
+The durable adapter must choose/enroll its namespace within its migration and
+verify existing enrollment before serving or running a command. A missing or
+different marker refuses; an unrelated storage root must not silently enroll
+an already recorded namespace. Random namespace/generation candidates come from
+the operating system, not a public activity counter.
+
+Local storage uses <blob-root>/.generic/<namespace>/generations/<generation>/
+with an immutable descriptor marker and a payload named by its validated hash.
+Reserve each generation directory exclusively BEFORE writing its marker/bytes;
+failure or rollback leaves that identity reserved. Collection removes only the
+captured payload, never its marker/directory. keep_new refuses any previously
+reserved identity, including an orphan or collected generation. Namespace and
+descriptor markers are checked on every operation; full Ref, canonical byte
+count and content hash are checked before successful reads. Writes request file
+and directory sync before returning; native Linux tests do not claim power-loss
+or other-OS/filesystem acceptance. No orphan collector is introduced. Legacy
+flat-key counting must ignore the separate generic storage directory.
+
+Native provider tests use actual arbitrary bytes (not image sanitization) and
+prove cross-handle enrollment, isolated namespaces, exclusive generation
+reservation, corruption/missing reads, same-hash fresh-generation safety and
+old captured cleanup. They do not establish authoritative HTTP liveness,
+database enrollment, claim authority, backend-death fencing or unknown outcome
+reconciliation; those remain actual integration gates.
+
+Primary API checks: Rust [OpenOptions::create_new](https://doc.rust-lang.org/std/fs/struct.OpenOptions.html#method.create_new)
+and [File::sync_all](https://doc.rust-lang.org/std/fs/struct.File.html#method.sync_all),
+and PostgreSQL 18 [session advisory lock lifetime](https://www.postgresql.org/docs/18/explicit-locking.html#ADVISORY-LOCKS).
+The database session ending releases exclusion; only distinct physical generation
+paths can fence a process that resumes stale cleanup after that event.
+
+
+### Durable namespace/metadata enrollment before row lifecycle
+
+Recorded 2026-11-05 before PostgreSQL enrollment implementation. Append platform
+migration 0005 (written as 0004 before L3's `0004_outbox_removals_marked`
+landed first); retain 0001-0004 bytes verbatim. Persist namespace, immutable base
+declarations/bindings, immutable generations, positive per-declaration counts
+and captured cleanup jobs as indexed platform rows. The explicit trusted upload
+constructor validates both manifests before connecting; ordinary unbound open
+still refuses assets. While enrollment is implemented, upload-bound command
+begin remains explicitly closed until actual row/storage/lifetime integration.
+
+Under the existing migration transaction/lock, validate persisted upload metadata
+BEFORE any application schema DDL. Missing existing storage marker refuses;
+fresh storage enrollment completes before its namespace row can commit. Failed
+DDL may leave an unserved namespace reservation; a retry needs a new random
+candidate, never silent marker reuse. Reopen selects the persisted namespace,
+independent of the new host's proposed candidate. Removing/changing declarations
+or bindings refuses, including opening a prior asset database with an unbound
+manifest containing no asset clauses. Base policy and association metadata are
+immutable; lowered deployment admission remains a separate later bridge setting.
+
+In this first slice a NEW asset association is allowed only on a table absent
+from the recorded schema, or on the initial fresh schema. Refuse adding an asset
+clause to ANY previously recorded table, including a new optional Ref field.
+That conservative restriction prevents an already-running older unbound host
+from deleting rows with references in a newly introduced field it cannot track;
+empty/populated checks would not fence that old writer. Additive non-asset
+optional fields and wholly new asset tables remain supported. There is no legacy
+Ref enrollment/conversion. Later relaxing this rule requires a persisted version
+fence held by every old writer or a comparably complete protocol/native proof.
+
+Reserve the pw_asset_ relation prefix for all new platform tables and indexes,
+including automatically named primary-key indexes. Actual command lifetime locks
+and transactional registry transitions remain the next step after enrollment;
+enrollment-only tests do not claim command/HTTP/session/uncertain-outcome safety.
+
+
+Enrollment review reproduced successful open after BEFORE INSERT hooks rewrote
+the namespace, declaration or binding despite RETURNING 1. AFTER INSERT and
+application-schema-record hooks can likewise rewrite earlier metadata after its
+insert returned. Require a fresh exact read of persisted namespace and complete
+immutable declaration/binding maps AFTER all application DDL/schema recording,
+inside the same migration transaction immediately before COMMIT. Mismatches
+refuse and roll back; the storage reservation remains an unserved orphan. Row
+count acknowledgments still independently detect suppressed inserts.
+
+The recorded application schema is also an enrollment-history backstop. If it
+has asset associations, an unbound open refuses even when all current namespace,
+declaration and binding rows were lost. Missing authority metadata is drift,
+not evidence that the schema was never enrolled; do not overwrite that history.
+
+The history check applies to every constructor: a bound wrapper cannot omit a
+recorded association after full or partial persisted-binding loss. Compare each
+recorded association/field to its current persisted binding before enrollment.
+Flush pending deferrable constraints/triggers after application schema recording
+and BEFORE final metadata verification, using SET CONSTRAINTS ALL IMMEDIATE.
+Otherwise a deferred schema-record hook could rewrite namespace at COMMIT after
+the verification read. Native immediate/deferred trigger regressions and valid
+neighbors pin this order. Primary PostgreSQL 18 documentation:
+[SET CONSTRAINTS](https://www.postgresql.org/docs/18/sql-set-constraints.html).
+
+
+### PostgreSQL row/storage command integration
+
+Recorded 2026-11-05 before the next implementation. Replace the enrollment-only
+command refusal only with the accepted actual lifetime: same reserved pool lease,
+session fence where present, namespace SESSION exclusion, host turn, then command
+BEGIN/first snapshot. Retain the lease through canonical keep, COMMIT, fresh
+captured-generation no-reference checks and collection/completion. Schema
+migration takes the same namespace exclusion before application DDL and releases
+it only after transaction completion. Commands cannot acquire it after BEGIN.
+
+Trusted lease-bridge proposals supply canonical descriptors/bytes; the adapter
+chooses current LIVE or fresh generation and shares the pure transition planner.
+Read only touched generations/current declarations, derive original/final uses
+from the existing DML preimages/touched log, and persist descriptor/count/state/
+captured jobs in the same transaction as application rows and records. Every
+published proposal, or a bridge-marked acquired/discarded claim, requires an
+actual interaction record before any physical keep. Pleris idempotency metadata
+alone is insufficient. Row-only copies of a current same-declaration Ref need
+ordinary table authority but no new upload receipt.
+
+Expose prepared disposition plans to the later actual claim bridge. Keep only
+fresh generations with final row uses, after record/outbox preparation and before
+the final session clock fence/COMMIT. Known rollback performs no GC; unknown
+COMMIT performs no GC and preserves OutcomeUnknown for explicit claim handling.
+Known committed collection/completion errors leave durable jobs pending and
+preserve the applied acknowledgement. Cleanup always captures old G; no mutable
+hash pointer chooses a physical deletion. Full claim reconciliation and actual
+server HTTP/backend-death witnesses remain required before startup guards change.
+
+Native adapter tests use trusted proposals and a byte-store test double with
+real PostgreSQL records, not a substitute authorization ledger. Actual compiled
+resource/session callbacks and concrete physical-provider/HTTP composition remain
+separate following tests. There is no implicit legacy database conversion.
+
+
+Receipt and completion acknowledgements require persisted evidence. For every
+claim-bearing command verify the exact requested interaction key, sent value,
+answer and stored instant after receipt/outbox hooks and before keep; verify
+again after deferred hooks finish and before the final clock fence/COMMIT.
+An INSERT RETURNING row alone does not establish that proof. After captured-job
+DELETE, inspect that exact job's absence on the still-held namespace connection
+before counting completion. A hook that reinserts it leaves a retryable job and
+cannot turn the already-applied command into a refusal.
+
+
+### Unknown claim outcome requires attempt provenance
+
+Recorded 2026-11-05 before the actual server claim bridge. An interaction key,
+canonical sent body, deterministic answer and host-clock millisecond identify a
+logical interaction, not THIS attempt. A's uncertain transaction can actually
+roll back; another host B can then commit the same interaction using a different
+host-local lease before A reacquires namespace exclusion. Equal timestamps and
+answers do not prove A's lease was consumed. Namespace reacquisition proves the
+old transaction ended, not that a later receipt originated in it.
+
+Generate an opaque random attempt nonce for each actual claim-bearing invocation,
+freeze it with that invocation's claims, and persist it as a platform field in
+the existing JSON answer envelope. Keep the interaction key and canonical sent
+body unchanged. Existing answer decoding tolerates platform metadata, preserving
+browser retries; claim reconciliation must inspect the RAW persisted envelope,
+since decoding and re-encoding an Answered drops unknown fields. Only this
+attempt's nonce can establish that its claims committed. Missing or different
+nonce cannot settle this invocation's lease as applied. Absence proves rollback
+only under the accepted reacquired lifetime/ended-old-transaction/retention
+conditions; indeterminate outcomes stay held. Recorded-before-COMMIT is a known
+noncommit of this transaction even if the host answers another attempt's receipt.
+
+Pin with actual unknown-but-rolled-back A, equal-clock deterministic B retry and
+different local leases, plus matching-nonce applied/uncertain neighbors. No new
+registry table/column or client-visible interaction argument is needed.
+
+### Concrete public serving composition
+
+The generic upload handler binds a same-declaration current-generation reader
+from its actual data adapter once before serving. Freeze and verify returned
+bytes before consulting If-None-Match, including HEAD requests. No current ref
+is 404 even while its old file remains; LIVE missing/corrupt/unreadable is 503
+before 304. Preserve the existing external SHA.kind URL, JPEG spelling and image
+headers. Test actual sanitizer, PostgreSQL, LocalBlobs, backend death and HTTP
+request/response bytes together; isolated handler tests do not establish the
+unfinished full Server/compiled claim startup path. Keep that guard closed until
+the actual resource/session/row bridge and its gates complete.
+
+
+Staging uses one actual (session, declaration) lease key. Private previews bind
+the declaration whose route was requested. Explicit resource lookups use their
+admitted declaration and captured immutable reader without a new network read
+under the command's database lifetime. Legacy wrappers select only their first
+declaration while the canonical port is pending. Claimed values retain exact
+declaration/reader/lease identity and redact private cookies/tokens/hashes in
+diagnostics. Unclaimed lease expiry applies at metadata/preview/claim lookup,
+even before periodic sweep. Held claims survive elapsed time and sweeping until
+an explicit outcome returns/consumes them. A returned expired lease is hidden
+immediately and later swept; no expiry can silently release an uncertain claim.
+
+
+### Receipt absence currently has no retention proof
+
+Recorded before actual claim outcome implementation, 2026-11-05. Different hosts
+keep different clocks (ADR-0304/0369); no bounded-skew assumption is established.
+A writer's forget_before_ms can prune another attempt's committed receipt while
+that attempt's host still considers it within its local retention day. Reacquired
+namespace exclusion and a missing receipt do not distinguish this from rollback.
+The current recall API supplies no durable retention provenance. Therefore the
+initial actual claim bridge retains Unresolved on absent/nonmatching evidence;
+only a matching raw attempt receipt proves Applied. Explicit known rollback
+still returns claims immediately. Do not infer rollback from a local age check.
+A later negative-proof protocol needs its own complete evidence, including
+expired same-key ON CONFLICT UPDATE replacement as well as DELETE pruning.
+
+Pending invocation metadata is host-local and bounded independently of the staged
+byte cap: at most 1024 unresolved entries and 16 MiB of owned receipt proof text.
+Capacity refusal precedes COMMIT and returns that invocation's claims. Elapsed
+time never clears a pending invocation. Native ledger tests alone do not replace
+the required actual row/receipt/lifetime, compiled resource and startup gates.
+
+### The server's claim bridge (L5b), decided 2026-11-16
+
+The integrator's, under the owner's delegation of 2026-10-02, before the
+code. L5a lands the claim ledger (`uploads::generic`) and every adapter
+check below it; nothing binds a compiled program's upload imports yet, and
+`tables::servable` refuses a program of tables that declares an upload.
+
+**Decided.**
+
+1. **One ledger per command run.** The host makes an `Invocation` in
+   `command_held` after the command's authority is taken, for a command
+   whose contract imports an upload's claim, publish or discard, with the
+   reader it admitted, frozen. Its declarations' imports
+   (`pw:uploads/<declaration>#claim`, `#publish`, `#discard`) are bound to
+   it for that run alone, by the bound manifest's interfaces, never the
+   first declaration; a handle the program passes is the request's
+   session's, or the call is refused (a trap, the command run no further).
+   A query reads `#attached`, the
+   session's own leases. A command no reader runs (a Clock's) claims
+   nothing: its upload imports refuse.
+2. **The layer publishes in the command's own transaction**
+   (`Staged::upload_publisher`): PostgreSQL's adapter publisher and receipt
+   marker, taken after the command's authority; the memory layer's
+   publisher, the canonical bytes kept beside it for the keep.
+3. **The commit carries the attempt.** The answer the record keeps is
+   sealed with the attempt's nonce before it is recorded, the ledger is
+   frozen just before `COMMIT` (its capacity refused before `COMMIT`, which
+   is answered refused: no `COMMIT` was sent), and a command bound to the
+   ledger commits its record even where it writes no row (a discard), so
+   that a retried interaction is answered from it.
+4. **Each outcome settles the claims once.** Committed: applied. Kept
+   nothing (a refusal, a definite rollback, or `Recorded`: another
+   attempt's record answers this interaction, and this attempt committed
+   nothing): returned. Otherwise pending: reconciled from the raw receipt
+   once the command has let go of its turn, its lease and the namespace
+   lock (it still holds its session's one-at-a-time lock, so that session's
+   other requests on its host wait for the inspection), and by a periodic
+   pass that retries only an inspection that failed, in turn, never the
+   first few alone. Absence stays held.
+5. **The memory layer keeps uploads too**: bytes in memory storage, kept
+   before the publication and collected after it; an unknown memory
+   outcome (a commit failing after the rows were published) holds its
+   claims, as no inspection exists and the tables close.
+6. **Startup opens for generic declarations only.** Still refused: a legacy
+   or malformed declaration, one no table's asset names, a binding the
+   manifest refuses, a hand-written layer's imports beside the tables, and
+   a layer whose manifest binds no uploads. The feed's compatibility stays
+   L7's gate (decision 4 of this ADR).
+
+**Accepted, and named in KNOWN_LIMITATIONS.** An unknown outcome that in
+fact rolled back holds its session's lease for that declaration until the
+host restarts, and a replacement upload is refused meanwhile (409); it is
+logged. Proving the rollback is the negative-proof protocol named above,
+work of its own. Leases are host-local: an upload and the command that
+claims it reach one host (affinity, L6's deploy). On PostgreSQL every
+upload-enabled command and image read takes the namespace lock (five
+seconds at most), to be measured before L7.
+
+**Not chosen.** Releasing a held claim by its age, or inferring a rollback
+from a missing receipt (both above); a fresh interaction per attempt (the
+record that answers a retry is keyed by the interaction).
+
+**Built** (2026-11-16, `wip/l5b-claims`). `uploads::bridge` binds each
+declaration's imports to the run's `Invocation`; both layers open bound to
+`uploads.json` (PostgreSQL's generations in `LocalBlobs` under the
+deployment's blob root, memory's in `MemoryBlobs`); `main.rs` seals the
+answer, freezes the ledger just before the commit (a claiming command
+commits its record even where it writes no row), settles each outcome, and
+inspects again, in turn, an attempt whose inspection failed; `servable`
+admits an upload a table keeps. The ledger gained `due_attempts` (never an
+attempt its owner may still be committing) and `Invocation::reconcile`.
+
+**Held by** `tests::upload_bridge`, a compiled program through the server,
+on memory and on PostgreSQL: a claimed image committed with its row and
+served (`304` on its `ETag`, nothing pending, the interaction answered again
+as it was, the lease taken); a discard ending its lease and keeping its
+record; a removed row's image answered `404`; a refused commit giving its
+claim back; on PostgreSQL, a commit whose answer was lost settled from its
+own receipt (applied, served), and one that never reached the database held
+for good (absent, inspected once).
+
+The seven tests the decision owed are written too. On both layers:
+- a lease staged before its reader rotated (the session signed in) is shown
+  to no one and claimed by no one, while the account's own lease is its;
+- a claim through one declaration finds no other declaration's lease
+  (PostImage's `Keep` beside a staged Avatar, which `SetAvatar` then
+  claims);
+- a keep of a new generation's bytes that fails keeps nothing and gives the
+  claim back.
+
+On PostgreSQL, across two hosts of one schema where two are named:
+- a commit another attempt's record answered first (`Recorded`, B's commit
+  made before A's authority) keeps nothing and gives A's claim back, and A is
+  answered from B's record;
+- an equal-clock retry by host B (both hosts read one frozen instant), after
+  A's `COMMIT` was dropped before the database saw it, leaves a receipt
+  that is A's own proof in its key, sent body, answer and millisecond, and
+  differs only in its nonce. A holds its claim for good, neither applied
+  nor given back;
+- a reconcile the namespace lock delayed (another session holds it through
+  A's own inspection, five seconds) stays due and is made at the next
+  periodic pass;
+- a live generation whose stored bytes were corrupted is answered `503`, and
+  so is a request naming the `ETag` it was served with, before any `304`.
+
+Their seams are test-only:
+- `before_upload_inspection`, run before a failed command inspects its own
+  receipt;
+- `frozen_now`, a host's fixed instant;
+- `Ticket::proof`;
+- memory's `FAIL_NEXT_KEEP`.
+
+Thirty mutants in `generic_upload_claims_mutations.py` (`just
+e14-generic-upload-claims`) hold it, each killed, as
+`docs/evidence/E14/generic-upload-claims.txt` records. Eight came with the
+seven tests:
+- `Recorded` left pending;
+- a lease keyed by another declaration than its route's;
+- a lease claimed, or shown, whoever its reader;
+- another attempt's receipt, alike but for its nonce, settling this one;
+- an inspection that could not be made held for good;
+- the periodic pass inspecting nothing;
+- PostgreSQL's keep failure not refusing its commit.
+
+Six came with the review below, and four with L5a's after it. d3's "a
+connection keeps the operating system's keepalives" and data-path's "an
+upload's binding is not checked where it is served" are each killed too.
+
+The serving handler's check of a live generation's bytes and the storage's
+own are each the other's backstop, so neither alone is a mutant.
+
+**Reviewed** independently (2026-11-16, `014439c5..a7c3377b`). No high
+finding in the bridge; three medium findings and eleven low, each repaired
+or recorded:
+- **The binding check where a build is served could not be failed** (M1):
+  each layer binds again, so the data-path mutant on it survived.
+  `an_upload_whose_binding_the_build_broke_is_refused_before_the_database`
+  now serves a build whose upload names another source than its tables'
+  on a database no one serves. `servable` refuses it, saying why, before
+  anything connects.
+- **The kills were claimed with no record** (M2): `docs/evidence/E14/
+  generic-upload-claims.txt` is now the whole script's run, and the full
+  verify records it again at the landing.
+- **A half-open connection could hold the namespace lock for hours** (M3):
+  each connection now sets the server's keepalives, about a minute
+  (`each_connection_sets_the_servers_keepalives`, and d3's mutant "a
+  connection keeps the operating system's keepalives"). KNOWN_LIMITATIONS
+  says what remains.
+- **The tests' records were the host's cache's** (L1): the served test
+  reads the durable record, and the discard test holds the lease ended
+  (nothing pending, another image staged). **A helper caught a refused
+  commit first** (L2): the served test asserts its commit itself.
+- **Rules with no mutant** (L3), now held:
+  - the periodic pass holding an absent receipt's claim for good, by a new
+    test, `the_periodic_pass_holds_an_absent_receipts_claim_for_good_on_postgresql`;
+  - an attempt dropped uninspected offered to the pass, and the pass's
+    turn, by their unit tests;
+  - PostgreSQL's collection, at the commit and by housekeeping, by two new
+    tests.
+  A readerless command's refusing imports at the server, and memory's
+  collection, have no mutant: the script says why.
+- **A commit its ledger refused before its `COMMIT` was answered unknown**
+  (L5), and the host kept that for its interaction: it is answered refused
+  now (`a_commit_its_ledger_refuses_is_answered_refused`, on both layers).
+  The ledger's other refusal, a claim left with no disposition, is the
+  compiler's (PW2005).
+- **Robustness** (L6, L7, L9): each needs a panic or a race no test makes,
+  and none has a mutant.
+  - A poisoned counter after a landed `COMMIT` answered it refused and
+    ended nothing; the lock is now taken as it is.
+  - Memory's collection was set before its publication succeeded; now it is
+    set after.
+  - A ledger that failed while it reconciled stranded the attempt;
+    reconciled is now set only once the ledger took the outcome.
+- **A removal racing memory's read answered 503** (L8): a second look
+  answers 404, or serves a generation published again. The duplicate
+  collection the review also named does not happen: both storages' collect
+  and the registry's `collected` are idempotent.
+- **Docs** (L4, L10, L11): KNOWN_LIMITATIONS now says what an inspection
+  holds, the host-wide bounds, the shared blob root and the pages a
+  settlement does not tell. Decision 4 above no longer says the inspecting
+  command holds nothing: it holds its session's lock.
+- **Nits:** two doc comments are back on their functions; the stale
+  `dead_code` allowances are gone (the ledger's test-only parts are
+  `cfg(test)`); the forced record's comment and decision 1's foreign handle
+  now say what the code does. The PostgreSQL keep test fails, not skips,
+  when run as root, as its own doc says.
+
+**L5a reviewed** independently (2026-11-16, `6407ba55..014439c5`). No high
+finding is reachable in L5a, whose server refuses uploads beside tables;
+each becomes live with L5b. So **L5 lands as one train**, from
+`wip/l5b-claims`, with L5a's findings repaired there:
+- **A read held to the lifetime lock** (M1): each image request waited for
+  every command, holding a pool connection through its file and its hash.
+  A read now takes no lock and holds its connection for one statement; a
+  second look tells a collection that raced it.
+  `an_image_is_served_while_the_namespace_lock_is_held_on_postgresql` holds
+  it, and the mutant "an image read waits for the namespace's lock".
+- **A database copy sharing its original's blob root** (M2) would collect
+  what the original still serves. A namespace's storage now names its
+  database's identity and refuses another
+  (`a_database_copy_sharing_its_originals_blob_root_is_refused_on_postgresql`,
+  two mutants). A physical copy is not told apart (KNOWN_LIMITATIONS).
+- **Memory and PostgreSQL not alike** (M3): L5b gave memory its keep, its
+  collection and its verified read. A shared contract suite for assets is
+  NEXT's.
+- **An upload no table keeps** (L1): `servable` refuses it (L5b), before
+  any layer enrolls it.
+- **One failing collection stopped its pass** (L2), the same one first each
+  time: each job is now made on its own, in turn
+  (`a_collection_that_keeps_failing_keeps_no_other_from_its_turn_on_postgresql`,
+  a mutant).
+- **The namespace lock's five seconds governed the migration's DDL** (L3):
+  the default is restored after the lock. Repaired by reading: no test makes
+  the DDL wait.
+- **A delete touching more keys than 65,535 parameters hold** could never
+  commit (L8): the check is batched. Repaired by reading: a test would write
+  65,536 rows.
+- **Upload paths the host refuses compiled** (L6): PW5602 now holds the
+  host's rule (equal or nested paths, an upload's own two included). A type
+  named twice is PW5601 at the upload, not PW0028 at a generated
+  declaration. Two compiler tests hold these.
+- **An unknown outcome that rolled back pins its lease** (L5): recorded in
+  KNOWN_LIMITATIONS (L5b's).
+- **Left to NEXT, each low:**
+  - three PostgreSQL rules with no mutant (L4): the descriptor's
+    immutability in `propose_asset`, `persist`'s `ON CONFLICT` guard and
+    `lock_lifetime`'s marker check, each needing a fixture of its own;
+  - upload refusals filed under PW5601's invariant, and no corpus cases
+    (L7);
+  - bare `is_err()` refusals (L9).
+- **Nits:**
+  - `Declaration::source()` no longer panics on an unvalidated value;
+  - a manifest that declares no upload binds none, so it enrolls no
+    namespace;
+  - the descriptor marker stays byte for byte, and the code now says so;
+  - `PLATFORM_RELATIONS`' comment names 0005's prefix rule;
+  - the immutable cache header, which predates L5, stays.
+
 ## Landing (L3, 2026-11-13)
 
 L3 merges the integration branch's six commits after `a9a8d79e`
@@ -948,3 +1695,149 @@ one statement each, so that neither agrees with their ids. Two new mutants
 take the rows as they lie and the oldest by their time; each is killed at the
 test's assertion. ADR-0397 points here, as its decisions 3 and 6 still
 described the outbox L1 forgot.
+
+## Landing (L5, 2026-11-17)
+
+L5 lands declared uploads as one train from `wip/l5b-claims`: L5a, the
+integration branch's forty-two commits to `64f03ec9` and the claim ledger
+`018fad14`, merged on L4 (`014439c5`); and L5b, the server's claim bridge on
+it, each independently reviewed and its findings repaired (above). Before
+its full verify, L5 merged master (#119, #120, #122 and #123, in `e13b81e4`)
+and the two pull requests landing just before it, #118 (`26935dd8`, a test's
+places on PostgreSQL) and #121 (`2d18777e`, a predicate asked once), so that
+one verify records what all three reach: #118's test harness alone reached
+164 recipes in its own CI. Only `ci_seconds.json` conflicted; it is merged
+by key, a recipe both sides measured keeping the longer.
+
+**L5a's full verify** (43860567064, at `014439c5`): 358 recipes, 3 failed,
+and its shard 20 stopped at the 345-minute limit. Items 1 and 5, and item
+2's first part, were repaired before L5's full verify; item 2's HTTP
+recipe and items 3 and 4 failed in it again (below), and are repaired after
+it, in `4d3f7ce5`:
+
+1. **The stopped shard.** `e14-d3-postgres` took 16,275 s there (132 mutants
+   over 168 tests, 122 s a run; L4's 88 over 101 took 4,708 s) on a runner
+   that took the shard's other recipes 1.6 to 2.2 times as long as L4's
+   verify had: 79% of a job by itself, and the plan, from L4's 4,708 s, had
+   dealt five recipes beside it: four ran, and the job reached its limit
+   during the fifth, `e14-second-host`. d3's mutation controls run in two
+   recipes (ADR-0393, amended): `e14-d3-postgres`, every mutant but the uploads'
+   (96), and `e14-d3-postgres-2`, the uploads' (39), each with the baseline
+   of every test binary, as `e14-refusal`'s parts are (the integrator's
+   ruling 2 of 2026-10-17). L5's verify measured them at 11,989 s and 2,962 s.
+2. **Recipes dealt where no database is named.** `e14-generic-upload-claims`
+   (L5b's) is refused without one; `e14-generic-upload-http`'s script is
+   (its recipe named none, so it failed at its first line there); and
+   `e14-every-entry`'s and `e14-follows`' PostgreSQL witnesses said
+   "skipped" and passed in every run, their evidence saying "postgres:
+   none". A recipe that names a database's URL, or runs a script that reads
+   one, is dealt beside one (`test_a_recipe_that_reads_a_database_is_dealt_beside_one`,
+   a mutant). `e14-generic-upload-http` exports the URL its script reads and
+   is refused without one.
+3. **Two recipes' evidence no plan could call current**:
+   `e14-generic-upload-http`'s and `e14-generic-upload-leases`' named no
+   commit, and their verdicts were in words the count does not read. Each
+   now names its commit, and each mutant's verdict is a line the count reads,
+   with the legacy mutant each runs counted among its script's.
+4. **Two INVALID kills**: `e14-upload-metadata`'s was at
+   `uploads/generic_lease_tests.rs`, a source its script did not list, and
+   `e14-row-ownership`'s at five tests that unwrapped a binding the mutant
+   broke (`compiled_assets.rs`); the script lists the file, and each test
+   fails at an assertion.
+5. **Two of the three PostgreSQL rules L5a's review found no mutant for**
+   (its L4) each have a test and a mutant: `propose_asset` keeps a live
+   hash's descriptor, and `lock_lifetime` holds each command to the storage's
+   namespace marker. The third, `persist`'s `ON CONFLICT` guard, no command
+   reaches: a proposal of a generation id the table holds is refused before
+   it (its mutant is killed), the planner takes a stored generation's
+   descriptor wherever one exists, and every command holds the namespace's
+   advisory lock from before its first statement to its end (`turn`,
+   `lock_lifetime`), so no other command writes the table meanwhile, at
+   either isolation. Only a writer outside any command, at READ COMMITTED,
+   could: the guard is the table's own check against it, and stays.
+
+**The full verify** 43929087203 at `83ad1ab1`: 361 recipes, 5 failed; the
+other 356 recipes' evidence (673 files, `e0377273`) is the merge's record,
+but for `e14-generic-upload-leases`' 27 files, in words no count reads and
+naming no commit, which the repairs remove and record again (item 3).
+Three are item 2's HTTP recipe and item 4's two, failing as they had in
+L5a's (`e14-row-ownership` 233 of 234 this time, `e14-upload-metadata` 145
+of 146), the run before their repairs. Two are new, and one failure is no
+recipe's:
+
+6. **`e14-render-merge`, 48 of 49**: "an idle connection is never taken
+   again" lived. The bound's test holds 24 renders of one session's cart
+   page at their reads, and the render merge answers one session's identical
+   reads together, so a few of them take a connection (six, run locally);
+   the mutant opens one more for each, which stayed under the eight the test
+   allows. Whether that test kills it depends on how many of its renders
+   reach the database: at L4 (43809526375) it did. A render now takes an
+   idle connection again, one after another, each reading
+   (`on_postgres_a_render_takes_an_idle_connection_again`: one connection
+   for 24 renders, where the mutant opens 25), run beside the bound's test in
+   the script's `bound` suite.
+7. **`e10-browser`, WebKit's cut-off test** (`e2e/connections.spec.mjs`,
+   NEXT's known item), in two of its three runs: after the server's forced
+   reconnect WebKit's network process failed ("WebKit encountered an
+   internal error"), the press's handler module, loaded at its first press,
+   failed to import, and the press was answered "This did not work". The
+   runtime it ran is byte for byte L4's, whose run passed it three times, and
+   master's nightly passed it at `4ac98c51`. It is run again with the
+   repairs' recipes, and stays NEXT's until master's nightlies pass it too.
+8. **L5's head failed `just lint`**: an unneeded `mut` in a PostgreSQL asset
+   test (item 5's, `83ad1ab1`), which the verify does not build and its
+   preflight, not run, would have refused. It passes.
+
+**The repairs** (`4d3f7ce5`, merged with master at `41a73a48`) and what
+they reach, run again: the recipes `ci_plan.py --changed e0377273 HEAD`
+plans, and `e10-browser`, dispatched as 43978661391 at `41a73a48`: 15
+recipes, 0 failed (`94d1f8ab`). `e14-generic-upload-http` killed 10 of 10
+on its shard's database and `e14-generic-upload-leases` 11 of 11, each
+verdict a line the count reads and each file naming its commit;
+`e14-row-ownership` 234 of 234 and `e14-upload-metadata` 146 of 146, the
+kills item 4 found INVALID now counted; `e14-render-merge` 49 of 49, the
+idle-connection mutant killed at the new test's assertion; and
+`e10-browser` passed its 1,452 tests in each of its three runs, WebKit's
+cut-off test among them. `e14-row-ownership`'s planned seconds are its
+measured 11,009, where 5,890 would have planned the next full verify at
+half its cost.
+
+**Reviewed** independently (2026-11-17, `3403758e`, `83ad1ab1` and the
+merge's resolution of `ci_seconds.json`): one high finding, the HTTP
+recipe's database (item 2 above), and one medium, a citation of this section
+before it was written. Its lows: the database rule now reads a recipe's
+scripts and only planned recipes; the split's reason and the guard's are as
+above. What both d3 recipes read (an empty part refused, a part's cost,
+comments) is repaired on `wip/l5-followups`, which records those recipes
+again.
+
+**Reviewed again** independently (2026-11-17, `4d3f7ce5` and `41a73a48`): no
+high finding, and one medium: the heading of items 1 to 5 said each was
+repaired before L5's full verify, where item 2's HTTP recipe and items 3
+and 4 were repaired after it; it now says which came when. Its lows of the
+record are repaired here too: the full verify's evidence counted with the
+leases' 27 files the repairs remove; the two placeholders left where the
+repairs' record now is; ADR-0393's stopped shard, stopped during the fifth
+recipe after d3 (`e14-second-host`), not the first; and
+`e14-row-ownership`'s planned seconds, above. Its four lows of code go,
+with the corpus work, to `wip/l5-followups`, the pull request after this
+one: the database rule's
+reading of a script saw a URL's name only as a literal argument, so five
+scripts that read theirs in a loop were found by their recipe's body alone,
+and nothing showed the reading finds one; the three upload recipes read
+`status=$?` where errexit never lets a failure reach it, so a failing run
+printed no evidence on a developer's machine; the render-merge test kills
+its mutant by the connection count, not by the connection's reuse, and its
+comments said connections pile up where the mutant closes each and opens
+another; and upload-metadata's validator lists one of the test files its
+filter runs, so the next kill in another is INVALID again. Two commit
+messages are corrected here, not rewritten: `4d3f7ce5` puts L5a's 231 of
+232 under L5's verify, whose count was 233 of 234, and `41a73a48` names
+five recipes whose longer time the merge kept, where there were seven
+(`e10-derived` and `e10-effects-through-values` too).
+
+**Left to NEXT**, each low: one contract suite for assets over both
+adapters. L5a's other lows (refusals filed under PW5601's invariant, the bare
+`is_err()` refusals, and corpus cases for the upload and asset rules) are
+repaired on `wip/l5-followups`, its pull request after this one, with PW5604,
+PW5605, PW0371 and corpus C34.

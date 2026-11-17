@@ -180,8 +180,25 @@ NEEDS_DATABASE = {
     # Track `session-overlap` (ADR-0389, amended 2026-11-02): overlapping
     # admissions of one session, on PostgreSQL too.
     "e14-session-overlap",
-    # Track `d3-postgres` (ADR-0338's D3): declared tables on PostgreSQL.
+    # Track `d3-postgres` (ADR-0338's D3): declared tables on PostgreSQL;
+    # its mutation controls in two parts (ADR-0393, amended 2026-11-17).
     "e14-d3-postgres",
+    "e14-d3-postgres-2",
+    # ADR-0440's L5b: the server's claim bridge, on memory and on
+    # PostgreSQL; refused without a database. Dealt where there was none
+    # until 2026-11-17, it would have failed the full verify (found before
+    # L5's: `test_a_recipe_that_reads_a_database_is_dealt_beside_one`).
+    "e14-generic-upload-claims",
+    # Found with it: ADR-0256's and ADR-0257's witnesses on PostgreSQL
+    # (`on_postgres_an_entry_written_with_a_wildcard_is_every_entry`, the
+    # follows timeline's) said "skipped" and passed in every run, dealt
+    # where no database was named; their evidence said "postgres: none".
+    "e14-every-entry",
+    "e14-follows",
+    # Its script reads PW_TABLES_DATABASE_URL and refuses without it; its
+    # recipe named none, so the second review of L5 found what the test
+    # below did not read (it reads a recipe's scripts too since).
+    "e14-generic-upload-http",
     # Track `durable-tables`: declared tables served durably from PostgreSQL.
     "e14-durable-tables",
     # Track `data-path`: its feed-on-PostgreSQL test holds that no row,

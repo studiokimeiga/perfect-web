@@ -419,6 +419,33 @@ Held by two tests in `tests/commands.rs`, each failing before the repair
 whose fields are all its key left to `DO NOTHING`), each killed at a
 native assertion.
 
+## Amended (ADR-0440's L5, 2026-11-17): the mutation controls in two recipes
+
+`d3_postgres_mutations.py` no longer fits one CI job safely. ADR-0440's L5 added
+the uploads' mutants (39 at its landing) and their test binaries (`asset_rows`,
+`asset_enrollment`, `compiled_assets`) to D3's own, and each mutant runs
+every binary: at L4's merge the script took 4,708 s (88 mutants over 101
+tests); L5a's full verify (43860567064) took 16,275 s (132 mutants over
+168 tests, 122 s a run) on a runner that took its shard's other recipes 1.6
+to 2.2 times as long as L4's verify had: 79% of the 20,700 s a job runs, by
+itself. Its shard was stopped at the limit, during the fifth recipe after
+it (`e14-second-host`), because the plan, from L4's 4,708 s, had dealt five
+recipes beside it, and a stopped shard keeps nothing of its run. Measured,
+the whole would be dealt alone; two parts keep a slower runner's whole
+within a job.
+
+So the script's mutants are two lists, each a part (the integrator's ruling
+2 of 2026-10-17, as `e14-refusal`'s): `DECLARED`, every mutant but the
+uploads' (D3's own, and the platform's on PostgreSQL since), run by `just
+e14-d3-postgres` (`--part 1/2`), and `UPLOADS`, run by `just
+e14-d3-postgres-2` (`--part 2/2`), each with the baseline of every test
+binary and its own evidence; `evidence_counts.py` holds the two to every
+mutant once, and a run with no part runs all of them. The parts are the
+lists' lengths, so a mutant added to either keeps them whole. Until a run
+measures them, the plan deals the two by seconds projected from that run
+(`ci_seconds.json`'s `_lower_bounds`). `e14-d3-postgres`'s listing of the
+test binaries names the three the script ran and it did not.
+
 ## Next
 
 - The rulings' follow-ups, in their order: the server's `DataLayer` over

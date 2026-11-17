@@ -1,0 +1,85 @@
+   Compiling pw-host v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-host)
+   Compiling pw-table-memory v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-memory)
+   Compiling pw-table-postgres v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-postgres)
+   Compiling pw-dev-server v0.0.0 (/home/haki/code/pw-wt/data-path/spikes/own-renderer/server)
+warning: field `assets` is never read
+  --> spikes/own-renderer/server/src/blob.rs:60:5
+   |
+59 | pub struct MemoryBlobs {
+   |            ----------- field in this struct
+60 |     assets: std::sync::Mutex<assets::MemoryState>,
+   |     ^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `pw-dev-server` (bin "pw-dev-server" test) generated 1 warning
+    Finished `test` profile [unoptimized] target(s) in 17.28s
+     Running unittests src/main.rs (target/debug/deps/pw_dev_server-5b40cf4be58c25d1)
+
+running 8 tests
+test blob::assets::tests::bad_bytes_and_path_components_refuse_before_physical_publication ... FAILED
+test blob::assets::tests::independent_handles_share_enrollment_and_different_roots_refuse_existing_namespace ... FAILED
+test blob::assets::tests::memory_provider_reserves_and_validates_generations ... FAILED
+test blob::assets::tests::namespaces_isolate_identical_generation_names_and_legacy_blob_counts ... FAILED
+test blob::assets::tests::local_provider_reserves_and_validates_generations ... FAILED
+test blob::assets::tests::old_captured_cleanup_cannot_delete_a_new_generation_of_identical_bytes ... FAILED
+test blob::assets::tests::reads_distinguish_missing_corrupt_payload_and_changed_markers ... FAILED
+test blob::assets::tests::two_independent_writers_cannot_reserve_the_same_generation_for_different_bytes ... FAILED
+
+failures:
+
+---- blob::assets::tests::bad_bytes_and_path_components_refuse_before_physical_publication stdout ----
+
+thread 'blob::assets::tests::bad_bytes_and_path_components_refuse_before_physical_publication' (2733249) panicked at spikes/own-renderer/server/src/blob/assets.rs:65:9:
+storage operation should succeed: Some(Custom { kind: Other, error: "generation storage not installed" })
+
+---- blob::assets::tests::independent_handles_share_enrollment_and_different_roots_refuse_existing_namespace stdout ----
+
+thread 'blob::assets::tests::independent_handles_share_enrollment_and_different_roots_refuse_existing_namespace' (2733250) panicked at spikes/own-renderer/server/src/blob/assets.rs:65:9:
+storage operation should succeed: Some(Custom { kind: Other, error: "generation storage not installed" })
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- blob::assets::tests::memory_provider_reserves_and_validates_generations stdout ----
+
+thread 'blob::assets::tests::memory_provider_reserves_and_validates_generations' (2733252) panicked at spikes/own-renderer/server/src/blob/assets.rs:65:9:
+storage operation should succeed: Some(Custom { kind: Other, error: "generation storage not installed" })
+
+---- blob::assets::tests::namespaces_isolate_identical_generation_names_and_legacy_blob_counts stdout ----
+
+thread 'blob::assets::tests::namespaces_isolate_identical_generation_names_and_legacy_blob_counts' (2733253) panicked at spikes/own-renderer/server/src/blob/assets.rs:65:9:
+storage operation should succeed: Some(Custom { kind: Other, error: "generation storage not installed" })
+
+---- blob::assets::tests::local_provider_reserves_and_validates_generations stdout ----
+
+thread 'blob::assets::tests::local_provider_reserves_and_validates_generations' (2733251) panicked at spikes/own-renderer/server/src/blob/assets.rs:65:9:
+storage operation should succeed: Some(Custom { kind: Other, error: "generation storage not installed" })
+
+---- blob::assets::tests::old_captured_cleanup_cannot_delete_a_new_generation_of_identical_bytes stdout ----
+
+thread 'blob::assets::tests::old_captured_cleanup_cannot_delete_a_new_generation_of_identical_bytes' (2733254) panicked at spikes/own-renderer/server/src/blob/assets.rs:65:9:
+storage operation should succeed: Some(Custom { kind: Other, error: "generation storage not installed" })
+
+---- blob::assets::tests::reads_distinguish_missing_corrupt_payload_and_changed_markers stdout ----
+
+thread 'blob::assets::tests::reads_distinguish_missing_corrupt_payload_and_changed_markers' (2733255) panicked at spikes/own-renderer/server/src/blob/assets.rs:65:9:
+storage operation should succeed: Some(Custom { kind: Other, error: "generation storage not installed" })
+
+---- blob::assets::tests::two_independent_writers_cannot_reserve_the_same_generation_for_different_bytes stdout ----
+
+thread 'blob::assets::tests::two_independent_writers_cannot_reserve_the_same_generation_for_different_bytes' (2733256) panicked at spikes/own-renderer/server/src/blob/assets.rs:65:9:
+storage operation should succeed: Some(Custom { kind: Other, error: "generation storage not installed" })
+
+
+failures:
+    blob::assets::tests::bad_bytes_and_path_components_refuse_before_physical_publication
+    blob::assets::tests::independent_handles_share_enrollment_and_different_roots_refuse_existing_namespace
+    blob::assets::tests::local_provider_reserves_and_validates_generations
+    blob::assets::tests::memory_provider_reserves_and_validates_generations
+    blob::assets::tests::namespaces_isolate_identical_generation_names_and_legacy_blob_counts
+    blob::assets::tests::old_captured_cleanup_cannot_delete_a_new_generation_of_identical_bytes
+    blob::assets::tests::reads_distinguish_missing_corrupt_payload_and_changed_markers
+    blob::assets::tests::two_independent_writers_cannot_reserve_the_same_generation_for_different_bytes
+
+test result: FAILED. 0 passed; 8 failed; 0 ignored; 0 measured; 999 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`

@@ -1,0 +1,36 @@
+   Compiling pw-table-postgres v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-postgres)
+    Finished `test` profile [unoptimized] target(s) in 2.24s
+     Running tests/asset_enrollment.rs (target/debug/deps/asset_enrollment-df1910337ba18a10)
+
+running 3 tests
+test a_rewritten_declaration_insert_is_not_successful_enrollment ... FAILED
+test a_rewritten_binding_insert_is_not_successful_enrollment ... FAILED
+test a_rewritten_namespace_insert_is_not_successful_enrollment ... FAILED
+
+failures:
+
+---- a_rewritten_declaration_insert_is_not_successful_enrollment stdout ----
+
+thread 'a_rewritten_declaration_insert_is_not_successful_enrollment' (2825471) panicked at runtime/pw-table-postgres/tests/asset_enrollment.rs:440:5:
+one returned row must not acknowledge rewritten declaration metadata
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- a_rewritten_binding_insert_is_not_successful_enrollment stdout ----
+
+thread 'a_rewritten_binding_insert_is_not_successful_enrollment' (2825470) panicked at runtime/pw-table-postgres/tests/asset_enrollment.rs:440:5:
+one returned row must not acknowledge rewritten binding metadata
+
+---- a_rewritten_namespace_insert_is_not_successful_enrollment stdout ----
+
+thread 'a_rewritten_namespace_insert_is_not_successful_enrollment' (2825490) panicked at runtime/pw-table-postgres/tests/asset_enrollment.rs:440:5:
+one returned row must not acknowledge rewritten namespace metadata
+
+
+failures:
+    a_rewritten_binding_insert_is_not_successful_enrollment
+    a_rewritten_declaration_insert_is_not_successful_enrollment
+    a_rewritten_namespace_insert_is_not_successful_enrollment
+
+test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 11 filtered out; finished in 0.85s
+
+error: test failed, to rerun pass `-p pw-table-postgres --test asset_enrollment`

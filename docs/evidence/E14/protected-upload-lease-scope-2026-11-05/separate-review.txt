@@ -1,0 +1,10 @@
+Separate immutable review /root/review_cached_refusals of8cb2f216 clear.
+All staging/predecessor/sweep/preview/shown/claim/take/unclaim lookups consistently
+use session+actualdeclaration. Claim take/return pin immutable reader and leaseID.
+Shared-byte holds and capacity remain coherent. TTL keeps held claims and hides
+returned-expired leases. Legacy fixture now actually claims before aging; its
+assertions remain. Explicit supplied Reader is a trusted lookup input, not proof
+of current authority. Successor1f203 only native assert helper/eight call sites;
+successful paths unchanged; missing claim/attachment now native assertion.
+Final production/test review clear, no edits/cargo/mutations run by reviewer.
+Actual compiled/root/final-fence/nonce/unknown reconciliation remains excluded.

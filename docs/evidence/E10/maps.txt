@@ -1,8 +1,8 @@
 ADR-0057 - maps and sets
 
 produced by: just e10-maps
-commit: 7b8fb7cc8cbc9601e49df15c750d1eeaf6cabdd2
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43809526375 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 83ad1ab1f92c0bc4377dfc72df28643828771bb5
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43929087203 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
@@ -15,7 +15,7 @@ test a_map_or_set_out_of_order_is_sorted_on_arrival ... ok
 test a_map_keyed_by_a_bool_or_an_opaque_type_answers_as_a_btreemap_does ... ok
 test a_map_answers_as_a_btreemap_does ... ok
 test a_set_answers_as_a_btreeset_does ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.94s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.05s
 
 == the component and the JavaScript module
 
@@ -24,7 +24,7 @@ javascript: 5 queries over trees, 1000 calls, component and module agree (155 tr
 javascript: 5 queries over values held in place, 1000 calls, component and module agree (132 trapped in both)
 javascript: 103 queries, 20600 calls, component and module agree (1424 trapped in both)
 test the_modules_entry_check_is_the_components ... ok
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 67.53s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 144.85s
 
 == mutation controls (scripts/map_mutations.py)
 

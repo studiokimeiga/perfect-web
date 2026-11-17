@@ -1,21 +1,21 @@
 NEXT 4c - one render's identical calls made once, in one snapshot, in a bounded few seats
 
 produced by: just e14-render-merge
-commit: 7b8fb7cc8cbc9601e49df15c750d1eeaf6cabdd2
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43809526375 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 41a73a48ab29a42cce090990051accd8278d6e0c
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43978661391 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 postgres: 18.6 (Debian 18.6-1.pgdg13+2)
 
 == the merge and the snapshot, the store in memory (PW_STORE_TEST_LAYER=memory)
 
 test render_merge::tests::a_render_of_one_layer_answers_for_no_other ... ok
+test render_merge::tests::a_renders_call_for_another_session_is_its_own ... ok
 test render_merge::tests::a_renders_calls_with_other_arguments_are_each_made ... ok
 test render_merge::tests::a_render_begun_inside_another_is_that_one_whatever_its_session ... ok
 test render_merge::tests::a_render_reads_one_snapshot_and_keeps_nothing_past_it ... ok
-test render_merge::tests::a_renders_call_for_another_session_is_its_own ... ok
 test render_merge::tests::a_renders_failed_call_is_made_again ... ok
-test render_merge::tests::a_renders_identical_calls_are_made_once ... ok
 test render_merge::tests::a_renders_snapshot_is_taken_where_it_begins ... ok
+test render_merge::tests::a_renders_identical_calls_are_made_once ... ok
 test tests::render_merge::a_deployment_states_its_renders_seats_or_its_host_is_refused ... ok
 test tests::render_merge::a_feed_sessions_documents_are_read_in_one_render_each_identical_call_once ... ok
 test tests::render_merge::a_renders_queries_each_note_what_the_clock_holds_them_until ... ok
@@ -28,9 +28,10 @@ test tests::render_merge::on_postgres_a_feed_renders_failed_read_ends_its_transa
 test tests::render_merge::a_commits_documents_are_read_in_one_render_each_identical_call_once ... ok
 test tests::render_merge::a_session_whose_count_could_not_be_read_is_said_so_after_its_render ... ok
 test tests::render_merge::on_postgres_a_render_past_the_bound_waits_for_a_seat ... ok
+test tests::render_merge::on_postgres_a_render_takes_an_idle_connection_again ... ok
 test tests::render_merge::on_postgres_a_feeds_two_renders_straddle_a_commit_between_them ... ok
-test tests::render_merge::on_postgres_a_render_waiting_past_its_limit_fails_saying_so ... ok
 test tests::render_merge::on_postgres_a_render_reads_in_a_seat_with_the_commands_bound_held ... ok
+test tests::render_merge::on_postgres_a_render_waiting_past_its_limit_fails_saying_so ... ok
 test tests::render_merge::on_postgres_the_renders_bound_holds_under_many_renders_at_once ... ok
 test tests::render_merge::on_postgres_a_renders_failed_read_ends_its_transaction ... ok
 test tests::render_merge::the_memory_feeds_snapshot_is_the_feed_as_a_render_first_read_it ... ok
@@ -40,16 +41,16 @@ test tests::render_merge::on_postgres_the_feeds_snapshot_is_a_renders_read_trans
 test tests::render_merge::on_postgres_a_feed_renders_never_hold_their_seats_waiting_for_the_table ... ok
 test tests::render_merge::two_bindings_of_one_render_read_one_snapshot ... ok
 test tests::render_merge::two_renders_straddle_a_commit_between_them ... ok
-test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 1099 filtered out; finished in 14.92s
+test result: ok. 33 passed; 0 failed; 0 ignored; 0 measured; 1195 filtered out; finished in 14.93s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
 
 == the same, the store on PostgreSQL, and NEXT 4b's counts as re-pinned (PW_STORE_TEST_LAYER=postgres)
 
 test render_merge::tests::a_render_of_one_layer_answers_for_no_other ... ok
-test render_merge::tests::a_renders_call_for_another_session_is_its_own ... ok
 test render_merge::tests::a_renders_calls_with_other_arguments_are_each_made ... ok
 test render_merge::tests::a_render_begun_inside_another_is_that_one_whatever_its_session ... ok
 test render_merge::tests::a_render_reads_one_snapshot_and_keeps_nothing_past_it ... ok
+test render_merge::tests::a_renders_call_for_another_session_is_its_own ... ok
 test render_merge::tests::a_renders_failed_call_is_made_again ... ok
 test render_merge::tests::a_renders_identical_calls_are_made_once ... ok
 test render_merge::tests::a_renders_snapshot_is_taken_where_it_begins ... ok
@@ -120,13 +121,14 @@ test tests::bounded_statements::placing_and_settling_where_payments_are_taken_is
 test tests::render_merge::a_commits_documents_are_read_in_one_render_each_identical_call_once ... ok
 test tests::render_merge::a_feed_sessions_documents_are_read_in_one_render_each_identical_call_once ... ok
 test tests::render_merge::on_postgres_a_deployments_seats_bound_its_renders_and_their_wait ... ok
-test tests::render_merge::a_render_reads_alone_what_a_commit_invalidated_since_it_began ... ok
 test tests::render_merge::a_renders_queries_each_note_what_the_clock_holds_them_until ... ok
+test tests::render_merge::a_render_reads_alone_what_a_commit_invalidated_since_it_began ... ok
 test tests::render_merge::a_session_whose_count_could_not_be_read_is_said_so_after_its_render ... ok
 test tests::render_merge::on_postgres_a_feed_renders_bindings_read_one_snapshot ... ok
 test tests::render_merge::on_postgres_a_feed_renders_failed_read_ends_its_transaction ... ok
 test tests::render_merge::on_postgres_a_render_past_the_bound_waits_for_a_seat ... ok
 test tests::render_merge::on_postgres_a_feeds_two_renders_straddle_a_commit_between_them ... ok
+test tests::render_merge::on_postgres_a_render_takes_an_idle_connection_again ... ok
 test tests::render_merge::on_postgres_a_render_reads_in_a_seat_with_the_commands_bound_held ... ok
 test tests::render_merge::on_postgres_a_render_waiting_past_its_limit_fails_saying_so ... ok
 test tests::render_merge::on_postgres_a_renders_failed_read_ends_its_transaction ... ok
@@ -139,7 +141,7 @@ test tests::render_merge::on_postgres_a_drains_render_never_holds_its_seat_waiti
 test tests::render_merge::on_postgres_the_renders_bound_holds_under_many_renders_at_once ... ok
 test tests::render_merge::two_bindings_of_one_render_read_one_snapshot ... ok
 test tests::render_merge::two_renders_straddle_a_commit_between_them ... ok
-test result: ok. 42 passed; 0 failed; 0 ignored; 0 measured; 1089 filtered out; finished in 26.96s
+test result: ok. 43 passed; 0 failed; 0 ignored; 0 measured; 1185 filtered out; finished in 27.06s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
 
 == pw-resource: a read as of an epoch (tests/read_as_of.rs)
@@ -157,52 +159,52 @@ the debug build checks: a session's turn taken in a render (NEXT 4c)
 
 == mutation controls (scripts/render_merge_mutations.py)
 
-baseline (memory): 32 passed, 0 failed
-baseline (postgres): 42 passed, 0 failed
+baseline (memory): 33 passed, 0 failed
+baseline (postgres): 43 passed, 0 failed
 baseline (resource): 4 passed, 0 failed
 baseline (unit): 8 passed, 0 failed
-baseline (bound): 1 passed, 0 failed
+baseline (bound): 2 passed, 0 failed
 baseline (debug): 2 passed, 0 failed
-a render's kept answer is never given [memory]: KILLED (4 of 32 tests fail)
-a call is answered as one with other arguments was [memory]: KILLED (3 of 32 tests fail)
-a call is answered as one for another session was [memory]: KILLED (2 of 32 tests fail)
-a failed call is kept as its answer [memory]: KILLED (1 of 32 tests fail)
+a render's kept answer is never given [memory]: KILLED (4 of 33 tests fail)
+a call is answered as one with other arguments was [memory]: KILLED (3 of 33 tests fail)
+a call is answered as one for another session was [memory]: KILLED (2 of 33 tests fail)
+a failed call is kept as its answer [memory]: KILLED (1 of 33 tests fail)
 a render is kept past its end [unit]: KILLED (2 of 8 tests fail)
-a render begun inside another is its own [memory]: KILLED (3 of 32 tests fail)
-a render answers for another layer [memory]: KILLED (1 of 32 tests fail)
-a render's queries each read as a query of their own [memory]: KILLED (5 of 32 tests fail)
-a render takes no snapshot, and no seat [postgres]: KILLED (8 of 42 tests fail)
-the drain's count and its documents are two renders [memory]: KILLED (1 of 32 tests fail)
-each document read again is a render of its own [memory]: KILLED (2 of 32 tests fail)
-a page's bindings are not one render [memory]: KILLED (4 of 32 tests fail)
-a call answered again is counted as made [memory]: KILLED (2 of 32 tests fail)
-the platform's calls are merged [memory]: KILLED (1 of 32 tests fail)
-a render reads as any reader does what was invalidated since it began [memory]: KILLED (1 of 32 tests fail)
-the drain's render is held through its telling [memory]: KILLED (2 of 32 tests fail)
-a session's documents' render is held through their telling [memory]: KILLED (3 of 32 tests fail)
-a session's documents' render begins before they are taken [memory]: KILLED (3 of 32 tests fail)
-the drain's render begins before its documents are taken [memory]: KILLED (3 of 32 tests fail)
-a document that could not be read is said so inside its render [memory]: KILLED (1 of 32 tests fail)
-a session whose count could not be read is said so inside its render [memory]: KILLED (1 of 32 tests fail)
-a render past the bound is seated [postgres]: KILLED (6 of 42 tests fail)
-a render past its deployment's seats is seated, up to the default's [memory]: KILLED (1 of 32 tests fail)
-a render waits a test host's time for its seat, not its deployment's [memory]: KILLED (1 of 32 tests fail)
-a deployment's count of seats is not read [memory]: KILLED (1 of 32 tests fail)
-a deployment's count of no seats is read [memory]: KILLED (1 of 32 tests fail)
-an empty count of seats is refused, not the default [memory]: KILLED (1 of 32 tests fail)
-a deployment's seat wait is not read [memory]: KILLED (1 of 32 tests fail)
-a deployment's seat wait of no seconds is read [memory]: KILLED (1 of 32 tests fail)
+a render begun inside another is its own [memory]: KILLED (3 of 33 tests fail)
+a render answers for another layer [memory]: KILLED (1 of 33 tests fail)
+a render's queries each read as a query of their own [memory]: KILLED (5 of 33 tests fail)
+a render takes no snapshot, and no seat [postgres]: KILLED (8 of 43 tests fail)
+the drain's count and its documents are two renders [memory]: KILLED (1 of 33 tests fail)
+each document read again is a render of its own [memory]: KILLED (2 of 33 tests fail)
+a page's bindings are not one render [memory]: KILLED (4 of 33 tests fail)
+a call answered again is counted as made [memory]: KILLED (2 of 33 tests fail)
+the platform's calls are merged [memory]: KILLED (1 of 33 tests fail)
+a render reads as any reader does what was invalidated since it began [memory]: KILLED (1 of 33 tests fail)
+the drain's render is held through its telling [memory]: KILLED (2 of 33 tests fail)
+a session's documents' render is held through their telling [memory]: KILLED (3 of 33 tests fail)
+a session's documents' render begins before they are taken [memory]: KILLED (3 of 33 tests fail)
+the drain's render begins before its documents are taken [memory]: KILLED (3 of 33 tests fail)
+a document that could not be read is said so inside its render [memory]: KILLED (1 of 33 tests fail)
+a session whose count could not be read is said so inside its render [memory]: KILLED (1 of 33 tests fail)
+a render past the bound is seated [postgres]: KILLED (6 of 43 tests fail)
+a render past its deployment's seats is seated, up to the default's [memory]: KILLED (1 of 33 tests fail)
+a render waits a test host's time for its seat, not its deployment's [memory]: KILLED (1 of 33 tests fail)
+a deployment's count of seats is not read [memory]: KILLED (1 of 33 tests fail)
+a deployment's count of no seats is read [memory]: KILLED (1 of 33 tests fail)
+an empty count of seats is refused, not the default [memory]: KILLED (1 of 33 tests fail)
+a deployment's seat wait is not read [memory]: KILLED (1 of 33 tests fail)
+a deployment's seat wait of no seconds is read [memory]: KILLED (1 of 33 tests fail)
 the table's check is a test's alone, not a debug build's [debug]: KILLED (1 of 2 tests fail)
 a turn's check is a test's alone, not a debug build's [debug]: KILLED (1 of 2 tests fail)
-a seat is never given back [postgres]: KILLED (5 of 42 tests fail)
-an idle connection is never taken again [bound]: KILLED (1 of 1 tests fail)
-a render's transaction ends after every read [postgres]: KILLED (4 of 42 tests fail)
-a render keeps its transaction after a read that failed [postgres]: KILLED (2 of 42 tests fail)
-a refused seat is read in [postgres]: KILLED (2 of 42 tests fail)
-the store's render on PostgreSQL reads outside its seat [postgres]: KILLED (5 of 42 tests fail)
-the feed's render on PostgreSQL reads outside its seat [postgres]: KILLED (2 of 42 tests fail)
-the store's render in memory reads the store as it is now [memory]: KILLED (2 of 32 tests fail)
-the feed's render in memory reads the feed as it is now [memory]: KILLED (1 of 32 tests fail)
+a seat is never given back [postgres]: KILLED (6 of 43 tests fail)
+an idle connection is never taken again [bound]: KILLED (2 of 2 tests fail)
+a render's transaction ends after every read [postgres]: KILLED (4 of 43 tests fail)
+a render keeps its transaction after a read that failed [postgres]: KILLED (2 of 43 tests fail)
+a refused seat is read in [postgres]: KILLED (2 of 43 tests fail)
+the store's render on PostgreSQL reads outside its seat [postgres]: KILLED (5 of 43 tests fail)
+the feed's render on PostgreSQL reads outside its seat [postgres]: KILLED (2 of 43 tests fail)
+the store's render in memory reads the store as it is now [memory]: KILLED (2 of 33 tests fail)
+the feed's render in memory reads the feed as it is now [memory]: KILLED (1 of 33 tests fail)
 an invalidation of a key leaves its resource unstamped [resource]: KILLED (2 of 4 tests fail)
 an invalidation where keys are named leaves its resource unstamped [resource]: KILLED (1 of 4 tests fail)
 a resource's whole invalidation leaves it unstamped [resource]: KILLED (1 of 4 tests fail)

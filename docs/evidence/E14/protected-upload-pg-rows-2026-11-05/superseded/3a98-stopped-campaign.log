@@ -1,0 +1,63 @@
+baseline 27 native assertions, complete inventories
+KILLED 1/25: upload lifecycle keeps the lock transactions old snapshot for the command; 2 pass/24 fail
+KILLED 2/25: upload lifecycle migrates while another command owns the namespace; 6 pass/20 fail
+KILLED 3/25: upload lifecycle commits claims without actual durable receipts; 25 pass/1 fail
+KILLED 4/25: upload lifecycle forgets receipt requirements for held or discarded claims; 25 pass/1 fail
+KILLED 5/25: upload lifecycle keeps before checking actual row asset fields; 25 pass/1 fail
+KILLED 6/25: upload lifecycle keeps before checking actual registry writes; 23 pass/3 fail
+KILLED 7/25: upload lifecycle trusts prepare across receipt hooks; 23 pass/3 fail
+KILLED 8/25: upload lifecycle verifies before deferred receipt hooks finish; 25 pass/1 fail
+KILLED 9/25: upload lifecycle omits original touched reference uses; 15 pass/11 fail
+KILLED 10/25: upload lifecycle omits final touched reference uses; 7 pass/19 fail
+KILLED 11/25: upload lifecycle commits fresh referenced rows without keeping bytes; 12 pass/14 fail
+KILLED 12/25: upload lifecycle deletes reference counts of unrelated generations; 24 pass/2 fail
+KILLED 13/25: upload lifecycle fails to reuse the current live generation; 24 pass/2 fail
+KILLED 14/25: upload lifecycle accepts an already reserved generation proposal; 25 pass/1 fail
+KILLED 15/25: upload lifecycle serves another declarations current bytes; 25 pass/1 fail
+KILLED 16/25: upload lifecycle processes cleanup beyond the requested bound; 22 pass/4 fail
+KILLED 17/25: upload lifecycle counts suppressed collection completion as done; 25 pass/1 fail
+KILLED 18/25: upload lifecycle forgets physical captured payload deletion; 18 pass/8 fail
+KILLED 19/25: upload lifecycle refuses an applied command when cleanup fails; 21 pass/5 fail
+KILLED 20/25: upload lifecycle fetches non asset payload during metadata verification; 3 pass/23 fail
+KILLED 21/25: upload lifecycle checks registry cardinality but ignores exact state and counts; 22 pass/4 fail
+KILLED 22/25: upload lifecycle releases namespace before physical collection; 25 pass/1 fail
+Traceback (most recent call last):
+  File "/mnt/c/Users/haki/Documents/Codex/2026-11-02/pleris-continuation/work/protected-migration/upload_pg_rows_strict.py", line 31, in <module>
+    passed,failed=run(n,[0] if n<=24 else [1]);assert failed>0,f'survived: {label}'
+  File "/mnt/c/Users/haki/Documents/Codex/2026-11-02/pleris-continuation/work/protected-migration/upload_pg_rows_strict.py", line 22, in run
+    if not result.valid:raise RuntimeError(f'invalid native producer {path}: '+child.stdout[-3000:])
+RuntimeError: invalid native producer /tmp/pw-protected-migration/upload-pg-rows-strict/run-23-00.log: 
+running 26 tests
+test a_missing_real_receipt_refuses_before_keep_and_rolls_back_rows_and_registry ... ok
+test a_fresh_unknown_commit_keeps_its_bytes_and_durable_record_without_guessing_rollback ... ok
+test actual_generation_descriptors_are_verified_before_keep ... ok
+test actual_reference_counts_are_verified_before_keep ... ok
+test actual_row_asset_fields_are_verified_before_keep ... ok
+test an_actual_applied_commit_with_a_lost_answer_reports_unknown_and_does_no_collection ... ok
+test a_waiting_namespace_lock_cannot_freeze_the_commands_first_snapshot_before_the_previous_commit has been running for over 60 seconds
+test application_schema_migration_waits_on_the_same_namespace_before_ddl has been running for over 60 seconds
+test a_waiting_namespace_lock_cannot_freeze_the_commands_first_snapshot_before_the_previous_commit ... FAILED
+test authoritative_reads_require_current_own_refs_and_distinguish_missing_live_storage_from_no_ref ... ok
+test backend_death_after_committed_no_ref_check_cannot_make_old_collection_remove_new_same_hash_bytes ... FAILED
+test changing_one_generation_preserves_unrelated_live_descriptors_counts_and_bytes ... ok
+test declarations_share_live_bytes_only_after_independent_publication_and_keep_current_counts_separate ... ok
+test deferred_receipt_hooks_finish_before_final_registry_verification_and_commit ... ok
+test final_moves_and_repeated_replacement_do_not_retire_live_bytes_or_use_transient_publications ... ok
+test fresh_publication_keeps_bytes_and_commits_registry_rows_and_actual_receipt_together ... ok
+test ignored_publication_and_rejected_row_do_not_keep_or_settle_untouched_old_uses ... ok
+test keep_failure_rolls_back_and_collection_failure_preserves_applied_ack_and_a_durable_job ... ok
+test late_receipt_hooks_cannot_change_registry_counts_after_prepare ... ok
+test late_receipt_hooks_cannot_change_row_asset_fields_after_prepare ... ok
+test application_schema_migration_waits_on_the_same_namespace_before_ddl ... FAILED
+test plain_changed_and_retired_refs_cannot_create_authority_but_a_current_ref_can_be_copied ... ok
+test prefix_deletion_uses_actual_removed_keys_and_nul_string_keys_remain_indexable ... ok
+test preparing_one_asset_key_returns_no_unrelated_rows_or_non_asset_payload ... ok
+test suppressed_collection_completion_leaves_a_retryable_job_and_never_refuses_the_applied_command ... ok
+test the_final_session_clock_fence_runs_after_blocking_keep_on_the_same_single_connection ... ok
+test two_genuine_cleanup_jobs_obey_zero_one_and_two_limits_and_complete_only_captured_jobs ... ok
+test namespace_waiters_hold_no_host_turn_and_begin_no_command_snapshot_before_exclusion has been running for over 60 seconds
+error: test failed, to rerun pass `-p pw-table-postgres --test asset_rows`
+
+Caused by:
+  process didn't exit successfully: `/home/haki/code/pw-wt/data-path/target/debug/deps/asset_rows-4b46d8337cc35374 --format=pretty --test-threads=2 --quiet` (signal: 15, SIGTERM: termination signal)
+

@@ -9,6 +9,8 @@
 //! 64 lowercase hexadecimal digits or it is not a key.
 
 use sha2::{Digest, Sha256};
+
+mod assets;
 use std::io;
 use std::path::PathBuf;
 
@@ -55,6 +57,7 @@ pub trait BlobStore: Send + Sync {
 /// two servers of one build, each with its own leases, forget each other's.
 #[derive(Default)]
 pub struct MemoryBlobs {
+    assets: std::sync::Mutex<assets::MemoryState>,
     kept: std::sync::Mutex<std::collections::BTreeMap<BlobKey, Vec<u8>>>,
 }
 
@@ -151,7 +154,14 @@ impl BlobStore for LocalBlobs {
         let mut n = 0;
         for dir in std::fs::read_dir(&self.root)? {
             let dir = dir?.path();
-            if dir.is_dir() {
+            if dir.is_dir()
+                && dir
+                    .file_name()
+                    .and_then(|name| name.to_str())
+                    .is_some_and(|name| {
+                        name.len() == 2 && name.bytes().all(|b| matches!(b,b'0'..=b'9'|b'a'..=b'f'))
+                    })
+            {
                 for f in std::fs::read_dir(dir)? {
                     let named = f?.file_name();
                     n += usize::from(!named.to_string_lossy().starts_with('.'));

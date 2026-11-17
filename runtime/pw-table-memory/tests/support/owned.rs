@@ -100,6 +100,9 @@ impl Component {
 }
 
 struct Program {
+    // Only the shared upload fixture inspects this projection.
+    #[allow(dead_code)]
+    uploads: String,
     tables: pw_core::tables::TablesJson,
     manifest: pw_host::tables::Manifest,
     components: BTreeMap<String, Component>,
@@ -196,6 +199,7 @@ fn from_units(units: Vec<Unit>) -> Program {
         );
     }
     Program {
+        uploads: serde_json::to_string(&build.uploads).expect("uploads.json"),
         tables: build.tables.clone(),
         manifest,
         components,

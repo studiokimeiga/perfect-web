@@ -207,6 +207,29 @@ pub(crate) trait DataLayer: Send + Sync {
         Ok(false)
     }
 
+    /// Current same-declaration generic authority and verified physical bytes.
+    /// A bound generic layer must implement this before it serves images.
+    fn read_asset(
+        &self,
+        _declaration: &str,
+        _key: &str,
+        _kind: &str,
+    ) -> Result<Option<(pw_host::assets::Descriptor, Vec<u8>)>, String> {
+        Err("this data layer supplies no generic upload generation reader".into())
+    }
+
+    /// **An interaction's raw upload receipt** (ADR-0440, L5b): its record as
+    /// the database keeps it, undecoded, read under the layer's reacquired
+    /// lifetime, so that an attempt whose outcome is unknown is settled only
+    /// by its own nonce. A layer that keeps no uploads beside its records has
+    /// none to read.
+    fn upload_receipt(
+        &self,
+        _key: &str,
+    ) -> Result<Option<crate::uploads::generic::Receipt>, String> {
+        Err("this data layer keeps no upload receipts".into())
+    }
+
     /// **Whether it keeps a command's interactions in its own transactions**
     /// (ADR-0325): a layer whose writes outlive the host, which a restarted
     /// host or a second one reads, keeps their records beside them. By
@@ -411,7 +434,44 @@ pub(crate) trait Staged {
     fn conflicted(&self) -> bool {
         false
     }
+
+    /// **Whether a failed commit kept nothing of its upload claims' attempt**
+    /// (ADR-0440, L5b): [`Self::definitely_refused`], or another attempt's
+    /// record answered the interaction before this one's `COMMIT`. Its
+    /// claims are then given back; any other failure leaves them pending.
+    fn claims_kept_nothing(&self) -> bool {
+        self.definitely_refused()
+    }
+
+    /// **What publishes an upload in this command's own transaction**
+    /// (ADR-0440, L5b), taken after the command's authority and before it
+    /// runs: none where the layer keeps no uploads.
+    fn upload_publisher(&mut self) -> Result<Option<UploadPublisher>, String> {
+        Ok(None)
+    }
 }
+
+/// **A command's own upload publication** (ADR-0440, L5b): `publish`
+/// proposes a canonical descriptor and its bytes to the layer, in the
+/// command's transaction, and answers the reference the layer keeps;
+/// `require_receipt` says the commit must carry its interaction's record.
+#[derive(Clone)]
+pub(crate) struct UploadPublisher {
+    pub(crate) publish: PublishUpload,
+    pub(crate) require_receipt: Arc<dyn Fn() -> Result<(), String> + Send + Sync>,
+}
+
+/// The layer's proposal of a canonical descriptor and its bytes, in the
+/// command's transaction, answered with the reference it keeps.
+pub(crate) type PublishUpload = Arc<
+    dyn Fn(
+            &str,
+            pw_host::assets::Descriptor,
+            Arc<[u8]>,
+        ) -> Result<pw_host::assets::Reference, String>
+        + Send
+        + Sync,
+>;
 
 thread_local! {
     /// The component of the last command this thread ran that failed in a

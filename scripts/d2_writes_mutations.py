@@ -139,9 +139,8 @@ MUTANTS = [
     ("a write's capability is its table's read", TABLES,
      "                Access::Write(_) => (\"write\", true),\n",
      "                Access::Write(_) => (\"read\", true),\n"),
-    ("the engine takes every export for a command", HOST,
-     "        let command = export_kind(contract, export) == Some(\"command\");\n",
-     "        let command = { let _ = export_kind(contract, export); true };\n"),
+    ('the engine takes every export for a command', HOST,
+     '        let command = export_kind(contract, export) == Some("command");\n        let table_functions = crate::tables::gate_links(contract, granted, tables, command)?;\n', '        let command = { let _ = export_kind(contract, export); true };\n        let table_functions = crate::tables::gate_links(contract, granted, tables, command)?;\n'),
     # 3. typed where it links
     ("a written row goes untyped where it links", LINK,
      "            record(&write.row, row).map_err(|why| format!(\"its row: {why}\"))\n",

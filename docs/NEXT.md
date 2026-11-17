@@ -6,6 +6,44 @@
 
 # Next
 
+## After L5, declared uploads, 2026-11-17
+
+L5, the fifth train of the declared data layer's landing (ADR-0440's fourth
+prerequisite, declared uploads), on L4: L5a's uploads to their claim ledger
+and L5b's claim bridge, as one train from `wip/l5b-claims`. What stays open,
+in order:
+
+1. **L5's record**: the full verify 43929087203 at `83ad1ab1`, fetched
+   (`e0377273`, 356 of 361 recipes); its five failures repaired or run
+   again at the head (`ci_plan.py --changed e0377273 HEAD`, and
+   `e10-browser`): the repairs' verify 43978661391 at `41a73a48`, 15 of 15
+   (`94d1f8ab`; ADR-0440, "Landing (L5)").
+2. **L5's follow-up** (`wip/l5-followups`, its own PR after L5): each upload
+   and asset refusal told by a rule of its own (PW5604, PW5605, PW0371),
+   the asset tests' refusals held to their reasons, a d3 part refused where
+   it holds no mutant and costed by its own, and corpus cases for each
+   upload and asset rule; and the second L5 review's four lows of code: a
+   script's database URL read wherever it names one, the upload recipes'
+   evidence shown when they fail, the render-merge test holding a render
+   to its connection's backend, and upload-metadata's validator listing
+   every test file its filter runs.
+3. **One contract suite for assets** over memory and PostgreSQL alike
+   (L5a's review, a low finding).
+4. **WebKit's cut-off test** (`e2e/connections.spec.mjs`): in two of three
+   runs of L5's full verify WebKit's network process failed after the
+   server's forced reconnect, and the press's handler module, loaded at its
+   first press, failed to import. The repairs' verify passed it in all
+   three runs. It stays here until master's nightlies pass it too.
+5. **Public initialization, stable ids and private child deletion**, as the
+   ports need them.
+6. **L7, the canonical feed and store on tables**, as after L4 (item 4).
+7. **The benchmark baselines' Node patches**: landed (#127, 2026-11-17;
+   ADR-0120, amended), as after L4 (item 5); the owner's standing approval
+   takes each later patch-level security update through the same gates.
+
+Keep the mixed-layer startup refusal until its replacement is real; a
+program's uploads beside its tables are served only through L5b's gates.
+
 ## After L4, bounded reads, 2026-11-16
 
 L4, the fourth train of the declared data layer's landing (ADR-0440's
@@ -22,8 +60,30 @@ owner. What stays open, in order:
    (`bddbcf54`, 355 of 357 recipes); its two failures and the review's two
    findings repaired at the head, and what they reach verified again there
    (`ci_plan.py --changed 7b8fb7cc HEAD`) before the PR merges.
-2. **L5, declared uploads** (ADR-0440's fourth prerequisite; `018fad14`):
-   generic upload claims, publication and reference lifetime. Keep the
+2. **L5, declared uploads** (ADR-0440's fourth prerequisite), in two parts.
+   L5a, the integration branch's forty-two commits to `64f03ec9` and the
+   claim ledger `018fad14`, merged on L4 (`wip/l5-uploads`), its record
+   the full verify at its head; then L5b, the server's claim bridge:
+   compiled upload imports bound to an invocation's ledger, the attempt's
+   nonce in the commit's record, its outcome applied or refused, an
+   unknown one reconciled from the raw receipt, and the startup refusal
+   opened only with those gates. Built on `wip/l5b-claims`: twenty-eight
+   server tests, the seven ADR-0440 owed among them, and thirty mutants;
+   independently reviewed, its findings repaired. L5a was reviewed too,
+   and L5 lands as one train from that branch, L5a's findings repaired
+   there (ADR-0440, "L5a reviewed"). Landed 2026-11-17 (after L5, above).
+
+   Left from the reviews, each low (the first of L5a's, mutants for three
+   PostgreSQL rules, done before the full verify: `propose_asset`'s
+   descriptor immutability and `lock_lifetime`'s marker check each a test
+   and a mutant, in `e14-d3-postgres-2`; `persist`'s `ON CONFLICT` guard
+   no command reaches, as ADR-0440's L5 landing says):
+   - upload refusals with codes of their own, not PW5601's invariant, and
+     corpus cases for each upload and asset rule;
+   - the bare `is_err()` refusals in the asset tests held to their reasons;
+   - one contract suite for assets over memory and PostgreSQL alike.
+
+   Keep the
    mixed-layer and upload startup refusals until their replacements are
    real; the design must address cross-host last-reference races, database
    disconnects during physical cleanup, immutable storage generations,

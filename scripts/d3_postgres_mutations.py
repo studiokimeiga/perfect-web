@@ -45,14 +45,17 @@ They need a database: `PW_TABLES_DATABASE_URL` (or `PW_STORE_DATABASE_URL`,
 of its own. Without it every test passes doing nothing, and no mutant could
 be killed, so this refuses to run.
 
-Run whole from the repository root (`just e14-d3-postgres`). Every source is
-restored in finally; the unmutated baseline must pass before any mutant
-means anything. Words given as arguments run only the mutants whose
-description holds one of them, for a quick look while working; the record is
-a whole run.
+Run from the repository root: `just e14-d3-postgres` records part 1 of
+`PARTS` (D3's own mutants), `just e14-d3-postgres-2` part 2 (the uploads'),
+each `--part i/2`; with no part, every mutant runs. Every source is restored
+in finally; the unmutated baseline, every test binary, must pass before any
+mutant means anything, and each part runs it. Words given as arguments run
+only the mutants whose description holds one of them, for a quick look while
+working; the record is a whole part.
 """
 import os
 import pathlib
+import re
 import subprocess
 import sys
 
@@ -71,7 +74,106 @@ POOL = CRATE / "src/pool.rs"
 # The workspace's manifest: serde_json's `float_roundtrip` (the review of 2026-11-02).
 CARGO = ROOT / "Cargo.toml"
 
-MUTANTS = [
+# **The uploads' mutants** (ADR-0440's L5): the namespace, its generations,
+# its receipts and its enrollment on PostgreSQL. Part 2 of `PARTS`, run by
+# `just e14-d3-postgres-2`.
+UPLOADS = [
+    ('upload lifecycle keeps without verifying exact receipt after immediate hooks', ROOT / 'runtime/pw-table-postgres/src/lib.rs',
+     '                assets::verify_receipt(\n                    &inner,\n                    conn,\n                    prepared_assets.receipt_required,\n                    records.interaction,\n                )?;', '                let _ = records.interaction;'),
+    ('upload lifecycle commits without verifying exact receipt after deferred hooks', ROOT / 'runtime/pw-table-postgres/src/lib.rs',
+     '            if let Err(error) = assets::verify_receipt(\n                &inner,\n                conn,\n                prepared_assets.receipt_required,\n                records.interaction,\n            ) {', '            if let Err(error) = Ok::<(), Error>(()) {'),
+    ('upload lifecycle acknowledges a reinserted captured cleanup job', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
+     '    if !remaining.is_empty() {\n        return Err(Error::Refused(\n            "captured collection job remains after completion".into(),', '    if false && !remaining.is_empty() {\n        return Err(Error::Refused(\n            "captured collection job remains after completion".into(),'),
+    ('upload lifecycle keeps the lock transactions old snapshot for the command', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
+     '    conn.batch(&inner.counters, "COMMIT").map_err(database)?;', '    conn.batch(&inner.counters, "SELECT 1").map_err(database)?;'),
+    ('upload lifecycle migrates while another command owns the namespace', ROOT / 'runtime/pw-table-postgres/src/migrate.rs',
+     '        enrollment.lifetime = Some(crate::assets::acquire_namespace(conn, counters, namespace)?);', '        let _ = namespace;\n        enrollment.lifetime = None;'),
+    ('upload lifecycle commits claims without actual durable receipts', ROOT / 'runtime/pw-table-postgres/src/lib.rs',
+     '        if open.assets.receipt_required && records.interaction.is_none() {', '        if false && open.assets.receipt_required && records.interaction.is_none() {'),
+    ('upload lifecycle forgets receipt requirements for held or discarded claims', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
+     '        open.assets.receipt_required = true;\n        Ok(())\n    }\n}\nimpl Prepared {', '        open.assets.receipt_required = false;\n        Ok(())\n    }\n}\nimpl Prepared {'),
+    ('upload lifecycle keeps before checking actual row asset fields', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
+     '    verify_rows(inner, open)?;\n    let conn = inner.command_conn(open)?;\n    let held = counts', '    let conn = inner.command_conn(open)?;\n    let held = counts'),
+    ('upload lifecycle keeps before checking actual registry writes', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
+     '    verify_plans(inner, conn, &plans)?;', '    let _ = &plans;'),
+    ('upload lifecycle trusts prepare across receipt hooks', ROOT / 'runtime/pw-table-postgres/src/lib.rs',
+     'assets::verify_before_commit(&inner, open, &prepared_assets)', 'Ok::<(), Error>(())'),
+    ('upload lifecycle verifies before deferred receipt hooks finish', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
+     '"SET CONSTRAINTS ALL IMMEDIATE"', '"SELECT 1"'),
+    ('upload lifecycle omits original touched reference uses', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
+     '[(before, 1, 0), (after, 0, 1)]', '[(before, 0, 0), (after, 0, 1)]'),
+    ('upload lifecycle omits final touched reference uses', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
+     '[(before, 1, 0), (after, 0, 1)]', '[(before, 1, 0), (after, 0, 0)]'),
+    ('upload lifecycle commits fresh referenced rows without keeping bytes', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
+     '        if plan.keep_new {', '        if false && plan.keep_new {'),
+    ('upload lifecycle deletes reference counts of unrelated generations', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
+     'DELETE FROM {} WHERE generation=$1 RETURNING declaration', 'DELETE FROM {} WHERE generation=$1 OR $1 IS NOT NULL RETURNING declaration'),
+    ('upload lifecycle fails to reuse the current live generation', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
+     '        let selected = current\n            .as_ref()\n            .or_else(|| open.assets.candidates.get(&incoming.reference.key));', '        let _ = current;\n        let selected: Option<&Descriptor> = None;'),
+    ('upload lifecycle accepts an already reserved generation proposal', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
+     '            if !conn\n                .query(', '            if false && !conn\n                .query('),
+    ('upload lifecycle serves another declarations current bytes', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
+     'AND r.declaration=$3 AND r.count>0 LIMIT 2', 'AND ($3::text IS NOT NULL) AND r.count>0 LIMIT 2'),
+    ('upload lifecycle processes cleanup beyond the requested bound', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
+     'g.generation <= $2, g.generation LIMIT $1', 'g.generation <= $2, g.generation LIMIT GREATEST($1,2)'),
+    ('upload lifecycle acknowledges cleanup without completion verification', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
+     '    if rows.len() != 1 {\n        return Err(Error::Refused(\n            "captured collection completion was suppressed".into(),\n        ));\n    }\n    let sql = format!(\n        "SELECT 1 FROM {} WHERE generation=$1",\n        inner.names.qualified("pw_asset_collections")\n    );\n    let remaining = conn\n        .query(\n            &inner.counters,\n            &sql,\n            &[Box::new(captured.reference.generation.clone())],\n        )\n        .map_err(database)?;\n    if !remaining.is_empty() {\n        return Err(Error::Refused(\n            "captured collection job remains after completion".into(),\n        ));\n    }', '    let _ = rows;'),
+    ('upload lifecycle forgets physical captured payload deletion', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
+     '.collect_generation(&binding.namespace, captured)', '.get_generation(&binding.namespace, captured).map(|_| ())'),
+    ('upload lifecycle refuses an applied command when cleanup fails', ROOT / 'runtime/pw-table-postgres/src/lib.rs',
+     '        let _ = assets::collect_committed(&inner, open);', '        assets::collect_committed(&inner, open)?;'),
+    ('upload lifecycle fetches non asset payload during metadata verification', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
+     '            selected.join(","),', '            { let _ = &selected; "t.*".to_string() },'),
+    ('upload lifecycle checks registry cardinality but ignores exact state and counts', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
+     '        || plans.iter().any(|p| {', '        || false && plans.iter().any(|p| {'),
+    ('upload lifecycle releases namespace before physical collection', ROOT / 'runtime/pw-table-postgres/src/lib.rs',
+     '        let _ = assets::collect_committed(&inner, open);', '        if let Some(key) = open.lifetime.take() { if let Some(lease) = open.lease.as_mut() { inner.unfence(lease,key); } }\n        let _ = assets::collect_committed(&inner, open);'),
+    ('upload enrollment verifies metadata before deferred schema hooks finish', ROOT / 'runtime/pw-table-postgres/src/migrate.rs',
+     '"SET CONSTRAINTS ALL IMMEDIATE"', '"SELECT 1"'),
+    ('upload enrollment erases asset history after metadata loss', ROOT / 'runtime/pw-table-postgres/src/assets.rs',
+     '                if bindings.get(&(table.name.clone(), asset.field.clone())) != Some(&expected) {', '                if false && bindings.get(&(table.name.clone(), asset.field.clone())) != Some(&expected) {'),
+    ('upload enrollment accepts rewritten persisted metadata after schema recording', ROOT / 'runtime/pw-table-postgres/src/assets.rs',
+     '    if stored != expected {', '    if false && stored != expected {'),
+    ('upload enrollment skips final metadata verification for unbound manifests', ROOT / 'runtime/pw-table-postgres/src/assets.rs',
+     '        (None, None) => Metadata {\n            namespace: None,\n            declarations: BTreeMap::new(),\n            bindings: BTreeMap::new(),\n        },', '        (None, None) => return Ok(()),'),
+    ('upload enrollment accepts changed immutable base declarations', ROOT / 'runtime/pw-table-postgres/src/assets.rs',
+     '        if config.declarations.get(name) != Some(old) {', '        if false && config.declarations.get(name) != Some(old) {'),
+    ('upload enrollment accepts changed immutable field associations', ROOT / 'runtime/pw-table-postgres/src/assets.rs',
+     '        if config.bindings.get(binding) != Some(old) {', '        if false && config.bindings.get(binding) != Some(old) {'),
+    ('upload enrollment enrolls structural references on existing tables', ROOT / 'runtime/pw-table-postgres/src/assets.rs',
+     '        if !bindings.contains_key(&(table.clone(), field.clone()))\n            && recorded.is_some_and(|schema| schema.tables.iter().any(|t| &t.name == table))', '        if false && !bindings.contains_key(&(table.clone(), field.clone()))\n            && recorded.is_some_and(|schema| schema.tables.iter().any(|t| &t.name == table))'),
+    ('upload enrollment does not verify existing namespace markers', ROOT / 'runtime/pw-table-postgres/src/assets.rs',
+     '            config\n                .store\n                .enroll(&namespace, false)\n                .map_err(storage_error)?;', '            let _ = &namespace;'),
+    ('upload enrollment commits fresh namespace rows without storage enrollment', ROOT / 'runtime/pw-table-postgres/src/assets.rs',
+     '            config\n                .store\n                .enroll(&config.candidate, true)\n                .map_err(storage_error)?;', '            let _ = &config.candidate;'),
+    ('upload enrollment accepts suppressed metadata inserts', ROOT / 'runtime/pw-table-postgres/src/assets.rs',
+     '    if rows.len() != 1 {', '    if false && rows.len() != 1 {'),
+    ('upload enrollment allows collisions with asset platform relation names', ROOT / 'runtime/pw-table-postgres/src/shape.rs',
+     ' || name.starts_with("pw_asset_")', ' || false && name.starts_with("pw_asset_")'),
+    # L5a's review, finding L4: two rules of the PostgreSQL lifecycle that
+    # no mutant held (the third it named, `persist`'s ON CONFLICT guard, no
+    # command can reach: ADR-0440's L5 landing says why).
+    ('upload lifecycle adopts a live generation whose descriptor a publication changes', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
+     '            if &same != selected {\n                return Err(Error::Input(\n                    "publication changes an immutable descriptor".into(),',
+     '            if false && &same != selected {\n                return Err(Error::Input(\n                    "publication changes an immutable descriptor".into(),'),
+    ('upload lifecycle holds no command to its storage namespace marker', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
+     '    binding\n        .store\n        .enroll(&binding.namespace, false)\n        .map_err(|e| Error::Refused(format!("upload storage namespace: {e}")))?;\n    Ok(Some(key))',
+     '    let _ = &binding.store;\n    Ok(Some(key))'),
+    ('upload lifecycle skips namespace exclusion before the host turn', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
+     'pub(crate) fn lock_lifetime(inner: &Inner, lease: &mut Lease) -> Result<Option<i64>, Error> {\n    let Some(binding) = &inner.uploads else {\n        return Ok(None);\n    };\n    let conn = lease.conn()?;\n    conn.batch(&inner.counters, "BEGIN").map_err(database)?;\n    let key = acquire_namespace(conn, &inner.counters, &binding.namespace)?;\n    conn.batch(&inner.counters, "COMMIT").map_err(database)?;\n    binding\n        .store\n        .enroll(&binding.namespace, false)\n        .map_err(|e| Error::Refused(format!("upload storage namespace: {e}")))?;\n    Ok(Some(key))\n}\n', 'pub(crate) fn lock_lifetime(inner: &Inner, lease: &mut Lease) -> Result<Option<i64>, Error> {\n    let Some(binding) = &inner.uploads else {\n        return Ok(None);\n    };\n    let conn = lease.conn()?;\n    conn.batch(&inner.counters, "BEGIN").map_err(database)?;\n    let key = acquire_namespace(conn, &inner.counters, &binding.namespace)?;\n    release_namespace(conn, &inner.counters, key)?;\n    conn.batch(&inner.counters, "COMMIT").map_err(database)?;\n    binding\n        .store\n        .enroll(&binding.namespace, false)\n        .map_err(|e| Error::Refused(format!("upload storage namespace: {e}")))?;\n    Ok(None)\n}\n'),
+]
+
+# **D3's own mutants** (ADR-0338, ADR-0393): the declared tables. Part 1 of
+# `PARTS`, run by `just e14-d3-postgres`.
+DECLARED = [
+    ('closed cases PostgreSQL additive columns use a different encoding', MIGRATE,
+     '    let (kind, nullable) = crate::shape::column_of(&field.stored);', '    let (kind, nullable) = match &field.stored {\n        Stored::Option(inner) if matches!(**inner, Stored::Cases(_)) => (crate::shape::Kind::Json, true),\n        _ => crate::shape::column_of(&field.stored),\n    };'),
+    ('closed cases PostgreSQL accepts unknown stored tags', ROOT / 'runtime/pw-table-postgres/src/shape.rs',
+     '            .is_some_and(|tag| case_tags(cases).is_some_and(|tags| tags.iter().any(|t| t == tag))),', '            .is_some_and(|_tag| case_tags(cases).is_some()),'),
+    ('closed cases PostgreSQL stores scalar tags as JSON', ROOT / 'runtime/pw-table-postgres/src/shape.rs',
+     '        Stored::String { .. } | Stored::Cases(_) => (Kind::Bytes, false),', '        Stored::String { .. } => (Kind::Bytes, false),\n        Stored::Cases(_) => (Kind::Json, false),'),
+    ('closed cases PostgreSQL serves assets without a binding', ROOT / 'runtime/pw-table-postgres/src/shape.rs',
+     '        .any(|table| !table.schema.assets.is_empty())', '        .any(|table| false && !table.schema.assets.is_empty())'),
     ('relations scalar ignores its whole source selector', SQL,
      'WHERE {} AND {matched}) ORDER BY {order} LIMIT ${parameter}::bigint",',
      'WHERE ({} OR true) AND {matched}) ORDER BY {order} LIMIT ${parameter}::bigint",'),
@@ -366,6 +468,11 @@ MUTANTS = [
     ('postgres operation accounting hides a data statement', POOL,
      '        counters\n            .operation_statements\n            .fetch_add(1, Ordering::Relaxed);\n        let rows = self.client.query(&statement, &refs(params))?;\n',
      '        let rows = self.client.query(&statement, &refs(params))?;\n'),
+    # The review of a7c3377b (ADR-0440, L5b): a client that vanished lets go
+    # of its session, and its locks, within a minute.
+    ("a connection keeps the operating system's keepalives", POOL,
+     "        for keepalive in KEEPALIVES {\n            let _ = client.batch_execute(keepalive);\n        }\n",
+     "        let _ = KEEPALIVES;\n"),
     ('postgres operation accounting counts a transaction boundary as data', POOL,
      '        if !matches!(\n            sql,\n',
      '        if true || !matches!(\n            sql,\n'),
@@ -379,9 +486,24 @@ MUTANTS = [
      "                SET through = through;\n"),
 ]
 
+# **Two recipes, each a part** (ADR-0393, amended 2026-11-17, after the
+# integrator's ruling 2 of 2026-10-17): the whole no longer fits a CI job.
+# L5a's verify 43860567064 ran its 133 mutants and baseline in 16,275 s,
+# 122 s a run, on a runner that took its shard's other recipes 1.6 to 2.2
+# times as long as L4's verify had: a runner that slow ends the whole past
+# the 20,700 s a job runs. Ranges of `MUTANTS`, half open: part 1 D3's own,
+# part 2 the uploads'; `evidence_counts.py` holds the two to every mutant
+# once. A run with no part runs every mutant.
+MUTANTS = DECLARED + UPLOADS
+PARTS = [(0, len(DECLARED)), (len(DECLARED), len(MUTANTS))]
+
 # Each test binary apart: names can repeat between binaries, and the native
 # assertion validator expects one complete inventory each.
 TESTS = [
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "asset_rows"],
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "asset_enrollment"],
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "compiled_cases"],
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "compiled_assets"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "compiled_relations"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "compiled_ranges"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "compiled_windows"],
@@ -400,7 +522,7 @@ TESTS = [
 # Every test binary of the crate is one of them.
 assert sorted(t[-1] for t in TESTS if "--test" in t) == sorted(p.stem for p in (CRATE / "tests").glob("*.rs"))
 
-SOURCES = [MIGRATE] + sorted((CRATE / "tests").rglob("*.rs")) + sorted((ROOT / "runtime/pw-table-memory/tests/support").glob("*.rs"))
+SOURCES = [MIGRATE, POOL] + sorted((CRATE / "tests").rglob("*.rs")) + sorted((ROOT / "runtime/pw-table-memory/tests/support").glob("*.rs"))
 INVENTORY = {}
 
 
@@ -433,8 +555,26 @@ def run_tests():
     return True, passed, failed
 
 
+def chosen(argv: list[str]) -> tuple[list, str]:
+    """The mutants a run asks for, and how its output says which: `--part
+    i/n`, the i-th of `PARTS`, where n is how many there are; those whose
+    description holds one of the words given; every mutant where nothing is
+    asked."""
+    if argv[:1] == ["--part"]:
+        asked = re.fullmatch(r"(\d+)/(\d+)", argv[1]) if len(argv) == 2 else None
+        if asked is None or int(asked.group(2)) != len(PARTS) or not 1 <= int(asked.group(1)) <= len(PARTS):
+            raise SystemExit(f"d3_postgres_mutations.py: ask for every mutant, words, or --part i/{len(PARTS)}")
+        i = int(asked.group(1))
+        start, end = PARTS[i - 1]
+        return MUTANTS[start:end], f"part {i} of {len(PARTS)}: mutants {start + 1} to {end} of {len(MUTANTS)}"
+    return [m for m in MUTANTS if not argv or any(w in m[0] for w in argv)], ""
+
+
 def main():
     import mutation_baseline  # keeps every command and reports a red baseline
+    picked, which = chosen(sys.argv[1:])
+    if which:
+        print(which, flush=True)
     if not database():
         print("FAIL: no database is named (PW_TABLES_DATABASE_URL, PW_STORE_DATABASE_URL or")
         print("PW_FEED_DATABASE_URL); without one every test passes doing nothing, and no")
@@ -446,9 +586,8 @@ def main():
         print("FAIL: the unmutated baseline is not green; no mutant can mean anything")
         mutation_baseline.explain()
         return 1
-    chosen = [m for m in MUTANTS if not sys.argv[1:] or any(w in m[0] for w in sys.argv[1:])]
     survivors = 0
-    for what, path, anchor, replacement in chosen:
+    for what, path, anchor, replacement in picked:
         original = path.read_text()
         if original.count(anchor) != 1:
             print(f"{what}: ANCHOR NOT FOUND EXACTLY ONCE in {path.name}", flush=True)
@@ -465,7 +604,7 @@ def main():
             verdict = "SURVIVED"
             survivors += 1
         print(f"{what}: {verdict}", flush=True)
-    print(f"{len(chosen) - survivors} of {len(chosen)} mutants killed")
+    print(f"{len(picked) - survivors} of {len(picked)} mutants killed")
     return 1 if survivors else 0
 
 

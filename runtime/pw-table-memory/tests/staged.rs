@@ -58,6 +58,7 @@ fn function(
 /// `Users` at most `bound` rows, and their `Posts`.
 fn manifest(bound: u64) -> TablesJson {
     let users = TableSchema {
+        assets: Vec::new(),
         name: "Users".into(),
         source: None,
         fields: vec![field("id", string()), field("name", string())],
@@ -71,6 +72,7 @@ fn manifest(bound: u64) -> TablesJson {
         references: vec![],
     };
     let posts = TableSchema {
+        assets: Vec::new(),
         name: "Posts".into(),
         source: None,
         fields: vec![

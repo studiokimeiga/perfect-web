@@ -53,6 +53,21 @@ impl<'a> postgres::types::FromSql<'a> for PayloadBytes {
     }
 }
 
+/// **How soon the database lets go of a client that vanished** (ADR-0440,
+/// L5b; the review of a7c3377b): the keepalives the server sends on an idle
+/// connection. A client gone without closing its socket (a partition, a
+/// NAT's timeout) would otherwise keep its session, and every session-level
+/// lock it took (an upload namespace's), until the operating system's
+/// default noticed: two hours on Linux. With these, about a minute (30 s,
+/// then three probes 10 s apart). Each is set apart, and a platform that
+/// does not support one refuses it (it must stay zero there) and keeps the
+/// connection; a Unix-domain socket's session ignores them.
+pub(crate) const KEEPALIVES: [&str; 3] = [
+    "SET tcp_keepalives_idle = 30",
+    "SET tcp_keepalives_interval = 10",
+    "SET tcp_keepalives_count = 3",
+];
+
 /// One connection and the statements it has prepared, by their text.
 pub(crate) struct Conn {
     client: Client,
@@ -65,6 +80,9 @@ impl Conn {
     /// runs, so not counted).
     fn connect(url: &str, setup: Option<&str>) -> Result<Conn, Error> {
         let mut client = Client::connect(url, NoTls).map_err(crate::database)?;
+        for keepalive in KEEPALIVES {
+            let _ = client.batch_execute(keepalive);
+        }
         if let Some(setup) = setup {
             client.batch_execute(setup).map_err(crate::database)?;
         }
@@ -291,5 +309,56 @@ impl Lease {
 impl Drop for Lease {
     fn drop(&mut self) {
         self.pool.give_back(self.conn.take());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// **A session ends about a minute after its client vanished** (the
+    /// review of a7c3377b): each connection the adapter opens over TCP sets
+    /// the server's keepalives, so a half-open client's session, and every
+    /// session-level lock it holds, does not outlive it by hours.
+    #[test]
+    fn each_connection_sets_the_servers_keepalives() {
+        let Some(url) = [
+            "PW_TABLES_DATABASE_URL",
+            "PW_STORE_DATABASE_URL",
+            "PW_FEED_DATABASE_URL",
+        ]
+        .iter()
+        .find_map(|name| std::env::var(name).ok().filter(|v| !v.is_empty())) else {
+            return;
+        };
+        let connected = Conn::connect(&url, None);
+        assert!(connected.is_ok(), "connected: {:?}", connected.err());
+        let Ok(mut conn) = connected else {
+            unreachable!("asserted above")
+        };
+        let settings = conn.client.query(
+            "SELECT name, setting FROM pg_settings WHERE name IN \
+             ('tcp_keepalives_idle', 'tcp_keepalives_interval', 'tcp_keepalives_count') \
+             AND inet_server_addr() IS NOT NULL ORDER BY name",
+            &[],
+        );
+        assert!(settings.is_ok(), "read: {:?}", settings.err());
+        let rows: Vec<(String, String)> = settings
+            .unwrap_or_default()
+            .iter()
+            .map(|row| (row.get(0), row.get(1)))
+            .collect();
+        // A Unix-domain socket's session holds no keepalive: nothing to read.
+        if rows.is_empty() {
+            return;
+        }
+        assert_eq!(
+            rows,
+            [
+                ("tcp_keepalives_count".to_string(), "3".to_string()),
+                ("tcp_keepalives_idle".to_string(), "30".to_string()),
+                ("tcp_keepalives_interval".to_string(), "10".to_string()),
+            ]
+        );
     }
 }

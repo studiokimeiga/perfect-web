@@ -791,7 +791,9 @@ pub(crate) fn objects(names: &Names, tables: &[TableShape]) -> BTreeMap<String, 
 /// The relations the adapter keeps beside the program's, by name: its
 /// tables, their keys' indexes, its indexes and its identities' sequences
 /// (`migrate`'s platform versions 0001 through 0003; 0004 adds two
-/// triggers and their functions, no relation).
+/// triggers and their functions, no relation). 0005's upload relations are
+/// not listed: they are the adapter's by their `pw_asset_` prefix, which no
+/// program table may take (`shape::shape_of`).
 const PLATFORM_RELATIONS: &[&str] = &[
     "pw_platform",
     "pw_platform_pkey",

@@ -1,23 +1,23 @@
 ADR-0105 - a command invalidates the entry it speculates on
 
 produced by: just e10-speculation-reconciled
-commit: 7b8fb7cc8cbc9601e49df15c750d1eeaf6cabdd2
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43809526375 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 83ad1ab1f92c0bc4377dfc72df28643828771bb5
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/43929087203 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == speculations reconciled (compiler/pw-core/tests/speculation_reconciled.rs)
 
-test a_command_answers_for_its_own_speculation ... ok
 test a_speculated_reader_is_reported_once ... ok
-test an_event_reconciles_only_an_entry_that_hears_it ... ok
+test a_command_answers_for_its_own_speculation ... ok
 test the_speculation_is_underlined ... ok
+test an_event_reconciles_only_an_entry_that_hears_it ... ok
 test a_speculation_is_reconciled_by_its_command ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.33s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.71s
 
 == ADR-0101's readers and ADR-0103's fragments, unchanged
 
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.28s
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.72s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.34s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.02s
 
 == mutation controls (scripts/speculation_mutations.py)
 

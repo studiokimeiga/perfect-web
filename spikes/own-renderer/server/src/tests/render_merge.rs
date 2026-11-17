@@ -477,6 +477,31 @@ fn on_postgres_a_render_past_the_bound_waits_for_a_seat() {
     });
 }
 
+/// **On PostgreSQL, a render takes an idle connection again**: renders one
+/// after another, each reading in a seat of its own, hold one connection
+/// between them, each given back to the idle ones as its render ends and
+/// taken again by the next. Were an idle one never taken again, each render
+/// would open one more, past the bound, and the whole suite's renders past
+/// the database's connections. The bound's test below saw it only where
+/// enough of its renders reached the database: its renders are one
+/// session's, the render merge answers their reads together, and in L5's
+/// verify (43929087203) the mutant lived.
+#[test]
+fn on_postgres_a_render_takes_an_idle_connection_again() {
+    let Some(url) = store_database() else { return };
+    let (layer, _c) = store_on_postgres(&url);
+    let renders = layer.renders_for_test().expect("the database's renders");
+    for _ in 0..3 * RENDER_CONNECTIONS {
+        read_in_a_render(&layer).expect("a render's read");
+    }
+    let (seats, open) = renders.most();
+    assert_eq!(seats, 1, "one render at a time");
+    assert_eq!(
+        open, 1,
+        "one connection, taken again by each render, where {open} were opened"
+    );
+}
+
 /// **On PostgreSQL, a render that waits past its limit for a seat fails,
 /// saying so**: never a read outside the render's snapshot, nor a seat past
 /// the bound.

@@ -1,0 +1,1 @@
+Source3477 passed initial gates but subsequent review reproduced metadata rewrite/history gaps. Superseded; not final enrollment acceptance.

@@ -1,0 +1,33 @@
+
+running 15 tests
+test blob::assets::bounded_read_tests::a_payload_growing_after_its_metadata_check_reads_at_most_expected_length_plus_one ... ok
+test blob::assets::reservation_tests::an_interrupted_empty_generation_directory_still_reserves_its_identity ... ok
+test blob::assets::tests::bad_bytes_and_path_components_refuse_before_physical_publication ... ok
+test blob::assets::tests::independent_handles_share_enrollment_and_different_roots_refuse_existing_namespace ... ok
+test blob::assets::tests::memory_provider_reserves_and_validates_generations ... FAILED
+test blob::assets::tests::local_provider_reserves_and_validates_generations ... ok
+test blob::assets::tests::namespaces_isolate_identical_generation_names_and_legacy_blob_counts ... ok
+test blob::assets::tests::reads_distinguish_missing_corrupt_payload_and_changed_markers ... ok
+test blob::assets::tests::old_captured_cleanup_cannot_delete_a_new_generation_of_identical_bytes ... ok
+test blob::tests::a_blob_changed_where_it_is_kept_is_not_given_out ... ok
+test blob::tests::a_blob_in_memory_is_kept_by_its_key_once_and_forgotten ... ok
+test blob::tests::a_blob_is_kept_by_its_key_once_and_forgotten ... ok
+test blob::tests::a_key_is_64_lowercase_hex_digits_and_nothing_else ... ok
+test blob::tests::a_key_is_the_sha256_of_the_bytes ... ok
+test blob::assets::tests::two_independent_writers_cannot_reserve_the_same_generation_for_different_bytes ... ok
+
+failures:
+
+---- blob::assets::tests::memory_provider_reserves_and_validates_generations stdout ----
+
+thread 'blob::assets::tests::memory_provider_reserves_and_validates_generations' (2763807) panicked at spikes/own-renderer/server/src/blob/assets.rs:294:9:
+storage operation should succeed: Some(Custom { kind: AlreadyExists, error: "generation already reserved" })
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    blob::assets::tests::memory_provider_reserves_and_validates_generations
+
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 994 filtered out; finished in 0.05s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`

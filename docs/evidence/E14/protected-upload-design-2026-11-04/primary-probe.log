@@ -1,0 +1,5 @@
+SYNTHETIC lifetime protocol probe: no generic adapter/upload implementation exists yet.
+PostgreSQL 18.6 (Ubuntu 18.6-1.pgdg22.04+2)
+REPRODUCED advisory-only fault: live committed reference, identical republished bytes deleted by stale cleanup.
+PASS immutable generations: new committed reference and actual bytes survive stale old cleanup.
+PASS snapshot placement witness: late lock retains stale refs; lock before BEGIN sees latest committed refs.
