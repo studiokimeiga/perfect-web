@@ -2343,6 +2343,9 @@ a merge is held to CI's verification run.
 - Amended 2026-10-12: a fetch takes no file whose recipe reads what
   changed between its run's commit and the tree it joins (the planner's
   rule): the branch merges master and is verified again.
+- Amended 2026-11-17: Ruff's and Fallow's new-only gates run on every
+  branch push too, against where the branch left master, so a branch is
+  shown what its pull request would be refused for before it has one.
 [ADR-0282](DECISIONS/ADR-0282-what-a-value-holds-is-one-label.md):
 what a value holds is one label (amends ADR-0118, corrects ADR-0128).
 - A secret a declaration answers is held, and one it only uses as a key is
