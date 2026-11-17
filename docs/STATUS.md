@@ -14,10 +14,13 @@ the asset machinery, so neither adapter changed: two owners' posts at one
 id each keep their own image, a reference copied into another's post keeps
 the image after its author's delete, which is no erasure (H9's), and such a
 write works on the uploads (G10). A public or unowned table's own defect is
-told by its own rule alone. It is held on memory and on PostgreSQL, through
-the compiled commands and the server, and by eight mutants, killed locally
-(`e14-row-ownership`, `e14-row-ownership-3` and `e14-d3-postgres-3` record
-them in the pull request's verify).
+told by its own rule alone, and a table read by its reader alone once,
+whatever assets it keeps. It is held on memory and on PostgreSQL, through
+the compiled commands and the server, and by nine mutants, killed locally;
+the pull request's verify runs each script it reaches whole. Its
+independent review found six lows, each repaired: among them two
+assertions that could not fail, and an image served while any row names
+it, which KNOWN_LIMITATIONS now says (ADR-0440's G4, Reviewed).
 
 **L7's G10, 2026-11-17: the uploads' namespace held only by the commands
 that work on uploads** (`wip/l7-upload-lock`). On PostgreSQL every command

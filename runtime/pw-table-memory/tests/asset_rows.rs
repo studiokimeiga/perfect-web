@@ -947,7 +947,7 @@ fn a_compiled_put_naming_another_author_is_refused_and_ones_own_copy_is_kept() {
     let db = MemoryTables::new_with_uploads(program.tables.clone(), &program.uploads)
         .assert_ok("bound adapter");
     let r = posted(&db, ALICE, 1, candidate('b'));
-    let post = |author: &str, id: i64| {
+    let post = |author: &str, id: i64, alt: &str| {
         Val::Record(vec![
             ("author".into(), Val::String(author.into())),
             ("id".into(), Val::S64(id)),
@@ -955,11 +955,19 @@ fn a_compiled_put_naming_another_author_is_refused_and_ones_own_copy_is_kept() {
                 "image".into(),
                 Val::Option(Some(Box::new(image_reference()))),
             ),
-            ("alt".into(), Val::String(format!("{author}'s post {id}"))),
+            ("alt".into(), Val::String(alt.into())),
         ])
     };
-    let refused = command(&program, &db, "Keep", BOB, &[post(ALICE, 1)])
-        .assert_err("a post of another's is refused");
+    // Its words are not hers (G4's review, L1): a forgery written over her
+    // post would be told apart from it.
+    let refused = command(
+        &program,
+        &db,
+        "Keep",
+        BOB,
+        &[post(ALICE, 1, "bob's, as alice's")],
+    )
+    .assert_err("a post of another's is refused");
     assert!(
         refused.contains("whose `author` is not its writer"),
         "{refused}"
@@ -971,7 +979,7 @@ fn a_compiled_put_naming_another_author_is_refused_and_ones_own_copy_is_kept() {
         "her post is not rewritten"
     );
     assert_eq!(
-        command(&program, &db, "Keep", BOB, &[post(BOB, 7)]),
+        command(&program, &db, "Keep", BOB, &[post(BOB, 7, "bob's post 7")]),
         Ok(vec![])
     );
     assert_eq!(

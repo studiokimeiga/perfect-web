@@ -1738,12 +1738,12 @@ pub(super) fn asset_malformed(
 
 const ASSET_MALFORMED: &str = "A table keeps an upload's committed image as an asset: one \
      top-level field of its row, `Option<Upload.Ref>` or `Upload.Ref`, associated by `asset \
-     <field> from <Upload>`, of a table every reader reads (one no one owns, or a `public \
+     <field> from <Upload>`, of a table every reader reads (one no one owns, or an owned `public \
      table`, written by its owner alone) whose source holds the upload, a public upload declared \
      in the module of its name. The image is public by construction: served to anyone by its \
-     hash, cached by any cache forever, and kept once for every row that names the same bytes, \
-     so a table read by its reader alone keeps none (L7's G4, ADR-0440). The reference is never \
-     a claim, which a command's transaction owns.";
+     hash, cached by any cache for a year as immutable, and kept once for every row that names \
+     the same bytes, so a table read by its reader alone keeps none (L7's G4, ADR-0440). The \
+     reference is never a claim, which a command's transaction owns.";
 
 fn malformed(message: String, span: Span, related: Vec<Related>, repair: String) -> Diagnostic {
     refusal(

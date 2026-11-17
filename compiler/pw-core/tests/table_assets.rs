@@ -33,10 +33,11 @@ source PhotoData
 const APP: &str = r#"module photos.app
 import PostImage
 import Posts
+import Posts.{ Post }
 import context.{ current_session }
 import capability.{ Session, SessionId }
 opaque type InteractionId = String
-command keep(id: Int, alt: String) -> Result<(),PostImage.Error>
+command keep(id: Int, alt: String) -> Result<Int,PostImage.Error>
     requires Anyone
     idempotent_by InteractionId
     invalidates Attached(current_session())
@@ -44,8 +45,8 @@ command keep(id: Int, alt: String) -> Result<(),PostImage.Error>
 {
     let claim = PostImage.claim(current_session())?
     let image = PostImage.publish(current_session(),claim)?
-    let saved = Posts.put(Posts.Post { id: id, image: Some(image), alt: alt })
-    Ok(())
+    let saved = Posts.put(Post { id: id, image: Some(image), alt: alt })
+    Ok(id)
 }
 command discard() -> Result<PostImage.Attached,PostImage.Error>
     requires Anyone
@@ -203,6 +204,14 @@ fn a_public_optional_reference_and_resource_only_components_compile() {
             build.as_ref().err()
         );
         let build = build.unwrap();
+        // Every component lowers (found by L7's G4): a build with a
+        // refusal is no finished build, and this one passed with `keep`
+        // unlowered, its record named `Posts.Post` and its unit `Ok(())`.
+        assert!(
+            build.refusals().is_empty(),
+            "every component lowers: {:#?}",
+            build.refusals()
+        );
         let tables = serde_json::to_value(&build.tables).unwrap();
         let posts = tables["tables"]
             .as_array()
@@ -872,6 +881,37 @@ fn an_asset_on_a_table_read_by_its_reader_alone_is_refused_beside_its_valid_neig
             "{shape}: PW0371 alone, in its words: {got:#?}"
         );
     }
+}
+
+/// **A table read by its reader alone is told so once, whatever assets it
+/// keeps** (G4's review, L2; ADR-0112): the defect is the table's, one
+/// PW0371 at its first asset, each other asset a note at its own
+/// association. PW0371 told it once an asset.
+#[test]
+fn a_table_read_by_its_reader_alone_is_refused_once_for_all_its_assets() {
+    let posts = read_by_its_reader()
+        .replace(
+            "image: Option<PostImage.Ref>,",
+            "image: Option<PostImage.Ref>, banner: Option<PostImage.Ref>,",
+        )
+        .replace(
+            "    asset image from PostImage\n",
+            "    asset image from PostImage\n    asset banner from PostImage\n",
+        );
+    let got = diagnostics(&posts, IMAGE, SOURCE, "module photos.app\n");
+    assert!(
+        matches!(got.as_slice(), [(code, m)] if code == "PW0371"
+            && m.contains("asset field `image` requires a table every reader reads")),
+        "one PW0371 for the table, at its first asset: {got:#?}"
+    );
+    bounded(
+        &files(&posts, IMAGE, SOURCE, "module photos.app\n"),
+        "PW0371",
+        "asset field `image` requires a table every reader reads",
+        "Posts.pw",
+        "asset field `banner` is kept in it too",
+        "asset banner from PostImage",
+    );
 }
 
 /// **A table's own defect is not refused again as its asset's** (L7's G4,

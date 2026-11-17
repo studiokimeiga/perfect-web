@@ -2458,7 +2458,12 @@ nor the upload bridge, nor the classifier changes.
    write path, which counts its references, and the command that starts it
    works on the uploads (`Work::Uploads`, G10). A database's own `ON DELETE
    CASCADE` would take rows whose references the registry still counts,
-   their images served and never collected.
+   their images served and never collected. `Manifest::work` reads a
+   command's own imports alone (`runtime/pw-host/src/tables.rs:1006-1021`),
+   so G3 extends it to the tables a command's cascades reach: until then a
+   delete of a table keeping no asset that cascaded into one keeping an
+   asset would be begun for its tables alone and refused its asset write,
+   failing closed (G4's review, L6; NEXT's G3).
 
 **Consequences.**
 
@@ -2483,6 +2488,13 @@ nor the upload bridge, nor the classifier changes.
 - **A private serving policy** for tables read by their reader alone (an
   image behind its reader's session, cached privately, shared with no
   public row): no port needs one.
+- **Refusing a reference copied between owners' rows**, so that an
+  author's delete took their image down: it would not. The same bytes
+  uploaded again are the same generation, by their hash, at the same
+  address, so a delete could still leave the image served by another's
+  row; only an erasure that takes the bytes themselves would, H9's
+  (KNOWN_LIMITATIONS, "A declared image is served while any row names
+  it").
 
 **Acceptance.** Each test below failed on the code before it: the
 compiler's at the rule or its words, the others at their program's build
@@ -2500,6 +2512,12 @@ or its binding ("asset tables must be public").
   - `a_tables_own_defect_is_not_refused_again_as_its_asset`: a `public` or
     unowned table keeping a field private is PW0369 alone, and one sharing
     its rows PW0370 alone;
+  - `a_table_read_by_its_reader_alone_is_refused_once_for_all_its_assets`
+    (the review's L2): two assets, one PW0371, at the first, the second a
+    note at its own association;
+  - `a_public_optional_reference_and_resource_only_components_compile`
+    reads its build's refusals, found passing with its command `keep`
+    unlowered (below);
   - `assets_require_the_actual_public_reference_field_and_held_source`: its
     case of an unowned table keeping its image private expected PW0371,
     and is PW0369 alone.
@@ -2538,21 +2556,77 @@ or its binding ("asset tables must be public").
   Her take-down leaves the image served, his photo naming it; his ends its
   last use, and it is answered `404`.
 
-**Mutants**, eight, each killed locally (`e14-row-ownership`,
-`e14-row-ownership-3` and `e14-d3-postgres-3` record them in the pull
-request's verify):
+**Mutants**, nine, each killed locally (the pull request's verify
+records them, in each script's whole run):
 
-- `scripts/row_ownership_mutations.py`, seven, against its 27 suites (416
+- `scripts/row_ownership_mutations.py`, eight, against its 27 suites (416
   tests): at the compiler, a table read by its reader alone admitted, an
-  owned public one refused, and a public or unowned table's private field,
-  or its sharing, refused again as its asset's; at the host, a table read
-  by its reader alone admitted, and an owned public one refused; and an
-  owned table's write keeping an asset not upload work. The two that admit
-  are the old ones ("asset owned table accepted", "upload binding
-  associates owned rows with public assets"), re-anchored and renamed,
-  since an owned public table keeps an asset now; they are in the script's
-  first part, the five new ones in its third.
+  owned public one refused, a public or unowned table's private field, or
+  its sharing, refused again as its asset's, and a table read by its
+  reader alone relating none of its other assets (the review's L2); at the
+  host, a table read by its reader alone admitted, and an owned public one
+  refused; and an owned table's write keeping an asset not upload work.
+  The two that admit are the old ones ("asset owned table accepted",
+  "upload binding associates owned rows with public assets"), re-anchored
+  and renamed, since an owned public table keeps an asset now; they are in
+  the script's first part, the six new ones in its third. The six move its
+  parts' bounds, from `(0, 85), (85, 170), (170, 255)` to `(0, 87),
+  (87, 174), (174, 261)`, so each part's evidence is that of other
+  mutants, and all three are run again (`e14-row-ownership`, `-2`, `-3`;
+  the review's L4).
 - `scripts/d3_postgres_mutations.py` (the uploads' part), one, against the
   crate's 17 test binaries: `verify_rows` matching an asset row by its key's
   last field alone, not its owner, which refuses bob's post beside alice's
   of the same id (and the prefix delete's untouched group).
+- `scripts/generic_upload_claims_mutations.py` plants none of G4's, and
+  runs `tests::upload_bridge`, which G4's photos join: it is run again
+  whole (`e14-generic-upload-claims`).
+
+**Reviewed** at `d1df6bb4` (AGENTS.md rule 4): no high or medium finding,
+six lows, each repaired in the commit after it.
+
+- **L1, two assertions that a forged put left her post as it was could
+  not fail.** Memory's forgery carried her post's own words and image, and
+  the server read her photo by its image alone, the forgery's the same.
+  Repair: each forgery's words are its own, and the server reads the
+  photo's words too (a query, `Alt`). Cause: the forgery was made from the
+  fixture's own row. Prevention: what a refused write would overwrite is
+  read back, and differs from the write.
+- **L2, a table read by its reader alone was refused once an asset**: two
+  assets, two PW0371, one defect (ADR-0112). Repair: one, at its first
+  asset, the others related. Cause: the rule was asked in the loop over
+  its assets, where the rule it replaced was. Prevention:
+  `a_table_read_by_its_reader_alone_is_refused_once_for_all_its_assets`,
+  which fails on `d1df6bb4` (two PW0371), and a mutant relating none of
+  the others.
+- **L3, KNOWN_LIMITATIONS did not say that a declared image is served
+  while any row names it**, and its entry "a deleted post's image is served
+  no more" (the hand-written feed's) read as every feed's. Repair: an entry
+  of its own, the old one named the hand-written feed's, and "Not chosen"
+  above says why refusing copies would not take an image down.
+- **L4, the record understated what is run again**, and two of the
+  server's helpers failed where no kill is counted. The six new mutants
+  move the row-ownership script's parts, and `tests::upload_bridge` is
+  the claims script's; `image_of` and `reference_of` failed at `panic!`
+  arms, which the strict producer reads as no assertion (INVALID), and
+  three callers at `.expect`. Repair: the mutants' paragraph names the
+  shift and the scripts run whole; each helper fails at an `assert!` of
+  its own, and the callers use `asserted_some`. Cause: the parts are even
+  ranges of a list that grew, and the helpers were written as the
+  module's first was. Prevention: the verify runs each script the change
+  reaches whole.
+- **L5, PW0371's explanation said a `public table` is written by its
+  owner alone**, where an unowned one is written as its `written by`
+  says, and that caches keep an image "forever", where its header says a
+  year. Repair: its words ("an owned `public table`", "for a year as
+  immutable").
+- **L6, decision 4 said a cascade's command works on the uploads**, which
+  `Manifest::work` cannot yet know. Repair: decision 4 and NEXT's G3 say
+  G3 extends it; until then such a cascade fails closed.
+
+Found while repairing, beside the review:
+`a_public_optional_reference_and_resource_only_components_compile` passed
+with its command `keep` unlowered (its record named `Posts.Post`, its unit
+`Ok(())`): its build was `Ok`, and its refusals were never read. It reads
+them, and `keep` lowers. Twenty other test files build a program without
+reading its refusals; whether any passes so is NEXT's item 10.

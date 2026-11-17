@@ -133,8 +133,16 @@ fn keep(s: &Server, session: &str, id: i64, interaction: &str) -> Answered {
     .asserted("Keep answered")
 }
 
-/// The reference row `id` keeps, as the program reads it.
+/// The reference row `id` keeps, as the program reads it. A read of
+/// another shape fails at an assertion here, as the strict producer counts
+/// a kill (G4's review, L4: a `panic!` arm was no kill's site).
 fn image_of(s: &Server, id: i64) -> Option<(String, String)> {
+    let read = read_image(s, id);
+    assert!(read.is_ok(), "{read:?}");
+    read.ok().flatten()
+}
+
+fn read_image(s: &Server, id: i64) -> Result<Option<(String, String)>, String> {
     match s.query("photos.app.Image", "anyone", &[Val::S64(id)]) {
         Ok(Val::Option(Some(found))) => match *found {
             Val::Record(fields) => {
@@ -146,18 +154,18 @@ fn image_of(s: &Server, id: i64) -> Option<(String, String)> {
                 };
                 let key = match field("key") {
                     Some(Val::String(key)) => key,
-                    other => panic!("a reference's key: {other:?}"),
+                    other => return Err(format!("a reference's key: {other:?}")),
                 };
                 let kind = match field("kind") {
                     Some(Val::Variant(kind, None)) => kind,
-                    other => panic!("a reference's kind: {other:?}"),
+                    other => return Err(format!("a reference's kind: {other:?}")),
                 };
-                Some((key, kind))
+                Ok(Some((key, kind)))
             }
-            other => panic!("a reference: {other:?}"),
+            other => Err(format!("a reference: {other:?}")),
         },
-        Ok(Val::Option(None)) => None,
-        other => panic!("the Image query: {other:?}"),
+        Ok(Val::Option(None)) => Ok(None),
+        other => Err(format!("the Image query: {other:?}")),
     }
 }
 
@@ -206,7 +214,7 @@ fn claimed_image_is_committed_and_served(s: &Server) {
         leases.pending_attempts(10).expect("pending").is_empty(),
         "applied"
     );
-    let (key, kind) = image_of(s, 1).expect("the row names its image");
+    let (key, kind) = image_of(s, 1).asserted_some("the row names its image");
     let (head, body) = get(s, &format!("/images/{key}.{kind}"));
     assert!(head.starts_with("http/1.1 200"), "{head}");
     assert_eq!(
@@ -283,7 +291,7 @@ fn a_removed_rows_image_is_not_served(s: &Server) {
         "the upload staged"
     );
     assert!(keep(s, "reader", 1, "keep-1").committed);
-    let (key, kind) = image_of(s, 1).expect("the row names its image");
+    let (key, kind) = image_of(s, 1).asserted_some("the row names its image");
     let removed = s
         .command_answer(
             "photos.app.Remove",
@@ -463,7 +471,7 @@ fn a_lost_commit_answer_settles_its_claim_from_its_receipt_on_postgresql() {
         "the answer lost"
     );
     assert!(landed.committed, "{landed:?}");
-    let (key, kind) = image_of(&s, 1).expect("the row names its image");
+    let (key, kind) = image_of(&s, 1).asserted_some("the row names its image");
     let (head, _) = get(&s, &format!("/images/{key}.{kind}"));
     assert!(head.starts_with("http/1.1 200"), "{head}");
     let leases = s.uploads.leases().asserted_some("staged leases");
@@ -1535,7 +1543,7 @@ opaque type InteractionId = String
 command Post(id: Int, alt: String) -> Result<Int,PostImage.Error>
     requires Anyone
     idempotent_by InteractionId
-    invalidates Attached(current_session()), Image(_, _)
+    invalidates Attached(current_session()), Image(_, _), Alt(_, _)
     transaction serializable
 {
     let me = current_user()
@@ -1547,7 +1555,7 @@ command Post(id: Int, alt: String) -> Result<Int,PostImage.Error>
 command Keep(photo: Photo) -> ()
     requires Anyone
     idempotent_by InteractionId
-    invalidates Image(_, _)
+    invalidates Image(_, _), Alt(_, _)
     transaction serializable
 {
     Photos.put(current_user(), photo)
@@ -1555,7 +1563,7 @@ command Keep(photo: Photo) -> ()
 command TakeDown(id: Int) -> ()
     requires Anyone
     idempotent_by InteractionId
-    invalidates Image(_, _)
+    invalidates Image(_, _), Alt(_, _)
     transaction serializable
 {
     Photos.delete(current_user(), id)
@@ -1581,6 +1589,16 @@ public query Image(author: UserId, id: Int) -> Option<PostImage.Ref>
     timeout 2.seconds
 {
     match Photos.get(author, id) { Some(photo) => photo.image, None => None }
+}public query Alt(author: UserId, id: Int) -> Option<String>
+    freshness 0.seconds
+    consistency snapshot
+    cache shared
+    key author, id
+    concurrency one_per_key
+    on_key_change cancel
+    timeout 2.seconds
+{
+    match Photos.get(author, id) { Some(photo) => Some(photo.alt), None => None }
 }
 "#;
 
@@ -1596,8 +1614,15 @@ fn built_owned() -> (tempfile::TempDir, std::path::PathBuf) {
     )
 }
 
-/// The reference `author`'s photo `id` keeps, as a command is sent one.
+/// The reference `author`'s photo `id` keeps, as a command is sent one; a
+/// read of another shape fails at an assertion here, as [`image_of`].
 fn reference_of(s: &Server, author: &str, id: i64) -> Option<serde_json::Value> {
+    let read = read_reference(s, author, id);
+    assert!(read.is_ok(), "{read:?}");
+    read.ok().flatten()
+}
+
+fn read_reference(s: &Server, author: &str, id: i64) -> Result<Option<serde_json::Value>, String> {
     let read = s.query(
         "photos.app.Image",
         "anyone",
@@ -1605,24 +1630,46 @@ fn reference_of(s: &Server, author: &str, id: i64) -> Option<serde_json::Value> 
     );
     match read {
         Ok(Val::Option(Some(found))) => match *found {
-            Val::Record(fields) => Some(serde_json::Value::Object(
-                fields
-                    .into_iter()
-                    .map(|(name, value)| {
-                        let value = match value {
-                            Val::String(text) => serde_json::json!(text),
-                            Val::S64(n) => serde_json::json!(n),
-                            Val::Variant(kind, None) => serde_json::json!({ "$case": kind }),
-                            other => panic!("a reference's `{name}`: {other:?}"),
-                        };
-                        (name, value)
-                    })
-                    .collect(),
-            )),
-            other => panic!("a reference: {other:?}"),
+            Val::Record(fields) => fields
+                .into_iter()
+                .map(|(name, value)| match value {
+                    Val::String(text) => Ok((name, serde_json::json!(text))),
+                    Val::S64(n) => Ok((name, serde_json::json!(n))),
+                    Val::Variant(kind, None) => Ok((name, serde_json::json!({ "$case": kind }))),
+                    other => Err(format!("a reference's `{name}`: {other:?}")),
+                })
+                .collect::<Result<serde_json::Map<_, _>, _>>()
+                .map(|fields| Some(serde_json::Value::Object(fields))),
+            other => Err(format!("a reference: {other:?}")),
         },
-        Ok(Val::Option(None)) => None,
-        other => panic!("the Image query: {other:?}"),
+        Ok(Val::Option(None)) => Ok(None),
+        other => Err(format!("the Image query: {other:?}")),
+    }
+}
+
+/// The words `author`'s photo `id` keeps, where it is kept: a forgery
+/// written over it would be told apart from it (G4's review, L1, where
+/// its image alone was read, the forgery's the same).
+fn alt_of(s: &Server, author: &str, id: i64) -> Option<String> {
+    let read = s.query(
+        "photos.app.Alt",
+        "anyone",
+        &[Val::String(author.into()), Val::S64(id)],
+    );
+    assert!(
+        match &read {
+            Ok(Val::Option(None)) => true,
+            Ok(Val::Option(Some(alt))) => matches!(**alt, Val::String(_)),
+            _ => false,
+        },
+        "the Alt query: {read:?}"
+    );
+    match read {
+        Ok(Val::Option(Some(alt))) => match *alt {
+            Val::String(alt) => Some(alt),
+            _ => None,
+        },
+        _ => None,
     }
 }
 
@@ -1696,6 +1743,11 @@ fn an_owned_photos_image_is_every_readers_and_kept_by_its_copy(s: &Server) {
         "refused as another's: {forged:?}"
     );
     assert_eq!(reference_of(s, "u-ada", 1), Some(reference.clone()));
+    assert_eq!(
+        alt_of(s, "u-ada", 1).as_deref(),
+        Some("Ada's"),
+        "hers as she wrote it, not the forgery's words"
+    );
     let copied = s
         .command_answer(
             "photos.app.Keep",
@@ -1709,6 +1761,7 @@ fn an_owned_photos_image_is_every_readers_and_kept_by_its_copy(s: &Server) {
         "his own photo, her image's copy: {copied:?}"
     );
     assert_eq!(reference_of(s, "u-bob", 7), Some(reference.clone()));
+    assert_eq!(alt_of(s, "u-bob", 7).as_deref(), Some("Bob's copy"));
     let down = |session: &str, id: i64| {
         s.command_answer(
             "photos.app.TakeDown",

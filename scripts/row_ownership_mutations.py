@@ -263,7 +263,8 @@ MUTANTS = [
     # Re-anchored and renamed by L7's G4 (2026-11-17): it was "asset owned
     # table accepted", and an owned `public table` keeps one now.
     ('asset table read by its reader alone accepted', ROOT / 'compiler/pw-core/src/tables/assets.rs',
-     '        if t.read_by_its_reader() {\n', '        if false {\n'),
+     '    if t.read_by_its_reader()\n        && let Some((first, others)) = t.assets.split_first()\n',
+     '    if false\n        && let Some((first, others)) = t.assets.split_first()\n'),
     ('asset nominal declaration ignored', ROOT / 'compiler/pw-core/src/tables/assets.rs',
      '        if field.def_id() != reference || !field.args().is_empty() {', '        if false && (field.def_id() != reference || !field.args().is_empty()) {'),
     ('asset mandatory binding omitted', ROOT / 'compiler/pw-core/src/tables/assets.rs',
@@ -810,14 +811,19 @@ MUTANTS = [
     # The two that admit a table read by its reader alone are the old ones,
     # re-anchored, above.
     ("an asset's owned public table is refused at the compiler", ROOT / 'compiler/pw-core/src/tables/assets.rs',
-     '        if t.read_by_its_reader() {\n',
-     '        if t.owner.is_some() {\n'),
+     '    if t.read_by_its_reader()\n        && let Some((first, others)) = t.assets.split_first()\n',
+     '    if t.owner.is_some()\n        && let Some((first, others)) = t.assets.split_first()\n'),
     ("an asset's public table keeping a field private is refused twice", ROOT / 'compiler/pw-core/src/tables/assets.rs',
-     '        if t.read_by_its_reader() {\n',
-     '        if t.read_by_its_reader() || !t.private_fields().is_empty() {\n'),
+     '    if t.read_by_its_reader()\n        && let Some((first, others)) = t.assets.split_first()\n',
+     '    if (t.read_by_its_reader() || !t.private_fields().is_empty())\n        && let Some((first, others)) = t.assets.split_first()\n'),
     ("an asset's public table sharing its rows is refused twice", ROOT / 'compiler/pw-core/src/tables/assets.rs',
-     '        if t.read_by_its_reader() {\n',
-     '        if t.read_by_its_reader() || !t.sharers().is_empty() {\n'),
+     '    if t.read_by_its_reader()\n        && let Some((first, others)) = t.assets.split_first()\n',
+     '    if (t.read_by_its_reader() || !t.sharers().is_empty())\n        && let Some((first, others)) = t.assets.split_first()\n'),
+    # G4's review, L2 (2026-11-17): the table's defect is told once, at its
+    # first asset, each other asset related to it.
+    ("a table read by its reader alone relates none of its other assets", ROOT / 'compiler/pw-core/src/tables/assets.rs',
+     '        let kept_too = others\n            .iter()\n',
+     '        let kept_too = others\n            .iter()\n            .take(0)\n'),
     ("an asset's owned public table is refused at the host", HOST_TABLES,
      '                if (table.owner.is_some() && !table.public)\n',
      '                if table.owner.is_some()\n'),
