@@ -1,0 +1,75 @@
+a page that talks to no server starts a runtime with no server's code in it: mutation controls, part 2 of 3
+
+produced by: just e14-device-runtime-2
+commit: a8b2679c249b12897db211c2dbabf8af8a3fdf02
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/44057830231 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+node: v22.21.1
+playwright: Version 1.58.0
+
+== mutation controls (scripts/device_runtime_mutations.py), part 2 of 3
+
+part 2 of 3: mutants 32 to 87 of 225
+baseline (contract): 10 passed, 0 failed
+baseline (host): 27 passed, 0 failed
+baseline (browser): 12 passed, 0 failed
+baseline (nested): 2 passed, 0 failed
+baseline (rows): 49 passed, 0 failed
+a device page decides nothing [browser]: KILLED (3 of 12 tests fail)
+a device page's table is not heard [browser]: KILLED (1 of 12 tests fail)
+a device page's decision is another page's [browser]: KILLED (1 of 12 tests fail)
+every render morphs the whole block [browser]: KILLED (1 of 12 tests fail)
+what a block rendered outlives its anchor [nested]: KILLED (1 of 2 tests fail)
+a block taken away this pass is rendered [nested]: KILLED (1 of 2 tests fail)
+a box in a row left alone is left [browser]: KILLED (1 of 12 tests fail)
+a box the page ticked is not looked for [browser]: KILLED (1 of 12 tests fail)
+a box the page unticked is not looked for [browser]: KILLED (1 of 12 tests fail)
+a box before the block is written [browser]: KILLED (1 of 12 tests fail)
+a box after the block is written [browser]: KILLED (1 of 12 tests fail)
+a block that can show a box is not looked over [browser]: KILLED (1 of 12 tests fail)
+a block's boxes are read from nothing [browser]: KILLED (1 of 12 tests fail)
+a new row is taken for the first [contract]: KILLED (1 of 10 tests fail)
+a new row counts among those that stay [contract]: KILLED (2 of 10 tests fail)
+only the shortest run stays [contract]: KILLED (2 of 10 tests fail)
+a row out of place is left there [rows]: KILLED (5 of 49 tests fail)
+a row that went stays [rows]: KILLED (4 of 49 tests fail)
+when no row stays they all do [rows]: KILLED (2 of 49 tests fail)
+a row changed in place is left [rows]: KILLED (6 of 49 tests fail)
+a row changed and moved is left [rows]: KILLED (1 of 49 tests fail)
+new rows go in at the end [rows]: KILLED (2 of 49 tests fail)
+a new row among others goes in at the end [rows]: KILLED (2 of 49 tests fail)
+a new row is parsed [rows]: KILLED (5 of 49 tests fail)
+rows added after those kept go in before them [rows]: KILLED (1 of 49 tests fail)
+rows added after those kept are not put in [rows]: KILLED (12 of 49 tests fail)
+rows added after those kept are all the rows [rows]: KILLED (1 of 49 tests fail)
+a row kept is taken for one out of place [rows]: KILLED (1 of 49 tests fail)
+rows kept are compared past those that are not [rows]: KILLED (6 of 49 tests fail)
+rows where they were are looked for and placed [rows]: KILLED (1 of 49 tests fail)
+a list replaced is looked for and placed [rows]: KILLED (1 of 49 tests fail)
+a list the block did not hold is parsed with it [rows]: KILLED (2 of 49 tests fail)
+a list that is its own block is rewritten the first time [rows]: KILLED (5 of 49 tests fail)
+a list that is its own block is not rendered again [host]: KILLED (1 of 27 tests fail)
+a changed row is morphed [rows]: KILLED (4 of 49 tests fail)
+a row the document holds is morphed [rows]: KILLED (3 of 49 tests fail)
+text holding an escape is read back as written [rows]: KILLED (1 of 49 tests fail)
+text holding a return is read back as written [rows]: KILLED (1 of 49 tests fail)
+text holding a NUL is read back as written [rows]: KILLED (1 of 49 tests fail)
+a row a plan made holds no captures for its press [rows]: KILLED (13 of 49 tests fail)
+what a row the plan set captures does not follow it [rows]: KILLED (5 of 49 tests fail)
+a row whose handlers capture is compared by its holes alone [rows]: KILLED (3 of 49 tests fail)
+a handler's element the plan takes over keeps its captured text [rows]: KILLED (4 of 49 tests fail)
+a handler's element the plan takes over holds no captures for its press [rows]: KILLED (3 of 49 tests fail)
+a row the plan takes over is not taken over [rows]: KILLED (4 of 49 tests fail)
+a press reads no captures a plan holds [rows]: KILLED (16 of 49 tests fail)
+a hole is found among the wrong siblings [rows]: KILLED (15 of 49 tests fail)
+a row's text hole holds nothing [rows]: KILLED (9 of 49 tests fail)
+a row's attribute is set empty [rows]: KILLED (3 of 49 tests fail)
+a row's attribute hole is the same whatever its value [rows]: KILLED (3 of 49 tests fail)
+a row's boolean attribute is never there [rows]: KILLED (1 of 49 tests fail)
+a row's boolean hole is the same whatever its value [rows]: KILLED (1 of 49 tests fail)
+an element's handlers are a hole each [rows]: KILLED (9 of 49 tests fail)
+a planned row's text is never written [rows]: KILLED (26 of 49 tests fail)
+an attribute that needs reading back is set as written [rows]: KILLED (2 of 49 tests fail)
+a path's head is cut a name long [rows]: KILLED (30 of 49 tests fail)
+56 of 56 mutants killed
+memory bound: no process was stopped
