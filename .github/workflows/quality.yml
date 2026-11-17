@@ -18,7 +18,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: quality-${{ github.ref }}
+  # The event too: a dispatch on a branch would otherwise cancel that
+  # branch's push gate, which shows cancelled, not green (#128's review).
+  group: quality-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -45,7 +47,12 @@ jobs:
       # would be refused for, before it has one.
       - name: Refuse Ruff errors a branch introduces since master
         if: github.event_name == 'push' && github.ref != 'refs/heads/master'
-        run: python3 scripts/quality_delta.py --base "$(git merge-base origin/master HEAD)"
+        # The base on its own line: a merge base that cannot be found stops
+        # the step (bash -e), where a substitution inside the command would
+        # hand it an empty base.
+        run: |
+          base="$(git merge-base origin/master HEAD)"
+          python3 scripts/quality_delta.py --base "$base"
       - name: Report existing Ruff baseline
         if: github.event_name != 'pull_request' && (github.event_name != 'push' || github.ref == 'refs/heads/master')
         continue-on-error: true

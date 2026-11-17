@@ -230,13 +230,23 @@ gates run on every branch push too.
   first pull request (#126) was refused for 122 new Ruff findings in seven
   files: a CI round lost at the end. Each gate now runs on a push of every
   branch `ci.yml` builds (`track/**`, `wip/**`) too, against where the
-  branch left master (`git merge-base origin/master HEAD`), as its pull
-  request's run reads the base. Held by
-  `scripts/tests/test_workflow_branch_gates.py`, five tests: every branch
-  `ci.yml` builds runs both gates, each against its merge base with the
-  history to find it, master's own push keeps the baseline report, and
-  Fallow's weekly report runs on its schedule alone. Four of them fail on
-  the workflows as they were. A branch with a pull request runs each gate
+  branch left master (`git merge-base origin/master HEAD`). That
+  approximates its pull request's run, which compares master's tip with the
+  merge: the two differ once master has moved (a name master removed is
+  caught by the pull request's alone). Held by
+  `scripts/tests/test_workflow_branch_gates.py`, six tests, which read each
+  step's own `if:` and its job's and evaluate them for every event the
+  workflows take (a pull request, a push to master, `wip/**` and `track/**`,
+  the schedule, a dispatch on master and on a branch): every branch
+  `ci.yml` builds runs both gates; each gate runs where it should and
+  nowhere else, master's push and every schedule or dispatch keeping the
+  baseline report; Fallow's base is found before its audit reads it, on a
+  line of its own, since `echo "sha=$(...)"` exits 0 when no merge base is
+  found and Fallow then reads the branch against itself and passes; and a
+  dispatch is never a push's concurrency group, which it would cancel. The
+  first version of the test matched strings, and #128's review found it
+  passed five workflows whose gates could never run; nine such mutants, the
+  review's among them, now each fail it. A branch with a pull request runs each gate
   twice, once a push and once the pull request; the repository is public,
   so the runs cost no minutes.
 

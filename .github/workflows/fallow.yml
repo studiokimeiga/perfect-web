@@ -32,7 +32,12 @@ jobs:
       - name: The branch's base on master
         id: base
         if: github.event_name == 'push'
-        run: echo "sha=$(git merge-base origin/master HEAD)" >> "$GITHUB_OUTPUT"
+        # On its own line: `echo "sha=$(...)"` exits 0 when the merge base is
+        # not found, and an empty `changed-since` makes Fallow read the branch
+        # against itself and pass (#128's review, reproduced).
+        run: |
+          sha="$(git merge-base origin/master HEAD)"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
       - uses: fallow-rs/fallow@34269241152fa2e7e6a9de1aba698dcae93035b3 # v3
         if: github.event_name == 'push'
         with:
