@@ -575,3 +575,29 @@ shard and by its total: before the splits its longest shard was
 More shards, and the long recipes left in parts, are what shorten a full
 verify further (NEXT).
 
+## Amended 2026-11-17: the device runtime's mutants in two parts
+
+With `e14-row-ownership` and d3 in parts (#129), the longest recipe a server
+change reaches is `e14-device-runtime`: 9,425 s, and so about every pull
+request's verify's length (the asset contract suite's plan: 166 minutes
+over 19 shards, this recipe 157 of them). It ran two scripts after its
+tests: `device_runtime_mutations.py`'s 225 mutants and
+`own_rows_mutations.py`'s 127.
+
+- `device_runtime_mutations.py`'s mutants run in two parts, each a recipe of
+  its own: `e14-device-runtime-2` (`--part 1/2`) and `e14-device-runtime-3`
+  (`--part 2/2`). Each builds what the whole recipe built and takes the
+  baseline of each suite its mutants run before any of them counts.
+  `e14-device-runtime` keeps its tests and the planned list's own
+  (`own_rows_mutations.py`).
+- The parts are cut by cost, not count (`PARTS = [(0, 87), (87, 225)]`). A
+  mutant of `rows` builds the list four ways and runs two Playwright suites;
+  one of `browser` or `nested` a build and one suite; one of `host` three
+  cargo test filters; the rest a Node test each. Count-even thirds would
+  have given one part 46 of the 90 Playwright mutants and another 4.
+  `test_the_device_runtimes_two_parts_hold_its_every_mutant` holds them to
+  every mutant once and the `rows` mutants split within five, and
+  `evidence_counts`' `split` holds the recipes to both parts.
+- `ci_seconds.json`: projections of 3,000 s, 3,600 s and 3,600 s until a run
+  measures them.
+

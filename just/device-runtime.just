@@ -42,9 +42,45 @@ e14-device-runtime:
        PW_PRODUCTION_ASSETS=1 PW_REPORT=1 bash spikes/own-renderer/rows.sh > /dev/null; \
        PW_PRODUCTION_ASSETS=1 PW_REPORT=1 bash spikes/own-renderer/row-events.sh > /dev/null; \
        PW_PRODUCTION_ASSETS=1 bash scripts/run_suite.sh -- pnpm exec playwright test e2e/rows.spec.mjs --grep @report --reporter=line; \
-       echo; echo "== mutation controls (scripts/device_runtime_mutations.py)"; echo; \
-       CARGO_INCREMENTAL=0 python3 scripts/device_runtime_mutations.py; \
        echo; echo "== a planned list's own code, mutation controls (scripts/own_rows_mutations.py)"; echo; \
        CARGO_INCREMENTAL=0 python3 scripts/own_rows_mutations.py; \
      } > docs/evidence/E14/device-runtime.txt
     @grep -E "^ℹ (pass|fail)|^test result|passed|mutants killed|panicked at" docs/evidence/E14/device-runtime.txt
+
+# Part 1 of 2 of the device runtime's mutation controls
+# (`e14-device-runtime` runs the tests and the planned list's own), on the
+# same builds, after the baseline of each suite its mutants run.
+e14-device-runtime-2:
+    @BUILD_ONLY=1 bash spikes/own-renderer/run.sh > /dev/null
+    @PW_PRODUCTION_ASSETS=1 bash spikes/own-renderer/todomvc.sh > /dev/null
+    @cargo build --quiet --locked -p pw-dev-server -p pw-render-oracle
+    @cargo build --quiet --locked -p pw-resume-wasm --target wasm32-unknown-unknown --profile browser
+    @mkdir -p docs/evidence/E14
+    @{ echo "a page that talks to no server starts a runtime with no server's code in it: mutation controls, part 1 of 2"; echo; \
+       echo "produced by: just e14-device-runtime-2"; \
+       echo "commit: $(git rev-parse HEAD)$(git diff --quiet HEAD -- . ':(exclude)docs/evidence' ':(exclude)spikes/own-renderer/store-ir.json' || echo ' + uncommitted changes')"; \
+       echo "rust: $(rustc --version)"; echo "node: $(node --version)"; \
+       echo "playwright: $(cd spikes/own-renderer && pnpm exec playwright --version)"; echo; \
+       echo "== mutation controls (scripts/device_runtime_mutations.py), part 1 of 2"; echo; \
+       CARGO_INCREMENTAL=0 python3 scripts/device_runtime_mutations.py --part 1/2; \
+     } > docs/evidence/E14/device-runtime-2.txt
+    @grep -E "mutants killed|^baseline|^part " docs/evidence/E14/device-runtime-2.txt
+
+# Part 2 of 2 of the device runtime's mutation controls
+# (`e14-device-runtime` runs the tests and the planned list's own), on the
+# same builds, after the baseline of each suite its mutants run.
+e14-device-runtime-3:
+    @BUILD_ONLY=1 bash spikes/own-renderer/run.sh > /dev/null
+    @PW_PRODUCTION_ASSETS=1 bash spikes/own-renderer/todomvc.sh > /dev/null
+    @cargo build --quiet --locked -p pw-dev-server -p pw-render-oracle
+    @cargo build --quiet --locked -p pw-resume-wasm --target wasm32-unknown-unknown --profile browser
+    @mkdir -p docs/evidence/E14
+    @{ echo "a page that talks to no server starts a runtime with no server's code in it: mutation controls, part 2 of 2"; echo; \
+       echo "produced by: just e14-device-runtime-3"; \
+       echo "commit: $(git rev-parse HEAD)$(git diff --quiet HEAD -- . ':(exclude)docs/evidence' ':(exclude)spikes/own-renderer/store-ir.json' || echo ' + uncommitted changes')"; \
+       echo "rust: $(rustc --version)"; echo "node: $(node --version)"; \
+       echo "playwright: $(cd spikes/own-renderer && pnpm exec playwright --version)"; echo; \
+       echo "== mutation controls (scripts/device_runtime_mutations.py), part 2 of 2"; echo; \
+       CARGO_INCREMENTAL=0 python3 scripts/device_runtime_mutations.py --part 2/2; \
+     } > docs/evidence/E14/device-runtime-3.txt
+    @grep -E "mutants killed|^baseline|^part " docs/evidence/E14/device-runtime-3.txt

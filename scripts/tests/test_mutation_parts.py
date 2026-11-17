@@ -1,6 +1,6 @@
 """`scripts/mutation_parts.py`: a mutation script's mutants in parts, each a
 recipe of its own (ADR-0359, amended 2026-11-17), and `row_ownership`'s
-three, held to every mutant once."""
+three and `device_runtime`'s two, held to every mutant once."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ import unittest
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 import mutation_parts  # noqa: E402 - after the path, as the tests beside it
+import device_runtime_mutations  # noqa: E402
 import row_ownership_mutations  # noqa: E402
 
 
@@ -50,6 +51,19 @@ class Parts(unittest.TestCase):
         self.assertEqual(len(parts), 3)
         held = [i for start, end in parts for i in range(start, end)]
         self.assertEqual(held, list(range(len(row_ownership_mutations.MUTANTS))))
+
+    def test_the_device_runtimes_two_parts_hold_its_every_mutant(self):
+        # Cut by cost, not count: each part about half the whole's seconds,
+        # its `rows` mutants, the costliest, split between the two.
+        parts = device_runtime_mutations.PARTS
+        self.assertEqual(len(parts), 2)
+        held = [i for start, end in parts for i in range(start, end)]
+        self.assertEqual(held, list(range(len(device_runtime_mutations.MUTANTS))))
+        rows = [
+            sum(1 for m in device_runtime_mutations.MUTANTS[start:end] if m[1] == "rows")
+            for start, end in parts
+        ]
+        self.assertLessEqual(max(rows) - min(rows), 5, rows)
 
 
 if __name__ == "__main__":

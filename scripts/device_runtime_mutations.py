@@ -22,7 +22,13 @@ or a guard `optimize-assets.test.mjs` (or `host-plan.test.mjs`), of the host
 what a block keeps `e2e/nested-blocks.spec.mjs` against a production build of
 the demos.
 
-Run from the repository root; `just e14-device-runtime` records the output.
+Run from the repository root. Its mutants run in two parts, each a recipe
+of its own (the owner's grant of 2026-11-17, CI faster with no gate given
+up; ADR-0359, amended): `just e14-device-runtime-2` part 1 and
+`just e14-device-runtime-3` part 2, each `--part i/2` (`mutation_parts.py`),
+`just e14-device-runtime` the tests and `own_rows_mutations.py`; with no
+part, every mutant. A part takes the baseline of each suite its mutants
+run, before any of them counts.
 The source is restored after every mutant, whatever happens.
 """
 
@@ -34,6 +40,8 @@ import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "scripts"))
+import mutation_parts  # noqa: E402 - after the path, as the scripts beside it
 PACKAGING = ROOT / "spikes/own-renderer/optimize-assets.mjs"
 SERVER = ROOT / "spikes/own-renderer/server/src/main.rs"
 CSP = ROOT / "spikes/own-renderer/server/src/csp.rs"
@@ -733,13 +741,30 @@ def rows():
 
 SUITES = {"decision": decision, "contract": contract, "packaging": packaging, "host": host, "browser": browser, "nested": nested, "rows": rows}
 
+# **Two parts, each a recipe of its own**: whole, with `own_rows_mutations.py`
+# in its recipe, the longest recipe a verify ran (9,425 s), and so every
+# verify's length. Cut by cost, not count: a mutant of `rows` builds the
+# list four ways and runs two Playwright suites, one of `browser` or `nested`
+# a build and one, of `host` three cargo test filters, and the rest a Node
+# test each (some 90, 60, 90, 30 and 5 seconds), so each part holds about
+# half of the whole's.
+PARTS = [(0, 87), (87, len(MUTANTS))]
+
 
 def main():
     import mutation_baseline  # keeps what each command says, for a red baseline
     # Stopped from outside, the source is still restored: SIGTERM raises
     # here, and the `finally` below runs.
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(1))
+    chosen, which = mutation_parts.chosen(sys.argv[1:], MUTANTS, PARTS, "device_runtime_mutations.py")
+    if which:
+        print(which, flush=True)
+    # The baseline of each suite a chosen mutant runs: green before any of
+    # them counts.
+    asked = {suite for _, suite, _, _, _ in chosen}
     for suite, run in SUITES.items():
+        if suite not in asked:
+            continue
         built, passed, failed = run()
         print(f"baseline ({suite}): {passed} passed, {failed} failed", flush=True)
         if not built or failed or not passed:
@@ -748,7 +773,7 @@ def main():
             return 1
 
     survivors = 0
-    for what, suite, path, anchor, replacement in MUTANTS:
+    for what, suite, path, anchor, replacement in chosen:
         original = path.read_text()
         if original.count(anchor) != 1:
             print(f"{what}: ANCHOR NOT FOUND EXACTLY ONCE in {path.name}")
@@ -770,7 +795,7 @@ def main():
     # What was built from a mutant is built again from the restored source.
     browser()
 
-    print(f"{len(MUTANTS) - survivors} of {len(MUTANTS)} mutants killed")
+    print(f"{len(chosen) - survivors} of {len(chosen)} mutants killed")
     return 1 if survivors else 0
 
 
