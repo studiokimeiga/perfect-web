@@ -51,6 +51,40 @@ in order:
 6. **Public initialization, stable ids and private child deletion**, as the
    ports need them.
 7. **L7, the canonical feed and store on tables**, as after L4 (item 4).
+   A survey of what the ports need (2026-11-17, at `2255b1c6`) found these
+   gaps first, each its own pull request, in this order:
+   - **G0**, a row past 16 flat values (the feed's post): done (#131).
+   - ~~**G5**, a window over an owned `public table` (the subscriptions'
+     window over their authors' posts)~~: done (2026-11-17,
+     `wip/l7-owned-windows`; ADR-0440, amended). It went before G10, which
+     the survey put first: a rule at admission that the port needs
+     whatever G10's numbers say, and that takes no lock.
+   - **G10**, the upload namespace's lock on every command of a program
+     that declares uploads (KNOWN_LIMITATIONS): measure the feed's command
+     mix on two hosts, and narrow the lock if the numbers ask.
+   - **G4**, an asset on an owned table (a post's image): refused by the
+     compiler (`tables/assets.rs`) and the host (`tables.rs`).
+   - **G1**, an id sequence never reused after a delete, a rollback, a
+     restart or on a second host (the feed's post ids); **G2**, seed rows,
+     applied once per database under a lock.
+   - **G3**, a delete that takes other owners' rows (a post's replies,
+     likes and notifications, and their images): `refers` is one field,
+     refuse-only and within one owner (PW6924). The largest; an ADR first.
+   - **G6**, `Account`'s handle, and a Payments-invoked command writing its
+     payer's owned rows; **G7**, guest session ids the host alone issues,
+     and the provider's issuer kept beside `sub`; **G8**, an operator's
+     invoker for the store's operator writes (an ADR first); **G9**, the
+     generic adapters' fault hooks, or a ruling; **G11**, no square root or
+     trigonometry for the store's reach (seed reach rows instead);
+     **G12**, search over the bounded catalogue (a ruling against
+     ADR-0440's bounded reads).
+
+   Then an L7 modeling ADR (its rulings: how much of the hand-written store
+   can go, a cascade's authority and depth, sequence order against commit
+   order, likes per press or per user, operator authority, porting in place
+   or beside), the feed on memory tables (three pull requests) and on
+   PostgreSQL, the store in four, the switch-over, and the hand-written
+   layers' removal.
 8. **The benchmark baselines' Node patches**: landed (#127, 2026-11-17;
    ADR-0120, amended), as after L4 (item 5); the owner's standing approval
    takes each later patch-level security update through the same gates.

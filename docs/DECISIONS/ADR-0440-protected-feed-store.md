@@ -2099,3 +2099,83 @@ nothing" overstated; case 4 sent no `HEAD`; the four mutants are the
 script's item 8 throughout; the PostgreSQL two-field test's account of
 memory's; `upload_bridge`'s list of the tests it owed; and NEXT's
 flat-limit item, its own now.
+
+## Amended 2026-11-17: a window's target is one every reader reads (L7's G5)
+
+A relation window (`window posts from Roots row Roots.Root on author to
+author`) required a target owned by no one, at the compiler (PW0368) and at
+the host (`tables.json`'s relation rule). The feed's subscriptions read
+their authors' posts through one, and a post is its author's: written by
+its author alone and read by every reader, a `public table` owned by its
+author (ADR-0395's ruling 4). The rule protected readers, but it caught
+every owned table, a public one too.
+
+**Decision.** A window's target is a table every reader reads: one no one
+owns, or a `public table` its owner writes. It is never a table read by its
+reader alone (owned, not `public`), whose rows a window would give to other
+readers: the compiler asks `read_by_its_reader()` (PW0368). A target that
+keeps fields private or shares its rows where every reader reads them is
+its own table's defect, refused by that table's rule (PW0369, PW0370), and
+once (ADR-0112). The host asks all three of `tables.json` (`owner` and not
+`public`, `private`, `shares`), as before: a manifest is held to the rule
+whole, whoever wrote it.
+
+**Acceptance.**
+
+- `compiler/pw-core/tests/table_relations.rs`:
+  - `an_owned_public_relation_target_is_read_as_every_reader_reads_it`: such
+    a window compiles with no diagnostic.
+  - `a_target_its_own_rule_refuses_is_not_refused_again_as_a_window`: a
+    `public table`, or a table no one owns, that keeps a field private
+    (PW0369) or shares its rows (PW0370) is told so once, with no PW0368.
+  - `a_protected_relation_target_is_refused_beside_the_public_neighbor`:
+    the target read by its reader alone, refused as before, in the rule's
+    new words.
+- `runtime/pw-table-memory/tests/compiled_relations.rs`:
+  - `a_window_reads_an_owned_public_target_as_every_reader_reads_it`: the
+    plain public program's memberships and posts, the posts now owned by
+    their authors, answer the same rows to every caller.
+  - `the_feeds_shape_reads_each_readers_window_and_a_staged_post`: the
+    feed's own shape, memberships owned by their reader over posts owned
+    by their authors. Each reader's window answers its own subscriptions'
+    posts, latest first. A tie on the order mark goes by the author before
+    the id: Alice's ids 2 and 9, both at 5, are answered 2 then 9, which
+    the unowned key's tie-break, by the id, would answer the other way. A
+    command that inserts a post with its author's handle reads it through
+    the window before its commit, and another reader reads it after.
+  - The forged-manifest test admits the owned target once it is `public`,
+    and still refuses it otherwise.
+- `runtime/pw-table-postgres/tests/compiled_relations.rs`: the same two on
+  PostgreSQL, the owned target's window read before the tables are reopened
+  and again after.
+- `scripts/row_ownership_mutations.py`: six mutants, and the old one
+  re-anchored. Four undo the rule, at the host and at the compiler: a
+  target read by its reader alone admitted, and an owned public target
+  refused. Two restore the duplicate: a public target's private field, or
+  its sharing, refused again as the window's. The seven were killed locally
+  against the script's 27 suites; `e14-row-ownership` records them in the
+  pull request's verify.
+
+**Reviewed** independently (2026-11-17, at `9124a3d6`): no high or medium
+finding, and four lows, each repaired.
+
+- **L1, the feed's own shape was never run.** The window was checked over
+  memberships owned by their reader only by the compiler's diagnostics, and
+  run over unowned ones. The feed-shape tests above run it on both layers,
+  a post staged and read in one command among them.
+- **L2, the seed could not tell the owner-led tie-break apart.** Its one
+  tie on the order mark (ids 3 and 4) was answered the same by the author
+  and by the id. The seed now ties posts whose author order and id order
+  disagree.
+- **L3, one defect, two diagnostics.** The compiler asked the private
+  fields and the sharers beside `read_by_its_reader()`, so a target its own
+  table's rule refused was refused again as the window's (PW0369 or PW0370,
+  with PW0368), and the first version's test pinned the duplicate. The
+  compiler now asks `read_by_its_reader()` alone. Cause: the window's rule
+  restated the table rules it relies on. Prevention: the test above holds
+  each of the four shapes to one diagnostic, and two mutants restore the
+  duplicate.
+- **L4, the record.** The PostgreSQL test now reads before the reopen too;
+  NEXT says why G5 went before G10; STATUS says the mutants were killed
+  locally, as above; the decisions index has this amendment's line and the
+  asset suite's.
