@@ -97,3 +97,54 @@ direction to move the heavy verification off the laptop (relayed
   Android, GHC, CodeQL), and a shard frees, between recipes, the object
   files, the incremental cache and each test binary but the newest of its
   name, and records the disk left after each.
+
+## Amended 2026-11-18: a campaign's bundle is kept while a record names it
+
+Three recipes write their campaign into a bundle, a directory of its own
+made by `mktemp -d docs/evidence/E14/<name>.XXXXXX`, so that a run never
+writes over the last one's files while it runs:
+`e14-session-command-authority` (`just/session-command-authority.just:8`),
+`e14-session-receipt-recovery` and `e14-upload-authority`. Each recipe's
+evidence file names its bundle (`campaign: …/report.json`), and the receipt
+campaign's report names the session campaign it read. A fetch copied each
+run's bundle in and removed none. On 2026-11-18 master held 22 bundles,
+2,218 files, and records named four.
+
+**Decision.**
+
+- A bundle is kept while a record names it: a file under `docs/` outside
+  the bundles, or a file of a bundle so kept, transitively.
+  `scripts/evidence_bundles.py` reads each bundle's template from the
+  recipes' own `mktemp -d` (the justfile and every file under `just/`), so
+  a campaign recipe added later is held too.
+- `evidence_fetch.py` prunes once it has copied a run's evidence: the
+  bundles that evidence superseded go, and the fetch names each.
+- The repository is held to it by its own test
+  (`test_the_repository_holds_no_unnamed_bundle`, in `evidence-gates`'
+  suite), and `--check` and `--prune` serve a tree a recipe ran in locally.
+- The 18 bundles no record named are removed. Git keeps them in history;
+  none was a gate's evidence.
+
+**Not chosen.**
+
+- **A fixed directory a run writes over**: a failed run would leave half
+  of its files over the last good run's.
+- **Pruning in the recipes**: a recipe would remove what a record still
+  names, such as the session bundle the current receipt campaign read.
+
+**Acceptance.**
+
+- `scripts/tests/test_evidence_bundles.py`, nine tests, each failing on the
+  code before it. The repository's own test failed on master's 18 bundles.
+  The fetch's end-to-end test failed with its prune taken out.
+- `scripts/evidence_bundles_mutations.py`, nine mutants, each killed
+  locally (`just e14-evidence-bundles` records them):
+  - an unnamed bundle kept;
+  - the check passing one;
+  - a bundle named through a kept one removed;
+  - a superseded bundle's files keeping what they name;
+  - a record outside the evidence naming none;
+  - a bundle as any directory its template begins;
+  - an imported recipe naming no template;
+  - a fetch pruning nothing;
+  - a fetch pruning before it copies.

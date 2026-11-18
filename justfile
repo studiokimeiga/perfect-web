@@ -93,6 +93,7 @@ import 'just/style-images.just'
 import 'just/rows.just'
 import 'just/row-ownership.just'
 import 'just/durable-tables.just'
+import 'just/evidence-bundles.just'
 
 default:
     @just --list

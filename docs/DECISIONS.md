@@ -2065,6 +2065,7 @@ the heavy verification runs on GitHub Actions.
   `verify` workflow runs them in parallel shards on Linux, a push the
   recipes it touches and each night all of them, and a recorded command
   fetches a run's evidence, each file naming the run.
+- Amended 2026-11-18: a campaign's bundle (a recipe's `mktemp -d` directory under docs/evidence) is kept while a record names it, directly or through a bundle kept; a fetch prunes the bundles its evidence superseded, and the repository holds no other (`evidence_bundles.py`; 18 superseded bundles, 1,758 files, removed).
 [ADR-0246](DECISIONS/ADR-0246-a-feed-on-postgres.md):
 the feed's data in PostgreSQL, held to what its source states.
 - A `DataLayer` on PostgreSQL beside the in-memory one: a command is one
