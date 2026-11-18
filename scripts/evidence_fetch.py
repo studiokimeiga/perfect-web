@@ -51,7 +51,7 @@ import tempfile
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 import ci_summary  # shared recipe memory-guard validity, including historical runs
-import evidence_bundles  # a campaign's bundle kept while a record names it
+import evidence_bundles  # noqa: E402 - after the path, as the scripts beside it
 # Each recipe's seconds, as `ci_plan.SECONDS` reads them.
 SECONDS = ROOT / "scripts/ci_seconds.json"
 
