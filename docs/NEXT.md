@@ -151,6 +151,11 @@ in order:
     `table_windows.rs`, `table_ranges.rs`, `table_counts.rs`,
     `template_values.rs`). Read each, and hold each that could pass so to
     its refusals.
+11. ~~**Campaign bundles piling up**~~: done (2026-11-18,
+    `wip/evidence-bundles`; ADR-0245, amended). Every run of the three
+    campaign recipes left its `mktemp` bundle in `docs/evidence/E14`
+    (22 of them, 2,218 files, three named). A tracked bundle is kept while
+    a record names it, and a fetch prunes the rest.
 
 Keep the mixed-layer startup refusal until its replacement is real; a
 program's uploads beside its tables are served only through L5b's gates.

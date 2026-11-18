@@ -25,6 +25,12 @@ Refused, before anything is copied:
   another run records that recipe, `--skip RECIPE` copies none of its
   files.
 
+A campaign's bundle (a recipe's `mktemp -d` directory under
+`docs/evidence/`) that git tracks and no record names once the run's files
+are copied is a superseded run's, and goes (`evidence_bundles.py`; ADR-0245,
+amended 2026-11-18): until then every run's bundle stayed. A fetch that
+copied nothing prunes nothing.
+
 Each recipe that ran to its end (exit 0, no memory-guard failure) has its seconds kept in
 `scripts/ci_seconds.json`, which `ci_plan.py` deals the next runs by
 (ADR-0290). `--times-only` keeps them from any completed run, one that
@@ -45,6 +51,7 @@ import tempfile
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 import ci_summary  # shared recipe memory-guard validity, including historical runs
+import evidence_bundles  # noqa: E402 - after the path, as the scripts beside it
 # Each recipe's seconds, as `ci_plan.SECONDS` reads them.
 SECONDS = ROOT / "scripts/ci_seconds.json"
 
@@ -166,6 +173,13 @@ def verdict(recipe: str | None, moved: set[str], skip: list[str]) -> str | None:
     return None
 
 
+def pruned() -> None:
+    """Remove each campaign bundle no record names now, and say which: the
+    bundles the copied evidence superseded (`evidence_bundles.py`)."""
+    for bundle in evidence_bundles.prune(ROOT):
+        print(f"  removed, no record names it: {bundle.relative_to(ROOT)}/")
+
+
 def results_of(shards: list[pathlib.Path]) -> list[dict]:
     out = []
     for shard in shards:
@@ -247,6 +261,8 @@ def main() -> int:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(data)
             print(f"  {path.relative_to(ROOT)}")
+        if staged:
+            pruned()
         n = remember(timed(results_of(shards)), SECONDS)
     print(f"evidence-fetch: {len(staged)} files from {run['url']}; {n} recipes' seconds kept")
     return 0
