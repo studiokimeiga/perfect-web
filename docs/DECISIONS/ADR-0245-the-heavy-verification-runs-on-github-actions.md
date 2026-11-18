@@ -105,46 +105,90 @@ made by `mktemp -d docs/evidence/E14/<name>.XXXXXX`, so that a run never
 writes over the last one's files while it runs:
 `e14-session-command-authority` (`just/session-command-authority.just:8`),
 `e14-session-receipt-recovery` and `e14-upload-authority`. Each recipe's
-evidence file names its bundle (`campaign: …/report.json`), and the receipt
-campaign's report names the session campaign it read. A fetch copied each
-run's bundle in and removed none. On 2026-11-18 master held 22 bundles,
-2,218 files, and records named four.
+evidence file names its bundle (`campaign: …/report.json`). A fetch copied
+each run's bundle in and removed none: on 2026-11-18 master held 22
+bundles, 2,218 files, and records named three.
 
 **Decision.**
 
-- A bundle is kept while a record names it: a file under `docs/` outside
-  the bundles, or a file of a bundle so kept, transitively.
-  `scripts/evidence_bundles.py` reads each bundle's template from the
-  recipes' own `mktemp -d` (the justfile and every file under `just/`), so
-  a campaign recipe added later is held too.
-- `evidence_fetch.py` prunes once it has copied a run's evidence: the
-  bundles that evidence superseded go, and the fetch names each.
-- The repository is held to it by its own test
-  (`test_the_repository_holds_no_unnamed_bundle`, in `evidence-gates`'
-  suite), and `--check` and `--prune` serve a tree a recipe ran in locally.
-- The 18 bundles no record named are removed. Git keeps them in history;
-  none was a gate's evidence.
+- **A bundle** is a directory named by a recipe's template and as many
+  letters and digits as its `X`s. `scripts/evidence_bundles.py` reads the
+  templates from the recipes' own `mktemp -d`, quoted or not, in the
+  justfile and every file under `just/`, so a campaign recipe added later
+  is held too. A directory under a template's name is the campaign's.
+- **A bundle is kept while a record names it**: an evidence file's
+  `campaign:` line, or a document's citation (a `.md` under `docs/`: an ADR,
+  the status), outside every bundle.
+- **Nothing else names one.** A campaign's report lists the untracked
+  files it started beside (`working_tree`), other bundles among them, and
+  reads none of them; another line of a text file could list a failed
+  check's bundles.
+- **Only a bundle git tracks can go.** One not yet committed is a run's
+  here: its recipe makes it first and names it in its evidence file last,
+  so a run still writing is never removed.
+- **`evidence_fetch.py` prunes once it has copied a run's evidence**, and
+  names each bundle it removes. A fetch that copied nothing, one refused,
+  and one of times alone prune nothing.
+- **The repository is held to it** by its own test
+  (`test_the_repository_holds_no_tracked_bundle_no_record_names`, in
+  `evidence-gates`' suite). `--check` and `--prune` serve a tree a recipe
+  ran in.
+- **The 19 bundles no record named are removed**, 1,925 files; git keeps
+  them. Among them is `session-commands.0jQZtj`, committed as an earlier
+  gate's evidence of record (`a02744aa`), which no record names now.
 
 **Not chosen.**
 
 - **A fixed directory a run writes over**: a failed run would leave half
   of its files over the last good run's.
 - **Pruning in the recipes**: a recipe would remove what a record still
-  names, such as the session bundle the current receipt campaign read.
+  names.
+- **A bundle named by another bundle's files**: their mentions are the
+  status of a checkout, not a reading.
 
 **Acceptance.**
 
-- `scripts/tests/test_evidence_bundles.py`, nine tests, each failing on the
-  code before it. The repository's own test failed on master's 18 bundles.
-  The fetch's end-to-end test failed with its prune taken out.
-- `scripts/evidence_bundles_mutations.py`, nine mutants, each killed
-  locally (`just e14-evidence-bundles` records them):
-  - an unnamed bundle kept;
-  - the check passing one;
-  - a bundle named through a kept one removed;
-  - a superseded bundle's files keeping what they name;
-  - a record outside the evidence naming none;
-  - a bundle as any directory its template begins;
-  - an imported recipe naming no template;
-  - a fetch pruning nothing;
-  - a fetch pruning before it copies.
+- `scripts/tests/test_evidence_bundles.py`, fourteen tests, each failing
+  on the code before it where it holds new code. The repository's own test
+  failed on master's 18 unnamed bundles. The fetch's end-to-end test
+  failed with its prune taken out. Six tests failed on this amendment's
+  first commit (`21cbc94a`), which its review repaired:
+  - a run's untracked bundle;
+  - a bundle's own files;
+  - a text record's other lines;
+  - the template's exact width and quoting;
+  - a fetch that copied nothing.
+- `scripts/evidence_bundles_mutations.py`, sixteen mutants, each killed
+  locally; `just e14-evidence-bundles` records them in the pull request's
+  verify:
+  - an unnamed bundle kept, or the check passing one;
+  - a bundle's own files keeping what they list;
+  - any line of a text record naming one;
+  - a document outside the evidence naming none;
+  - an untracked bundle going;
+  - a bundle as any directory its template begins, of more letters than
+    its `X`s, or a file;
+  - an imported recipe, or a quoted template, naming none;
+  - a fetch pruning nothing, before it copies, having copied nothing, what
+    it refused, or for times alone.
+
+**Reviewed** at `21cbc94a` (AGENTS.md rule 4): no high finding, two medium
+and five low, each repaired in the commit after it.
+
+- **M1, a prune removed a campaign still running here**: its bundle is
+  named only at its end. Repair: only tracked bundles go, and a fetch that
+  copied nothing prunes nothing.
+- **M2, bundles named by another bundle's files**: the only such mention
+  was a report's `git status` listing, and a failed check's report would
+  keep what it listed. Repair: only `campaign:` lines and documents name a
+  bundle, and `session-commands.BNKtmJ`, kept that way, is removed.
+- **Lows**:
+  - a refused fetch, a fetch of times alone and a file named as a bundle
+    had no test (each has one, and a mutant);
+  - the repository's test ran in the mutation controls' suite (it is
+    `evidence-gates`' alone);
+  - a template's width and quoting;
+  - the record's words ("none was a gate's evidence"; mutants "killed"
+    before the verify recorded them);
+  - an INVALID verdict `evidence_counts` could not read (it says `INVALID
+    OR SURVIVED`).

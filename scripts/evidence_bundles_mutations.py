@@ -5,16 +5,18 @@ prunes the bundles its evidence superseded (`evidence_fetch.py`).
 
 Each mutant undoes one piece:
 - an unnamed bundle is kept, or the check passes it;
-- a bundle named through a kept bundle goes, or a superseded bundle's own
-  files keep what they name;
-- a record outside the evidence (an ADR citing a bundle) names nothing;
-- a bundle is any directory its template begins, or a recipe imported by
-  the justfile names no template;
-- a fetch prunes nothing, or prunes before it copies, while the evidence
-  it replaces still names the old bundle.
+- a bundle's own files keep what they list, or any line of a text record
+  names a bundle;
+- a document outside the evidence (an ADR citing a bundle) names nothing;
+- a bundle git does not track (a run here) can go;
+- a bundle is any directory its template begins, or of more letters than
+  its X's, or a file; a recipe the justfile imports, or a quoted template,
+  names none;
+- a fetch prunes nothing, prunes before it copies, prunes having copied
+  nothing, prunes what it refused, or prunes fetching times alone.
 
-Each runs `scripts/tests/test_evidence_bundles.py`; at least one test must
-fail.
+Each runs `scripts/tests/test_evidence_bundles.py`'s `Bundles` and `Fetch`;
+at least one test must fail.
 
 Run from the repository root; `just e14-evidence-bundles` records the
 output. The sources are restored after every mutant, whatever happens.
@@ -46,29 +48,48 @@ MUTANTS = [
         "    if None:\n",
     ),
     (
-        "a bundle named through a kept bundle goes",
-        BUNDLES,
-        "    reading = sorted(kept)\n",
-        "    reading = []\n",
-    ),
-    (
-        "a superseded bundle's own files keep what they name",
+        "a bundle's own files keep what they list",
         BUNDLES,
         "        if any(parent in inside for parent in path.resolve().parents):\n"
         "            continue\n",
         "",
     ),
     (
-        "a record outside the evidence names no bundle",
+        "any line of a text record names a bundle",
+        BUNDLES,
+        '        if path.suffix == ".txt":\n'
+        '            text = "\\n".join(CAMPAIGN.findall(text))\n',
+        "",
+    ),
+    (
+        "a document outside the evidence names no bundle",
         BUNDLES,
         '    for path in sorted((root / "docs").rglob("*")):\n',
         '    for path in sorted((root / "docs" / "evidence").rglob("*")):\n',
     ),
     (
+        "an untracked bundle can go",
+        BUNDLES,
+        "    return sorted(b for b in tracked(root) if b not in kept)\n",
+        "    return sorted(b for b in bundles(root) if b not in kept)\n",
+    ),
+    (
         "a bundle is any directory its template begins",
         BUNDLES,
-        '        made = re.compile(rf"^{name}\\.[A-Za-z0-9]{{6,}}$")\n',
+        '        made = re.compile(rf"^{name}\\.[A-Za-z0-9]{{{width}}}$")\n',
         '        made = re.compile(rf"^{name}")\n',
+    ),
+    (
+        "a bundle of more letters than its template's X's is a bundle",
+        BUNDLES,
+        '        made = re.compile(rf"^{name}\\.[A-Za-z0-9]{{{width}}}$")\n',
+        '        made = re.compile(rf"^{name}\\.[A-Za-z0-9]{{{width},}}$")\n',
+    ),
+    (
+        "a file is a bundle",
+        BUNDLES,
+        "        out.extend(p for p in parent.iterdir() if p.is_dir() and made.match(p.name))\n",
+        "        out.extend(p for p in parent.iterdir() if made.match(p.name))\n",
     ),
     (
         "a recipe the justfile imports names no template",
@@ -77,11 +98,25 @@ MUTANTS = [
         '    for recipe in [root / "justfile"]:\n',
     ),
     (
+        "a quoted template is not read",
+        BUNDLES,
+        'MKTEMP = re.compile(r"""mktemp -d ["\']?(docs/evidence/[\\w./-]+?)\\.(X{6,})""")\n',
+        'MKTEMP = re.compile(r"""mktemp -d (docs/evidence/[\\w./-]+?)\\.(X{6,})""")\n',
+    ),
+    (
         "a fetch prunes nothing",
         FETCH,
-        '            print(f"  {path.relative_to(ROOT)}")\n'
-        "        pruned()\n",
-        '            print(f"  {path.relative_to(ROOT)}")\n',
+        "        if staged:\n"
+        "            pruned()\n",
+        "",
+    ),
+    (
+        "a fetch that copied nothing prunes",
+        FETCH,
+        "        if staged:\n"
+        "            pruned()\n",
+        "        if True:\n"
+        "            pruned()\n",
     ),
     (
         "a fetch prunes before it copies",
@@ -90,16 +125,38 @@ MUTANTS = [
         "            path.parent.mkdir(parents=True, exist_ok=True)\n"
         "            path.write_bytes(data)\n"
         '            print(f"  {path.relative_to(ROOT)}")\n'
-        "        pruned()\n",
-        "        pruned()\n"
+        "        if staged:\n"
+        "            pruned()\n",
+        "        if staged:\n"
+        "            pruned()\n"
         "        for path, data in sorted(staged.items()):\n"
         "            path.parent.mkdir(parents=True, exist_ok=True)\n"
         "            path.write_bytes(data)\n"
         '            print(f"  {path.relative_to(ROOT)}")\n',
     ),
+    (
+        "a fetch it refused prunes",
+        FETCH,
+        "        if refused:\n"
+        '            print("evidence-fetch: refused, nothing copied:',
+        "        pruned()\n"
+        "        if refused:\n"
+        '            print("evidence-fetch: refused, nothing copied:',
+    ),
+    (
+        "a fetch of times alone prunes",
+        FETCH,
+        "            n = remember(timed(results_of(shard_dirs(pathlib.Path(tmp)))), SECONDS)\n",
+        "            n = remember(timed(results_of(shard_dirs(pathlib.Path(tmp)))), SECONDS)\n"
+        "            pruned()\n",
+    ),
 ]
 
-SUITE = [sys.executable, "-m", "unittest", "scripts/tests/test_evidence_bundles.py"]
+# The tests of trees of their own; the repository's own test is
+# `evidence-gates`' alone: a campaign run in this checkout beside the
+# controls would hold their baseline to its untracked bundle.
+SUITE = [sys.executable, "-m", "unittest",
+         "scripts.tests.test_evidence_bundles.Bundles", "scripts.tests.test_evidence_bundles.Fetch"]
 
 # How long one run may take. Past the bound it is killed with everything it
 # started, and the run counts as failing.
@@ -156,7 +213,7 @@ def main():
         finally:
             path.write_text(original)
         if not ran:
-            verdict = "INVALID (the suite did not run)"
+            verdict = "INVALID OR SURVIVED"
             survivors += 1
         elif failed:
             verdict = f"KILLED ({failed} of {passed + failed} tests fail)"

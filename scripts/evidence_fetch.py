@@ -26,9 +26,10 @@ Refused, before anything is copied:
   files.
 
 A campaign's bundle (a recipe's `mktemp -d` directory under
-`docs/evidence/`) that no record names once the run's files are copied is a
-superseded run's, and goes (`evidence_bundles.py`; ADR-0245, amended
-2026-11-18): until then every run's bundle stayed.
+`docs/evidence/`) that git tracks and no record names once the run's files
+are copied is a superseded run's, and goes (`evidence_bundles.py`; ADR-0245,
+amended 2026-11-18): until then every run's bundle stayed. A fetch that
+copied nothing prunes nothing.
 
 Each recipe that ran to its end (exit 0, no memory-guard failure) has its seconds kept in
 `scripts/ci_seconds.json`, which `ci_plan.py` deals the next runs by
@@ -260,7 +261,8 @@ def main() -> int:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(data)
             print(f"  {path.relative_to(ROOT)}")
-        pruned()
+        if staged:
+            pruned()
         n = remember(timed(results_of(shards)), SECONDS)
     print(f"evidence-fetch: {len(staged)} files from {run['url']}; {n} recipes' seconds kept")
     return 0
